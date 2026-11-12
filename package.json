@@ -1,0 +1,13 @@
+{
+  "name": "tinker",
+  "version": "0.0.1",
+  "description": "A tiny frontend framework, built to learn how frameworks work.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": "./src/index.js",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "dev": "npx --yes serve ."
+  },
+  "license": "MIT"
+}
