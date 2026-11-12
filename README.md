@@ -9,16 +9,16 @@ attributes that read it are updated.
 ## Layout
 
 ```
-src/signal.js   signal, effect, computed (the reactive core)
-src/dom.js      h() and mount() (turns components into DOM)
-src/index.js    public exports
-test/           unit tests (node --test)
-examples/       demo pages
+src/signal.ts   signal, effect, computed (the reactive core)
+src/dom.ts      h() and mount() (turns components into DOM)
+src/index.ts    public exports
+test/           unit tests (Vitest + jsdom)
+examples/       demo pages (served by Vite)
 ```
 
 ## Usage
 
-```js
+```ts
 import { signal, h, mount } from "tinker";
 
 function Counter() {
@@ -34,8 +34,11 @@ Pass a function (like `count`) as a child or prop, and Tinker keeps it up to dat
 
 ## Scripts
 
-- `npm test` runs the tests
-- `npm run dev` serves the folder; open `/examples/counter/`
+- `npm install` installs the dev tools (TypeScript, Vite, Vitest, jsdom)
+- `npm run dev` starts Vite and opens `/examples/counter/`
+- `npm test` runs the tests (`npm run test:watch` to keep them running)
+- `npm run typecheck` checks types
+- `npm run build` compiles `src/` to `dist/` with type declarations
 
 ## Roadmap ideas
 
@@ -43,5 +46,5 @@ Pass a function (like `count`) as a child or prop, and Tinker keeps it up to dat
 - [ ] Conditional rendering (`show(cond, () => ...)`)
 - [ ] Lists with keys (`each(items, item => ...)`)
 - [ ] Component cleanup (stop effects when a component is removed)
-- [ ] JSX support via a build step
+- [ ] JSX support (TypeScript `jsxFactory: h`)
 - [ ] A simple router

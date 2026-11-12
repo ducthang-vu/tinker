@@ -3,11 +3,29 @@
   "version": "0.0.1",
   "description": "A tiny frontend framework, built to learn how frameworks work.",
   "type": "module",
-  "main": "src/index.js",
-  "exports": "./src/index.js",
-  "scripts": {
-    "test": "node --test \"test/**/*.test.js\"",
-    "dev": "npx --yes serve ."
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "license": "MIT"
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^31.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
 }
