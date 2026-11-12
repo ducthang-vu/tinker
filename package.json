@@ -19,10 +19,15 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "license": "MIT",
   "devDependencies": {
+    "@babel/core": "^8.1.2",
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@babel/plugin-syntax-typescript": "^8.0.3",
+    "@vitest/coverage-v8": "^5.1.0",
     "jsdom": "^31.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
