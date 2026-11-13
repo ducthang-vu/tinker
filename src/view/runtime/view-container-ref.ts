@@ -57,7 +57,10 @@ export class ViewContainerRef {
     return this.views.indexOf(view);
   }
 
-  /** Create component `type` (in a new host element) and insert it at `index` (default: the end). */
+  /**
+   * Create component `type` (in a new host element) and insert it at `index`
+   * (default: the end).
+   */
   createComponent<T extends object>(type: Class<T>, index: number = this.length): View<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
@@ -85,7 +88,8 @@ export class ViewContainerRef {
 
   /** Destroy the view at `index` (default: the last one). Does nothing if there is none. */
   remove(index: number = this.length - 1): void {
-    this.get(index).ifSome((view) => view.destroy());
+    this.get(index)
+      .ifSome((view) => view.destroy());
   }
 
   /** Destroy all views, last first. */
@@ -97,7 +101,8 @@ export class ViewContainerRef {
 
   /** The node before which the view at `index` must sit: the next view's host, or the anchor. */
   private nodeAfter(index: number): Node {
-    return this.get(index + 1).match({ some: (view) => view.host, none: () => this.anchor });
+    return this.get(index + 1)
+      .match({ some: (view) => view.host, none: () => this.anchor });
   }
 
   private parent(): Node {

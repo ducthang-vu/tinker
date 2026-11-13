@@ -12,7 +12,8 @@ function makeView() {
   const nodes = [document.createElement("p"), document.createTextNode("text")];
   host.append(...nodes);
   const component = { name: "component" };
-  return { view: new View(host, component, nodes, new DomRenderer()), host, kept, nodes, component };
+  const view = new View(host, component, nodes, new DomRenderer());
+  return { view, host, kept, nodes, component };
 }
 
 describe("View", () => {
@@ -25,17 +26,27 @@ describe("View", () => {
     const inputs = inputsOf(tooltip);
     view.addInputs(tooltip, inputs);
 
-    expect(view.input(tooltip, "text").getOrElse(undefined)).toBe(inputs.get("text"));
-    expect(view.input(tooltip, "other").isNone()).toBe(true);
-    expect(view.input(new Tooltip(), "text").isNone()).toBe(true);
+    expect(view.input(tooltip, "text")
+      .getOrElse(undefined))
+      .toBe(inputs.get("text"));
+    expect(view.input(tooltip, "other")
+      .isNone())
+      .toBe(true);
+    expect(view.input(new Tooltip(), "text")
+      .isNone())
+      .toBe(true);
   });
 
   test("holds its host, component and nodes", () => {
     const { view, host, nodes, component } = makeView();
-    expect(view.host).toBe(host);
-    expect(view.component).toBe(component);
-    expect(view.nodes).toEqual(nodes);
-    expect(view.destroyed).toBe(false);
+    expect(view.host)
+      .toBe(host);
+    expect(view.component)
+      .toBe(component);
+    expect(view.nodes)
+      .toEqual(nodes);
+    expect(view.destroyed)
+      .toBe(false);
   });
 
   describe("setInput", () => {
@@ -59,19 +70,23 @@ describe("View", () => {
       view.setInput("title", "Hello");
       view.setInput("size", 2);
 
-      expect(card.title()).toBe("Hello");
-      expect(seen).toEqual([1, 2]);
+      expect(card.title())
+        .toBe("Hello");
+      expect(seen)
+        .toEqual([1, 2]);
     });
 
     test("throws for a name that is not an input of the component", () => {
       const { view } = cardView();
-      expect(() => view.setInput("missing" as never, "x" as never)).toThrow(`Card has no input "missing"`);
+      expect(() => view.setInput("missing" as never, "x" as never))
+        .toThrow(`Card has no input "missing"`);
     });
 
     test("checks the input's name and value type", () => {
       const { view } = cardView();
       // @ts-expect-error "plain" is not an input
-      expect(() => view.setInput("plain", "x")).toThrow(`Card has no input "plain"`);
+      expect(() => view.setInput("plain", "x"))
+        .toThrow(`Card has no input "plain"`);
       // @ts-expect-error size takes a number
       view.setInput("size", "big");
     });
@@ -80,8 +95,10 @@ describe("View", () => {
   test("destroy removes only its own nodes from the host", () => {
     const { view, host, kept } = makeView();
     view.destroy();
-    expect([...host.childNodes]).toEqual([kept]);
-    expect(view.destroyed).toBe(true);
+    expect([...host.childNodes])
+      .toEqual([kept]);
+    expect(view.destroyed)
+      .toBe(true);
   });
 
   test("destroy runs the callbacks, most recent first, before removing nodes", () => {
@@ -90,7 +107,8 @@ describe("View", () => {
     view.addDestroyCallback(() => log.push(`first (children: ${host.childNodes.length})`));
     view.addDestroyCallback(() => log.push("second"));
     view.destroy();
-    expect(log).toEqual(["second", "first (children: 3)"]);
+    expect(log)
+      .toEqual(["second", "first (children: 3)"]);
   });
 
   test("destroying twice does nothing the second time", () => {
@@ -99,7 +117,8 @@ describe("View", () => {
     view.addDestroyCallback(() => calls++);
     view.destroy();
     view.destroy();
-    expect(calls).toBe(1);
+    expect(calls)
+      .toBe(1);
   });
 
   test("records the contexts of the elements in its template", () => {
@@ -108,7 +127,8 @@ describe("View", () => {
     const b = new ElementContext(document.createElement("p"));
     view.addElement(a);
     view.addElement(b);
-    expect(view.elements).toEqual([a, b]);
+    expect(view.elements)
+      .toEqual([a, b]);
   });
 
   test("destroy first destroys the views of components on its elements", () => {
@@ -125,8 +145,10 @@ describe("View", () => {
 
     view.destroy();
 
-    expect(child.destroyed).toBe(true);
-    expect(log).toEqual(["child", "parent"]);
+    expect(child.destroyed)
+      .toBe(true);
+    expect(log)
+      .toEqual(["child", "parent"]);
   });
 
   test("addDestroyCallback on an already destroyed view runs the callback right away", () => {
@@ -134,6 +156,7 @@ describe("View", () => {
     view.destroy();
     let ran = false;
     view.addDestroyCallback(() => (ran = true));
-    expect(ran).toBe(true);
+    expect(ran)
+      .toBe(true);
   });
 });

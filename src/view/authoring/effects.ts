@@ -80,9 +80,13 @@ type EffectMethod = (this: object, context: EffectContext) => void;
  * instance, created when the instance is (in its injection context).
  */
 export function Effect() {
-  return (method: EffectMethod, context: ClassMethodDecoratorContext<object, EffectMethod>): void => {
+  return (
+    method: EffectMethod,
+    context: ClassMethodDecoratorContext<object, EffectMethod>,
+  ): void => {
     context.addInitializer(function () {
-      inject(Effects).create((run) => method.call(this, run));
+      inject(Effects)
+        .create((run) => method.call(this, run));
     });
   };
 }

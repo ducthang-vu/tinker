@@ -69,7 +69,8 @@ export class Task<T> {
   static fromPromise<T>(start: (signal: AbortSignal) => PromiseLike<T>): Task<T> {
     return new Task((ok, error) => {
       const controller = new AbortController();
-      Promise.resolve(start(controller.signal)).then(ok, error);
+      Promise.resolve(start(controller.signal))
+        .then(ok, error);
       return () => controller.abort();
     });
   }

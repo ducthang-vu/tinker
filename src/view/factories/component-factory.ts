@@ -43,7 +43,10 @@ import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilderFactory } from "./template-builder.ts";
 
-/** A selector a host element can be created from: an optional tag, then an optional `[attribute]`. */
+/**
+ * A selector a host element can be created from: an optional tag, then an
+ * optional `[attribute]`.
+ */
 const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 
 @Injectable()
@@ -61,9 +64,10 @@ export class ComponentFactory {
 
   /** The @Component metadata of `type`. Throws if it is not a component. */
   metadataOf(type: Class<unknown>): ComponentMetadata {
-    return getComponentMetadata(type).getOrThrow(
-      () => new Error(`${type.name} is not a component: decorate it with @Component`),
-    );
+    return getComponentMetadata(type)
+      .getOrThrow(
+        () => new Error(`${type.name} is not a component: decorate it with @Component`),
+      );
   }
 
   /**
@@ -74,11 +78,14 @@ export class ComponentFactory {
   create<T extends object>(type: Class<T>, host?: Element): View<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
-    if (this.contexts.get(host).flatMap((existing) => existing.componentView).isSome()) {
+    if (this.contexts.get(host)
+      .flatMap((existing) => existing.componentView)
+      .isSome()) {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
-    // In the engine's injection context, so the component can use inject() (and so Effects and RenderHooks).
+    // In the engine's injection context, so the component can use inject()
+    // (and so Effects and RenderHooks).
     const instance = runInInjectionContext(this.injector, () => new type());
     const template = this.builders.create(instance);
     const rendered = template.build(this.templateOf(type, metadata.template));

@@ -10,7 +10,9 @@ import { TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 
 /** A BindingFactory using `renderer`, created the way the engine creates it. */
 function bindingFactory(renderer: DomRenderer): BindingFactory {
-  const { injector } = Injector.create({ providers: [provide(RENDERER, { useValue: renderer }), BindingFactory] });
+  const { injector } = Injector.create({
+    providers: [provide(RENDERER, { useValue: renderer }), BindingFactory],
+  });
   return runInInjectionContext(injector, () => inject(BindingFactory));
 }
 
@@ -19,38 +21,46 @@ function build(source: string, component: object) {
   const renderer = new DomRenderer();
   const template = new TemplateBuilder(component, renderer, bindingFactory(renderer));
   const root = document.createElement("div");
-  root.append(...template.build(compileTemplate(new BrowserTemplateParser().parse(source))));
+  root.append(...template.build(compileTemplate(new BrowserTemplateParser()
+    .parse(source))));
   return { template, root };
 }
 
 describe("TemplateBuilder", () => {
   test("builds elements, attributes and static text", () => {
     const { root } = build(`<p class="x">hi <b>there</b></p>`, {});
-    expect(root.innerHTML).toBe(`<p class="x">hi <b>there</b></p>`);
+    expect(root.innerHTML)
+      .toBe(`<p class="x">hi <b>there</b></p>`);
   });
 
   test("{{ }} texts start empty and are filled by update, at any depth", () => {
     const count = signal(1);
     const { template, root } = build("<p>{{ count() }}<b>{{ count() }}</b></p>{{ count() }}", { count });
-    expect(root.textContent).toBe("");
+    expect(root.textContent)
+      .toBe("");
     template.update();
-    expect(root.textContent).toBe("111");
+    expect(root.textContent)
+      .toBe("111");
     count.set(2);
     template.update();
-    expect(root.textContent).toBe("222");
+    expect(root.textContent)
+      .toBe("222");
   });
 
   test("update with no bindings does nothing", () => {
     const { template, root } = build("<p>static</p>", {});
     template.update();
-    expect(root.innerHTML).toBe("<p>static</p>");
+    expect(root.innerHTML)
+      .toBe("<p>static</p>");
   });
 
   test("rejects attribute bindings, which are not supported yet", () => {
-    expect(() => build(`<button (click)="go()">go</button>`, {})).toThrow(
-      `Bindings are not supported yet: "(click)" on <button>`,
-    );
-    expect(() => build(`<p [title]="t">x</p>`, {})).toThrow(`"[title]" on <p>`);
+    expect(() => build(`<button (click)="go()">go</button>`, {}))
+      .toThrow(
+        `Bindings are not supported yet: "(click)" on <button>`,
+      );
+    expect(() => build(`<p [title]="t">x</p>`, {}))
+      .toThrow(`"[title]" on <p>`);
   });
 });
 
@@ -59,14 +69,22 @@ describe("TemplateBuilderFactory", () => {
     const renderer = new DomRenderer();
     const createText = vi.spyOn(renderer, "createText");
     const { injector } = Injector.create({
-      providers: [provide(RENDERER, { useValue: renderer }), BindingFactory, TemplateBuilderFactory],
+      providers: [
+        provide(RENDERER, { useValue: renderer }),
+        BindingFactory,
+        TemplateBuilderFactory,
+      ],
     });
-    const builder = runInInjectionContext(injector, () => inject(TemplateBuilderFactory)).create({ name: "Ada" });
+    const builder = runInInjectionContext(injector, () => inject(TemplateBuilderFactory))
+      .create({ name: "Ada" });
 
-    expect(builder).toBeInstanceOf(TemplateBuilder);
+    expect(builder)
+      .toBeInstanceOf(TemplateBuilder);
     const [text] = builder.build(compileTemplate([{ kind: "text", value: "Hi {{ name }}" }]));
     builder.update();
-    expect(text!.textContent).toBe("Hi Ada");
-    expect(createText).toHaveBeenCalled();
+    expect(text!.textContent)
+      .toBe("Hi Ada");
+    expect(createText)
+      .toHaveBeenCalled();
   });
 });

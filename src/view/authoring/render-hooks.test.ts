@@ -16,12 +16,16 @@ test("RenderHooks only registers: running the hooks is not part of its API", () 
   class A {
     readonly render = inject(RenderHooks);
   }
-  const { render } = Engine.create().createComponent(A).component;
-  expect(Object.getOwnPropertyNames(Object.getPrototypeOf(render)).sort()).toEqual(
-    ["afterEachRender", "afterNextRender", "constructor"],
-  );
+  const { render } = Engine.create()
+    .createComponent(A).component;
+  expect(Object.getOwnPropertyNames(Object.getPrototypeOf(render))
+    .sort())
+    .toEqual(
+      ["afterEachRender", "afterNextRender", "constructor"],
+    );
   // @ts-expect-error rendered() is not public: only change detection runs the hooks
-  expect(render.rendered).toBeUndefined();
+  expect(render.rendered)
+    .toBeUndefined();
 });
 
 describe("RenderHooks in change detection", () => {
@@ -46,7 +50,8 @@ describe("RenderHooks in change detection", () => {
     engine.flush();
     component.count.set(3);
     engine.flush();
-    expect(seen).toEqual(["2", "3"]);
+    expect(seen)
+      .toEqual(["2", "3"]);
   });
 
   test("a new component's first render runs the hooks in the next tick, by itself", async () => {
@@ -55,13 +60,17 @@ describe("RenderHooks in change detection", () => {
     class B {
       label = "ready";
       constructor() {
-        inject(RenderHooks).afterNextRender(() => seen.push(view.host.textContent!));
+        inject(RenderHooks)
+          .afterNextRender(() => seen.push(view.host.textContent!));
       }
     }
-    const view = Engine.create().createComponent(B);
-    expect(seen).toEqual([]); // not during create
+    const view = Engine.create()
+      .createComponent(B);
+    expect(seen)
+      .toEqual([]); // not during create
     await Promise.resolve();
-    expect(seen).toEqual(["ready"]);
+    expect(seen)
+      .toEqual(["ready"]);
   });
 
   test("a tick that renders nothing runs no hooks", () => {
@@ -69,7 +78,8 @@ describe("RenderHooks in change detection", () => {
     const seen: string[] = [];
     component.render.afterEachRender(() => seen.push("rendered"));
     engine.flush();
-    expect(seen).toEqual([]);
+    expect(seen)
+      .toEqual([]);
   });
 
   test("afterNextRender at any moment: e.g. after a change in a handler", () => {
@@ -80,7 +90,8 @@ describe("RenderHooks in change detection", () => {
     engine.flush();
     component.count.set(6);
     engine.flush();
-    expect(seen).toEqual(["5"]);
+    expect(seen)
+      .toEqual(["5"]);
   });
 
   test("a hook writing a signal re-renders in the same tick, then hooks run again", () => {
@@ -90,8 +101,10 @@ describe("RenderHooks in change detection", () => {
     component.render.afterEachRender(() => seen.push(view.host.textContent!));
     component.count.set(2);
     engine.flush();
-    expect(view.host.textContent).toBe("100");
-    expect(seen).toEqual(["2", "100"]);
+    expect(view.host.textContent)
+      .toBe("100");
+    expect(seen)
+      .toEqual(["2", "100"]);
   });
 
   test("hooks run after the effects and views of the round", () => {
@@ -100,8 +113,10 @@ describe("RenderHooks in change detection", () => {
     class A {
       readonly count = signal(1);
       constructor() {
-        inject(Effects).create(() => void log.push(`effect ${this.count()}`));
-        inject(RenderHooks).afterEachRender(() => log.push("rendered"));
+        inject(Effects)
+          .create(() => void log.push(`effect ${this.count()}`));
+        inject(RenderHooks)
+          .afterEachRender(() => log.push("rendered"));
       }
     }
     const engine = Engine.create();
@@ -110,14 +125,16 @@ describe("RenderHooks in change detection", () => {
     component.count.set(2);
     engine.flush();
     // First tick: the effect's first run, then the hooks for the first render.
-    expect(log).toEqual(["effect 1", "rendered", "effect 2", "rendered"]);
+    expect(log)
+      .toEqual(["effect 1", "rendered", "effect 2", "rendered"]);
   });
 
   test("a hook always writing what a view reads is stopped by the loop guard", () => {
     const { engine, component } = setup();
     component.render.afterEachRender(() => component.count.update((n) => n + 1));
     component.count.set(2);
-    expect(() => engine.flush()).toThrow(ChangeDetectionLoopError);
+    expect(() => engine.flush())
+      .toThrow(ChangeDetectionLoopError);
   });
 
   test("afterStable completes after the render hooks", async () => {
@@ -125,9 +142,11 @@ describe("RenderHooks in change detection", () => {
     const log: string[] = [];
     component.render.afterNextRender(() => log.push("hook"));
     component.count.set(2);
-    await engine.afterStable().toPromise();
+    await engine.afterStable()
+      .toPromise();
     log.push("stable");
-    expect(log).toEqual(["hook", "stable"]);
+    expect(log)
+      .toEqual(["hook", "stable"]);
   });
 });
 
@@ -141,6 +160,7 @@ describe("@AfterEachRender() and @AfterNextRender()", () => {
       @AfterNextRender() attach() {
         log.push(`attach ${this.count()}`);
       }
+
       @AfterEachRender() resize() {
         log.push(`resize ${this.count()}`);
       }
@@ -152,7 +172,8 @@ describe("@AfterEachRender() and @AfterNextRender()", () => {
     engine.flush();
     component.count.set(3);
     engine.flush();
-    expect(log).toEqual(["resize 1", "attach 1", "resize 2", "resize 3"]);
+    expect(log)
+      .toEqual(["resize 1", "attach 1", "resize 2", "resize 3"]);
   });
 
   test("an instance created outside an injection context cannot have hooks", () => {
@@ -162,7 +183,9 @@ describe("@AfterEachRender() and @AfterNextRender()", () => {
     class Other {
       @AfterNextRender() next() {}
     }
-    expect(() => new Plain()).toThrow("inject() must be called in an injection context");
-    expect(() => new Other()).toThrow("inject() must be called in an injection context");
+    expect(() => new Plain())
+      .toThrow("inject() must be called in an injection context");
+    expect(() => new Other())
+      .toThrow("inject() must be called in an injection context");
   });
 });

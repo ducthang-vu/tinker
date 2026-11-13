@@ -33,9 +33,10 @@ export class DirectiveFactory {
 
   /** The @Directive metadata of `type` (components included). Throws if it is not a directive. */
   metadataOf(type: Class<unknown>): DirectiveMetadata {
-    return getDirectiveMetadata(type).getOrThrow(
-      () => new Error(`${type.name} is not a directive: decorate it with @Directive`),
-    );
+    return getDirectiveMetadata(type)
+      .getOrThrow(
+        () => new Error(`${type.name} is not a directive: decorate it with @Directive`),
+      );
   }
 
   /**
@@ -44,7 +45,8 @@ export class DirectiveFactory {
    * Destroying `view` removes both.
    */
   create<T extends object>(type: Class<T>, element: Element, view: View<unknown>): T {
-    // In the engine's injection context, so the directive can use inject() (and so Effects and RenderHooks).
+    // In the engine's injection context, so the directive can use inject()
+    // (and so Effects and RenderHooks).
     const instance = runInInjectionContext(this.injector, () => new type());
     const context = this.contexts.getOrCreate(element);
     context.addDirective(instance);
@@ -58,8 +60,14 @@ export class DirectiveFactory {
   }
 
   /** Apply the host bindings of `type` for `instance` on `element`, until `view` is destroyed. */
-  applyHost<T extends object>(type: Class<T>, instance: T, element: Element, view: View<unknown>): void {
-    this.hostBindingsOf(type).attach(instance, element, this.renderer, view);
+  applyHost<T extends object>(
+    type: Class<T>,
+    instance: T,
+    element: Element,
+    view: View<unknown>,
+  ): void {
+    this.hostBindingsOf(type)
+      .attach(instance, element, this.renderer, view);
   }
 
   private hostBindingsOf(type: Class<unknown>): HostBindings {

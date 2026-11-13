@@ -5,16 +5,23 @@ import { View } from "./view.ts";
 
 describe("ElementContexts", () => {
   test("get is None for an element with no context", () => {
-    expect(new ElementContexts().get(document.createElement("div")).isNone()).toBe(true);
+    expect(new ElementContexts()
+      .get(document.createElement("div"))
+      .isNone())
+      .toBe(true);
   });
 
   test("getOrCreate creates a context once, then returns the same one", () => {
     const contexts = new ElementContexts();
     const element = document.createElement("div");
     const context = contexts.getOrCreate(element);
-    expect(context.element).toBe(element);
-    expect(contexts.getOrCreate(element)).toBe(context);
-    expect(contexts.get(element).getOrElse(undefined)).toBe(context);
+    expect(context.element)
+      .toBe(element);
+    expect(contexts.getOrCreate(element))
+      .toBe(context);
+    expect(contexts.get(element)
+      .getOrElse(undefined))
+      .toBe(context);
   });
 
   test("forgetIfEmpty forgets an empty context, and keeps a non-empty one", () => {
@@ -26,7 +33,11 @@ describe("ElementContexts", () => {
     contexts.forgetIfEmpty(empty);
     contexts.forgetIfEmpty(busy);
 
-    expect(contexts.get(empty.element).isNone()).toBe(true);
-    expect(contexts.get(busy.element).getOrElse(undefined)).toBe(busy);
+    expect(contexts.get(empty.element)
+      .isNone())
+      .toBe(true);
+    expect(contexts.get(busy.element)
+      .getOrElse(undefined))
+      .toBe(busy);
   });
 });

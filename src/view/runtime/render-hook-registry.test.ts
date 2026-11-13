@@ -7,10 +7,12 @@ describe("RenderHookRegistry", () => {
     const log: string[] = [];
     hooks.addNextRender(() => log.push("next"));
     hooks.addEachRender(() => log.push("each"));
-    expect(hooks.hasHooks).toBe(true);
+    expect(hooks.hasHooks)
+      .toBe(true);
     hooks.rendered();
     hooks.rendered();
-    expect(log).toEqual(["each", "next", "each"]);
+    expect(log)
+      .toEqual(["each", "next", "each"]);
   });
 
   test("cancelling removes a hook; the same function registered twice runs twice", () => {
@@ -25,7 +27,8 @@ describe("RenderHookRegistry", () => {
     cancel();
     cancel();
     hooks.rendered();
-    expect(log).toEqual(["hook", "next"]);
+    expect(log)
+      .toEqual(["hook", "next"]);
   });
 
   test("a hook registered while hooks run waits for the next render", () => {
@@ -33,9 +36,11 @@ describe("RenderHookRegistry", () => {
     const log: string[] = [];
     hooks.addNextRender(() => hooks.addNextRender(() => log.push("later")));
     hooks.rendered();
-    expect(log).toEqual([]);
+    expect(log)
+      .toEqual([]);
     hooks.rendered();
-    expect(log).toEqual(["later"]);
+    expect(log)
+      .toEqual(["later"]);
   });
 
   test("every hook runs even if one throws; the first error is re-thrown", () => {
@@ -45,15 +50,19 @@ describe("RenderHookRegistry", () => {
       throw new Error("first");
     });
     hooks.addNextRender(() => log.push("next"));
-    expect(() => hooks.rendered()).toThrow("first");
-    expect(log).toEqual(["next"]);
+    expect(() => hooks.rendered())
+      .toThrow("first");
+    expect(log)
+      .toEqual(["next"]);
   });
 
   test("has no hooks until one is registered", () => {
     const hooks = new RenderHookRegistry();
-    expect(hooks.hasHooks).toBe(false);
+    expect(hooks.hasHooks)
+      .toBe(false);
     hooks.addNextRender(() => {});
     hooks.rendered();
-    expect(hooks.hasHooks).toBe(false);
+    expect(hooks.hasHooks)
+      .toBe(false);
   });
 });

@@ -37,7 +37,9 @@ export class Maybe<T> {
 
   /** `None` for `null` or `undefined`, otherwise `Some(value)`. */
   static fromNullable<T>(value: T | null | undefined): Maybe<NonNullable<T>> {
-    return value === null || value === undefined ? Maybe.none() : Maybe.some(value as NonNullable<T>);
+    return value === null || value === undefined
+      ? Maybe.none()
+      : Maybe.some(value as NonNullable<T>);
   }
 
   isSome(): boolean {

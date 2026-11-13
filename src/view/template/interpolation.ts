@@ -33,7 +33,8 @@ export function parseInterpolation(text: string): EitherError<Interpolation> {
   return sources
     .reduce<EitherError<Expression[]>>(
       (parsed, source) =>
-        parsed.flatMap((expressions) => ExpressionParser.parse(source).map((e) => [...expressions, e])),
+        parsed.flatMap((expressions) => ExpressionParser.parse(source)
+          .map((e) => [...expressions, e])),
       Either.right([]),
     )
     .map((expressions) => ({ strings, expressions }));

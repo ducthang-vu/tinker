@@ -39,8 +39,8 @@ export interface InputSignal<T> extends ReadonlySignal<T> {
 /** The names of the inputs of a directive or component of type `T`. */
 export type InputName<T> = {
   [K in keyof T]: T[K] extends InputSignal<unknown> ? K : never;
-}[keyof T] &
-  string;
+}[keyof T]
+& string;
 
 /** The type of value an input accepts: `string` for an `InputSignal<string>`. */
 export type InputValue<S> = S extends InputSignal<infer V> ? V : never;
@@ -69,7 +69,8 @@ export class InputBinding<T> {
   private constructor(initial: Maybe<T>) {
     this.state = signal(initial);
     this.signal = computed(() =>
-      this.state().getOrThrow(() => new InputNotBoundError(this.label)),
+      this.state()
+        .getOrThrow(() => new InputNotBoundError(this.label)),
     ) as InputSignal<T>;
   }
 
@@ -118,10 +119,11 @@ export function input<T>(...defaultValue: [] | [T]): InputSignal<T> {
 export function inputsOf(directive: object): ReadonlyMap<string, InputBinding<unknown>> {
   const inputs = new Map<string, InputBinding<unknown>>();
   for (const [name, value] of Object.entries(directive)) {
-    Maybe.fromNullable(bindings.get(Object(value))).ifSome((binding) => {
-      binding.describe(`"${name}" of ${directive.constructor.name}`);
-      inputs.set(name, binding);
-    });
+    Maybe.fromNullable(bindings.get(Object(value)))
+      .ifSome((binding) => {
+        binding.describe(`"${name}" of ${directive.constructor.name}`);
+        inputs.set(name, binding);
+      });
   }
   return inputs;
 }

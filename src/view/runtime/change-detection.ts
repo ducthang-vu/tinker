@@ -41,8 +41,8 @@ const MAX_ROUNDS = 100;
 export class ChangeDetectionLoopError extends Error {
   constructor(rounds: number) {
     super(
-      `Change detection did not settle after ${rounds} rounds: an update probably writes a signal ` +
-        `that something updated in the same tick reads`,
+      `Change detection did not settle after ${rounds} rounds: an update probably writes a signal `
+      + `that something updated in the same tick reads`,
     );
     this.name = "ChangeDetectionLoopError";
   }
@@ -144,7 +144,10 @@ export class ChangeDetection {
     });
   }
 
-  /** The next round: the phases with work, else the render hooks if views rendered, else nothing. */
+  /**
+   * The next round: the phases with work, else the render hooks if views
+   * rendered, else nothing.
+   */
   private nextBatch(): (() => void)[] {
     const due = this.phases.filter((phase) => phase.pending > 0);
     if (due.length > 0) {

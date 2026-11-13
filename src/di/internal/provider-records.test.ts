@@ -28,34 +28,48 @@ function fakeHooks() {
 describe("ProviderRecords", () => {
   test("has: whether there is a provider for a token", () => {
     const records = new ProviderRecords([{ token: A, factory: () => "a" }], fakeHooks().hooks);
-    expect(records.has(A)).toBe(true);
-    expect(records.has(B)).toBe(false);
+    expect(records.has(A))
+      .toBe(true);
+    expect(records.has(B))
+      .toBe(false);
   });
 
   test("get creates the value through the hooks", () => {
     const { hooks, log } = fakeHooks();
     const records = new ProviderRecords([{ token: A, factory: () => "a" }], hooks);
-    expect(records.get(A)).toBe("a");
-    expect(log).toEqual(["create", "created a"]);
+    expect(records.get(A))
+      .toBe("a");
+    expect(log)
+      .toEqual(["create", "created a"]);
   });
 
   test("get creates each value once, then returns the cached one", () => {
     const { hooks, log } = fakeHooks();
     let calls = 0;
     const records = new ProviderRecords([{ token: A, factory: () => `a${++calls}` }], hooks);
-    expect(records.get(A)).toBe("a1");
-    expect(records.get(A)).toBe("a1");
-    expect(calls).toBe(1);
-    expect(log).toEqual(["create", "created a1"]);
+    expect(records.get(A))
+      .toBe("a1");
+    expect(records.get(A))
+      .toBe("a1");
+    expect(calls)
+      .toBe(1);
+    expect(log)
+      .toEqual(["create", "created a1"]);
   });
 
   test("caches falsy values too", () => {
     let calls = 0;
     const ZERO = new InjectionToken<number>("ZERO");
-    const records = new ProviderRecords([{ token: ZERO, factory: () => (calls++, 0) }], fakeHooks().hooks);
-    expect(records.get(ZERO)).toBe(0);
-    expect(records.get(ZERO)).toBe(0);
-    expect(calls).toBe(1);
+    const records = new ProviderRecords(
+      [{ token: ZERO, factory: () => (calls++, 0) }],
+      fakeHooks().hooks,
+    );
+    expect(records.get(ZERO))
+      .toBe(0);
+    expect(records.get(ZERO))
+      .toBe(0);
+    expect(calls)
+      .toBe(1);
   });
 
   test("if creating throws, nothing is cached and the next get tries again", () => {
@@ -73,21 +87,26 @@ describe("ProviderRecords", () => {
       ],
       hooks,
     );
-    expect(() => records.get(A)).toThrow("not yet");
+    expect(() => records.get(A))
+      .toThrow("not yet");
     fail = false;
-    expect(records.get(A)).toBe("a");
-    expect(log).toEqual(["create", "create", "created a"]);
+    expect(records.get(A))
+      .toBe("a");
+    expect(log)
+      .toEqual(["create", "create", "created a"]);
   });
 
   test("throws for a token without a provider", () => {
     const records = new ProviderRecords([], fakeHooks().hooks);
-    expect(() => records.get(A)).toThrow("No provider for A");
+    expect(() => records.get(A))
+      .toThrow("No provider for A");
   });
 
   test("matches tokens by identity, not by name", () => {
     const records = new ProviderRecords([{ token: A, factory: () => "a" }], fakeHooks().hooks);
     const sameName = new InjectionToken<string>("A");
-    expect(records.has(sameName)).toBe(false);
+    expect(records.has(sameName))
+      .toBe(false);
   });
 
   test("the first provider for a token wins", () => {
@@ -98,7 +117,8 @@ describe("ProviderRecords", () => {
       ],
       fakeHooks().hooks,
     );
-    expect(records.get(A)).toBe("first");
+    expect(records.get(A))
+      .toBe("first");
   });
 
   test("copies the providers: changing the array later has no effect", () => {
@@ -106,8 +126,10 @@ describe("ProviderRecords", () => {
     const records = new ProviderRecords(providers, fakeHooks().hooks);
     providers.push({ token: B, factory: () => 1 });
     providers.length = 0;
-    expect(records.has(A)).toBe(true);
-    expect(records.has(B)).toBe(false);
+    expect(records.has(A))
+      .toBe(true);
+    expect(records.has(B))
+      .toBe(false);
   });
 });
 
@@ -117,8 +139,10 @@ describe("ProviderRecords cycles", () => {
       [{ token: A, factory: () => records.get(A) }],
       fakeHooks().hooks,
     );
-    expect(() => records.get(A)).toThrow(CircularDependencyError);
-    expect(() => records.get(A)).toThrow("Circular dependency: A → A");
+    expect(() => records.get(A))
+      .toThrow(CircularDependencyError);
+    expect(() => records.get(A))
+      .toThrow("Circular dependency: A → A");
   });
 
   test("the error describes the whole cycle, as message and as path", () => {
@@ -136,9 +160,12 @@ describe("ProviderRecords cycles", () => {
     } catch (e) {
       error = e;
     }
-    expect(error).toBeInstanceOf(CircularDependencyError);
-    expect((error as CircularDependencyError).message).toBe("Circular dependency: A → B → C → A");
-    expect((error as CircularDependencyError).path).toEqual([A, B, C, A]);
+    expect(error)
+      .toBeInstanceOf(CircularDependencyError);
+    expect((error as CircularDependencyError).message)
+      .toBe("Circular dependency: A → B → C → A");
+    expect((error as CircularDependencyError).path)
+      .toEqual([A, B, C, A]);
   });
 
   test("the path starts at the repeated token, not at the outermost creation", () => {
@@ -150,7 +177,8 @@ describe("ProviderRecords cycles", () => {
       ],
       fakeHooks().hooks,
     );
-    expect(() => records.get(C)).toThrow("Circular dependency: A → B → A");
+    expect(() => records.get(C))
+      .toThrow("Circular dependency: A → B → A");
   });
 
   test("after a cycle, nothing is stuck: records can be created once the cause is gone", () => {
@@ -160,10 +188,13 @@ describe("ProviderRecords cycles", () => {
       [{ token: A, factory: () => (loop ? records.get(A) : "a") }],
       hooks,
     );
-    expect(() => records.get(A)).toThrow(CircularDependencyError);
+    expect(() => records.get(A))
+      .toThrow(CircularDependencyError);
     loop = false;
-    expect(records.get(A)).toBe("a");
-    expect(log.filter((entry) => entry.startsWith("created"))).toEqual(["created a"]);
+    expect(records.get(A))
+      .toBe("a");
+    expect(log.filter((entry) => entry.startsWith("created")))
+      .toEqual(["created a"]);
   });
 
   test("the same token in two different records is not a cycle", () => {
@@ -172,7 +203,8 @@ describe("ProviderRecords cycles", () => {
       [{ token: A, factory: () => `child wraps ${parent.get(A)}` }],
       fakeHooks().hooks,
     );
-    expect(child.get(A)).toBe("child wraps parent");
+    expect(child.get(A))
+      .toBe("child wraps parent");
   });
 
   test("has is not affected while a value is being created", () => {
@@ -182,18 +214,22 @@ describe("ProviderRecords cycles", () => {
       fakeHooks().hooks,
     );
     records.get(A);
-    expect(seen).toBe(true);
+    expect(seen)
+      .toBe(true);
   });
 });
-
 
 describe("CircularDependencyError", () => {
   test("names the cycle in its message and keeps the path", () => {
     const error = new CircularDependencyError([A, B, A]);
-    expect(error).toBeInstanceOf(Error);
-    expect(error.name).toBe("CircularDependencyError");
-    expect(error.message).toBe("Circular dependency: A → B → A");
-    expect(error.path).toEqual([A, B, A]);
+    expect(error)
+      .toBeInstanceOf(Error);
+    expect(error.name)
+      .toBe("CircularDependencyError");
+    expect(error.message)
+      .toBe("Circular dependency: A → B → A");
+    expect(error.path)
+      .toEqual([A, B, A]);
   });
 
   test("fromCreationPath starts the path where the repeated creation began", () => {
@@ -203,7 +239,8 @@ describe("CircularDependencyError", () => {
       { owner, token: A },
       { owner, token: B },
     ];
-    expect(CircularDependencyError.fromCreationPath(steps, owner, A).path).toEqual([A, B, A]);
+    expect(CircularDependencyError.fromCreationPath(steps, owner, A).path)
+      .toEqual([A, B, A]);
   });
 
   test("fromCreationPath matches the owner as well as the token", () => {
@@ -214,9 +251,10 @@ describe("CircularDependencyError", () => {
       { owner: parent, token: A },
       { owner: parent, token: B },
     ];
-    expect(CircularDependencyError.fromCreationPath(steps, parent, A).message).toBe(
-      "Circular dependency: A → B → A",
-    );
+    expect(CircularDependencyError.fromCreationPath(steps, parent, A).message)
+      .toBe(
+        "Circular dependency: A → B → A",
+      );
   });
 });
 
@@ -224,13 +262,16 @@ describe("ProviderRecords.add", () => {
   test("adds a provider after creation", () => {
     const records = new ProviderRecords([], fakeHooks().hooks);
     records.add({ token: A, factory: () => "added" });
-    expect(records.has(A)).toBe(true);
-    expect(records.get(A)).toBe("added");
+    expect(records.has(A))
+      .toBe(true);
+    expect(records.get(A))
+      .toBe("added");
   });
 
   test("does nothing if the token already has a provider", () => {
     const records = new ProviderRecords([{ token: A, factory: () => "first" }], fakeHooks().hooks);
     records.add({ token: A, factory: () => "second" });
-    expect(records.get(A)).toBe("first");
+    expect(records.get(A))
+      .toBe("first");
   });
 });

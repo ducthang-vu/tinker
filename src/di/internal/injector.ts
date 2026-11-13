@@ -14,9 +14,9 @@ export interface OnDestroy {
 
 function hasOnDestroy(value: unknown): value is OnDestroy {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as Partial<OnDestroy>).onDestroy === "function"
+    typeof value === "object"
+    && value !== null
+    && typeof (value as Partial<OnDestroy>).onDestroy === "function"
   );
 }
 
@@ -127,7 +127,8 @@ export class Injector {
    */
   has(token: Token<unknown>): boolean {
     this.assertNotDestroyed();
-    return this.records.has(token) || (this.isRoot() && findRootProvider(token).isSome());
+    return this.records.has(token) || (this.isRoot() && findRootProvider(token)
+      .isSome());
   }
 
   /**
@@ -141,7 +142,8 @@ export class Injector {
     this.assertNotDestroyed();
     if (this.isRoot() && !this.records.has(token)) {
       // A root injector also provides root providers: adopt it on first use.
-      findRootProvider(token).ifSome((provider) => this.records.add(provider));
+      findRootProvider(token)
+        .ifSome((provider) => this.records.add(provider));
     }
     return this.records.get(token);
   }

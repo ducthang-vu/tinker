@@ -8,16 +8,21 @@ describe("root providers", () => {
     const TOKEN = new InjectionToken<string>("REGISTERED");
     const provider = { token: TOKEN, factory: () => "x" };
     registerRootProvider(provider);
-    expect(findRootProvider(TOKEN).getOrElse(undefined)).toBe(provider);
-    expect(findRootProvider(new InjectionToken<string>("OTHER")).isNone()).toBe(true);
+    expect(findRootProvider(TOKEN)
+      .getOrElse(undefined))
+      .toBe(provider);
+    expect(findRootProvider(new InjectionToken<string>("OTHER"))
+      .isNone())
+      .toBe(true);
   });
 
   test("a token can be registered only once", () => {
     const TOKEN = new InjectionToken<string>("TWICE");
     registerRootProvider({ token: TOKEN, factory: () => "a" });
-    expect(() => registerRootProvider({ token: TOKEN, factory: () => "b" })).toThrow(
-      "TWICE is already provided in root",
-    );
+    expect(() => registerRootProvider({ token: TOKEN, factory: () => "b" }))
+      .toThrow(
+        "TWICE is already provided in root",
+      );
   });
 
   test("a root injector provides them, a child does not (it asks its root)", () => {
@@ -25,17 +30,22 @@ describe("root providers", () => {
     registerRootProvider({ token: TOKEN, factory: () => "from root" });
     const root = new Injector([]);
     const child = new Injector([], root);
-    expect(root.has(TOKEN)).toBe(true);
-    expect(root.get(TOKEN)).toBe("from root");
-    expect(child.has(TOKEN)).toBe(false);
-    expect(() => child.get(TOKEN)).toThrow("No provider for ROOT_ONLY");
+    expect(root.has(TOKEN))
+      .toBe(true);
+    expect(root.get(TOKEN))
+      .toBe("from root");
+    expect(child.has(TOKEN))
+      .toBe(false);
+    expect(() => child.get(TOKEN))
+      .toThrow("No provider for ROOT_ONLY");
   });
 
   test("explicit providers of the root win", () => {
     const TOKEN = new InjectionToken<string>("OVERRIDDEN");
     registerRootProvider({ token: TOKEN, factory: () => "registered" });
     const root = new Injector([{ token: TOKEN, factory: () => "explicit" }]);
-    expect(root.get(TOKEN)).toBe("explicit");
+    expect(root.get(TOKEN))
+      .toBe("explicit");
   });
 
   test("each root injector creates its own instance, once", () => {
@@ -43,7 +53,8 @@ describe("root providers", () => {
     registerRootProvider({ token: TOKEN, factory: () => ({}) });
     const a = new Injector([]);
     const b = new Injector([]);
-    expect(a.get(TOKEN)).toBe(a.get(TOKEN));
+    expect(a.get(TOKEN))
+      .toBe(a.get(TOKEN));
     expect(a.get(TOKEN)).not.toBe(b.get(TOKEN));
   });
 });

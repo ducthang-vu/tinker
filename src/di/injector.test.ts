@@ -12,27 +12,34 @@ class Clock {
 describe("Injector.create", () => {
   test("creates an injector from public providers", () => {
     const injector = Injector.create({ providers: [Clock, { provide: API_URL, useValue: "https://api" }] }).injector;
-    expect(runInInjectionContext(injector, () => inject(Clock))).toBeInstanceOf(Clock);
-    expect(runInInjectionContext(injector, () => inject(API_URL))).toBe("https://api");
+    expect(runInInjectionContext(injector, () => inject(Clock)))
+      .toBeInstanceOf(Clock);
+    expect(runInInjectionContext(injector, () => inject(API_URL)))
+      .toBe("https://api");
   });
 
   test("without options, it provides nothing (except itself)", () => {
     const injector = Injector.create().injector;
-    expect(() => runInInjectionContext(injector, () => inject(Clock))).toThrow("No provider for Clock");
-    expect(runInInjectionContext(injector, () => inject(Injector))).toBe(injector);
+    expect(() => runInInjectionContext(injector, () => inject(Clock)))
+      .toThrow("No provider for Clock");
+    expect(runInInjectionContext(injector, () => inject(Injector)))
+      .toBe(injector);
   });
 
   test("with a parent, looks up there what it does not provide", () => {
     const root = Injector.create({ providers: [{ provide: API_URL, useValue: "root" }] }).injector;
     const child = Injector.create({ providers: [Clock], parent: root }).injector;
-    expect(runInInjectionContext(child, () => inject(API_URL))).toBe("root");
-    expect(() => runInInjectionContext(root, () => inject(Clock))).toThrow("No provider for Clock");
+    expect(runInInjectionContext(child, () => inject(API_URL)))
+      .toBe("root");
+    expect(() => runInInjectionContext(root, () => inject(Clock)))
+      .toThrow("No provider for Clock");
   });
 
   test("values are created once per injector", () => {
     const injector = Injector.create({ providers: [Clock] }).injector;
     const [a, b] = runInInjectionContext(injector, () => [inject(Clock), inject(Clock)]);
-    expect(a).toBe(b);
+    expect(a)
+      .toBe(b);
   });
 });
 
@@ -40,8 +47,10 @@ describe("public Injector", () => {
   test("inject(Injector) gives the current injector, typed as Injector", () => {
     const injector = Injector.create().injector;
     const handle = runInInjectionContext(injector, () => inject(Injector));
-    expectTypeOf(handle).toEqualTypeOf<Injector>();
-    expect(handle).toBe(injector);
+    expectTypeOf(handle)
+      .toEqualTypeOf<Injector>();
+    expect(handle)
+      .toBe(injector);
   });
 
   test("inside a value being created, gives the injector that owns it", () => {
@@ -51,7 +60,8 @@ describe("public Injector", () => {
     const root = Injector.create({ providers: [NeedsInjector] }).injector;
     const child = Injector.create({ parent: root }).injector;
     const value = runInInjectionContext(child, () => inject(NeedsInjector));
-    expect(value.injector).toBe(root);
+    expect(value.injector)
+      .toBe(root);
   });
 
   test("it is opaque: no methods, so no service locator", () => {
@@ -81,19 +91,24 @@ describe("public runInInjectionContext", () => {
     const report = runInInjectionContext(injector, () => inject(Report));
 
     // Later, outside any injection context:
-    expect(() => inject(API_URL)).toThrow("inject() must be called in an injection context");
-    expect(report.urlLater()).toBe("https://api");
+    expect(() => inject(API_URL))
+      .toThrow("inject() must be called in an injection context");
+    expect(report.urlLater())
+      .toBe("https://api");
   });
 
   test("returns the result, and restores the previous context even on throw", () => {
     const injector = Injector.create({ providers: [{ provide: API_URL, useValue: "x" }] }).injector;
-    expect(runInInjectionContext(injector, () => inject(API_URL))).toBe("x");
+    expect(runInInjectionContext(injector, () => inject(API_URL)))
+      .toBe("x");
     expect(() =>
       runInInjectionContext(injector, () => {
         throw new Error("boom");
       }),
-    ).toThrow("boom");
-    expect(() => inject(API_URL)).toThrow("inject() must be called in an injection context");
+    )
+      .toThrow("boom");
+    expect(() => inject(API_URL))
+      .toThrow("inject() must be called in an injection context");
   });
 });
 
@@ -107,8 +122,10 @@ describe("InjectorRef", () => {
 
   test("holds the created injector", () => {
     const ref = Injector.create();
-    expectTypeOf(ref.injector).toEqualTypeOf<Injector>();
-    expect(runInInjectionContext(ref.injector, () => inject(Injector))).toBe(ref.injector);
+    expectTypeOf(ref.injector)
+      .toEqualTypeOf<Injector>();
+    expect(runInInjectionContext(ref.injector, () => inject(Injector)))
+      .toBe(ref.injector);
   });
 
   test("destroy() lets the created values clean up, once", () => {
@@ -116,7 +133,8 @@ describe("InjectorRef", () => {
     const connection = runInInjectionContext(ref.injector, () => inject(Connection));
     ref.destroy();
     ref.destroy();
-    expect(connection.closed).toBe(1);
+    expect(connection.closed)
+      .toBe(1);
   });
 
   test("destroy() destroys the children too", () => {
@@ -124,19 +142,22 @@ describe("InjectorRef", () => {
     const child = Injector.create({ providers: [Connection], parent: root.injector });
     const connection = runInInjectionContext(child.injector, () => inject(Connection));
     root.destroy();
-    expect(connection.closed).toBe(1);
+    expect(connection.closed)
+      .toBe(1);
   });
 
   test("a destroyed injector refuses to work", () => {
     const ref = Injector.create({ providers: [Clock] });
     ref.destroy();
-    expect(() => runInInjectionContext(ref.injector, () => inject(Clock))).toThrow(
-      "Injector has already been destroyed",
-    );
+    expect(() => runInInjectionContext(ref.injector, () => inject(Clock)))
+      .toThrow(
+        "Injector has already been destroyed",
+      );
   });
 
   test("only the ref can destroy: the injector itself has no destroy()", () => {
     expectTypeOf<Injector>().not.toHaveProperty("destroy");
-    expectTypeOf<ReturnType<typeof Injector.create>>().toHaveProperty("destroy");
+    expectTypeOf<ReturnType<typeof Injector.create>>()
+      .toHaveProperty("destroy");
   });
 });

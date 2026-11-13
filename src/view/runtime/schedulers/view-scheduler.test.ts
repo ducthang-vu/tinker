@@ -20,7 +20,12 @@ function setup() {
     ticker: inject(Ticker),
   }));
   const requestTick = vi.spyOn(ticker, "requestTick");
-  return { scheduler, requests: { get count() { return requestTick.mock.calls.length; } }, log: [] as string[] };
+  const requests = {
+    get count() {
+      return requestTick.mock.calls.length;
+    },
+  };
+  return { scheduler, requests, log: [] as string[] };
 }
 
 describe("ViewScheduler", () => {
@@ -28,12 +33,17 @@ describe("ViewScheduler", () => {
     const { scheduler, requests, log } = setup();
     scheduler.schedule(task(log, "a"));
     scheduler.schedule(task(log, "b"));
-    expect(requests.count).toBe(2);
-    expect(scheduler.pending).toBe(2);
-    expect(log).toEqual([]); // it only queues
+    expect(requests.count)
+      .toBe(2);
+    expect(scheduler.pending)
+      .toBe(2);
+    expect(log)
+      .toEqual([]); // it only queues
     scheduler.flush();
-    expect(log).toEqual(["a", "b"]);
-    expect(scheduler.pending).toBe(0);
+    expect(log)
+      .toEqual(["a", "b"]);
+    expect(scheduler.pending)
+      .toBe(0);
   });
 
   test("a task scheduled twice runs once", () => {
@@ -42,26 +52,36 @@ describe("ViewScheduler", () => {
     scheduler.schedule(a);
     scheduler.schedule(a);
     scheduler.flush();
-    expect(log).toEqual(["a"]);
+    expect(log)
+      .toEqual(["a"]);
   });
 
   test("flush runs one batch: tasks scheduled meanwhile wait for the next one", () => {
     const { scheduler, log } = setup();
     scheduler.schedule(task(log, "a", () => scheduler.schedule(task(log, "b"))));
     scheduler.flush();
-    expect(log).toEqual(["a"]);
-    expect(scheduler.pending).toBe(1);
+    expect(log)
+      .toEqual(["a"]);
+    expect(scheduler.pending)
+      .toBe(1);
     scheduler.flush();
-    expect(log).toEqual(["a", "b"]);
+    expect(log)
+      .toEqual(["a", "b"]);
   });
 
   test("every task runs even if one throws; the first error is re-thrown", () => {
     const { scheduler, log } = setup();
-    scheduler.schedule(task(log, "a", () => { throw new Error("first"); }));
-    scheduler.schedule(task(log, "b", () => { throw new Error("second"); }));
+    scheduler.schedule(task(log, "a", () => {
+      throw new Error("first");
+    }));
+    scheduler.schedule(task(log, "b", () => {
+      throw new Error("second");
+    }));
     scheduler.schedule(task(log, "c"));
-    expect(() => scheduler.flush()).toThrow("first");
-    expect(log).toEqual(["a", "b", "c"]);
+    expect(() => scheduler.flush())
+      .toThrow("first");
+    expect(log)
+      .toEqual(["a", "b", "c"]);
   });
 
   test("discard drops the queued tasks without running them", () => {
@@ -69,8 +89,10 @@ describe("ViewScheduler", () => {
     scheduler.schedule(task(log, "a"));
     scheduler.discard();
     scheduler.flush();
-    expect(log).toEqual([]);
-    expect(scheduler.pending).toBe(0);
+    expect(log)
+      .toEqual([]);
+    expect(scheduler.pending)
+      .toBe(0);
   });
 
   test("only the watches affected by a change are queued", () => {
@@ -84,6 +106,7 @@ describe("ViewScheduler", () => {
     count.set(1);
     count.set(2);
     scheduler.flush();
-    expect(log).toEqual(["count 0", "other 0", "count 2"]);
+    expect(log)
+      .toEqual(["count 0", "other 0", "count 2"]);
   });
 });

@@ -70,9 +70,10 @@ export class View<T> {
 
   /** The input `name` of `directive`, if the directive is in this view and has that input. */
   input(directive: object, name: string): Maybe<InputBinding<unknown>> {
-    return Maybe.fromNullable(this.directiveInputs.get(directive)).flatMap((inputs) =>
-      Maybe.fromNullable(inputs.get(name)),
-    );
+    return Maybe.fromNullable(this.directiveInputs.get(directive))
+      .flatMap((inputs) =>
+        Maybe.fromNullable(inputs.get(name)),
+      );
   }
 
   /**
@@ -110,7 +111,8 @@ export class View<T> {
     for (const context of this.contexts) {
       context.componentView.ifSome((view) => view.destroy());
     }
-    for (const callback of this.destroyCallbacks.splice(0).reverse()) {
+    for (const callback of this.destroyCallbacks.splice(0)
+      .reverse()) {
       callback();
     }
     for (const node of this.nodes) {

@@ -5,7 +5,8 @@ describe("afterMarking", () => {
   test("runs right away when no marking walk is running", () => {
     const log: string[] = [];
     afterMarking(() => log.push("ran"));
-    expect(log).toEqual(["ran"]);
+    expect(log)
+      .toEqual(["ran"]);
   });
 
   test("waits until the outermost walk has finished", () => {
@@ -18,7 +19,8 @@ describe("afterMarking", () => {
       });
       log.push("outer walk done");
     });
-    expect(log).toEqual(["inner walk done", "outer walk done", "queued 1", "queued 2"]);
+    expect(log)
+      .toEqual(["inner walk done", "outer walk done", "queued 1", "queued 2"]);
   });
 
   test("work queued while flushing runs after the current item, in order", () => {
@@ -30,7 +32,8 @@ describe("afterMarking", () => {
       });
       afterMarking(() => log.push("second"));
     });
-    expect(log).toEqual(["first", "second", "third"]);
+    expect(log)
+      .toEqual(["first", "second", "third"]);
   });
 
   test("runs every item even if one throws, then re-throws the first error", () => {
@@ -45,14 +48,17 @@ describe("afterMarking", () => {
         });
         afterMarking(() => log.push("still ran"));
       }),
-    ).toThrow("first");
-    expect(log).toEqual(["still ran"]);
+    )
+      .toThrow("first");
+    expect(log)
+      .toEqual(["still ran"]);
   });
 
   test("is back to running right away after a walk", () => {
     marking(() => {});
     const log: string[] = [];
     afterMarking(() => log.push("ran"));
-    expect(log).toEqual(["ran"]);
+    expect(log)
+      .toEqual(["ran"]);
   });
 });

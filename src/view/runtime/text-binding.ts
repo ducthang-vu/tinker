@@ -37,10 +37,12 @@ export class TextBinding {
   update(): void {
     const { strings, expressions } = this.interpolation;
     const text = expressions.reduce(
-      (result, expression, i) => result + toText(evaluate(expression, this.component)) + strings[i + 1],
+      (result, expression, i) =>
+        result + toText(evaluate(expression, this.component)) + strings[i + 1],
       strings[0]!,
     );
-    if (this.last.filter((last) => last === text).isNone()) {
+    if (this.last.filter((last) => last === text)
+      .isNone()) {
       this.renderer.setText(this.node, text);
       this.last = Maybe.some(text);
     }

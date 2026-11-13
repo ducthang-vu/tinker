@@ -26,20 +26,29 @@ const withProviders = <R>(providers: Provider[], fn: () => R, parent?: Injector)
 describe("public inject", () => {
   test("a class, typed by its instances", () => {
     const clock = withProviders([Clock], () => inject(Clock));
-    expectTypeOf(clock).toEqualTypeOf<Clock>();
-    expect(clock).toBeInstanceOf(Clock);
+    expectTypeOf(clock)
+      .toEqualTypeOf<Clock>();
+    expect(clock)
+      .toBeInstanceOf(Clock);
   });
 
   test("an abstract class, provided with an implementation", () => {
-    const logger = withProviders([{ provide: Logger, useClass: ConsoleLogger }], () => inject(Logger));
-    expectTypeOf(logger).toEqualTypeOf<Logger>();
-    expect(logger.log("hi")).toBe("console: hi");
+    const logger = withProviders(
+      [{ provide: Logger, useClass: ConsoleLogger }],
+      () => inject(Logger),
+    );
+    expectTypeOf(logger)
+      .toEqualTypeOf<Logger>();
+    expect(logger.log("hi"))
+      .toBe("console: hi");
   });
 
   test("an InjectionToken, typed by the token", () => {
     const url = withProviders([{ provide: API_URL, useValue: "https://api" }], () => inject(API_URL));
-    expectTypeOf(url).toEqualTypeOf<string>();
-    expect(url).toBe("https://api");
+    expectTypeOf(url)
+      .toEqualTypeOf<string>();
+    expect(url)
+      .toBe("https://api");
   });
 
   test("works in field initializers, the intended style", () => {
@@ -51,14 +60,18 @@ describe("public inject", () => {
       [{ provide: API_URL, useValue: "https://api" }, Clock, Api],
       () => inject(Api),
     );
-    expect(api.url).toBe("https://api");
-    expect(api.clock).toBeInstanceOf(Clock);
+    expect(api.url)
+      .toBe("https://api");
+    expect(api.clock)
+      .toBeInstanceOf(Clock);
   });
 
   test("passes the options through, with the matching return type", () => {
     const missing = withProviders([], () => inject(Clock, { optional: true }));
-    expectTypeOf(missing).toEqualTypeOf<Clock | null>();
-    expect(missing).toBeNull();
+    expectTypeOf(missing)
+      .toEqualTypeOf<Clock | null>();
+    expect(missing)
+      .toBeNull();
 
     const root = new Injector([adaptProvider({ provide: API_URL, useValue: "root" })]);
     const fromParent = withProviders(
@@ -66,20 +79,24 @@ describe("public inject", () => {
       () => inject(API_URL, { skipSelf: true }),
       root,
     );
-    expect(fromParent).toBe("root");
+    expect(fromParent)
+      .toBe("root");
   });
 
   test("a class and its class token are the same thing", () => {
     // Provided by class, injected by class: both go through the same adapter.
     const a = withProviders([Clock], () => [inject(Clock), inject(Clock)]);
-    expect(a[0]).toBe(a[1]);
+    expect(a[0])
+      .toBe(a[1]);
   });
 
   test("still only works inside an injection context", () => {
-    expect(() => inject(Clock)).toThrow("inject() must be called in an injection context");
+    expect(() => inject(Clock))
+      .toThrow("inject() must be called in an injection context");
   });
 
   test("throws for a missing provider, naming the class", () => {
-    expect(() => withProviders([], () => inject(Clock))).toThrow("No provider for Clock");
+    expect(() => withProviders([], () => inject(Clock)))
+      .toThrow("No provider for Clock");
   });
 });

@@ -9,29 +9,38 @@ describe("injection context", () => {
   test("runInInjectionContext sets the current injector and restores it, also on throw", () => {
     const outer = new Injector([]);
     const inner = new Injector([]);
-    expect(currentInjector.get()).toBeUndefined();
+    expect(currentInjector.get())
+      .toBeUndefined();
     runInInjectionContext(outer, () => {
-      expect(currentInjector.get()).toBe(outer);
+      expect(currentInjector.get())
+        .toBe(outer);
       expect(() =>
         runInInjectionContext(inner, () => {
-          expect(currentInjector.get()).toBe(inner);
+          expect(currentInjector.get())
+            .toBe(inner);
           throw new Error("x");
         }),
-      ).toThrow("x");
-      expect(currentInjector.get()).toBe(outer);
+      )
+        .toThrow("x");
+      expect(currentInjector.get())
+        .toBe(outer);
     });
-    expect(currentInjector.get()).toBeUndefined();
+    expect(currentInjector.get())
+      .toBeUndefined();
   });
 
   test("currentInjector is undefined outside any injection context", () => {
-    expect(currentInjector.get()).toBeUndefined();
+    expect(currentInjector.get())
+      .toBeUndefined();
   });
 
   test("a factory runs with its own injector as the context", () => {
     let seen: Injector | undefined;
     const injector = new Injector([{ token: API_URL, factory: () => ((seen = currentInjector.get()), "x") }]);
     injector.get(API_URL);
-    expect(seen).toBe(injector);
-    expect(currentInjector.get()).toBeUndefined();
+    expect(seen)
+      .toBe(injector);
+    expect(currentInjector.get())
+      .toBeUndefined();
   });
 });

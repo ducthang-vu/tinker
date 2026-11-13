@@ -51,7 +51,8 @@ export class CircularDependencyError extends Error {
   ): CircularDependencyError {
     const start = creationPath.findIndex((step) => step.owner === owner && step.token === token);
     return new CircularDependencyError([
-      ...creationPath.slice(start).map((step) => step.token),
+      ...creationPath.slice(start)
+        .map((step) => step.token),
       token,
     ]);
   }
@@ -61,7 +62,8 @@ export class CircularDependencyError extends Error {
    *   with the token that was requested again, e.g. `[Cart, Payment, Cart]`.
    */
   constructor(readonly path: readonly Token<unknown>[]) {
-    super(`Circular dependency: ${path.map((token) => token.name).join(" → ")}`);
+    super(`Circular dependency: ${path.map((token) => token.name)
+      .join(" → ")}`);
     this.name = "CircularDependencyError";
   }
 }
@@ -149,5 +151,4 @@ export class ProviderRecords {
     this.hooks.created(value);
     return value;
   }
-
 }

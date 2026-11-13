@@ -32,7 +32,8 @@ export function compileTemplate(nodes: readonly TemplateNode[]): readonly Compil
 
 function compileNode(node: TemplateNode): CompiledNode {
   if (node.kind === "text") {
-    return { kind: "text", interpolation: parseInterpolation(node.value).getOrThrow() };
+    return { kind: "text", interpolation: parseInterpolation(node.value)
+      .getOrThrow() };
   }
   return { ...node, children: compileTemplate(node.children) };
 }

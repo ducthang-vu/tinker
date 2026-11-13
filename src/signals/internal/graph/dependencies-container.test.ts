@@ -32,9 +32,11 @@ describe("DependenciesContainer", () => {
     deps.start();
     deps.add(p);
     deps.finish(consumer);
-    expect(deps.changed()).toBe(false);
+    expect(deps.changed())
+      .toBe(false);
     p.bump();
-    expect(deps.changed()).toBe(true);
+    expect(deps.changed())
+      .toBe(true);
   });
 
   test("changed() syncs dependencies before comparing", () => {
@@ -44,7 +46,8 @@ describe("DependenciesContainer", () => {
     deps.add(p);
     deps.finish(consumer);
     deps.changed();
-    expect(p.synced).toBe(1);
+    expect(p.synced)
+      .toBe(1);
   });
 
   test("reading the same producer again records its latest version", () => {
@@ -55,7 +58,8 @@ describe("DependenciesContainer", () => {
     p.bump();
     deps.add(p);
     deps.finish(consumer);
-    expect(deps.changed()).toBe(false);
+    expect(deps.changed())
+      .toBe(false);
   });
 
   test("finish() unsubscribes only from producers the new run did not read", () => {
@@ -71,8 +75,10 @@ describe("DependenciesContainer", () => {
     deps.add(kept);
     deps.finish(consumer);
 
-    expect(dropped.removed).toEqual([consumer]);
-    expect(kept.removed).toEqual([]);
+    expect(dropped.removed)
+      .toEqual([consumer]);
+    expect(kept.removed)
+      .toEqual([]);
   });
 
   test("clear() unsubscribes from everything and forgets it", () => {
@@ -82,8 +88,10 @@ describe("DependenciesContainer", () => {
     deps.add(p);
     deps.finish(consumer);
     deps.clear(consumer);
-    expect(p.removed).toEqual([consumer]);
+    expect(p.removed)
+      .toEqual([consumer]);
     p.bump();
-    expect(deps.changed()).toBe(false);
+    expect(deps.changed())
+      .toBe(false);
   });
 });

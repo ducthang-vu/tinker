@@ -4,11 +4,14 @@ import { computed, effect, signal } from "../src/signal.ts";
 describe("signal", () => {
   test("reads and writes", () => {
     const count = signal(1);
-    expect(count()).toBe(1);
+    expect(count())
+      .toBe(1);
     count.set(2);
-    expect(count()).toBe(2);
+    expect(count())
+      .toBe(2);
     count.set((n) => n + 1);
-    expect(count()).toBe(3);
+    expect(count())
+      .toBe(3);
   });
 });
 
@@ -19,7 +22,8 @@ describe("effect", () => {
     effect(() => seen.push(count()));
     count.set(1);
     count.set(2);
-    expect(seen).toEqual([0, 1, 2]);
+    expect(seen)
+      .toEqual([0, 1, 2]);
   });
 
   test("does not re-run when the value is unchanged", () => {
@@ -30,7 +34,8 @@ describe("effect", () => {
       runs++;
     });
     count.set(0);
-    expect(runs).toBe(1);
+    expect(runs)
+      .toBe(1);
   });
 
   test("stops when the stop function is called", () => {
@@ -42,7 +47,8 @@ describe("effect", () => {
     });
     stop();
     count.set(1);
-    expect(runs).toBe(1);
+    expect(runs)
+      .toBe(1);
   });
 
   test("only tracks signals read in the latest run", () => {
@@ -57,7 +63,8 @@ describe("effect", () => {
     });
     useA.set(false);
     a.set("a2"); // no longer read, so it should not re-run
-    expect(runs).toBe(2);
+    expect(runs)
+      .toBe(2);
   });
 });
 
@@ -65,8 +72,10 @@ describe("computed", () => {
   test("derives from other signals", () => {
     const n = signal(2);
     const doubled = computed(() => n() * 2);
-    expect(doubled()).toBe(4);
+    expect(doubled())
+      .toBe(4);
     n.set(5);
-    expect(doubled()).toBe(10);
+    expect(doubled())
+      .toBe(10);
   });
 });

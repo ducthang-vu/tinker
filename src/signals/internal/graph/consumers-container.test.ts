@@ -23,9 +23,11 @@ const producer = {} as Producer;
 describe("ConsumersContainer", () => {
   test("version starts at 0 and only bumpVersion changes it", () => {
     const consumers = new ConsumersContainer();
-    expect(consumers.version).toBe(0);
+    expect(consumers.version)
+      .toBe(0);
     consumers.bumpVersion();
-    expect(consumers.version).toBe(1);
+    expect(consumers.version)
+      .toBe(1);
   });
 
   test("markAllDirty marks every added consumer, but not removed ones", () => {
@@ -37,8 +39,10 @@ describe("ConsumersContainer", () => {
     consumers.add(a); // a set: no duplicates
     consumers.remove(b);
     consumers.markAllDirty();
-    expect(a.dirty).toBe(1);
-    expect(b.dirty).toBe(0);
+    expect(a.dirty)
+      .toBe(1);
+    expect(b.dirty)
+      .toBe(0);
   });
 
   test("reportRead links the active consumer on both sides", () => {
@@ -50,9 +54,11 @@ describe("ConsumersContainer", () => {
     } finally {
       activeConsumer.set(null);
     }
-    expect(reader.deps).toEqual([producer]);
+    expect(reader.deps)
+      .toEqual([producer]);
     consumers.markAllDirty();
-    expect(reader.dirty).toBe(1);
+    expect(reader.dirty)
+      .toBe(1);
   });
 
   test("reportRead with no active consumer links nothing", () => {
@@ -60,7 +66,8 @@ describe("ConsumersContainer", () => {
     consumers.reportRead(producer);
     const later = fakeConsumer();
     consumers.markAllDirty();
-    expect(later.dirty).toBe(0);
+    expect(later.dirty)
+      .toBe(0);
   });
 
   test("markAllDirty is safe when consumers change the set while it runs", () => {
@@ -75,6 +82,7 @@ describe("ConsumersContainer", () => {
     };
     consumers.add(adder);
     consumers.markAllDirty();
-    expect(late.dirty).toBe(0); // added during the walk: not visited this time
+    expect(late.dirty)
+      .toBe(0); // added during the walk: not visited this time
   });
 });

@@ -19,25 +19,31 @@ const sync: WatchScheduler = { schedule: (task) => task.run() };
 describe("signal()", () => {
   test("reads, writes and updates", () => {
     const count = signal(1);
-    expectTypeOf(count).toEqualTypeOf<Signal<number>>();
+    expectTypeOf(count)
+      .toEqualTypeOf<Signal<number>>();
     count.set(2);
     count.update((n) => n + 1);
-    expect(count()).toBe(3);
-    expect(untracked(() => count())).toBe(3);
+    expect(count())
+      .toBe(3);
+    expect(untracked(() => count()))
+      .toBe(3);
   });
 
   test("custom equality", () => {
     const user = signal({ id: 1, name: "Ada" }, (a, b) => a.id === b.id);
     user.set({ id: 1, name: "Changed" });
-    expect(user().name).toBe("Ada");
+    expect(user().name)
+      .toBe("Ada");
   });
 
   test("asReadonly gives a read-only view", () => {
     const count = signal(1);
     const view = count.asReadonly();
-    expectTypeOf(view).toEqualTypeOf<ReadonlySignal<number>>();
+    expectTypeOf(view)
+      .toEqualTypeOf<ReadonlySignal<number>>();
     count.set(2);
-    expect(view()).toBe(2);
+    expect(view())
+      .toBe(2);
   });
 });
 
@@ -49,12 +55,17 @@ describe("computed()", () => {
       runs++;
       return count() * 2;
     });
-    expectTypeOf(doubled).toEqualTypeOf<ReadonlySignal<number>>();
-    expect(doubled()).toBe(4);
-    expect(doubled()).toBe(4);
-    expect(runs).toBe(1);
+    expectTypeOf(doubled)
+      .toEqualTypeOf<ReadonlySignal<number>>();
+    expect(doubled())
+      .toBe(4);
+    expect(doubled())
+      .toBe(4);
+    expect(runs)
+      .toBe(1);
     count.set(3);
-    expect(doubled()).toBe(6);
+    expect(doubled())
+      .toBe(6);
   });
 
   test("custom equality keeps the previous value", () => {
@@ -62,7 +73,8 @@ describe("computed()", () => {
     const sorted = computed(() => [...ids()].sort(), (a, b) => a.join() === b.join());
     const first = sorted();
     ids.set([2, 1]);
-    expect(sorted()).toBe(first);
+    expect(sorted())
+      .toBe(first);
   });
 });
 
@@ -75,11 +87,13 @@ describe("watch()", () => {
       log.push(`run ${v}`);
       onCleanup(() => log.push(`cleanup ${v}`));
     }, sync);
-    expectTypeOf(w).toEqualTypeOf<Watch>();
+    expectTypeOf(w)
+      .toEqualTypeOf<Watch>();
     count.set(2);
     w.destroy();
     count.set(3);
-    expect(log).toEqual(["run 1", "cleanup 1", "run 2", "cleanup 2"]);
+    expect(log)
+      .toEqual(["run 1", "cleanup 1", "run 2", "cleanup 2"]);
   });
 
   test("the scheduler receives a task that only exposes run()", async () => {
@@ -87,13 +101,15 @@ describe("watch()", () => {
     const seen: number[] = [];
     watch(() => seen.push(count()), {
       schedule(task) {
-        expectTypeOf(task).toEqualTypeOf<Runnable>();
+        expectTypeOf(task)
+          .toEqualTypeOf<Runnable>();
         queueMicrotask(() => task.run());
       },
     });
     count.set(2);
     await Promise.resolve();
-    expect(seen).toEqual([2]);
+    expect(seen)
+      .toEqual([2]);
   });
 
   test("a scheduler can be a stateful class", () => {
@@ -102,20 +118,24 @@ describe("watch()", () => {
       schedule(task: Runnable): void {
         this.pending.push(task);
       }
+
       flush(): void {
-        this.pending.splice(0).forEach((task) => task.run());
+        this.pending.splice(0)
+          .forEach((task) => task.run());
       }
     }
     const scheduler = new ManualScheduler();
     const count = signal(1);
     const seen: number[] = [];
     watch(() => seen.push(count()), scheduler);
-    expect(seen).toEqual([]);
+    expect(seen)
+      .toEqual([]);
     scheduler.flush();
     count.set(2);
     count.set(3);
     scheduler.flush();
-    expect(seen).toEqual([1, 3]);
+    expect(seen)
+      .toEqual([1, 3]);
   });
 });
 
@@ -123,33 +143,48 @@ describe("callable signals", () => {
   test("a signal can be passed wherever a getter is expected", () => {
     const count = signal(2);
     const read = count; // no lost `this`
-    expect(read()).toBe(2);
-    expect([1, 2].map(() => 0).map(count)).toEqual([2, 2]);
+    expect(read())
+      .toBe(2);
+    expect([1, 2].map(() => 0)
+      .map(count))
+      .toEqual([2, 2]);
     const doubled = computed(() => count() * 2);
     const again = computed(doubled);
-    expect(again()).toBe(4);
+    expect(again())
+      .toBe(4);
   });
 
   test("the internal node cannot be reached at runtime", () => {
     const s = signal(1);
     const c = computed(() => s());
     const w = watch(() => {}, sync);
-    expect(Object.keys(s).sort()).toEqual(["asReadonly", "set", "update"]);
-    expect(Object.keys(s.asReadonly())).toEqual([]);
-    expect(Object.keys(c)).toEqual([]);
-    expect(Object.keys(w)).toEqual(["destroy"]);
+    expect(Object.keys(s)
+      .sort())
+      .toEqual(["asReadonly", "set", "update"]);
+    expect(Object.keys(s.asReadonly()))
+      .toEqual([]);
+    expect(Object.keys(c))
+      .toEqual([]);
+    expect(Object.keys(w))
+      .toEqual(["destroy"]);
     for (const value of [s, c, w]) {
-      expect("markDirty" in value).toBe(false);
-      expect("version" in value).toBe(false);
-      expect("get" in value).toBe(false);
-      expect("getUntracked" in value).toBe(false);
+      expect("markDirty" in value)
+        .toBe(false);
+      expect("version" in value)
+        .toBe(false);
+      expect("get" in value)
+        .toBe(false);
+      expect("getUntracked" in value)
+        .toBe(false);
     }
   });
 
   test("asReadonly returns the same view every time", () => {
     const s = signal(1);
-    expect(s.asReadonly()).toBe(s.asReadonly());
-    expect("set" in s.asReadonly()).toBe(false);
+    expect(s.asReadonly())
+      .toBe(s.asReadonly());
+    expect("set" in s.asReadonly())
+      .toBe(false);
   });
 });
 
@@ -157,14 +192,19 @@ describe("exports", () => {
   test("untracked and the error classes", () => {
     const a = signal(1);
     const c = computed(() => untracked(() => a()));
-    expect(c()).toBe(1);
+    expect(c())
+      .toBe(1);
     a.set(2);
-    expect(c()).toBe(1);
-    expect(() => computed(() => a.set(3))()).toThrow(SignalWriteError);
+    expect(c())
+      .toBe(1);
+    expect(() => computed(() => a.set(3))())
+      .toThrow(SignalWriteError);
     const box: { c?: ReadonlySignal<number> } = {};
     box.c = computed(() => box.c!());
-    expect(() => box.c!()).toThrow(SignalCycleError);
-    expect(() => watch(() => a.set(a() + 1), sync)).toThrow(WatchLoopError);
+    expect(() => box.c!())
+      .toThrow(SignalCycleError);
+    expect(() => watch(() => a.set(a() + 1), sync))
+      .toThrow(WatchLoopError);
   });
 
   test("internals are not part of the public types", () => {

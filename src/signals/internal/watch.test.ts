@@ -15,7 +15,8 @@ describe("scheduling", () => {
     a.set(2);
     a.set(2);
     a.set(3);
-    expect(seen).toEqual([1, 2, 3]);
+    expect(seen)
+      .toEqual([1, 2, 3]);
   });
 
   test("manual queue: scheduled once while dirty", () => {
@@ -23,14 +24,18 @@ describe("scheduling", () => {
     const queue: Runnable[] = [];
     const seen: number[] = [];
     const w = new Watch(() => seen.push(a.get()), { schedule: (task) => queue.push(task) });
-    expect(seen).toEqual([]);
-    expect(queue).toEqual([w]); // the watch passes itself
+    expect(seen)
+      .toEqual([]);
+    expect(queue)
+      .toEqual([w]); // the watch passes itself
     queue.shift()!.run();
     a.set(2);
     a.set(3);
-    expect(queue).toHaveLength(1);
+    expect(queue)
+      .toHaveLength(1);
     queue.shift()!.run();
-    expect(seen).toEqual([1, 3]);
+    expect(seen)
+      .toEqual([1, 3]);
   });
 
   test("microtask scheduler batches writes", async () => {
@@ -40,7 +45,8 @@ describe("scheduling", () => {
     a.set(2);
     a.set(3);
     await Promise.resolve();
-    expect(seen).toEqual([3]);
+    expect(seen)
+      .toEqual([3]);
   });
 
   test("skips the run when a computed it reads did not really change", () => {
@@ -52,9 +58,11 @@ describe("scheduling", () => {
       runs++;
     }, sync);
     a.set(4);
-    expect(runs).toBe(1);
+    expect(runs)
+      .toBe(1);
     a.set(5);
-    expect(runs).toBe(2);
+    expect(runs)
+      .toBe(2);
   });
 
   test("drops dependencies it no longer reads", () => {
@@ -65,7 +73,8 @@ describe("scheduling", () => {
     new Watch(() => seen.push(useA.get() ? a.get() : b.get()), sync);
     useA.set(false);
     a.set("a2");
-    expect(seen).toEqual(["a", "b"]);
+    expect(seen)
+      .toEqual(["a", "b"]);
   });
 });
 
@@ -81,7 +90,8 @@ describe("cleanup and destroy", () => {
     a.set(2);
     w.destroy();
     a.set(3);
-    expect(log).toEqual(["run 1", "cleanup 1", "run 2", "cleanup 2"]);
+    expect(log)
+      .toEqual(["run 1", "cleanup 1", "run 2", "cleanup 2"]);
   });
 
   test("destroying twice is harmless", () => {
@@ -89,7 +99,8 @@ describe("cleanup and destroy", () => {
     const w = new Watch((onCleanup) => onCleanup(() => cleanups++), sync);
     w.destroy();
     w.destroy();
-    expect(cleanups).toBe(1);
+    expect(cleanups)
+      .toBe(1);
   });
 });
 
@@ -100,7 +111,8 @@ describe("no user code during marking", () => {
     const seen: string[] = [];
     new Watch(() => seen.push(`${a.get()}/${b.get()}`), sync);
     a.set(2);
-    expect(seen).toEqual(["1/10", "2/20"]);
+    expect(seen)
+      .toEqual(["1/10", "2/20"]);
   });
 
   test("a throwing watch does not leave other consumers stale", () => {
@@ -110,8 +122,10 @@ describe("no user code during marking", () => {
     }, sync);
     const c = new Computed(() => a.get() * 10);
     c.get();
-    expect(() => a.set(2)).toThrow("watch failed");
-    expect(c.get()).toBe(20);
+    expect(() => a.set(2))
+      .toThrow("watch failed");
+    expect(c.get())
+      .toBe(20);
   });
 
   test("all watches run even if one throws", () => {
@@ -121,8 +135,10 @@ describe("no user code during marking", () => {
       if (a.get() === 2) throw new Error("first");
     }, sync);
     new Watch(() => seen.push(a.get()), sync);
-    expect(() => a.set(2)).toThrow("first");
-    expect(seen).toEqual([1, 2]);
+    expect(() => a.set(2))
+      .toThrow("first");
+    expect(seen)
+      .toEqual([1, 2]);
   });
 
   test("a computed error does not escape into set()", () => {
@@ -141,7 +157,8 @@ describe("no user code during marking", () => {
     }, sync);
     expect(() => a.set(1)).not.toThrow();
     a.set(2);
-    expect(seen).toEqual([0, "err", 2]);
+    expect(seen)
+      .toEqual([0, "err", 2]);
   });
 });
 
@@ -158,14 +175,18 @@ describe("writing its own dependencies", () => {
       if (a.get() < 3) a.update((n) => n + 1);
       depth--;
     }, sync);
-    expect(a.get()).toBe(3);
-    expect(runs).toBe(4);
-    expect(maxDepth).toBe(1);
+    expect(a.get())
+      .toBe(3);
+    expect(runs)
+      .toBe(4);
+    expect(maxDepth)
+      .toBe(1);
   });
 
   test("an endless loop throws WatchLoopError instead of hanging", () => {
     const a = new Signal(0);
-    expect(() => new Watch(() => a.set(a.get() + 1), sync)).toThrow(WatchLoopError);
+    expect(() => new Watch(() => a.set(a.get() + 1), sync))
+      .toThrow(WatchLoopError);
   });
 
   test("is not stuck after an error", () => {
@@ -182,6 +203,7 @@ describe("writing its own dependencies", () => {
     }
     fail.set(false);
     a.set(5);
-    expect(seen.at(-1)).toBe(5);
+    expect(seen.at(-1))
+      .toBe(5);
   });
 });

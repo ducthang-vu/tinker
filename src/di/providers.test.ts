@@ -30,9 +30,12 @@ const API_URL = new InjectionToken<string>("API_URL");
 
 describe("ProviderToken", () => {
   test("accepts a Token, a class, and an abstract class", () => {
-    expectTypeOf(API_URL).toExtend<ProviderToken<string>>();
-    expectTypeOf(Clock).toExtend<ProviderToken<Clock>>();
-    expectTypeOf(Logger).toExtend<ProviderToken<Logger>>();
+    expectTypeOf(API_URL)
+      .toExtend<ProviderToken<string>>();
+    expectTypeOf(Clock)
+      .toExtend<ProviderToken<Clock>>();
+    expectTypeOf(Logger)
+      .toExtend<ProviderToken<Logger>>();
   });
 
   test("a class is a token for its own instances only", () => {
@@ -43,7 +46,8 @@ describe("ProviderToken", () => {
 
 describe("Provider", () => {
   test("a concrete class on its own", () => {
-    expectTypeOf(Clock).toExtend<Provider>();
+    expectTypeOf(Clock)
+      .toExtend<Provider>();
   });
 
   test("an abstract class on its own is not enough: it cannot be created", () => {
@@ -56,24 +60,31 @@ describe("Provider", () => {
 
   test("useClass: an abstract token, a concrete implementation", () => {
     const provider = { provide: Logger, useClass: ConsoleLogger };
-    expectTypeOf(provider).toExtend<ClassProvider<Logger>>();
-    expectTypeOf(provider).toExtend<Provider>();
+    expectTypeOf(provider)
+      .toExtend<ClassProvider<Logger>>();
+    expectTypeOf(provider)
+      .toExtend<Provider>();
     expectTypeOf({ provide: Logger, useClass: Logger }).not.toExtend<ClassProvider<Logger>>();
   });
 
   test("useValue: the value must match the token's type", () => {
-    expectTypeOf({ provide: API_URL, useValue: "https://api" }).toExtend<ValueProvider<string>>();
+    expectTypeOf({ provide: API_URL, useValue: "https://api" })
+      .toExtend<ValueProvider<string>>();
     expectTypeOf({ provide: API_URL, useValue: 42 }).not.toExtend<ValueProvider<string>>();
   });
 
   test("useFactory: a function returning the token's type", () => {
-    expectTypeOf({ provide: Clock, useFactory: () => new Clock() }).toExtend<FactoryProvider<Clock>>();
-    expectTypeOf({ provide: API_URL, useFactory: () => 42 }).not.toExtend<FactoryProvider<string>>();
+    expectTypeOf({ provide: Clock, useFactory: () => new Clock() })
+      .toExtend<FactoryProvider<Clock>>();
+    expectTypeOf({ provide: API_URL, useFactory: () => 42 })
+      .not.toExtend<FactoryProvider<string>>();
   });
 
   test("useExisting: an alias to another token", () => {
-    expectTypeOf({ provide: Logger, useExisting: ConsoleLogger }).toExtend<ExistingProvider<Logger>>();
-    expectTypeOf({ provide: Logger, useExisting: ConsoleLogger }).toExtend<Provider>();
+    expectTypeOf({ provide: Logger, useExisting: ConsoleLogger })
+      .toExtend<ExistingProvider<Logger>>();
+    expectTypeOf({ provide: Logger, useExisting: ConsoleLogger })
+      .toExtend<Provider>();
   });
 });
 
@@ -81,18 +92,26 @@ describe("provide()", () => {
   const LOGGER_NAME = new InjectionToken<string>("LOGGER_NAME");
 
   test("builds the matching object form", () => {
-    expect(provide(API_URL, { useValue: "https://api" })).toEqual({ provide: API_URL, useValue: "https://api" });
-    expect(provide(Logger, { useClass: ConsoleLogger })).toEqual({ provide: Logger, useClass: ConsoleLogger });
+    expect(provide(API_URL, { useValue: "https://api" }))
+      .toEqual({ provide: API_URL, useValue: "https://api" });
+    expect(provide(Logger, { useClass: ConsoleLogger }))
+      .toEqual({ provide: Logger, useClass: ConsoleLogger });
     const factory = () => new Clock();
-    expect(provide(Clock, { useFactory: factory })).toEqual({ provide: Clock, useFactory: factory });
-    expect(provide(Logger, { useExisting: ConsoleLogger })).toEqual({ provide: Logger, useExisting: ConsoleLogger });
+    expect(provide(Clock, { useFactory: factory }))
+      .toEqual({ provide: Clock, useFactory: factory });
+    expect(provide(Logger, { useExisting: ConsoleLogger }))
+      .toEqual({ provide: Logger, useExisting: ConsoleLogger });
   });
 
   test("accepts recipes that match the token", () => {
-    expectTypeOf(provide(API_URL, { useValue: "https://api" })).toEqualTypeOf<Provider<string>>();
-    expectTypeOf(provide(Logger, { useClass: ConsoleLogger })).toEqualTypeOf<Provider<Logger>>();
-    expectTypeOf(provide(Clock, { useFactory: () => new Clock() })).toEqualTypeOf<Provider<Clock>>();
-    expectTypeOf(provide(Logger, { useExisting: ConsoleLogger })).toEqualTypeOf<Provider<Logger>>();
+    expectTypeOf(provide(API_URL, { useValue: "https://api" }))
+      .toEqualTypeOf<Provider<string>>();
+    expectTypeOf(provide(Logger, { useClass: ConsoleLogger }))
+      .toEqualTypeOf<Provider<Logger>>();
+    expectTypeOf(provide(Clock, { useFactory: () => new Clock() }))
+      .toEqualTypeOf<Provider<Clock>>();
+    expectTypeOf(provide(Logger, { useExisting: ConsoleLogger }))
+      .toEqualTypeOf<Provider<Logger>>();
   });
 
   test("rejects recipes that do not match the token", () => {
@@ -118,9 +137,12 @@ describe("provide()", () => {
       ],
     });
     runInInjectionContext(injector, () => {
-      expect(inject(API_URL)).toBe("https://api");
-      expect(inject(Logger)).toBe(inject(ConsoleLogger));
-      expect(inject(LOGGER_NAME)).toBe("logger for https://api");
+      expect(inject(API_URL))
+        .toBe("https://api");
+      expect(inject(Logger))
+        .toBe(inject(ConsoleLogger));
+      expect(inject(LOGGER_NAME))
+        .toBe("logger for https://api");
     });
   });
 });

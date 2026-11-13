@@ -61,7 +61,8 @@ export class Either<E, T> {
    * value as the Error's `cause`.
    */
   static tryCatchError<T>(fn: () => T): EitherError<T> {
-    return Either.tryCatch(fn).mapLeft(toError);
+    return Either.tryCatch(fn)
+      .mapLeft(toError);
   }
 
   /**
@@ -82,7 +83,9 @@ export class Either<E, T> {
 
   /** Transform the success, if it is one. */
   map<U>(f: (value: T) => U): Either<E, U> {
-    return this.isRightSide ? Either.right(f(this.payload as T)) : (this as unknown as Either<E, U>);
+    return this.isRightSide
+      ? Either.right(f(this.payload as T))
+      : (this as unknown as Either<E, U>);
   }
 
   /** Transform the failure, if it is one. */

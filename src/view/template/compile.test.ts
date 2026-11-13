@@ -13,25 +13,28 @@ describe("compileTemplate", () => {
       },
       { kind: "text", value: "plain" },
     ]);
-    expect(compiled).toEqual([
-      {
-        kind: "element",
-        name: "p",
-        attributes: [{ name: "class", value: "x" }],
-        children: [
-          {
-            kind: "text",
-            interpolation: { strings: ["Hi ", ""], expressions: [ExpressionParser.parse("name()").getOrThrow()] },
-          },
-        ],
-      },
-      { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
-    ]);
+    expect(compiled)
+      .toEqual([
+        {
+          kind: "element",
+          name: "p",
+          attributes: [{ name: "class", value: "x" }],
+          children: [
+            {
+              kind: "text",
+              interpolation: { strings: ["Hi ", ""], expressions: [ExpressionParser.parse("name()")
+                .getOrThrow()] },
+            },
+          ],
+        },
+        { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
+      ]);
   });
 
   test("throws for an invalid {{ }}, however deep", () => {
     expect(() =>
       compileTemplate([{ kind: "element", name: "div", attributes: [], children: [{ kind: "text", value: "{{ a(1) }}" }] }]),
-    ).toThrow("Call arguments are not supported yet");
+    )
+      .toThrow("Call arguments are not supported yet");
   });
 });

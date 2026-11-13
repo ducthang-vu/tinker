@@ -84,8 +84,8 @@ function cached<This extends CacheState<Return> & Producer & Consumer, Return>(
       this.value = old;
     }
     this.dirty = false;
-    const bothValues =
-      old !== UNSET && !(old instanceof ComputedError) && !(value instanceof ComputedError);
+    const bothValues
+      = old !== UNSET && !(old instanceof ComputedError) && !(value instanceof ComputedError);
     if (bothValues) {
       try {
         if (this.equal(old, value as Return)) {

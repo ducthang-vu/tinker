@@ -28,7 +28,8 @@ export class BrowserTemplateParser implements TemplateParser {
 /** Convert a DOM node's children, skipping what the tree does not keep. */
 function convertChildren(parent: Node): TemplateNode[] {
   return [...parent.childNodes].flatMap((child) =>
-    convert(child).match({ some: (node) => [node], none: () => [] }),
+    convert(child)
+      .match({ some: (node) => [node], none: () => [] }),
   );
 }
 

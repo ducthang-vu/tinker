@@ -34,8 +34,8 @@ export function signal<T>(initial: T): Signal<T> {
   }) as Signal<T>;
 
   read.set = (next) => {
-    const resolved =
-      typeof next === "function" ? (next as (prev: T) => T)(value) : next;
+    const resolved
+      = typeof next === "function" ? (next as (prev: T) => T)(value) : next;
     if (Object.is(resolved, value)) return;
     value = resolved;
     // Copy first: running an effect can change the subscriber set.

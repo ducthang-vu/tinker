@@ -41,7 +41,8 @@ export function h(
 
   for (const [key, value] of Object.entries(props ?? {})) {
     if (key.startsWith("on") && typeof value === "function") {
-      el.addEventListener(key.slice(2).toLowerCase(), value as EventListener);
+      el.addEventListener(key.slice(2)
+        .toLowerCase(), value as EventListener);
     } else if (typeof value === "function") {
       effect(() => setProp(el, key, (value as () => unknown)()));
     } else {

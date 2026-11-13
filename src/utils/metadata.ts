@@ -21,5 +21,7 @@ export function defineMetadata(target: AbstractClass, key: symbol, value: object
 
 /** The static property `key` of `type` itself (not inherited), if it has one. */
 export function ownMetadata<T>(type: AbstractClass, key: symbol): Maybe<T> {
-  return Object.hasOwn(type, key) ? Maybe.some((type as unknown as Record<symbol, T>)[key]!) : Maybe.none();
+  return Object.hasOwn(type, key)
+    ? Maybe.some((type as unknown as Record<symbol, T>)[key]!)
+    : Maybe.none();
 }

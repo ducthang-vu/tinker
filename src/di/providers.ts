@@ -45,19 +45,19 @@ export interface ExistingProvider<T> {
  * Any provider: a concrete class on its own (provided as itself), or one of
  * the object forms.
  */
-export type Provider<T = any> =
-  | Class<T>
-  | ClassProvider<T>
-  | ValueProvider<T>
-  | FactoryProvider<T>
-  | ExistingProvider<T>;
+export type Provider<T = unknown>
+  = | Class<T>
+    | ClassProvider<T>
+    | ValueProvider<T>
+    | FactoryProvider<T>
+    | ExistingProvider<T>;
 
 /** How `provide()` creates the value: the object forms without `provide`. */
-export type ProviderRecipe<T> =
-  | { readonly useClass: Class<T> }
-  | { readonly useValue: T }
-  | { readonly useFactory: () => T }
-  | { readonly useExisting: ProviderToken<T> };
+export type ProviderRecipe<T>
+  = | { readonly useClass: Class<T> }
+    | { readonly useValue: T }
+    | { readonly useFactory: () => T }
+    | { readonly useExisting: ProviderToken<T> };
 
 /**
  * A provider whose recipe is checked against its token. A plain `Provider[]`
@@ -68,6 +68,9 @@ export type ProviderRecipe<T> =
  * The value type `T` comes from the token only (`NoInfer` on the recipe), so
  * a mismatch is reported instead of being "explained" by widening `T`.
  */
-export function provide<T>(token: ProviderToken<T>, recipe: ProviderRecipe<NoInfer<T>>): Provider<T> {
+export function provide<T>(
+  token: ProviderToken<T>,
+  recipe: ProviderRecipe<NoInfer<T>>,
+): Provider<T> {
   return { provide: token, ...recipe } as Provider<T>;
 }

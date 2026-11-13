@@ -16,17 +16,22 @@ describe("Effects", () => {
     class A {
       readonly count = signal(1);
       constructor() {
-        inject(Effects).create(() => void runs.push(this.count()));
+        inject(Effects)
+          .create(() => void runs.push(this.count()));
       }
     }
-    const view = Engine.create().createComponent(A);
-    expect(runs).toEqual([]); // not during create
+    const view = Engine.create()
+      .createComponent(A);
+    expect(runs)
+      .toEqual([]); // not during create
     await Promise.resolve();
-    expect(runs).toEqual([1]);
+    expect(runs)
+      .toEqual([1]);
     view.component.count.set(2);
     view.component.count.set(3);
     await Promise.resolve();
-    expect(runs).toEqual([1, 3]);
+    expect(runs)
+      .toEqual([1, 3]);
   });
 
   test("runs before the views: a view sees what an effect wrote in the same tick", () => {
@@ -35,16 +40,19 @@ describe("Effects", () => {
       readonly count = signal(1);
       readonly doubled = signal(0);
       constructor() {
-        inject(Effects).create(() => this.doubled.set(this.count() * 2));
+        inject(Effects)
+          .create(() => this.doubled.set(this.count() * 2));
       }
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
     engine.flush();
-    expect(view.host.textContent).toBe("2");
+    expect(view.host.textContent)
+      .toBe("2");
     view.component.count.set(5);
     engine.flush();
-    expect(view.host.textContent).toBe("10");
+    expect(view.host.textContent)
+      .toBe("10");
   });
 
   test("onCleanup runs before the next run and on destroy; destroy stops it", () => {
@@ -52,11 +60,12 @@ describe("Effects", () => {
     @Component({ selector: "tk-a", template: "" })
     class A {
       readonly count = signal(1);
-      readonly handle = inject(Effects).create(({ onCleanup }) => {
-        const value = this.count();
-        log.push(`run ${value}`);
-        onCleanup(() => log.push(`cleanup ${value}`));
-      });
+      readonly handle = inject(Effects)
+        .create(({ onCleanup }) => {
+          const value = this.count();
+          log.push(`run ${value}`);
+          onCleanup(() => log.push(`cleanup ${value}`));
+        });
     }
     const engine = Engine.create();
     const { component } = engine.createComponent(A);
@@ -66,7 +75,8 @@ describe("Effects", () => {
     component.handle.destroy();
     component.count.set(3);
     engine.flush();
-    expect(log).toEqual(["run 1", "cleanup 1", "run 2", "cleanup 2"]);
+    expect(log)
+      .toEqual(["run 1", "cleanup 1", "run 2", "cleanup 2"]);
   });
 
   test("works in services and components, which can inject() too", () => {
@@ -75,23 +85,27 @@ describe("Effects", () => {
     class Clock {
       readonly time = signal(0);
       constructor() {
-        inject(Effects).create(() => void log.push(`service ${this.time()}`));
+        inject(Effects)
+          .create(() => void log.push(`service ${this.time()}`));
       }
     }
     @Component({ selector: "tk-a", template: "" })
     class A {
       readonly clock = inject(Clock);
       constructor() {
-        inject(Effects).create(() => void log.push(`component ${this.clock.time()}`));
+        inject(Effects)
+          .create(() => void log.push(`component ${this.clock.time()}`));
       }
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
     engine.flush();
-    expect(log).toEqual(["service 0", "component 0"]);
+    expect(log)
+      .toEqual(["service 0", "component 0"]);
     view.component.clock.time.set(1);
     engine.flush();
-    expect(log).toEqual(["service 0", "component 0", "service 1", "component 1"]);
+    expect(log)
+      .toEqual(["service 0", "component 0", "service 1", "component 1"]);
   });
 
   test("isFirst is true on the first run only", () => {
@@ -100,7 +114,8 @@ describe("Effects", () => {
     class A {
       readonly count = signal(1);
       constructor() {
-        inject(Effects).create(({ isFirst }) => void runs.push([this.count(), isFirst]));
+        inject(Effects)
+          .create(({ isFirst }) => void runs.push([this.count(), isFirst]));
       }
     }
     const engine = Engine.create();
@@ -110,11 +125,12 @@ describe("Effects", () => {
     engine.flush();
     component.count.set(3);
     engine.flush();
-    expect(runs).toEqual([
-      [1, true],
-      [2, false],
-      [3, false],
-    ]);
+    expect(runs)
+      .toEqual([
+        [1, true],
+        [2, false],
+        [3, false],
+      ]);
   });
 
   test("an effect that throws on its first run still counts it as its first", () => {
@@ -123,20 +139,23 @@ describe("Effects", () => {
     class A {
       readonly count = signal(1);
       constructor() {
-        inject(Effects).create(({ isFirst }) => {
-          firsts.push(isFirst);
-          if (this.count() === 1) {
-            throw new Error("first run failed");
-          }
-        });
+        inject(Effects)
+          .create(({ isFirst }) => {
+            firsts.push(isFirst);
+            if (this.count() === 1) {
+              throw new Error("first run failed");
+            }
+          });
       }
     }
     const engine = Engine.create();
     const { component } = engine.createComponent(A);
-    expect(() => engine.flush()).toThrow("first run failed");
+    expect(() => engine.flush())
+      .toThrow("first run failed");
     component.count.set(2);
     engine.flush();
-    expect(firsts).toEqual([true, false]);
+    expect(firsts)
+      .toEqual([true, false]);
   });
 
   test("create can be called at any moment, not only during construction", () => {
@@ -152,10 +171,12 @@ describe("Effects", () => {
     const engine = Engine.create();
     const { component } = engine.createComponent(A);
     engine.flush();
-    expect(runs).toEqual([]);
+    expect(runs)
+      .toEqual([]);
     component.start(); // long after construction, e.g. in a click handler
     engine.flush();
-    expect(runs).toEqual([1]);
+    expect(runs)
+      .toEqual([1]);
   });
 
   test("two engines run their effects in their own ticks", () => {
@@ -164,7 +185,8 @@ describe("Effects", () => {
     class A {
       readonly name = signal("");
       constructor() {
-        inject(Effects).create(() => void runs.push(this.name()));
+        inject(Effects)
+          .create(() => void runs.push(this.name()));
       }
     }
     const one = Engine.create();
@@ -172,9 +194,11 @@ describe("Effects", () => {
     one.createComponent(A).component.name.set("one");
     two.createComponent(A).component.name.set("two");
     one.flush();
-    expect(runs).toEqual(["one"]);
+    expect(runs)
+      .toEqual(["one"]);
     two.flush();
-    expect(runs).toEqual(["one", "two"]);
+    expect(runs)
+      .toEqual(["one", "two"]);
   });
 });
 
@@ -197,7 +221,8 @@ describe("@Effect()", () => {
     engine.flush();
     first.count.set(2);
     engine.flush();
-    expect(runs).toEqual(["a 1 first", "a 1 first", "cleanup 1", "a 2 again"]);
+    expect(runs)
+      .toEqual(["a 1 first", "a 1 first", "cleanup 1", "a 2 again"]);
   });
 
   test("works on services too", () => {
@@ -216,13 +241,15 @@ describe("@Effect()", () => {
     const engine = Engine.create();
     engine.createComponent(A).component.store.size.set(3);
     engine.flush();
-    expect(runs).toEqual([3]);
+    expect(runs)
+      .toEqual([3]);
   });
 
   test("an instance created outside an injection context cannot have effects", () => {
     class Plain {
       @Effect() run() {}
     }
-    expect(() => new Plain()).toThrow("inject() must be called in an injection context");
+    expect(() => new Plain())
+      .toThrow("inject() must be called in an injection context");
   });
 });

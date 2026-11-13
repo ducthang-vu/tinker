@@ -12,7 +12,8 @@ const fakeConsumer = (): Consumer => ({
 
 describe("activeConsumer", () => {
   test("is null when nothing is reading", () => {
-    expect(activeConsumer.get()).toBe(null);
+    expect(activeConsumer.get())
+      .toBe(null);
   });
 });
 
@@ -33,17 +34,23 @@ describe("@tracked", () => {
 
   test("makes `this` the active consumer and passes arguments and result through", () => {
     const probe = new Probe();
-    expect(probe.run(false)).toBe("done");
-    expect(probe.seen).toBe(probe);
-    expect(activeConsumer.get()).toBe(null);
+    expect(probe.run(false))
+      .toBe("done");
+    expect(probe.seen)
+      .toBe(probe);
+    expect(activeConsumer.get())
+      .toBe(null);
   });
 
   test("restores the previous consumer even when the method throws", () => {
     const outer = fakeConsumer();
     activeConsumer.set(outer);
     try {
-      expect(() => new Probe().run(true)).toThrow("boom");
-      expect(activeConsumer.get()).toBe(outer);
+      expect(() => new Probe()
+        .run(true))
+        .toThrow("boom");
+      expect(activeConsumer.get())
+        .toBe(outer);
     } finally {
       activeConsumer.set(null);
     }
@@ -52,7 +59,8 @@ describe("@tracked", () => {
 
 describe("untracked", () => {
   test("returns the result and works outside any consumer", () => {
-    expect(untracked(() => 42)).toBe(42);
+    expect(untracked(() => 42))
+      .toBe(42);
   });
 
   test("reads inside are not dependencies of the surrounding computed", () => {
@@ -63,12 +71,16 @@ describe("untracked", () => {
       runs++;
       return a.get() + untracked(() => b.get());
     });
-    expect(c.get()).toBe(11);
+    expect(c.get())
+      .toBe(11);
     b.set(20);
-    expect(c.get()).toBe(11);
+    expect(c.get())
+      .toBe(11);
     a.set(2);
-    expect(c.get()).toBe(22);
-    expect(runs).toBe(2);
+    expect(c.get())
+      .toBe(22);
+    expect(runs)
+      .toBe(2);
   });
 
   test("restores the active consumer, even when fn throws", () => {
@@ -77,11 +89,14 @@ describe("untracked", () => {
     try {
       expect(() =>
         untracked(() => {
-          expect(activeConsumer.get()).toBe(null);
+          expect(activeConsumer.get())
+            .toBe(null);
           throw new Error("x");
         }),
-      ).toThrow("x");
-      expect(activeConsumer.get()).toBe(outer);
+      )
+        .toThrow("x");
+      expect(activeConsumer.get())
+        .toBe(outer);
     } finally {
       activeConsumer.set(null);
     }

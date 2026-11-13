@@ -79,7 +79,10 @@ export class Engine {
   private readonly changeDetection = inject(ChangeDetection);
   private readonly containers = inject(ViewContainerRefFactory);
 
-  /** Create an engine: its root injector (your providers, then the defaults), and the engine from it. */
+  /**
+   * Create an engine: its root injector (your providers, then the defaults),
+   * and the engine from it.
+   */
   static create(options: EngineOptions = {}): Engine {
     // The first provider for a token wins: user providers go first. (Engine is
     // listed here, not in DEFAULT_PROVIDERS, which is declared before the class.)
@@ -92,9 +95,10 @@ export class Engine {
   /** Start the app: render the root component `type` into its host element in the page. */
   bootstrap<T extends object>(type: Class<T>): View<T> {
     const { selector } = this.components.metadataOf(type);
-    const host = Maybe.fromNullable(this.document.querySelector(selector)).getOrThrow(
-      () => new Error(`No host element matches "${selector}" for ${type.name}`),
-    );
+    const host = Maybe.fromNullable(this.document.querySelector(selector))
+      .getOrThrow(
+        () => new Error(`No host element matches "${selector}" for ${type.name}`),
+      );
     return this.components.create(type, host);
   }
 

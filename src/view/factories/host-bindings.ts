@@ -35,10 +35,14 @@ export class HostBindings {
    * every invalid entry at once (an AggregateError holding one error each).
    */
   constructor(host: Readonly<Record<string, string>> = {}) {
-    const parsed = Object.entries(host).map(([key, handler]) => parseListener(key, handler));
-    const errors = parsed.flatMap((result) => result.match({ left: (error) => [error], right: () => [] }));
+    const parsed = Object.entries(host)
+      .map(([key, handler]) => parseListener(key, handler));
+    const errors = parsed.flatMap((result) =>
+      result.match({ left: (error) => [error], right: () => [] }),
+    );
     if (errors.length > 0) {
-      throw new AggregateError(errors, errors.map((error) => error.message).join("\n"));
+      throw new AggregateError(errors, errors.map((error) => error.message)
+        .join("\n"));
     }
     this.listeners = parsed.map((result) => result.getOrThrow());
   }
@@ -68,12 +72,14 @@ const METHOD_CALL = /^\s*([A-Za-z_$][\w$]*)\(\s*(\$event)?\s*\)\s*$/;
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
 function parseListener(key: string, handler: string): EitherError<HostListener> {
-  const event = Maybe.fromNullable(LISTENER_KEY.exec(key)?.[1]).toEither(
-    new Error(`Unsupported host binding "${key}": only "(event)" listeners are supported for now`),
-  );
-  const call = Maybe.fromNullable(METHOD_CALL.exec(handler)).toEither(
-    new Error(`Unsupported host handler "${handler}": write "method()" or "method($event)"`),
-  );
+  const event = Maybe.fromNullable(LISTENER_KEY.exec(key)?.[1])
+    .toEither(
+      new Error(`Unsupported host binding "${key}": only "(event)" listeners are supported for now`),
+    );
+  const call = Maybe.fromNullable(METHOD_CALL.exec(handler))
+    .toEither(
+      new Error(`Unsupported host handler "${handler}": write "method()" or "method($event)"`),
+    );
   return event.flatMap((name) =>
     call.map((match) => ({ event: name, method: match[1]!, passEvent: match[2] !== undefined })),
   );

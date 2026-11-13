@@ -18,10 +18,11 @@ export class ElementContexts {
 
   /** The context of `element`, created (and remembered) if it has none yet. */
   getOrCreate(element: Element): ElementContext {
-    return this.get(element).match({
-      some: (context) => context,
-      none: () => this.remember(new ElementContext(element)),
-    });
+    return this.get(element)
+      .match({
+        some: (context) => context,
+        none: () => this.remember(new ElementContext(element)),
+      });
   }
 
   private remember(context: ElementContext): ElementContext {

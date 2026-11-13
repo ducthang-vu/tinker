@@ -51,10 +51,12 @@ describe("ComponentFactory", () => {
     class A {}
     class NotAComponent {}
     const { factory } = makeFactory();
-    expect(factory.metadataOf(A)).toEqual({ selector: "tk-a", template: "<p>a</p>" });
-    expect(() => factory.metadataOf(NotAComponent)).toThrow(
-      "NotAComponent is not a component: decorate it with @Component",
-    );
+    expect(factory.metadataOf(A))
+      .toEqual({ selector: "tk-a", template: "<p>a</p>" });
+    expect(() => factory.metadataOf(NotAComponent))
+      .toThrow(
+        "NotAComponent is not a component: decorate it with @Component",
+      );
   });
 
   test("create renders into the host and registers the view in the shared contexts", () => {
@@ -65,9 +67,14 @@ describe("ComponentFactory", () => {
 
     const view = factory.create(A, host);
 
-    expect(host.innerHTML).toBe("<p>a</p>");
-    expect(view.component).toBeInstanceOf(A);
-    expect(contexts.get(host).flatMap((context) => context.componentView).getOrElse(undefined)).toBe(view);
+    expect(host.innerHTML)
+      .toBe("<p>a</p>");
+    expect(view.component)
+      .toBeInstanceOf(A);
+    expect(contexts.get(host)
+      .flatMap((context) => context.componentView)
+      .getOrElse(undefined))
+      .toBe(view);
   });
 
   test("records the component's inputs on its view, for setInput", () => {
@@ -80,8 +87,10 @@ describe("ComponentFactory", () => {
 
     view.setInput("title", "Hello");
 
-    expect(view.component.title()).toBe("Hello");
-    expect(view.component.size()).toBe(1);
+    expect(view.component.title())
+      .toBe("Hello");
+    expect(view.component.size())
+      .toBe(1);
   });
 
   test("destroying the view forgets its now-empty context", () => {
@@ -90,13 +99,16 @@ describe("ComponentFactory", () => {
     const { factory, contexts } = makeFactory();
     const view = factory.create(A);
     view.destroy();
-    expect(contexts.get(view.host).isNone()).toBe(true);
+    expect(contexts.get(view.host)
+      .isNone())
+      .toBe(true);
   });
 
   test("without a host, creates one from the selector", () => {
     @Component({ selector: "tk-b[flag]", template: "" })
     class B {}
-    expect(makeFactory().factory.create(B).host.outerHTML).toBe(`<tk-b flag=""></tk-b>`);
+    expect(makeFactory().factory.create(B).host.outerHTML)
+      .toBe(`<tk-b flag=""></tk-b>`);
   });
 });
 
@@ -115,18 +127,21 @@ describe("ComponentFactory host listeners", () => {
     }
     const view = makeFactory().factory.create(Toggle);
     (view.host.querySelector("span") as HTMLElement).click(); // bubbles to the host
-    expect(view.component.open).toBe(true);
+    expect(view.component.open)
+      .toBe(true);
     view.destroy();
     (view.host as HTMLElement).click();
-    expect(view.component.open).toBe(true); // listener removed with the view
+    expect(view.component.open)
+      .toBe(true); // listener removed with the view
   });
 
   test("a missing method is reported when the component is created", () => {
     @Component({ selector: "tk-broken", template: "", host: { "(click)": "missing()" } })
     class Broken {}
-    expect(() => makeFactory().factory.create(Broken)).toThrow(
-      `Broken has no method "missing" for host listener "(click)"`,
-    );
+    expect(() => makeFactory().factory.create(Broken))
+      .toThrow(
+        `Broken has no method "missing" for host listener "(click)"`,
+      );
   });
 });
 
@@ -138,8 +153,10 @@ describe("ComponentFactory view watch", () => {
     }
     const { factory, scheduler } = makeFactory();
     const view = factory.create(A);
-    expect(view.host.innerHTML).toBe("<p>Count: 1!</p>");
-    expect(scheduler.pending).toBe(0);
+    expect(view.host.innerHTML)
+      .toBe("<p>Count: 1!</p>");
+    expect(scheduler.pending)
+      .toBe(0);
   });
 
   test("a signal change schedules the view, and the flush updates the text", () => {
@@ -151,10 +168,13 @@ describe("ComponentFactory view watch", () => {
     const view = factory.create(A);
 
     view.component.count.set(2);
-    expect(scheduler.pending).toBe(1);
-    expect(view.host.textContent).toBe("1");
+    expect(scheduler.pending)
+      .toBe(1);
+    expect(view.host.textContent)
+      .toBe("1");
     scheduler.flush();
-    expect(view.host.textContent).toBe("2");
+    expect(view.host.textContent)
+      .toBe("2");
   });
 
   test("only texts whose value changed are written", () => {
@@ -167,17 +187,22 @@ describe("ComponentFactory view watch", () => {
     const view = factory.create(A);
     const [first, second] = [...view.host.querySelectorAll("p")].map((p) => p.firstChild as Text);
     const writes: string[] = [];
-    new MutationObserver((records) => writes.push(...records.map((r) => r.target.textContent!))).observe(
-      view.host,
-      { characterData: true, subtree: true },
-    );
+    new MutationObserver((records) => writes.push(...records.map((r) => r.target.textContent!)))
+      .observe(
+        view.host,
+        { characterData: true, subtree: true },
+      );
 
     view.component.b.set("B");
     scheduler.flush();
 
-    expect(first!.data).toBe("a");
-    expect(second!.data).toBe("B");
-    return Promise.resolve().then(() => expect(writes).toEqual(["B"]));
+    expect(first!.data)
+      .toBe("a");
+    expect(second!.data)
+      .toBe("B");
+    return Promise.resolve()
+      .then(() => expect(writes)
+        .toEqual(["B"]));
   });
 
   test("text without {{ }} is static, and plain fields are read once", () => {
@@ -188,8 +213,10 @@ describe("ComponentFactory view watch", () => {
     const { factory, scheduler } = makeFactory();
     const view = factory.create(A);
     view.component.title = "changed";
-    expect(scheduler.pending).toBe(0);
-    expect(view.host.innerHTML).toBe("<p>static</p><p>Tinker</p>");
+    expect(scheduler.pending)
+      .toBe(0);
+    expect(view.host.innerHTML)
+      .toBe("<p>static</p><p>Tinker</p>");
   });
 
   test("a component input bound with setInput updates the template", () => {
@@ -199,10 +226,12 @@ describe("ComponentFactory view watch", () => {
     }
     const { factory, scheduler } = makeFactory();
     const view = factory.create(Card);
-    expect(view.host.textContent).toBe("untitled");
+    expect(view.host.textContent)
+      .toBe("untitled");
     view.setInput("title", "Hello");
     scheduler.flush();
-    expect(view.host.textContent).toBe("Hello");
+    expect(view.host.textContent)
+      .toBe("Hello");
   });
 
   test("an error in the first render throws, and leaves nothing behind", () => {
@@ -214,11 +243,16 @@ describe("ComponentFactory view watch", () => {
     const { factory, contexts, scheduler } = makeFactory();
     const host = document.createElement("div");
 
-    expect(() => factory.create(Card, host)).toThrow(`Input "title" of Card was read before it was bound`);
+    expect(() => factory.create(Card, host))
+      .toThrow(`Input "title" of Card was read before it was bound`);
 
-    expect(host.innerHTML).toBe("");
-    expect(contexts.get(host).isNone()).toBe(true);
-    expect(scheduler.pending).toBe(0);
+    expect(host.innerHTML)
+      .toBe("");
+    expect(contexts.get(host)
+      .isNone())
+      .toBe(true);
+    expect(scheduler.pending)
+      .toBe(0);
   });
 
   test("a later error is thrown by the flush, and the view keeps working", () => {
@@ -235,10 +269,12 @@ describe("ComponentFactory view watch", () => {
     const { factory, scheduler } = makeFactory();
     const view = factory.create(A);
     view.component.fail.set(true);
-    expect(() => scheduler.flush()).toThrow("boom");
+    expect(() => scheduler.flush())
+      .toThrow("boom");
     view.component.fail.set(false);
     scheduler.flush();
-    expect(view.host.textContent).toBe("ok");
+    expect(view.host.textContent)
+      .toBe("ok");
   });
 
   test("a destroyed view no longer updates", () => {
@@ -250,7 +286,8 @@ describe("ComponentFactory view watch", () => {
     const view = factory.create(A);
     view.destroy();
     view.component.count.set(2);
-    expect(scheduler.pending).toBe(0);
+    expect(scheduler.pending)
+      .toBe(0);
   });
 
   test("reports an invalid {{ }} before rendering anything", () => {
@@ -258,8 +295,10 @@ describe("ComponentFactory view watch", () => {
     class A {}
     const { factory } = makeFactory();
     const host = document.createElement("div");
-    expect(() => factory.create(A, host)).toThrow(`Unexpected "+"`);
-    expect(host.innerHTML).toBe("");
+    expect(() => factory.create(A, host))
+      .toThrow(`Unexpected "+"`);
+    expect(host.innerHTML)
+      .toBe("");
   });
 });
 
@@ -278,6 +317,7 @@ describe("ComponentFactory collaborators", () => {
 
     const view = factory.create(A);
 
-    expect(created).toEqual([view.component]);
+    expect(created)
+      .toEqual([view.component]);
   });
 });

@@ -38,8 +38,12 @@ describe("DirectiveFactory", () => {
 
     const tooltip = factory.create(Tooltip, element, view);
 
-    expect(tooltip).toBeInstanceOf(Tooltip);
-    expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([tooltip]);
+    expect(tooltip)
+      .toBeInstanceOf(Tooltip);
+    expect(contexts.get(element)
+      .map((context) => context.directives)
+      .getOrElse(undefined))
+      .toEqual([tooltip]);
   });
 
   test("create records the directive's inputs in the view", () => {
@@ -50,9 +54,11 @@ describe("DirectiveFactory", () => {
     const { factory, element, view } = setup();
 
     const tooltip = factory.create(Tooltip, element, view);
-    view.input(tooltip, "text").ifSome((binding) => binding.bind("hello"));
+    view.input(tooltip, "text")
+      .ifSome((binding) => binding.bind("hello"));
 
-    expect(tooltip.text()).toBe("hello");
+    expect(tooltip.text())
+      .toBe("hello");
   });
 
   test("create applies the host listeners", () => {
@@ -67,7 +73,8 @@ describe("DirectiveFactory", () => {
     const counter = factory.create(Counter, element, view);
     element.click();
     element.click();
-    expect(counter.count).toBe(2);
+    expect(counter.count)
+      .toBe(2);
   });
 
   test("destroying the view removes the listeners and the directive from the context", () => {
@@ -88,10 +95,16 @@ describe("DirectiveFactory", () => {
     view.destroy();
     element.click();
 
-    expect(counter.count).toBe(0);
-    expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([other]);
+    expect(counter.count)
+      .toBe(0);
+    expect(contexts.get(element)
+      .map((context) => context.directives)
+      .getOrElse(undefined))
+      .toEqual([other]);
     otherView.destroy();
-    expect(contexts.get(element).isNone()).toBe(true);
+    expect(contexts.get(element)
+      .isNone())
+      .toBe(true);
   });
 
   test("several directives on one element", () => {
@@ -102,7 +115,10 @@ describe("DirectiveFactory", () => {
     const { factory, contexts, element, view } = setup();
     const a = factory.create(A, element, view);
     const b = factory.create(B, element, view);
-    expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([a, b]);
+    expect(contexts.get(element)
+      .map((context) => context.directives)
+      .getOrElse(undefined))
+      .toEqual([a, b]);
   });
 
   test("components are directives too: their host is read the same way", () => {
@@ -110,15 +126,17 @@ describe("DirectiveFactory", () => {
     class X {
       go() {}
     }
-    expect(setup().factory.metadataOf(X).host).toEqual({ "(click)": "go()" });
+    expect(setup().factory.metadataOf(X).host)
+      .toEqual({ "(click)": "go()" });
   });
 
   test("throws for a class that is not a directive", () => {
     class Plain {}
     const { factory, element, view } = setup();
-    expect(() => factory.create(Plain, element, view)).toThrow(
-      "Plain is not a directive: decorate it with @Directive",
-    );
+    expect(() => factory.create(Plain, element, view))
+      .toThrow(
+        "Plain is not a directive: decorate it with @Directive",
+      );
   });
 });
 
@@ -133,7 +151,8 @@ describe("DirectiveFactory injection context", () => {
     class Tip {
       readonly theme = inject(Theme);
       constructor() {
-        inject(Effects).create(() => void seen.push(this.theme.color()));
+        inject(Effects)
+          .create(() => void seen.push(this.theme.color()));
       }
     }
     const { injector } = Injector.create({
@@ -161,6 +180,7 @@ describe("DirectiveFactory injection context", () => {
     tip.theme.color.set("blue");
     changeDetection.tick();
 
-    expect(seen).toEqual(["red", "blue"]);
+    expect(seen)
+      .toEqual(["red", "blue"]);
   });
 });
