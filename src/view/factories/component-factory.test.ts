@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
 import { Component } from "../decorators.ts";
 import { ElementContexts } from "../element-contexts.ts";
+import { input } from "../input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { BrowserTemplateParser } from "../template/browser-parser.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
@@ -51,6 +52,20 @@ describe("ComponentFactory", () => {
     expect(host.innerHTML).toBe("<p>a</p>");
     expect(view.component).toBeInstanceOf(A);
     expect(contexts.get(host).flatMap((context) => context.componentView).getOrElse(undefined)).toBe(view);
+  });
+
+  test("records the component's inputs on its view, for setInput", () => {
+    @Component({ selector: "tk-card", template: "" })
+    class Card {
+      readonly title = input<string>();
+      readonly size = input(1);
+    }
+    const view = makeFactory().factory.create(Card);
+
+    view.setInput("title", "Hello");
+
+    expect(view.component.title()).toBe("Hello");
+    expect(view.component.size()).toBe(1);
   });
 
   test("destroying the view forgets its now-empty context", () => {

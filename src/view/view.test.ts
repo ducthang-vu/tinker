@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { ElementContext } from "./element-context.ts";
 import { input, inputsOf } from "./input.ts";
+import { watch } from "../signals/index.ts";
 import { DomRenderer } from "./renderer.ts";
 import { View } from "./view.ts";
 
@@ -35,6 +36,45 @@ describe("View", () => {
     expect(view.component).toBe(component);
     expect(view.nodes).toEqual(nodes);
     expect(view.destroyed).toBe(false);
+  });
+
+  describe("setInput", () => {
+    class Card {
+      readonly title = input<string>();
+      readonly size = input(1);
+      readonly plain = "not an input";
+    }
+    function cardView() {
+      const card = new Card();
+      const view = new View(document.createElement("div"), card, [], new DomRenderer());
+      view.addInputs(card, inputsOf(card));
+      return { card, view };
+    }
+
+    test("binds the component's input, and readers see it like any signal", () => {
+      const { card, view } = cardView();
+      const seen: number[] = [];
+      watch(() => void seen.push(card.size()), { schedule: (task) => task.run() });
+
+      view.setInput("title", "Hello");
+      view.setInput("size", 2);
+
+      expect(card.title()).toBe("Hello");
+      expect(seen).toEqual([1, 2]);
+    });
+
+    test("throws for a name that is not an input of the component", () => {
+      const { view } = cardView();
+      expect(() => view.setInput("missing" as never, "x" as never)).toThrow(`Card has no input "missing"`);
+    });
+
+    test("checks the input's name and value type", () => {
+      const { view } = cardView();
+      // @ts-expect-error "plain" is not an input
+      expect(() => view.setInput("plain", "x")).toThrow(`Card has no input "plain"`);
+      // @ts-expect-error size takes a number
+      view.setInput("size", "big");
+    });
   });
 
   test("destroy removes only its own nodes from the host", () => {

@@ -16,6 +16,12 @@
 // cheap; only changed values touch the DOM.) Until bindings exist the watch
 // reads no signals: it runs once and never again.
 //
+// Signals are the only trigger: a view re-runs when a signal its watch read
+// changes, and for no other reason (no zone, no re-run after listeners, no
+// markForCheck). A plain field changed in a handler does not update the view:
+// make it a signal. (Re-running a view after its listeners fire, as Angular
+// does, could be added later without changing the rest.)
+//
 // First step: elements, text and plain attributes are rendered. Bindings
 // (`[prop]`, `(event)`, `{{ }}`), directives and child components come next.
 // Until then, binding syntax in attributes is reported as unsupported, and
@@ -31,6 +37,7 @@ import type { TemplateNode } from "../template/ast.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { View } from "../view.ts";
 import { ViewScheduler } from "../view-scheduler.ts";
+import { inputsOf } from "../input.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 /** A selector a host element can be created from: an optional tag, then an optional `[attribute]`. */
@@ -73,6 +80,8 @@ export class ComponentFactory {
     }
 
     const view = new View(host, instance, rendered, this.renderer);
+    // The component's inputs live on its own view: `view.setInput` binds them.
+    view.addInputs(instance, inputsOf(instance));
     const viewWatch = watch(() => {
       // Empty for now. Will evaluate the template's bindings, the inputs of
       // its directives and their host bindings, in template order.

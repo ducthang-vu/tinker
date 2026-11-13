@@ -9,7 +9,7 @@
 
 import { Maybe } from "../functional/index.ts";
 import type { ElementContext } from "./element-context.ts";
-import type { InputBinding } from "./input.ts";
+import type { InputBinding, InputName, InputValue } from "./input.ts";
 import type { Renderer } from "./renderer.ts";
 
 export class View<T> {
@@ -60,6 +60,19 @@ export class View<T> {
     return Maybe.fromNullable(this.directiveInputs.get(directive)).flatMap((inputs) =>
       Maybe.fromNullable(inputs.get(name)),
     );
+  }
+
+  /**
+   * Set an input of this view's component, e.g. `view.setInput("title", "Hello")`.
+   * For code creating components itself (and later the parent view's watch,
+   * for a binding on the component's host element). Everything reading the
+   * input (computeds, the view's watch) sees the new value, like any signal.
+   * Throws if the component has no such input.
+   */
+  setInput<K extends InputName<T>>(name: K, value: InputValue<T[K]>): void {
+    this.input(this.component as object, name)
+      .getOrThrow(() => new Error(`${(this.component as object).constructor.name} has no input "${name}"`))
+      .bind(value);
   }
 
   /** Run `callback` when the view is destroyed (right away if it already is). */

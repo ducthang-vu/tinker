@@ -12,8 +12,12 @@
 //
 // For the directive, an input is a read-only signal: it can be read, tracked
 // and used in computeds like any other. Only the framework sets it, through
-// its InputBinding, from the binding in the template (the view's watch will
-// do that).
+// its InputBinding:
+// - a directive's inputs, from the bindings in the template it is used in
+//   (the view's watch will do that);
+// - a component's inputs, through `view.setInput(name, value)` on the
+//   component's own view: called by code creating the component, and later
+//   by the parent view's watch for bindings on the component's host element.
 //
 // - A required input (`input<T>()`) has no value until it is bound: reading
 //   it before throws InputNotBoundError, e.g. in the constructor, since
@@ -31,6 +35,15 @@ export interface InputSignal<T> extends ReadonlySignal<T> {
   /** Type-only marker, telling an input apart from other signals. Never set at runtime. */
   readonly [INPUT_TYPE]: T;
 }
+
+/** The names of the inputs of a directive or component of type `T`. */
+export type InputName<T> = {
+  [K in keyof T]: T[K] extends InputSignal<unknown> ? K : never;
+}[keyof T] &
+  string;
+
+/** The type of value an input accepts: `string` for an `InputSignal<string>`. */
+export type InputValue<S> = S extends InputSignal<infer V> ? V : never;
 
 /** Thrown when an input is read before the framework bound a value to it. */
 export class InputNotBoundError extends Error {

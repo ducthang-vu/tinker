@@ -51,18 +51,3 @@ inconsistent state.
 
 **To do.** When child components exist, run the queue in tree order (parents
 first), e.g. by sorting each batch by view depth.
-
-## Inputs (`src/view/input.ts`)
-
-### 1. Components' inputs are not recorded yet
-
-**Problem.** A directive's inputs are recorded in the view whose template
-it is used in (`DirectiveFactory.create` receives that view). A component's
-inputs belong to the same place — the *parent* view, whose template contains
-the component's host element — but `ComponentFactory.create` does not know
-its parent view: there are no child components in templates yet.
-
-**To do.** When child components are created from templates, pass the
-parent view and call `parentView.addInputs(component, inputsOf(component))`.
-A root component (bootstrapped) has no parent, so its inputs are never
-bound.
