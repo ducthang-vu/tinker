@@ -12,7 +12,10 @@ import { BindingFactory } from "../runtime/text-binding.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilderFactory } from "./template-builder.ts";
-import { ViewScheduler } from "../runtime/view-scheduler.ts";
+import { ChangeDetection } from "../runtime/change-detection.ts";
+import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
+import { Ticker } from "../runtime/ticker.ts";
+import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory(overrides: readonly Provider[] = []) {
@@ -22,7 +25,10 @@ function makeFactory(overrides: readonly Provider[] = []) {
       provide(RENDERER, { useValue: new DomRenderer() }),
       provide(TEMPLATE_PARSER, { useValue: new BrowserTemplateParser() }),
       ElementContexts,
+      Ticker,
+      EffectScheduler,
       ViewScheduler,
+      ChangeDetection,
       DirectiveFactory,
       ViewFactory,
       BindingFactory,
@@ -33,7 +39,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
   return runInInjectionContext(injector, () => ({
     factory: inject(ComponentFactory),
     contexts: inject(ElementContexts),
-    scheduler: inject(ViewScheduler),
+    scheduler: inject(ChangeDetection).views,
   }));
 }
 

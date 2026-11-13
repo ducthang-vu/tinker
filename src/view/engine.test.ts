@@ -3,12 +3,21 @@ import { Component, Directive } from "./authoring/decorators.ts";
 import { ElementContext } from "./runtime/element-context.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
-import { provide } from "../di/index.ts";
 import { signal } from "../signals/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
-import { ViewScheduler } from "./runtime/view-scheduler.ts";
+import { inject, Injector, provide, runInInjectionContext } from "../di/index.ts";
+import { ChangeDetection } from "./runtime/change-detection.ts";
+import { EffectScheduler } from "./runtime/schedulers/effect-scheduler.ts";
+import { Ticker } from "./runtime/ticker.ts";
+import { ViewScheduler } from "./runtime/schedulers/view-scheduler.ts";
+
+/** A ChangeDetection of its own, from an injector, to hand to an engine and inspect. */
+function changeDetection(): ChangeDetection {
+  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, ChangeDetection] });
+  return runInInjectionContext(injector, () => inject(ChangeDetection));
+}
 import { View } from "./runtime/view.ts";
 
 afterEach(() => {
@@ -270,28 +279,28 @@ describe("Engine view updates", () => {
     class A {
       count = signal(1);
     }
-    const scheduler = new ViewScheduler();
-    const engine = Engine.create({ providers: [provide(ViewScheduler, { useValue: scheduler })] });
+    const detection = changeDetection();
+    const engine = Engine.create({ providers: [provide(ChangeDetection, { useValue: detection })] });
     const view = engine.createComponent(A);
     view.component.count.set(2);
-    expect(scheduler.pending).toBe(1);
+    expect(detection.views.pending).toBe(1);
     engine.flush();
-    expect(scheduler.pending).toBe(0);
+    expect(detection.views.pending).toBe(0);
     expect(view.host.textContent).toBe("2");
   });
 
-  test("each engine has its own scheduler", () => {
+  test("each engine has its own change detection", () => {
     @Component({ selector: "tk-a", template: "{{ count() }}" })
     class A {
       count = signal(1);
     }
-    const one = new ViewScheduler();
-    const two = new ViewScheduler();
-    const view = Engine.create({ providers: [provide(ViewScheduler, { useValue: one })] }).createComponent(A);
-    Engine.create({ providers: [provide(ViewScheduler, { useValue: two })] });
+    const one = changeDetection();
+    const two = changeDetection();
+    const view = Engine.create({ providers: [provide(ChangeDetection, { useValue: one })] }).createComponent(A);
+    Engine.create({ providers: [provide(ChangeDetection, { useValue: two })] });
     view.component.count.set(2);
-    expect(one.pending).toBe(1);
-    expect(two.pending).toBe(0);
+    expect(one.views.pending).toBe(1);
+    expect(two.views.pending).toBe(0);
   });
 });
 

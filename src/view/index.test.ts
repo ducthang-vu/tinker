@@ -15,7 +15,11 @@ test("the public API exports exactly these values", () => {
       "TEMPLATE_PARSER",
       "View",
       "ViewContainerRef",
+      "EffectScheduler",
       "ViewScheduler",
+      "ChangeDetection",
+      "Ticker",
+      "ChangeDetectionLoopError",
       "input",
     ].sort(),
   );

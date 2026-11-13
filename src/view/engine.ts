@@ -15,7 +15,7 @@
 // - `createComponent(type, host?)`, for the root component and any other;
 // - `createViewContainer(anchor)`, for views added and removed at runtime;
 // - `getContext(element)`, to answer "what is on this element?";
-// - `flush()`, to run pending view updates now (see ViewScheduler).
+// - `flush()`, to run a change detection tick now (see ChangeDetection).
 
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../di/index.ts";
 import { Maybe } from "../functional/index.ts";
@@ -31,7 +31,10 @@ import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type View, ViewFactory } from "./runtime/view.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
-import { ViewScheduler } from "./runtime/view-scheduler.ts";
+import { ChangeDetection } from "./runtime/change-detection.ts";
+import { EffectScheduler } from "./runtime/schedulers/effect-scheduler.ts";
+import { Ticker } from "./runtime/ticker.ts";
+import { ViewScheduler } from "./runtime/schedulers/view-scheduler.ts";
 
 /** What the engine is built from. */
 export interface EngineOptions {
@@ -45,7 +48,10 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   provide(RENDERER, { useFactory: () => new DomRenderer(inject(DOCUMENT)) }),
   provide(TEMPLATE_PARSER, { useFactory: () => new BrowserTemplateParser(inject(DOCUMENT)) }),
   ElementContexts,
+  Ticker,
+  EffectScheduler,
   ViewScheduler,
+  ChangeDetection,
   DirectiveFactory,
   ViewFactory,
   BindingFactory,
@@ -63,7 +69,7 @@ export class Engine {
   private readonly document = inject(DOCUMENT);
   private readonly contexts = inject(ElementContexts);
   private readonly components = inject(ComponentFactory);
-  private readonly scheduler = inject(ViewScheduler);
+  private readonly changeDetection = inject(ChangeDetection);
   private readonly containers = inject(ViewContainerRefFactory);
 
   /** Create an engine: its root injector (your providers, then the defaults), and the engine from it. */
@@ -98,9 +104,9 @@ export class Engine {
     return this.containers.create(anchor);
   }
 
-  /** Run pending view updates now, instead of waiting for the scheduled flush. */
+  /** Run a change detection tick now, instead of waiting for the microtask. */
   flush(): void {
-    this.scheduler.flush();
+    this.changeDetection.tick();
   }
 
   /** What is on `element` (its directives and component), if anything. */

@@ -14,7 +14,7 @@
 // watch of their own, so a directive never runs before the parent has set
 // its inputs. (Re-evaluating a whole view is cheap; only changed values
 // touch the DOM.) The first run happens during `create`, so the view is
-// complete when returned; later runs go through the app's ViewScheduler.
+// complete when returned; later runs are queued in `changeDetection.views`.
 //
 // Signals are the only trigger: a view re-runs when a signal its watch read
 // changes, and for no other reason (no zone, no re-run after listeners, no
@@ -37,7 +37,7 @@ import { inputsOf } from "../authoring/input.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
-import { ViewScheduler } from "../runtime/view-scheduler.ts";
+import { ChangeDetection } from "../runtime/change-detection.ts";
 import { type CompiledNode, compileTemplate } from "../template/compile.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
@@ -54,7 +54,7 @@ export class ComponentFactory {
   private readonly directives = inject(DirectiveFactory);
   private readonly builders = inject(TemplateBuilderFactory);
   private readonly views = inject(ViewFactory);
-  private readonly scheduler = inject(ViewScheduler);
+  private readonly changeDetection = inject(ChangeDetection);
   /** Compiled templates, per component class: each template is parsed and compiled only once. */
   private readonly templates = new WeakMap<Class<unknown>, readonly CompiledNode[]>();
 
@@ -90,7 +90,7 @@ export class ComponentFactory {
     // The view's one watch: updates the bindings in template order. (Later
     // also the inputs of its directives and their host bindings.) Its first
     // run happens now, so the view is complete when it is returned.
-    const firstRun = new RunFirstNow(this.scheduler);
+    const firstRun = new RunFirstNow(this.changeDetection.views);
     const viewWatch = watch(() => template.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
     firstRun.failure.ifSome((error) => {

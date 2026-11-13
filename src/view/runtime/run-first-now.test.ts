@@ -1,11 +1,19 @@
 import { describe, expect, test } from "vitest";
 import { signal, watch } from "../../signals/index.ts";
 import { RunFirstNow } from "./run-first-now.ts";
-import { ViewScheduler } from "./view-scheduler.ts";
+import { inject, Injector, runInInjectionContext } from "../../di/index.ts";
+import { Ticker } from "./ticker.ts";
+import { ViewScheduler } from "./schedulers/view-scheduler.ts";
+
+/** A ViewScheduler from an injector (its ticks are requested, never run here: flush by hand). */
+function views(): ViewScheduler {
+  const { injector } = Injector.create({ providers: [Ticker, ViewScheduler] });
+  return runInInjectionContext(injector, () => inject(ViewScheduler));
+}
 
 describe("RunFirstNow", () => {
   test("runs the first request now, and passes later ones to the next scheduler", () => {
-    const next = new ViewScheduler();
+    const next = views();
     const count = signal(1);
     const seen: number[] = [];
 
@@ -21,7 +29,7 @@ describe("RunFirstNow", () => {
   });
 
   test("keeps the first run's error instead of throwing it", () => {
-    const firstRun = new RunFirstNow(new ViewScheduler());
+    const firstRun = new RunFirstNow(views());
     expect(firstRun.failure.isNone()).toBe(true);
 
     const error = new Error("first render failed");
@@ -34,13 +42,13 @@ describe("RunFirstNow", () => {
   });
 
   test("a successful first run has no failure", () => {
-    const firstRun = new RunFirstNow(new ViewScheduler());
+    const firstRun = new RunFirstNow(views());
     watch(() => {}, firstRun);
     expect(firstRun.failure.isNone()).toBe(true);
   });
 
   test("later errors are not kept: they surface through the next scheduler", () => {
-    const next = new ViewScheduler();
+    const next = views();
     const firstRun = new RunFirstNow(next);
     const fail = signal(false);
     watch(() => {
