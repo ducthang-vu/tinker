@@ -9,15 +9,29 @@
 
 import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
-import type { ComponentFactory } from "../factories/component-factory.ts";
+import { inject, Injectable } from "../../di/index.ts";
+import { ComponentFactory } from "../factories/component-factory.ts";
 import type { Renderer } from "../renderer.ts";
+import { RENDERER } from "../tokens.ts";
 import type { View } from "./view.ts";
+
+/** Creates view containers, with the app's component factory and renderer. */
+@Injectable()
+export class ViewContainerRefFactory {
+  private readonly components = inject(ComponentFactory);
+  private readonly renderer = inject(RENDERER);
+
+  /** A container inserting its views just before `anchor`. */
+  create(anchor: Node): ViewContainerRef {
+    return new ViewContainerRef(anchor, this.components, this.renderer);
+  }
+}
 
 export class ViewContainerRef {
   private readonly views: View<unknown>[] = [];
 
   /**
-   * Usually created by `engine.createViewContainer(anchor)`.
+   * Created by ViewContainerRefFactory (e.g. through `engine.createViewContainer(anchor)`).
    * @param anchor Where the container is: its views sit just before it.
    * @param components Creates the components this container holds.
    * @param renderer Inserts, moves and removes their host elements.

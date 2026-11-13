@@ -4,8 +4,10 @@ import { ElementContext } from "./runtime/element-context.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
 import { provide } from "../di/index.ts";
+import { signal } from "../signals/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
+import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { ViewScheduler } from "./runtime/view-scheduler.ts";
 import { View } from "./runtime/view.ts";
 
@@ -64,12 +66,19 @@ describe("Engine.bootstrap", () => {
     expect(Engine.create().bootstrap(App).host.id).toBe("x");
   });
 
-  test("renders {{ }} text as written, for now", () => {
+  test("renders {{ }} with the component's values, and updates them", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
-    @Component({ selector: "tk-app", template: "<p>{{ count() }}</p>" })
-    class App {}
+    @Component({ selector: "tk-app", template: "<p>{{ count() }} {{ label }}</p>" })
+    class App {
+      count = signal(1);
+      label = "clicks";
+    }
 
-    expect(Engine.create().bootstrap(App).host.textContent).toBe("{{ count() }}");
+    const view = Engine.create().bootstrap(App);
+    expect(view.host.textContent).toBe("1 clicks");
+    view.component.count.set(2);
+    await Promise.resolve(); // the scheduler flushes in a microtask
+    expect(view.host.textContent).toBe("2 clicks");
   });
 
   test("destroy removes what was rendered, and only that", () => {
@@ -257,23 +266,52 @@ describe("Engine.bootstrap", () => {
 
 describe("Engine view updates", () => {
   test("flush runs the pending view updates now", () => {
-    @Component({ selector: "tk-a", template: "" })
-    class A {}
+    @Component({ selector: "tk-a", template: "{{ count() }}" })
+    class A {
+      count = signal(1);
+    }
     const scheduler = new ViewScheduler();
     const engine = Engine.create({ providers: [provide(ViewScheduler, { useValue: scheduler })] });
-    engine.createComponent(A);
+    const view = engine.createComponent(A);
+    view.component.count.set(2);
     expect(scheduler.pending).toBe(1);
     engine.flush();
     expect(scheduler.pending).toBe(0);
+    expect(view.host.textContent).toBe("2");
   });
 
   test("each engine has its own scheduler", () => {
-    @Component({ selector: "tk-a", template: "" })
-    class A {}
+    @Component({ selector: "tk-a", template: "{{ count() }}" })
+    class A {
+      count = signal(1);
+    }
     const one = new ViewScheduler();
     const two = new ViewScheduler();
-    Engine.create({ providers: [provide(ViewScheduler, { useValue: one })] }).createComponent(A);
+    const view = Engine.create({ providers: [provide(ViewScheduler, { useValue: one })] }).createComponent(A);
+    Engine.create({ providers: [provide(ViewScheduler, { useValue: two })] });
+    view.component.count.set(2);
     expect(one.pending).toBe(1);
     expect(two.pending).toBe(0);
+  });
+});
+
+describe("Engine collaborators", () => {
+  test("createViewContainer uses the injected ViewContainerRefFactory", () => {
+    const anchor = document.createComment("anchor");
+    const anchors: Node[] = [];
+    class RecordingContainers extends ViewContainerRefFactory {
+      override create(node: Node): ViewContainerRef {
+        anchors.push(node);
+        return super.create(node);
+      }
+    }
+    const engine = Engine.create({
+      providers: [provide(ViewContainerRefFactory, { useClass: RecordingContainers })],
+    });
+
+    const container = engine.createViewContainer(anchor);
+
+    expect(anchors).toEqual([anchor]);
+    expect(container.anchor).toBe(anchor);
   });
 });

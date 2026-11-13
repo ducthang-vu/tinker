@@ -7,10 +7,23 @@
 // components' views, anything registered through `addDestroyCallback` (later: the
 // watches of its bindings, directive hooks), and finally its nodes.
 
+import { inject, Injectable } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { ElementContext } from "./element-context.ts";
 import type { InputBinding, InputName, InputValue } from "../authoring/input.ts";
 import type { Renderer } from "../renderer.ts";
+import { RENDERER } from "../tokens.ts";
+
+/** Creates views, with the app's renderer. */
+@Injectable()
+export class ViewFactory {
+  private readonly renderer = inject(RENDERER);
+
+  /** A view of `component`, rendered as `nodes` into `host`. */
+  create<T>(host: Element, component: T, nodes: readonly Node[]): View<T> {
+    return new View(host, component, nodes, this.renderer);
+  }
+}
 
 export class View<T> {
   private readonly contexts: ElementContext[] = [];

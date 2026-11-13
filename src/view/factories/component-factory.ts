@@ -8,13 +8,13 @@
 // DirectiveFactory: a component is a directive with a template).
 //
 // Reactivity is per view, not per directive: every view gets ONE watch,
-// scheduled by the app's ViewScheduler and destroyed with the view. It will
-// evaluate everything the template binds, in template order: its own
-// bindings, the inputs of the directives on its elements, and their host
-// bindings. Directives have no watch of their own, so a directive never
-// runs before the parent has set its inputs. (Re-evaluating a whole view is
-// cheap; only changed values touch the DOM.) Until bindings exist the watch
-// reads no signals: it runs once and never again.
+// destroyed with the view. It evaluates everything the template binds, in
+// template order: today its `{{ }}` texts; later also the inputs of the
+// directives on its elements, and their host bindings. Directives have no
+// watch of their own, so a directive never runs before the parent has set
+// its inputs. (Re-evaluating a whole view is cheap; only changed values
+// touch the DOM.) The first run happens during `create`, so the view is
+// complete when returned; later runs go through the app's ViewScheduler.
 //
 // Signals are the only trigger: a view re-runs when a signal its watch read
 // changes, and for no other reason (no zone, no re-run after listeners, no
@@ -22,23 +22,26 @@
 // make it a signal. (Re-running a view after its listeners fire, as Angular
 // does, could be added later without changing the rest.)
 //
-// First step: elements, text and plain attributes are rendered. Bindings
-// (`[prop]`, `(event)`, `{{ }}`), directives and child components come next.
-// Until then, binding syntax in attributes is reported as unsupported, and
-// `{{ }}` in text is rendered as written.
+// Rendered so far: elements, plain attributes, and text with `{{ }}`
+// interpolations (see template/expression.ts for what expressions can do).
+// Attribute bindings (`[prop]`, `(event)`), directives in templates and
+// child components come next; binding syntax in attributes is reported as
+// unsupported until then.
 
 import { inject, Injectable } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
-import { ElementContexts } from "../runtime/element-contexts.ts";
-import type { TemplateNode } from "../template/ast.ts";
-import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
-import { View } from "../runtime/view.ts";
-import { ViewScheduler } from "../runtime/view-scheduler.ts";
 import { inputsOf } from "../authoring/input.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
+import { RunFirstNow } from "../runtime/run-first-now.ts";
+import { type View, ViewFactory } from "../runtime/view.ts";
+import { ViewScheduler } from "../runtime/view-scheduler.ts";
+import { type CompiledNode, compileTemplate } from "../template/compile.ts";
+import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+import { TemplateBuilderFactory } from "./template-builder.ts";
 
 /** A selector a host element can be created from: an optional tag, then an optional `[attribute]`. */
 const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
@@ -49,9 +52,11 @@ export class ComponentFactory {
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
   private readonly directives = inject(DirectiveFactory);
+  private readonly builders = inject(TemplateBuilderFactory);
+  private readonly views = inject(ViewFactory);
   private readonly scheduler = inject(ViewScheduler);
-  /** Parsed templates, per component class: each template is parsed only once. */
-  private readonly templates = new WeakMap<Class<unknown>, readonly TemplateNode[]>();
+  /** Compiled templates, per component class: each template is parsed and compiled only once. */
+  private readonly templates = new WeakMap<Class<unknown>, readonly CompiledNode[]>();
 
   /** The @Component metadata of `type`. Throws if it is not a component. */
   metadataOf(type: Class<unknown>): ComponentMetadata {
@@ -68,26 +73,33 @@ export class ComponentFactory {
   create<T extends object>(type: Class<T>, host?: Element): View<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
-    const context = this.contexts.getOrCreate(host);
-    if (context.componentView.isSome()) {
+    if (this.contexts.get(host).flatMap((existing) => existing.componentView).isSome()) {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
     const instance = new type();
-    const rendered = this.templateOf(type, metadata.template).map((node) => this.build(node));
+    const template = this.builders.create(instance);
+    const rendered = template.build(this.templateOf(type, metadata.template));
     for (const node of rendered) {
       this.renderer.appendChild(host, node);
     }
 
-    const view = new View(host, instance, rendered, this.renderer);
+    const view = this.views.create(host, instance, rendered);
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
-    const viewWatch = watch(() => {
-      // Empty for now. Will evaluate the template's bindings, the inputs of
-      // its directives and their host bindings, in template order.
-    }, this.scheduler);
+    // The view's one watch: updates the bindings in template order. (Later
+    // also the inputs of its directives and their host bindings.) Its first
+    // run happens now, so the view is complete when it is returned.
+    const firstRun = new RunFirstNow(this.scheduler);
+    const viewWatch = watch(() => template.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
+    firstRun.failure.ifSome((error) => {
+      view.destroy(); // nothing half-rendered, and the watch no longer listens
+      throw error;
+    });
     this.directives.applyHost(type, instance, host, view);
+    // Only now, so a failed create leaves no context behind.
+    const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);
     view.addDestroyCallback(() => {
       context.detachComponent();
@@ -108,30 +120,12 @@ export class ComponentFactory {
     return host;
   }
 
-  private templateOf(type: Class<unknown>, source: string): readonly TemplateNode[] {
+  private templateOf(type: Class<unknown>, source: string): readonly CompiledNode[] {
     let nodes = this.templates.get(type);
     if (!nodes) {
-      nodes = this.parser.parse(source);
+      nodes = compileTemplate(this.parser.parse(source));
       this.templates.set(type, nodes);
     }
     return nodes;
-  }
-
-  /** Build the DOM for one template node (and its children). */
-  private build(node: TemplateNode): Node {
-    if (node.kind === "text") {
-      return this.renderer.createText(node.value);
-    }
-    const element = this.renderer.createElement(node.name);
-    for (const attribute of node.attributes) {
-      if (/^[[(]/.test(attribute.name)) {
-        throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
-      }
-      this.renderer.setAttribute(element, attribute.name, attribute.value);
-    }
-    for (const child of node.children) {
-      this.renderer.appendChild(element, this.build(child));
-    }
-    return element;
   }
 }

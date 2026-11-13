@@ -24,11 +24,13 @@ import type { ElementContext } from "./runtime/element-context.ts";
 import { ElementContexts } from "./runtime/element-contexts.ts";
 import { ComponentFactory } from "./factories/component-factory.ts";
 import { DirectiveFactory } from "./factories/directive-factory.ts";
+import { TemplateBuilderFactory } from "./factories/template-builder.ts";
 import { DomRenderer } from "./renderer.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
-import type { View } from "./runtime/view.ts";
-import { ViewContainerRef } from "./runtime/view-container-ref.ts";
+import { type View, ViewFactory } from "./runtime/view.ts";
+import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
+import { BindingFactory } from "./runtime/text-binding.ts";
 import { ViewScheduler } from "./runtime/view-scheduler.ts";
 
 /** What the engine is built from. */
@@ -45,7 +47,11 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   ElementContexts,
   ViewScheduler,
   DirectiveFactory,
+  ViewFactory,
+  BindingFactory,
+  TemplateBuilderFactory,
   ComponentFactory,
+  ViewContainerRefFactory,
 ];
 
 /**
@@ -55,10 +61,10 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
 @Injectable()
 export class Engine {
   private readonly document = inject(DOCUMENT);
-  private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
   private readonly components = inject(ComponentFactory);
   private readonly scheduler = inject(ViewScheduler);
+  private readonly containers = inject(ViewContainerRefFactory);
 
   /** Create an engine: its root injector (your providers, then the defaults), and the engine from it. */
   static create(options: EngineOptions = {}): Engine {
@@ -89,7 +95,7 @@ export class Engine {
 
   /** Create a container that inserts views just before `anchor` (usually a comment). */
   createViewContainer(anchor: Node): ViewContainerRef {
-    return new ViewContainerRef(anchor, this.components, this.renderer);
+    return this.containers.create(anchor);
   }
 
   /** Run pending view updates now, instead of waiting for the scheduled flush. */
