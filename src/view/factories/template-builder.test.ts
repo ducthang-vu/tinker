@@ -6,20 +6,28 @@ import { BrowserTemplateParser } from "../template/browser-parser.ts";
 import { compileTemplate } from "../template/compile.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { RENDERER } from "../tokens.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
+import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 
-/** A BindingFactory using `renderer`, created the way the engine creates it. */
-function bindingFactory(renderer: DomRenderer): BindingFactory {
+/** A TemplateBuilderFactory created the way the engine creates it: through an injector. */
+function builderFactory(renderer = new DomRenderer()): TemplateBuilderFactory {
   const { injector } = Injector.create({
-    providers: [provide(RENDERER, { useValue: renderer }), BindingFactory],
+    providers: [
+      provide(RENDERER, { useValue: renderer }),
+      BindingFactory,
+      ElementContexts,
+      DirectiveFactory,
+      TemplateBuilderFactory,
+    ],
   });
-  return runInInjectionContext(injector, () => inject(BindingFactory));
+  return runInInjectionContext(injector, () => inject(TemplateBuilderFactory));
 }
 
 /** Build `source` for `component`, inside a <div> to read the result. */
 function build(source: string, component: object) {
-  const renderer = new DomRenderer();
-  const template = new TemplateBuilder(component, renderer, bindingFactory(renderer));
+  const template = builderFactory()
+    .create(component);
   const root = document.createElement("div");
   root.append(...template.build(compileTemplate(new BrowserTemplateParser()
     .parse(source))));
@@ -68,14 +76,7 @@ describe("TemplateBuilderFactory", () => {
   test("creates builders that use the app's renderer", () => {
     const renderer = new DomRenderer();
     const createText = vi.spyOn(renderer, "createText");
-    const { injector } = Injector.create({
-      providers: [
-        provide(RENDERER, { useValue: renderer }),
-        BindingFactory,
-        TemplateBuilderFactory,
-      ],
-    });
-    const builder = runInInjectionContext(injector, () => inject(TemplateBuilderFactory))
+    const builder = builderFactory(renderer)
       .create({ name: "Ada" });
 
     expect(builder)

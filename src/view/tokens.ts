@@ -15,3 +15,9 @@ export const RENDERER = new InjectionToken<Renderer>("RENDERER");
 
 /** Turns templates into syntax trees (default: the browser's parser on DOCUMENT). */
 export const TEMPLATE_PARSER = new InjectionToken<TemplateParser>("TEMPLATE_PARSER");
+
+/**
+ * The element a directive is on: `inject(ELEMENT)` in a directive. Provided
+ * in each element's own injector.
+ */
+export const ELEMENT = new InjectionToken<Element>("ELEMENT");

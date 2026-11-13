@@ -234,3 +234,34 @@ test("@Component records its providers, frozen", () => {
     .getOrElse(undefined))
     .toBeUndefined();
 });
+
+test("@Directive records its providers, frozen; a component's providers stay off its directive metadata", () => {
+  class Service {}
+  @Directive({ selector: "[d]", providers: [Service] })
+  class WithProviders {}
+  @Component({ selector: "tk-c", template: "", providers: [Service] })
+  class AComponent {}
+  const metadata = getDirectiveMetadata(WithProviders)
+    .getOrElse(undefined)!;
+  expect(metadata.providers)
+    .toEqual([Service]);
+  expect(Object.isFrozen(metadata.providers))
+    .toBe(true);
+  expect(getDirectiveMetadata(AComponent)
+    .map((m) => m.providers)
+    .getOrElse(undefined))
+    .toBeUndefined();
+});
+
+test("@Component records its imports and host directives, frozen", () => {
+  @Directive({ selector: "[d]" })
+  class D {}
+  @Component({ selector: "tk-i", template: "", imports: [D], hostDirectives: [D] })
+  class WithBoth {}
+  const metadata = getComponentMetadata(WithBoth)
+    .getOrElse(undefined)!;
+  expect([metadata.imports, metadata.hostDirectives])
+    .toEqual([[D], [D]]);
+  expect(Object.isFrozen(metadata.imports) && Object.isFrozen(metadata.hostDirectives))
+    .toBe(true);
+});

@@ -47,30 +47,3 @@ is fine: it uses the component's.
 
 **To do.** Add `engine.destroy()`: destroy the views, then the engine's
 injector (which stops its effects and cancels its hooks).
-
-### 2. Directives use the engine's injector: give elements their own
-
-**Problem.** Directives are created with the engine's injector, so their
-effects and hooks belong to the engine (see 1), not to the element they are
-on; and two directives on the same element cannot inject each other.
-
-**To do.** When templates create directives, give each element that carries
-directives its own injector (Angular's "element injector"):
-
-    engine injector
-      └─ <tk-app> component injector
-           └─ <form> element injector         ← FormDirective, its providers
-                └─ <input> element injector   ← ModelDirective, ValidatorDirective
-
-- The directives of an element are created in it, so they can inject each
-  other (`ValidatorDirective` injects `ModelDirective`).
-- Its parent is the injector of the enclosing element, up to the
-  component's: a directive finds its ancestors (`ModelDirective` injects
-  `FormDirective` from the `<form>` around it).
-- It provides the directives' `providers` (a new `@Directive` option), and
-  its own `Effects` and `RenderHooks`.
-- It is destroyed with its element (e.g. when an `@if` branch is removed),
-  so the directives' effects and hooks stop exactly then.
-
-Not one injector per directive: directives on one element are created and
-removed together, and must be able to see each other.

@@ -9,6 +9,7 @@ test("the public API exports exactly these values", () => {
         "BrowserTemplateParser",
         "Component",
         "DOCUMENT",
+        "ELEMENT",
         "Directive",
         "DomRenderer",
         "Engine",
