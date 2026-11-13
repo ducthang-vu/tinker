@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "vitest";
 import { inject, Injectable, InjectionToken, provide } from "../../di/index.ts";
 import { signal } from "../../signals/index.ts";
-import { Component } from "../authoring/decorators.ts";
+import { Component, Directive } from "../authoring/decorators.ts";
 import { Effect, Effects } from "../authoring/effects.ts";
 import { AfterEachRender, RenderHooks } from "../authoring/render-hooks.ts";
 import { Engine } from "../engine.ts";
@@ -193,5 +193,46 @@ describe("effects and render hooks stop with their component", () => {
       .not.toBe(second.effects);
     expect(first.render)
       .not.toBe(second.render);
+  });
+});
+
+describe("the component in its own injector", () => {
+  test("its onDestroy() runs when its view is destroyed, after its template's directives", () => {
+    const log: string[] = [];
+    @Directive({ selector: "[part]" })
+    class Part {
+      onDestroy() {
+        log.push("part");
+      }
+    }
+    @Component({ selector: "tk-a", template: "<p part></p>", imports: [Part] })
+    class A {
+      onDestroy() {
+        log.push("component");
+      }
+    }
+    const view = Engine.create()
+      .createComponent(A);
+    expect(log)
+      .toEqual([]);
+    view.destroy();
+    expect(log)
+      .toEqual(["part", "component"]);
+  });
+
+  test("the directives of its template can inject it", () => {
+    @Directive({ selector: "[part]" })
+    class Part {
+      readonly owner = inject(A);
+    }
+    @Component({ selector: "tk-a", template: "<p part></p>", imports: [Part] })
+    class A {}
+    const engine = Engine.create();
+    const view = engine.createComponent(A);
+    const [part] = engine.getContext(view.host.querySelector("p")!)
+      .map((context) => context.directives)
+      .getOrElse([]) as [Part];
+    expect(part.owner)
+      .toBe(view.component);
   });
 });

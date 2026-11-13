@@ -100,8 +100,9 @@ export class ComponentFactory {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
-    // Its own injector, child of the engine's: its host directives, its host
-    // element (ElementRef), its own Effects and RenderHooks (so what it registers
+    // Its own injector, child of the engine's: its host directives, the
+    // component itself, its host element (ElementRef), its own Effects and
+    // RenderHooks (so what it registers
     // through them stops when it is destroyed), then the component's and its
     // host directives' providers (after, so they cannot replace the others).
     // The component is created in it, so its inject() calls resolve there first.
@@ -109,6 +110,7 @@ export class ComponentFactory {
     const ownInjector = Injector.create({
       providers: [
         ...hostDirectives,
+        type,
         provide(ElementRef, { useValue: new ElementRef(host) }),
         Effects,
         RenderHooks,
@@ -179,9 +181,11 @@ export class ComponentFactory {
   ): { instance: T; hostInstances: object[]; rendered: Node[]; template: TemplateBuilder } {
     try {
       // Host directives first, in order, so the component can inject them.
+      // The component is a provider of its injector too: created by it (so
+      // its onDestroy() runs with the view), and injectable below it.
       const { hostInstances, instance } = runInInjectionContext(ownInjector.injector, () => ({
         hostInstances: hostDirectives.map((directive) => inject(directive)),
-        instance: new type(),
+        instance: inject(type),
       }));
       const template = this.builders.create(instance);
       const rendered = template.build(this.templateOf(type, metadata));

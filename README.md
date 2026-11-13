@@ -104,9 +104,8 @@ it is on purpose.
   plain field changed in a click handler does not update the view: make it a
   signal.
 - **No `ngOnInit` or `ngOnChanges`.** Inputs are signals, so what depends on
-  them is a `computed`. Services and directives clean up in an `onDestroy()`
-  method, called by the injector that created them; a component cleans up
-  through its `Effects` and `RenderHooks`, which stop when it is destroyed.
+  them is a `computed`. Components, directives and services clean up in an
+  `onDestroy()` method, called by the injector that created them.
 - **Inputs are required unless they have a default.** `input<string>()`
   throws if read before it is bound, and `input("top")` is optional: the
   reverse of Angular's `input()` and `input.required()`.
