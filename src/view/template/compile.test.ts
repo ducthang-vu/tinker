@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
 import { type CompiledElement, compileTemplate } from "./compile.ts";
 import { Selector } from "./selector.ts";
+import { Maybe } from "../../functional/index.ts";
 import { ExpressionParser } from "./expression.ts";
 
 describe("compileTemplate", () => {
@@ -29,6 +30,7 @@ describe("compileTemplate", () => {
             },
           ],
           directives: [],
+          component: Maybe.none(),
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
       ]);
@@ -68,13 +70,37 @@ describe("compileTemplate", () => {
       .toEqual([]);
   });
 
-  test("throws for an element matching a component: not supported yet", () => {
+  test("an element matching a component is its host, and keeps its directives", () => {
     class Child {}
+    class Tooltip {}
+    const [host] = compileTemplate(
+      [element("tk-child", { tip: "" }, [{ kind: "text", value: "  " }])],
+      [
+        { type: Child, selector: selector("tk-child"), isComponent: true },
+        { type: Tooltip, selector: selector("[tip]"), isComponent: false },
+      ],
+    ) as CompiledElement[];
+    expect(host!.component.getOrElse(undefined))
+      .toBe(Child);
+    expect(host!.directives)
+      .toEqual([Tooltip]);
+    expect(host!.children) // whitespace only: no content of its own
+      .toEqual([]);
+  });
+
+  test("throws for content inside a component's element, or two components on one", () => {
+    class Child {}
+    class Other {}
+    const child = { type: Child, selector: selector("tk-child"), isComponent: true };
+    expect(() => compileTemplate([element("tk-child", {}, [{ kind: "text", value: "Milk" }])], [child]))
+      .toThrow("Content inside <tk-child> is not supported yet: Child renders its own template");
+    expect(() => compileTemplate([element("tk-child", {}, [element("b", {})])], [child]))
+      .toThrow("Content inside <tk-child> is not supported yet");
     expect(() => compileTemplate(
-      [element("div", {}, [element("tk-child", {})])],
-      [{ type: Child, selector: selector("tk-child"), isComponent: true }],
+      [element("tk-child", {})],
+      [child, { type: Other, selector: selector("tk-child"), isComponent: true }],
     ))
-      .toThrow("Components in templates are not supported yet: <tk-child> matches Child");
+      .toThrow("<tk-child> matches several components: Child, Other");
   });
 });
 

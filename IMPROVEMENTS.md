@@ -76,3 +76,18 @@ which carries its place:
 
 `engine.createViewContainer(anchor)` stays for containers outside any
 component (e.g. at the top of a page), with the engine's injector.
+
+### 2. Recursive components cannot be written, and are banned
+
+**Problem.** `imports` is evaluated when the decorator runs, before the
+class exists: a component cannot import itself, nor two components each
+other. And `ComponentFactory` bans a component containing itself (it would
+never stop creating). So a tree (a node component rendering its children
+as nodes) cannot be built.
+
+**To do.** Accept forward references in `imports` (`ForwardRef.of(() =>
+TreeNode)`, which `src/utils` already has), and allow recursion once
+templates can stop it: with `@if` / `@for`, a node renders children only
+while there are some. Keep the ban for a component that always contains
+itself.
+

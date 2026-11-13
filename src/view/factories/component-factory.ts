@@ -27,11 +27,13 @@
 //
 // Rendered so far: elements, plain attributes, text with `{{ }}`
 // interpolations (see template/expression.ts for what expressions can do),
-// and the directives the component imports, on the elements matching their
-// selectors (see TemplateBuilder.createDirectives). Attribute bindings
-// (`[prop]`, `(event)`) and child components come next; binding syntax in
-// attributes, and imported components matching an element, are reported as
-// unsupported until then.
+// and the directives and components the component imports, on the elements
+// matching their selectors (see TemplateBuilder.createDirectivesAndComponents).
+// A component in a template is created with this factory, in the injector of
+// its element, and is owned by the parent's view. Not yet: attribute
+// bindings (`[prop]`, `(event)`), reported as unsupported, and content
+// inside a component's element (projection), reported too. A component may
+// not contain itself, directly or through others.
 
 import {
   inject,
@@ -46,13 +48,14 @@ import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
-import { inputsOf } from "../authoring/input.ts";
+import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
+import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Selector } from "../template/selector.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
@@ -65,8 +68,17 @@ import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder
  */
 const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 
+/** Where a component in another component's template is: see ComponentFactory.create. */
+export interface ChildPlacement {
+  readonly parentInjector: Injector;
+  readonly parentView: View<unknown>;
+  readonly attributes: readonly AttributeNode[];
+}
+
 @Injectable()
 export class ComponentFactory {
+  /** The components being created right now, outermost first: to detect recursion. */
+  private readonly creating: Class<unknown>[] = [];
   private readonly parser = inject(TEMPLATE_PARSER);
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
@@ -90,8 +102,32 @@ export class ComponentFactory {
    * Render component `type` into `host`. Without a host, a new (detached)
    * element is created from the component's selector: `tk-child` gives
    * `<tk-child>`, `[child]` gives `<div child>`, `tk-child[x]` gives `<tk-child x>`.
+   *
+   * For a component inside another's template, `child` says where it is: its
+   * injector's parent, the view that owns it (destroying that view destroys
+   * it), and the plain attributes of its element, bound to its inputs before
+   * its first render. Throws if a component contains itself, directly or not.
    */
-  create<T extends object>(type: Class<T>, host?: Element): View<T> {
+  create<T extends object>(type: Class<T>, host?: Element, child?: ChildPlacement): View<T> {
+    const start = this.creating.indexOf(type);
+    if (start !== -1) {
+      const path = [...this.creating.slice(start), type].map((creating) => creating.name)
+        .join(" → ");
+      throw new Error(`${type.name} contains itself: ${path}`);
+    }
+    this.creating.push(type);
+    try {
+      return this.createView(type, host, child);
+    } finally {
+      this.creating.pop();
+    }
+  }
+
+  private createView<T extends object>(
+    type: Class<T>,
+    host?: Element,
+    child?: ChildPlacement,
+  ): View<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
     if (this.contexts.get(host)
@@ -100,11 +136,12 @@ export class ComponentFactory {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
-    // Its own injector, child of the engine's: its host directives, the
+    // Its own injector, child of the engine's (or, for a component in another's
+    // template, of the injector of its element): its host directives, the
     // component itself, its host element (ElementRef), its own Effects and
-    // RenderHooks (so what it registers
-    // through them stops when it is destroyed), then the component's and its
-    // host directives' providers (after, so they cannot replace the others).
+    // RenderHooks (so what it registers through them stops when it is
+    // destroyed), then the component's and its host directives' providers
+    // (after, so they cannot replace the others).
     // The component is created in it, so its inject() calls resolve there first.
     const hostDirectives = this.hostDirectivesOf(type, metadata);
     const ownInjector = Injector.create({
@@ -118,7 +155,7 @@ export class ComponentFactory {
         ...hostDirectives.flatMap((directive) =>
           this.directives.metadataOf(directive).providers ?? []),
       ],
-      parent: this.injector,
+      parent: child?.parentInjector ?? this.injector,
     });
     const { instance, hostInstances, rendered, template } = this.createAndBuild(
       type,
@@ -134,13 +171,15 @@ export class ComponentFactory {
     view.addDestroyCallback(() => ownInjector.destroy());
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
+    // In a template: its element's plain attributes set its inputs, before it renders.
+    bindInputsToAttributes(instance, child?.attributes ?? []);
     // Its host directives, on its host element.
     hostDirectives.forEach((directive, i) =>
       this.directives.attach(directive, hostInstances[i]!, host, view));
-    // The directives of the template's elements, now that their view exists
-    // (and before the first render, so plain attributes bound their inputs).
+    // The directives and child components of the template's elements, now
+    // that their view exists, and before the first render.
     try {
-      template.createDirectives(view, ownInjector.injector);
+      template.createDirectivesAndComponents(view, ownInjector.injector);
     } catch (error) {
       view.destroy(); // undoes the directives created so far, and the injectors
       throw error;
@@ -166,6 +205,8 @@ export class ComponentFactory {
       context.detachComponent();
       this.contexts.forgetIfEmpty(context);
     });
+    // Its element is in the parent's template: the parent's view destroys it.
+    child?.parentView.addElement(context);
     return view;
   }
 
@@ -187,7 +228,8 @@ export class ComponentFactory {
         hostInstances: hostDirectives.map((directive) => inject(directive)),
         instance: inject(type),
       }));
-      const template = this.builders.create(instance);
+      // The builder creates the template's child components with this factory.
+      const template = this.builders.create(instance, this);
       const rendered = template.build(this.templateOf(type, metadata));
       return { instance, hostInstances, rendered, template };
     } catch (error) {

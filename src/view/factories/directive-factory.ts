@@ -15,11 +15,10 @@
 // updates it (see ComponentFactory).
 
 import { inject, Injectable, Injector, provide, runInInjectionContext } from "../../di/index.ts";
-import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
-import { inputsOf } from "../authoring/input.ts";
+import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
@@ -80,7 +79,7 @@ export class DirectiveFactory {
     const instances = types.map((type) => {
       const instance = runInInjectionContext(elementInjector.injector, () => inject(type));
       this.attach(type, instance, element, view);
-      bindAttributes(instance, attributes);
+      bindInputsToAttributes(instance, attributes);
       return instance;
     });
     return { injector: elementInjector.injector, instances };
@@ -134,18 +133,5 @@ export class DirectiveFactory {
       this.hostBindings.set(type, bindings);
     }
     return bindings;
-  }
-}
-
-/**
- * Bind each input of `instance` named like a plain attribute to the
- * attribute's value (compared case-insensitively: the browser's parser
- * lowercases attribute names).
- */
-function bindAttributes(instance: object, attributes: readonly AttributeNode[]): void {
-  const inputs = [...inputsOf(instance)];
-  for (const attribute of attributes) {
-    Maybe.fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
-      .ifSome(([, input]) => input.bind(attribute.value));
   }
 }

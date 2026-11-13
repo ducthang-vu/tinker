@@ -18,6 +18,7 @@ import { BindingFactory, type TextBinding } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
 import { RENDERER } from "../tokens.ts";
+import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
@@ -27,18 +28,22 @@ export class TemplateBuilderFactory {
   private readonly bindingFactory = inject(BindingFactory);
   private readonly directiveFactory = inject(DirectiveFactory);
 
-  /** A builder for the template of `component`. */
-  create(component: object): TemplateBuilder {
+  /**
+   * A builder for the template of `component`, creating the components in
+   * its template with `components` (the ComponentFactory building `component`).
+   */
+  create(component: object, components: ComponentFactory): TemplateBuilder {
     return new TemplateBuilder(
       component,
       this.renderer,
       this.bindingFactory,
       this.directiveFactory,
+      components,
     );
   }
 }
 
-/** An element built with directives, waiting for `createDirectives`. */
+/** An element built with directives or a component, waiting for its view. */
 interface ElementWithDirectives {
   readonly element: Element;
   readonly node: CompiledElement;
@@ -59,12 +64,14 @@ export class TemplateBuilder {
    * @param renderer Creates the DOM nodes.
    * @param bindingFactory Creates the bindings.
    * @param directiveFactory Creates the directives of the elements.
+   * @param components Creates the components of the elements.
    */
   constructor(
     private readonly component: object,
     private readonly renderer: Renderer,
     private readonly bindingFactory: BindingFactory,
     private readonly directiveFactory: DirectiveFactory,
+    private readonly components: ComponentFactory,
   ) {}
 
   /** Build the DOM for `nodes` (and their children), collecting their bindings. */
@@ -73,20 +80,32 @@ export class TemplateBuilder {
   }
 
   /**
-   * Create the directives of the elements built, once their view exists: in
-   * template order, each element in its own injector, child of the
-   * enclosing element's (or of `componentInjector`), so a directive can
-   * inject the directives of its element and of its ancestors.
+   * Create the directives and components of the elements built, once their
+   * view exists: in template order (parents first). An element's directives
+   * get its own injector, child of the enclosing element's (or of
+   * `componentInjector`), so they can inject the directives of their element
+   * and of its ancestors. Then the element's component, if any, is created
+   * there, so it can inject them too; `view` owns it.
    */
-  createDirectives(view: View<unknown>, componentInjector: Injector): void {
+  createDirectivesAndComponents(view: View<unknown>, componentInjector: Injector): void {
     const injectors: Injector[] = [];
     for (const { element, node, parent } of this.withDirectives) {
       const parentInjector = parent.match({
         some: (index) => injectors[index]!,
         none: () => componentInjector,
       });
-      const { injector } = this.directiveFactory
-        .createOnElement(node.directives, element, view, parentInjector, node.attributes);
+      const injector = node.directives.length === 0
+        ? parentInjector
+        : this.directiveFactory
+          .createOnElement(node.directives, element, view, parentInjector, node.attributes)
+          .injector;
+      node.component.ifSome((type) => {
+        this.components.create(type, element, {
+          parentInjector: injector,
+          parentView: view,
+          attributes: node.attributes,
+        });
+      });
       injectors.push(injector);
     }
   }
@@ -124,9 +143,12 @@ export class TemplateBuilder {
     return element;
   }
 
-  /** If `node` has directives, remember its element (and enter it, for its children). */
+  /**
+   * If `node` has directives or a component, remember its element (and
+   * enter it, for its children).
+   */
   private recordDirectives(element: Element, node: CompiledElement): Maybe<number> {
-    if (node.directives.length === 0) {
+    if (node.directives.length === 0 && node.component.isNone()) {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));

@@ -7,6 +7,7 @@ import { compileTemplate } from "../template/compile.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { RENDERER } from "../tokens.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
+import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 
@@ -24,10 +25,17 @@ function builderFactory(renderer = new DomRenderer()): TemplateBuilderFactory {
   return runInInjectionContext(injector, () => inject(TemplateBuilderFactory));
 }
 
+/** For templates without components: creating one would be a bug in the test. */
+const noComponents = {
+  create() {
+    throw new Error("these templates have no components");
+  },
+} as unknown as ComponentFactory;
+
 /** Build `source` for `component`, inside a <div> to read the result. */
 function build(source: string, component: object) {
   const template = builderFactory()
-    .create(component);
+    .create(component, noComponents);
   const root = document.createElement("div");
   root.append(...template.build(compileTemplate(new BrowserTemplateParser()
     .parse(source))));
@@ -77,7 +85,7 @@ describe("TemplateBuilderFactory", () => {
     const renderer = new DomRenderer();
     const createText = vi.spyOn(renderer, "createText");
     const builder = builderFactory(renderer)
-      .create({ name: "Ada" });
+      .create({ name: "Ada" }, noComponents);
 
     expect(builder)
       .toBeInstanceOf(TemplateBuilder);

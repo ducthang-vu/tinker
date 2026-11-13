@@ -169,5 +169,6 @@ only by the ESLint parser; the compiler is `typescript7`, run by the
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: components inside templates, `[prop]` and `(event)` bindings in
-templates, queries (`viewChild`), `@if` / `@for`, and `engine.destroy()`.
+Not there yet: `[prop]` and `(event)` bindings in templates, content
+projection (content inside a component's element), queries (`viewChild`),
+`@if` / `@for`, recursive components, and `engine.destroy()`.
