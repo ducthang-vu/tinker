@@ -21,7 +21,11 @@ test("the public API exports exactly these values", () => {
       "Ticker",
       "ChangeDetectionLoopError",
       "input",
-      "effect",
+      "Effects",
+      "Effect",
+      "RenderHooks",
+      "AfterEachRender",
+      "AfterNextRender",
     ].sort(),
   );
 });

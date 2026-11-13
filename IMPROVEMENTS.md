@@ -31,19 +31,24 @@ inconsistent state.
 **To do.** When child components exist, run the queue in tree order (parents
 first), e.g. by sorting each batch by view depth.
 
-## Effects (`src/view/authoring/effect.ts`)
+## Effects and render hooks (`src/view/authoring/effects.ts`, `render-hooks.ts`)
 
-### 1. Destroy effects automatically with their owner — priority
+### 1. Destroy effects and cancel render hooks with their owner — priority
 
-**Problem.** `effect()` returns a handle, and the effect runs until
-`destroy()` is called on it. An effect created by a component keeps running
-after the component's view is destroyed, and keeps the component in memory,
-unless the author destroys it. Same for a service whose injector is
-destroyed.
+**Problem.** `Effects.create` returns a handle, and the effect runs until
+`destroy()` is called on it. `RenderHooks.afterEachRender` returns a Cancel,
+and the hook runs until it is called. An effect or hook registered by a
+component keeps running after the component's view is destroyed, and keeps
+the component in memory, unless the author stops it. Same for a service
+whose injector is destroyed. With the decorators (`@Effect()`,
+`@AfterEachRender()`, `@AfterNextRender()`) the author cannot even stop
+them: there is no handle.
 
-**To do.** Destroy each effect with its owner, as Angular does:
-- in a component or directive: when its view is destroyed (through the
-  lifecycle's `onDestroy`, in `stash@{0}`, once it is adapted to ticks);
-- in a service: when its injector is destroyed. The public DI API has no
+**To do.** Stop them with their owner, as Angular does. Both are services,
+so this can be done in one place: give them a lifetime per owner.
+- In a component or directive: when its view is destroyed. Needs an
+  injector (or at least a destroy scope) per component, so `inject(Effects)`
+  and `inject(RenderHooks)` know their owner.
+- In a service: when its injector is destroyed. The public DI API has no
   way to register a destroy callback yet: add one (a `DestroyRef`-like
   service, injectable wherever `inject()` works).

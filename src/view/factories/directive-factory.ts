@@ -44,7 +44,7 @@ export class DirectiveFactory {
    * Destroying `view` removes both.
    */
   create<T extends object>(type: Class<T>, element: Element, view: View<unknown>): T {
-    // In the engine's injection context, so the directive can use inject() and effect().
+    // In the engine's injection context, so the directive can use inject() (and so Effects and RenderHooks).
     const instance = runInInjectionContext(this.injector, () => new type());
     const context = this.contexts.getOrCreate(element);
     context.addDirective(instance);

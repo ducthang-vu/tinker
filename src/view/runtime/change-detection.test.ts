@@ -2,13 +2,14 @@ import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, runInInjectionContext } from "../../di/index.ts";
 import { signal, watch } from "../../signals/index.ts";
 import { ChangeDetection, ChangeDetectionLoopError } from "./change-detection.ts";
+import { RenderHooks } from "../authoring/render-hooks.ts";
 import { EffectScheduler } from "./schedulers/effect-scheduler.ts";
 import { Ticker } from "./ticker.ts";
 import { ViewScheduler } from "./schedulers/view-scheduler.ts";
 
 /** Change detection, a log, and helpers queuing named work in each phase. */
 function setup() {
-  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, ChangeDetection] });
+  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, RenderHooks, ChangeDetection] });
   const changeDetection = runInInjectionContext(injector, () => inject(ChangeDetection));
   const log: string[] = [];
   const queue = (phase: "effects" | "views") => (label: string, work: () => void = () => {}) =>

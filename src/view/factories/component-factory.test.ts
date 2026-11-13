@@ -12,6 +12,7 @@ import { BindingFactory } from "../runtime/text-binding.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilderFactory } from "./template-builder.ts";
+import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
 import { Ticker } from "../runtime/ticker.ts";
@@ -28,6 +29,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
       Ticker,
       EffectScheduler,
       ViewScheduler,
+      RenderHooks,
       ChangeDetection,
       DirectiveFactory,
       ViewFactory,

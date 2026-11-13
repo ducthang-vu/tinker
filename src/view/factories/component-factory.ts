@@ -78,7 +78,7 @@ export class ComponentFactory {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
-    // In the engine's injection context, so the component can use inject() and effect().
+    // In the engine's injection context, so the component can use inject() (and so Effects and RenderHooks).
     const instance = runInInjectionContext(this.injector, () => new type());
     const template = this.builders.create(instance);
     const rendered = template.build(this.templateOf(type, metadata.template));
@@ -99,6 +99,9 @@ export class ComponentFactory {
       view.destroy(); // nothing half-rendered, and the watch no longer listens
       throw error;
     });
+    // The first render happened outside a tick: report it, so the render
+    // hooks run in the next tick (e.g. an afterNextRender registered by the component).
+    this.changeDetection.viewRendered();
     this.directives.applyHost(type, instance, host, view);
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);

@@ -11,6 +11,9 @@
 //
 //   tick:
 //     round 1: flush effects (if any), then views (if any)
+//     ...      once both are empty, if views rendered: a round running the
+//              render hooks (see RenderHooks); what they change is flushed
+//              in the next rounds
 //     round 2: again, if a round created new work (an effect writing a
 //              signal a view reads, a view update writing a signal, ...)
 //     ...      until no queue has work: settled
@@ -27,6 +30,7 @@ import { inject, Injectable } from "../../di/index.ts";
 import { Task } from "../../functional/index.ts";
 import { runAll, runBatches } from "../../utils/run-all.ts";
 import { EffectScheduler } from "./schedulers/effect-scheduler.ts";
+import { RenderHooks } from "../authoring/render-hooks.ts";
 import { Ticker } from "./ticker.ts";
 import { ViewScheduler } from "./schedulers/view-scheduler.ts";
 
@@ -53,6 +57,9 @@ export class ChangeDetection {
 
   /** The phases, in the order a round flushes them. */
   private readonly phases = [this.effects, this.views];
+  /** Run once effects and views settled, if views rendered since they last ran. */
+  private readonly renderHooks = inject(RenderHooks);
+  private viewsRendered = false;
   private readonly ticker = inject(Ticker);
   /** Who waits for the end of the next tick (running `nextTick()` tasks). */
   private readonly waiting = new Set<() => void>();
@@ -79,6 +86,15 @@ export class ChangeDetection {
       this.ticker.requestTick();
       return () => this.waiting.delete(waiter);
     });
+  }
+
+  /**
+   * A view rendered outside a tick (its first render, during its creation):
+   * request a tick, whose render hooks then run as if it had rendered there.
+   */
+  viewRendered(): void {
+    this.viewsRendered = true;
+    this.ticker.requestTick();
   }
 
   /**
@@ -109,17 +125,37 @@ export class ChangeDetection {
     runAll(waiters);
   }
 
-  /** Flush the phases, round after round, until none has work. */
+  /**
+   * Flush the phases, round after round, until none has work. Once they
+   * settled, if views rendered, run the render hooks, as a round of their
+   * own: work they create (a signal write) is flushed in the next rounds.
+   */
   private settle(rounds: { count: number }): void {
     runBatches(() => {
-      const due = this.phases.filter((phase) => phase.pending > 0);
-      if (due.length > 0 && ++rounds.count > MAX_ROUNDS) {
+      const batch = this.nextBatch();
+      if (batch.length > 0 && ++rounds.count > MAX_ROUNDS) {
         for (const phase of this.phases) {
           phase.discard();
         }
+        this.viewsRendered = false;
         throw new ChangeDetectionLoopError(MAX_ROUNDS);
       }
-      return due.map((phase) => () => phase.flush());
+      return batch;
     });
+  }
+
+  /** The next round: the phases with work, else the render hooks if views rendered, else nothing. */
+  private nextBatch(): (() => void)[] {
+    const due = this.phases.filter((phase) => phase.pending > 0);
+    if (due.length > 0) {
+      this.viewsRendered ||= due.includes(this.views);
+      return due.map((phase) => () => phase.flush());
+    }
+    if (this.viewsRendered && this.renderHooks.hasHooks) {
+      this.viewsRendered = false;
+      return [() => this.renderHooks.rendered()];
+    }
+    this.viewsRendered = false;
+    return [];
   }
 }

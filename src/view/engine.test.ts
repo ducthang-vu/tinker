@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { Component, Directive } from "./authoring/decorators.ts";
+import { Effects } from "./authoring/effects.ts";
+import { RenderHooks } from "./authoring/render-hooks.ts";
 import { ElementContext } from "./runtime/element-context.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
@@ -15,7 +17,7 @@ import { ViewScheduler } from "./runtime/schedulers/view-scheduler.ts";
 
 /** A ChangeDetection of its own, from an injector, to hand to an engine and inspect. */
 function changeDetection(): ChangeDetection {
-  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, ChangeDetection] });
+  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, RenderHooks, ChangeDetection] });
   return runInInjectionContext(injector, () => inject(ChangeDetection));
 }
 import { View } from "./runtime/view.ts";
@@ -322,5 +324,43 @@ describe("Engine collaborators", () => {
 
     expect(anchors).toEqual([anchor]);
     expect(container.anchor).toBe(anchor);
+  });
+});
+
+describe("Engine.afterStable", () => {
+  test("completes once the tick ended: effects ran and views rendered", async () => {
+    const log: string[] = [];
+    @Component({ selector: "tk-a", template: "<p>{{ doubled() }}</p>" })
+    class A {
+      readonly count = signal(1);
+      readonly doubled = signal(0);
+      constructor() {
+        inject(Effects).create(() => this.doubled.set(this.count() * 2));
+      }
+    }
+    const engine = Engine.create();
+    const view = engine.createComponent(A);
+
+    view.component.count.set(5);
+    await engine.afterStable().toPromise();
+    log.push(view.host.textContent!);
+
+    expect(log).toEqual(["10"]);
+  });
+
+  test("completes even when nothing changed", async () => {
+    await expect(Engine.create().afterStable().toPromise()).resolves.toBeUndefined();
+  });
+
+  test("is lazy and cancellable", () => {
+    const engine = Engine.create();
+    const ended: string[] = [];
+    const stable = engine.afterStable();
+    engine.flush();
+    expect(ended).toEqual([]); // not run yet
+    const cancel = stable.run({ ok: () => ended.push("stable") });
+    cancel();
+    engine.flush();
+    expect(ended).toEqual([]);
   });
 });

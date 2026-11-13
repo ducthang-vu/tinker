@@ -15,10 +15,11 @@
 // - `createComponent(type, host?)`, for the root component and any other;
 // - `createViewContainer(anchor)`, for views added and removed at runtime;
 // - `getContext(element)`, to answer "what is on this element?";
-// - `flush()`, to run a change detection tick now (see ChangeDetection).
+// - `flush()`, to run a change detection tick now (see ChangeDetection);
+// - `afterStable()`, to know when the next tick has ended.
 
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../di/index.ts";
-import { Maybe } from "../functional/index.ts";
+import { Maybe, type Task } from "../functional/index.ts";
 import type { Class } from "../utils/types.ts";
 import type { ElementContext } from "./runtime/element-context.ts";
 import { ElementContexts } from "./runtime/element-contexts.ts";
@@ -31,6 +32,8 @@ import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type View, ViewFactory } from "./runtime/view.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
+import { Effects } from "./authoring/effects.ts";
+import { RenderHooks } from "./authoring/render-hooks.ts";
 import { ChangeDetection } from "./runtime/change-detection.ts";
 import { EffectScheduler } from "./runtime/schedulers/effect-scheduler.ts";
 import { Ticker } from "./runtime/ticker.ts";
@@ -51,7 +54,9 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   Ticker,
   EffectScheduler,
   ViewScheduler,
+  RenderHooks,
   ChangeDetection,
+  Effects,
   DirectiveFactory,
   ViewFactory,
   BindingFactory,
@@ -107,6 +112,19 @@ export class Engine {
   /** Run a change detection tick now, instead of waiting for the microtask. */
   flush(): void {
     this.changeDetection.tick();
+  }
+
+  /**
+   * The end of the next change detection tick, as a Task: once it completes,
+   * effects have run and views are rendered. Lazy (nothing happens until it
+   * is run) and cancellable; running it requests a tick, so it completes
+   * even when nothing is pending. See ChangeDetection.nextTick.
+   *
+   *   count.set(2);
+   *   await engine.afterStable().toPromise();   // the DOM shows 2
+   */
+  afterStable(): Task<void> {
+    return this.changeDetection.nextTick();
   }
 
   /** What is on `element` (its directives and component), if anything. */

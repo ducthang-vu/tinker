@@ -3,20 +3,20 @@ import { Injectable, inject } from "../../di/index.ts";
 import { signal } from "../../signals/index.ts";
 import { Engine } from "../engine.ts";
 import { Component } from "./decorators.ts";
-import { effect } from "./effect.ts";
+import { Effect, type EffectContext, Effects } from "./effects.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("effect", () => {
+describe("Effects", () => {
   test("runs in the next tick, then again when what it read changes", async () => {
     const runs: number[] = [];
     @Component({ selector: "tk-a", template: "" })
     class A {
       readonly count = signal(1);
       constructor() {
-        effect(() => void runs.push(this.count()));
+        inject(Effects).create(() => void runs.push(this.count()));
       }
     }
     const view = Engine.create().createComponent(A);
@@ -35,7 +35,7 @@ describe("effect", () => {
       readonly count = signal(1);
       readonly doubled = signal(0);
       constructor() {
-        effect(() => this.doubled.set(this.count() * 2));
+        inject(Effects).create(() => this.doubled.set(this.count() * 2));
       }
     }
     const engine = Engine.create();
@@ -52,7 +52,7 @@ describe("effect", () => {
     @Component({ selector: "tk-a", template: "" })
     class A {
       readonly count = signal(1);
-      readonly handle = effect(({ onCleanup }) => {
+      readonly handle = inject(Effects).create(({ onCleanup }) => {
         const value = this.count();
         log.push(`run ${value}`);
         onCleanup(() => log.push(`cleanup ${value}`));
@@ -75,14 +75,14 @@ describe("effect", () => {
     class Clock {
       readonly time = signal(0);
       constructor() {
-        effect(() => void log.push(`service ${this.time()}`));
+        inject(Effects).create(() => void log.push(`service ${this.time()}`));
       }
     }
     @Component({ selector: "tk-a", template: "" })
     class A {
       readonly clock = inject(Clock);
       constructor() {
-        effect(() => void log.push(`component ${this.clock.time()}`));
+        inject(Effects).create(() => void log.push(`component ${this.clock.time()}`));
       }
     }
     const engine = Engine.create();
@@ -100,7 +100,7 @@ describe("effect", () => {
     class A {
       readonly count = signal(1);
       constructor() {
-        effect(({ isFirst }) => void runs.push([this.count(), isFirst]));
+        inject(Effects).create(({ isFirst }) => void runs.push([this.count(), isFirst]));
       }
     }
     const engine = Engine.create();
@@ -123,7 +123,7 @@ describe("effect", () => {
     class A {
       readonly count = signal(1);
       constructor() {
-        effect(({ isFirst }) => {
+        inject(Effects).create(({ isFirst }) => {
           firsts.push(isFirst);
           if (this.count() === 1) {
             throw new Error("first run failed");
@@ -139,8 +139,23 @@ describe("effect", () => {
     expect(firsts).toEqual([true, false]);
   });
 
-  test("must be called in an injection context", () => {
-    expect(() => effect(() => {})).toThrow("inject() must be called in an injection context");
+  test("create can be called at any moment, not only during construction", () => {
+    const runs: number[] = [];
+    @Component({ selector: "tk-a", template: "" })
+    class A {
+      private readonly effects = inject(Effects);
+      readonly count = signal(1);
+      start() {
+        return this.effects.create(() => void runs.push(this.count()));
+      }
+    }
+    const engine = Engine.create();
+    const { component } = engine.createComponent(A);
+    engine.flush();
+    expect(runs).toEqual([]);
+    component.start(); // long after construction, e.g. in a click handler
+    engine.flush();
+    expect(runs).toEqual([1]);
   });
 
   test("two engines run their effects in their own ticks", () => {
@@ -149,7 +164,7 @@ describe("effect", () => {
     class A {
       readonly name = signal("");
       constructor() {
-        effect(() => void runs.push(this.name()));
+        inject(Effects).create(() => void runs.push(this.name()));
       }
     }
     const one = Engine.create();
@@ -160,5 +175,54 @@ describe("effect", () => {
     expect(runs).toEqual(["one"]);
     two.flush();
     expect(runs).toEqual(["one", "two"]);
+  });
+});
+
+describe("@Effect()", () => {
+  test("makes the method an effect of each instance, with the run's context and this", () => {
+    const runs: string[] = [];
+    @Component({ selector: "tk-a", template: "" })
+    class A {
+      readonly name = "a";
+      readonly count = signal(1);
+      @Effect() track({ isFirst, onCleanup }: EffectContext) {
+        const value = this.count();
+        runs.push(`${this.name} ${value} ${isFirst ? "first" : "again"}`);
+        onCleanup(() => runs.push(`cleanup ${value}`));
+      }
+    }
+    const engine = Engine.create();
+    const first = engine.createComponent(A).component;
+    engine.createComponent(A);
+    engine.flush();
+    first.count.set(2);
+    engine.flush();
+    expect(runs).toEqual(["a 1 first", "a 1 first", "cleanup 1", "a 2 again"]);
+  });
+
+  test("works on services too", () => {
+    const runs: number[] = [];
+    @Injectable({ providedIn: "root" })
+    class Store {
+      readonly size = signal(0);
+      @Effect() log() {
+        runs.push(this.size());
+      }
+    }
+    @Component({ selector: "tk-a", template: "" })
+    class A {
+      readonly store = inject(Store);
+    }
+    const engine = Engine.create();
+    engine.createComponent(A).component.store.size.set(3);
+    engine.flush();
+    expect(runs).toEqual([3]);
+  });
+
+  test("an instance created outside an injection context cannot have effects", () => {
+    class Plain {
+      @Effect() run() {}
+    }
+    expect(() => new Plain()).toThrow("inject() must be called in an injection context");
   });
 });

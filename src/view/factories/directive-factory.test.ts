@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { Injectable, inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
 import { signal } from "../../signals/index.ts";
-import { effect } from "../authoring/effect.ts";
+import { Effects } from "../authoring/effects.ts";
+import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
@@ -122,7 +123,7 @@ describe("DirectiveFactory", () => {
 });
 
 describe("DirectiveFactory injection context", () => {
-  test("creates directives in the engine's injection context: inject() and effect() work", () => {
+  test("creates directives in the engine's injection context: inject() and inject(Effects).create() work", () => {
     @Injectable()
     class Theme {
       readonly color = signal("red");
@@ -132,7 +133,7 @@ describe("DirectiveFactory injection context", () => {
     class Tip {
       readonly theme = inject(Theme);
       constructor() {
-        effect(() => void seen.push(this.theme.color()));
+        inject(Effects).create(() => void seen.push(this.theme.color()));
       }
     }
     const { injector } = Injector.create({
@@ -144,7 +145,9 @@ describe("DirectiveFactory injection context", () => {
         Ticker,
         EffectScheduler,
         ViewScheduler,
+        RenderHooks,
         ChangeDetection,
+        Effects,
       ],
     });
     const { factory, changeDetection } = runInInjectionContext(injector, () => ({
