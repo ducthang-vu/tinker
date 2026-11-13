@@ -7,18 +7,24 @@
 // ElementContext, and applies the component's host bindings (through the
 // DirectiveFactory: a component is a directive with a template).
 //
+// Every view also gets a watch, scheduled by the app's ViewScheduler and
+// destroyed with the view. It will evaluate the view's bindings; until
+// bindings exist it reads no signals, so it runs once and never again.
+//
 // First step: elements, text and plain attributes are rendered. Bindings
 // (`[prop]`, `(event)`, `{{ }}`), directives and child components come next.
 // Until then, binding syntax in attributes is reported as unsupported, and
 // `{{ }}` in text is rendered as written.
 
 import { inject, Injectable } from "../../di/index.ts";
+import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../decorators.ts";
 import { ElementContexts } from "../element-contexts.ts";
 import type { TemplateNode } from "../template/ast.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { View } from "../view.ts";
+import { ViewScheduler } from "../view-scheduler.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 @Injectable()
@@ -27,6 +33,7 @@ export class ComponentFactory {
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
   private readonly directives = inject(DirectiveFactory);
+  private readonly scheduler = inject(ViewScheduler);
   /** Parsed templates, per component class: each template is parsed only once. */
   private readonly templates = new WeakMap<Class<unknown>, readonly TemplateNode[]>();
 
@@ -59,6 +66,10 @@ export class ComponentFactory {
     }
 
     const view = new View(host, instance, rendered, this.renderer);
+    const viewWatch = watch(() => {
+      // The view's bindings will be evaluated here.
+    }, this.scheduler);
+    view.addDestroyCallback(() => viewWatch.destroy());
     this.directives.applyHost(type, instance, host, view);
     context.attachComponent(view);
     view.addDestroyCallback(() => {

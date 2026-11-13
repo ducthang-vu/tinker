@@ -7,6 +7,7 @@ import { BrowserTemplateParser } from "../template/browser-parser.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+import { ViewScheduler } from "../view-scheduler.ts";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory() {
@@ -15,6 +16,7 @@ function makeFactory() {
       provide(RENDERER, { useValue: new DomRenderer() }),
       provide(TEMPLATE_PARSER, { useValue: new BrowserTemplateParser() }),
       ElementContexts,
+      ViewScheduler,
       DirectiveFactory,
       ComponentFactory,
     ],
@@ -22,6 +24,7 @@ function makeFactory() {
   return runInInjectionContext(injector, () => ({
     factory: inject(ComponentFactory),
     contexts: inject(ElementContexts),
+    scheduler: inject(ViewScheduler),
   }));
 }
 
@@ -93,5 +96,26 @@ describe("ComponentFactory host listeners", () => {
     expect(() => makeFactory().factory.create(Broken)).toThrow(
       `Broken has no method "missing" for host listener "(click)"`,
     );
+  });
+});
+
+describe("ComponentFactory view watch", () => {
+  test("each view gets a watch, scheduled on the app's scheduler", () => {
+    @Component({ selector: "tk-a", template: "" })
+    class A {}
+    const { factory, scheduler } = makeFactory();
+    factory.create(A);
+    factory.create(A);
+    expect(scheduler.pending).toBe(2); // first run of each view's watch
+    scheduler.flush();
+    expect(scheduler.pending).toBe(0);
+  });
+
+  test("a view destroyed before the flush has nothing left to run", () => {
+    @Component({ selector: "tk-a", template: "" })
+    class A {}
+    const { factory, scheduler } = makeFactory();
+    factory.create(A).destroy();
+    expect(() => scheduler.flush()).not.toThrow();
   });
 });

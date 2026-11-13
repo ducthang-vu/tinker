@@ -6,6 +6,7 @@ import { DomRenderer } from "./renderer.ts";
 import { provide } from "../di/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
+import { ViewScheduler } from "./view-scheduler.ts";
 import { View } from "./view.ts";
 
 afterEach(() => {
@@ -251,5 +252,28 @@ describe("Engine.bootstrap", () => {
       `Bindings are not supported yet: "(click)" on <button>`,
     );
     expect(document.querySelector("tk-app")!.innerHTML).toBe("");
+  });
+});
+
+describe("Engine view updates", () => {
+  test("flush runs the pending view updates now", () => {
+    @Component({ selector: "tk-a", template: "" })
+    class A {}
+    const scheduler = new ViewScheduler();
+    const engine = Engine.create({ providers: [provide(ViewScheduler, { useValue: scheduler })] });
+    engine.createComponent(A);
+    expect(scheduler.pending).toBe(1);
+    engine.flush();
+    expect(scheduler.pending).toBe(0);
+  });
+
+  test("each engine has its own scheduler", () => {
+    @Component({ selector: "tk-a", template: "" })
+    class A {}
+    const one = new ViewScheduler();
+    const two = new ViewScheduler();
+    Engine.create({ providers: [provide(ViewScheduler, { useValue: one })] }).createComponent(A);
+    expect(one.pending).toBe(1);
+    expect(two.pending).toBe(0);
   });
 });

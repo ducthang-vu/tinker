@@ -14,7 +14,8 @@
 // component there. The engine also offers:
 // - `createComponent(type, host?)`, for the root component and any other;
 // - `createViewContainer(anchor)`, for views added and removed at runtime;
-// - `getContext(element)`, to answer "what is on this element?".
+// - `getContext(element)`, to answer "what is on this element?";
+// - `flush()`, to run pending view updates now (see ViewScheduler).
 
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../di/index.ts";
 import type { Class } from "../utils/types.ts";
@@ -27,6 +28,7 @@ import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import type { View } from "./view.ts";
 import { ViewContainerRef } from "./view-container-ref.ts";
+import { ViewScheduler } from "./view-scheduler.ts";
 
 /** What the engine is built from. */
 export interface EngineOptions {
@@ -40,6 +42,7 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   provide(RENDERER, { useFactory: () => new DomRenderer(inject(DOCUMENT)) }),
   provide(TEMPLATE_PARSER, { useFactory: () => new BrowserTemplateParser(inject(DOCUMENT)) }),
   ElementContexts,
+  ViewScheduler,
   DirectiveFactory,
   ComponentFactory,
 ];
@@ -54,6 +57,7 @@ export class Engine {
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
   private readonly components = inject(ComponentFactory);
+  private readonly scheduler = inject(ViewScheduler);
 
   /** Create an engine: its root injector (your providers, then the defaults), and the engine from it. */
   static create(options: EngineOptions = {}): Engine {
@@ -86,6 +90,11 @@ export class Engine {
   /** Create a container that inserts views just before `anchor` (usually a comment). */
   createViewContainer(anchor: Node): ViewContainerRef {
     return new ViewContainerRef(anchor, this.components, this.renderer);
+  }
+
+  /** Run pending view updates now, instead of waiting for the scheduled flush. */
+  flush(): void {
+    this.scheduler.flush();
   }
 
   /** What is on `element` (its directives and component), or `undefined` if nothing. */
