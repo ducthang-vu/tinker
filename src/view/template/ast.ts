@@ -3,7 +3,9 @@
 // It is Tinker's own format, independent of how the template was parsed.
 // Parsers are deliberately dumb: attribute names and values are kept raw
 // (e.g. `[disabled]`, `(click)`), and text keeps its `{{ }}` as written.
-// Deciding what is a binding happens in a later step, shared by all parsers.
+// Deciding what is a binding happens in a later step, shared by all parsers:
+// interpolation.ts splits text around `{{ }}`, and expression.ts parses
+// the expressions.
 
 /** A node in a parsed template. */
 export type TemplateNode = ElementNode | TextNode;
