@@ -19,9 +19,13 @@
 // throws ChangeDetectionLoopError and drops the queued work. Every queued
 // task runs even if some throw; the first error is re-thrown once the tick
 // is over.
+//
+// To know when a tick is over: `nextTick()`, a Task completing at the end
+// of the next tick (run it again to follow every tick).
 
 import { inject, Injectable } from "../../di/index.ts";
-import { runBatches } from "../../utils/run-all.ts";
+import { Task } from "../../functional/index.ts";
+import { runAll, runBatches } from "../../utils/run-all.ts";
 import { EffectScheduler } from "./schedulers/effect-scheduler.ts";
 import { Ticker } from "./ticker.ts";
 import { ViewScheduler } from "./schedulers/view-scheduler.ts";
@@ -49,17 +53,67 @@ export class ChangeDetection {
 
   /** The phases, in the order a round flushes them. */
   private readonly phases = [this.effects, this.views];
+  private readonly ticker = inject(Ticker);
+  /** Who waits for the end of the next tick (running `nextTick()` tasks). */
+  private readonly waiting = new Set<() => void>();
 
   constructor() {
-    inject(Ticker).onTick(() => this.tick());
+    this.ticker.onTick(() => this.tick());
   }
 
-  /** Run a tick now: every queued task, phase by phase, round after round, until settled. */
+  /**
+   * The end of the next tick, as a Task: lazy (nothing happens until it is
+   * run), and cancellable. Running it requests a tick, so it completes even
+   * when nothing else is pending. It completes after a failed tick too.
+   *
+   * To follow every tick, run it again when it completes: it then waits for
+   * the following tick, but does not force one (otherwise following would
+   * chain ticks forever): that tick comes with the next change.
+   *
+   *   await changeDetection.nextTick().toPromise();   // e.g. in a test
+   */
+  nextTick(): Task<void> {
+    return Task.create((ok) => {
+      const waiter = () => ok();
+      this.waiting.add(waiter);
+      this.ticker.requestTick();
+      return () => this.waiting.delete(waiter);
+    });
+  }
+
+  /**
+   * Run a tick now: every queued task, phase by phase, round after round,
+   * until settled. Then the `nextTick()` tasks waiting for it complete, even
+   * if the tick failed. Work they queue (e.g. a waiter writing a signal a
+   * view reads) still runs in this tick: no tick request is lost while the
+   * Ticker considers this tick running. Every step runs even if an earlier
+   * one throws; the first error is re-thrown at the end.
+   */
   tick(): void {
-    let rounds = 0;
+    const rounds = { count: 0 }; // one loop guard for the whole tick
+    runAll([
+      () => this.settle(rounds),
+      () => this.completeWaiters(),
+      () => this.settle(rounds),
+    ]);
+  }
+
+  /**
+   * Complete the `nextTick()` tasks waiting now. A snapshot: a task run
+   * again while completing waits for the next tick (which it does not force,
+   * see `nextTick`).
+   */
+  private completeWaiters(): void {
+    const waiters = [...this.waiting];
+    this.waiting.clear();
+    runAll(waiters);
+  }
+
+  /** Flush the phases, round after round, until none has work. */
+  private settle(rounds: { count: number }): void {
     runBatches(() => {
       const due = this.phases.filter((phase) => phase.pending > 0);
-      if (due.length > 0 && ++rounds > MAX_ROUNDS) {
+      if (due.length > 0 && ++rounds.count > MAX_ROUNDS) {
         for (const phase of this.phases) {
           phase.discard();
         }

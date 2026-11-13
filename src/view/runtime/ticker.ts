@@ -11,16 +11,16 @@
 // IMPROVEMENTS.md).
 
 import { Injectable } from "../../di/index.ts";
-import { Maybe } from "../../functional/index.ts";
 
 @Injectable()
 export class Ticker {
-  private tick = Maybe.none<() => void>();
+  /** What a tick does: nothing until ChangeDetection registers its tick. */
+  private tick: () => void = () => {};
   private tickRequested = false;
 
   /** Register what a tick does (ChangeDetection's `tick`). Replaces an earlier one. */
   onTick(tick: () => void): void {
-    this.tick = Maybe.some(tick);
+    this.tick = tick;
   }
 
   /** Run a tick soon: at most one per microtask, however often it is called. */
@@ -31,7 +31,7 @@ export class Ticker {
     this.tickRequested = true;
     queueMicrotask(() => {
       try {
-        this.tick.ifSome((tick) => tick());
+        this.tick();
       } finally {
         // Only now: requests made during the tick were handled by it.
         this.tickRequested = false;
