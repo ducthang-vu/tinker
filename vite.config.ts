@@ -36,7 +36,7 @@ function standardDecorators(): Plugin {
 export default defineConfig({
   plugins: [standardDecorators()],
   server: {
-    open: "/examples/counter/",
+    open: "/examples/basics/",
   },
   test: {
     environment: "jsdom",
