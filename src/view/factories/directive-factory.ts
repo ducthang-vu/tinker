@@ -22,9 +22,10 @@ import { Effects } from "../authoring/effects.ts";
 import { inputsOf } from "../authoring/input.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
+import { ElementRef } from "../runtime/element-ref.ts";
 import type { View } from "../runtime/view.ts";
 import type { AttributeNode } from "../template/ast.ts";
-import { ELEMENT, RENDERER } from "../tokens.ts";
+import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
 
 @Injectable()
@@ -48,7 +49,7 @@ export class DirectiveFactory {
    * element's own injector (a child of `parent`): the directives are its
    * providers, so they can inject each other, and so can the directives of
    * the element's descendants, whose injectors are children of this one. It
-   * also provides ELEMENT, its own Effects and RenderHooks, and the
+   * also provides ElementRef, its own Effects and RenderHooks, and the
    * directives' `providers` (after those, so they cannot replace them; for a
    * token several directives provide, the first in `types` wins). Each
    * directive is registered in the element's context, its host bindings are
@@ -68,7 +69,7 @@ export class DirectiveFactory {
     const elementInjector = Injector.create({
       providers: [
         ...types,
-        provide(ELEMENT, { useValue: element }),
+        provide(ElementRef, { useValue: new ElementRef(element) }),
         Effects,
         RenderHooks,
         ...types.flatMap((type) => this.metadataOf(type).providers ?? []),

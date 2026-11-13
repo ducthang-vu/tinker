@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { inject, Injectable, provide } from "../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
-import { ELEMENT } from "../tokens.ts";
+import { ElementRef } from "../runtime/element-ref.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -42,10 +42,10 @@ describe("host directives", () => {
       .toEqual([view.component.focusable, view.component.draggable]);
   });
 
-  test("are on the host element: ELEMENT, and their host listeners", () => {
+  test("are on the host element: ElementRef, and their host listeners", () => {
     @Directive({ selector: "[clickable]", host: { "(click)": "click()" } })
     class Clickable {
-      readonly element = inject(ELEMENT);
+      readonly host = inject(ElementRef);
       clicks = 0;
       click() {
         this.clicks++;
@@ -54,14 +54,14 @@ describe("host directives", () => {
     @Component({ selector: "tk-button", template: "<span>ok</span>", hostDirectives: [Clickable] })
     class Button {
       readonly clickable = inject(Clickable);
-      readonly element = inject(ELEMENT);
+      readonly host = inject(ElementRef);
     }
     const view = Engine.create()
       .createComponent(Button);
     (view.host.querySelector("span") as HTMLElement).click(); // bubbles to the host
-    expect(view.component.clickable.element)
+    expect(view.component.clickable.host.nativeElement)
       .toBe(view.host);
-    expect(view.component.element)
+    expect(view.component.host.nativeElement)
       .toBe(view.host);
     expect(view.component.clickable.clicks)
       .toBe(1);
@@ -140,15 +140,15 @@ describe("host directives", () => {
       .toBe(true);
   });
 
-  test("the component cannot replace ELEMENT with its own providers", () => {
+  test("the component cannot replace ElementRef with its own providers", () => {
     const fake = document.createElement("fake");
-    @Component({ selector: "tk-a", template: "", providers: [provide(ELEMENT, { useValue: fake })] })
+    @Component({ selector: "tk-a", template: "", providers: [provide(ElementRef, { useValue: new ElementRef(fake) })] })
     class A {
-      readonly element = inject(ELEMENT);
+      readonly host = inject(ElementRef);
     }
     const view = Engine.create()
       .createComponent(A);
-    expect(view.component.element)
+    expect(view.component.host.nativeElement)
       .toBe(view.host);
   });
 

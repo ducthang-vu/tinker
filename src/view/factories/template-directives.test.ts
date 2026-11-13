@@ -5,7 +5,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
-import { ELEMENT } from "../tokens.ts";
+import { ElementRef } from "../runtime/element-ref.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -16,9 +16,9 @@ describe("directives in templates", () => {
     const seen: string[] = [];
     @Directive({ selector: "[highlight]" })
     class Highlight {
-      readonly element = inject(ELEMENT);
+      readonly host = inject(ElementRef);
       constructor() {
-        seen.push(this.element.localName);
+        seen.push(this.host.nativeElement.localName);
       }
     }
     @Component({
@@ -349,10 +349,13 @@ describe("directive providers", () => {
     const fake = document.createElement("fake");
     @Directive({
       selector: "[first]",
-      providers: [provide(ELEMENT, { useValue: fake }), provide(LABEL, { useValue: "first" })],
+      providers: [
+        provide(ElementRef, { useValue: new ElementRef(fake) }),
+        provide(LABEL, { useValue: "first" }),
+      ],
     })
     class First {
-      readonly element = inject(ELEMENT);
+      readonly host = inject(ElementRef);
       readonly label = inject(LABEL);
     }
     @Directive({ selector: "[second]", providers: [provide(LABEL, { useValue: "second" })] })
@@ -365,11 +368,57 @@ describe("directive providers", () => {
     const [first] = engine.getContext(p)
       .map((context) => context.directives)
       .getOrElse([]) as [First];
-    expect(first.element)
+    expect(first.host.nativeElement)
       .toBe(p);
     expect(first.label)
       .toBe("first");
     expect(Second)
       .toBeDefined();
+  });
+});
+
+describe("ElementRef", () => {
+  test("wraps the element; a type argument narrows it, without a cast", () => {
+    @Directive({ selector: "input[autofocus]" })
+    class Autofocus {
+      private readonly host = inject(ElementRef<HTMLInputElement>);
+      focus(): string {
+        this.host.nativeElement.focus();
+        return this.host.nativeElement.value; // HTMLInputElement: has `value`
+      }
+    }
+    @Component({ selector: "tk-a", template: `<input autofocus value="hi">`, imports: [Autofocus] })
+    class A {}
+    const engine = Engine.create();
+    const view = engine.createComponent(A);
+    document.body.append(view.host);
+    const input = view.host.querySelector("input")!;
+    const [autofocus] = engine.getContext(input)
+      .map((context) => context.directives)
+      .getOrElse([]) as [Autofocus];
+    expect(autofocus.focus())
+      .toBe("hi");
+    expect(document.activeElement)
+      .toBe(input);
+  });
+
+  test("directives on the same element share their ElementRef", () => {
+    @Directive({ selector: "[a]" })
+    class A {
+      readonly host = inject(ElementRef);
+    }
+    @Directive({ selector: "[b]" })
+    class B {
+      readonly host = inject(ElementRef);
+    }
+    @Component({ selector: "tk-x", template: `<p a b></p>`, imports: [A, B] })
+    class X {}
+    const engine = Engine.create();
+    const view = engine.createComponent(X);
+    const [a, b] = engine.getContext(view.host.querySelector("p")!)
+      .map((context) => context.directives)
+      .getOrElse([]) as [A, B];
+    expect(a.host)
+      .toBe(b.host);
   });
 });

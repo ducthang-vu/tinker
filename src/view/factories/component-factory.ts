@@ -3,7 +3,7 @@
 //
 // Given a host element (or creating one from the component's selector), it
 // creates the component's own injector (child of the engine's: its host
-// directives, ELEMENT, its own Effects and RenderHooks, and its and its host
+// directives, ElementRef, its own Effects and RenderHooks, and its and its host
 // directives' `providers`, all destroyed with the view), creates the host
 // directives then the component in it, parses its template (once per class), builds the
 // DOM through the Renderer, attaches the resulting View to the host's
@@ -49,12 +49,13 @@ import { Effects } from "../authoring/effects.ts";
 import { inputsOf } from "../authoring/input.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
+import { ElementRef } from "../runtime/element-ref.ts";
 import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Selector } from "../template/selector.ts";
-import { ELEMENT, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
+import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 
@@ -100,7 +101,7 @@ export class ComponentFactory {
     }
 
     // Its own injector, child of the engine's: its host directives, its host
-    // element (ELEMENT), its own Effects and RenderHooks (so what it registers
+    // element (ElementRef), its own Effects and RenderHooks (so what it registers
     // through them stops when it is destroyed), then the component's and its
     // host directives' providers (after, so they cannot replace the others).
     // The component is created in it, so its inject() calls resolve there first.
@@ -108,7 +109,7 @@ export class ComponentFactory {
     const ownInjector = Injector.create({
       providers: [
         ...hostDirectives,
-        provide(ELEMENT, { useValue: host }),
+        provide(ElementRef, { useValue: new ElementRef(host) }),
         Effects,
         RenderHooks,
         ...(metadata.providers ?? []),

@@ -17,7 +17,8 @@ export { ViewContainerRef } from "./runtime/view-container-ref.ts";
 export { ChangeDetectionLoopError } from "./runtime/change-detection.ts";
 
 // What can be replaced through providers
-export { DOCUMENT, ELEMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
+export { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
+export { ElementRef } from "./runtime/element-ref.ts";
 export { DomRenderer, type Renderer } from "./renderer.ts";
 export type { TemplateParser } from "./template/parser.ts";
 export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./template/ast.ts";
