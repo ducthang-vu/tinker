@@ -337,7 +337,7 @@ describe("InjectionToken", () => {
     expect(Object.getOwnPropertySymbols(token))
       .toEqual([]);
     expect(Object.keys(token))
-      .toEqual(["name"]);
+      .toEqual(["name", "multi"]); // real properties only: the type markers never exist
   });
 
   test("a plain { name } object or a class cannot pass for a token", () => {

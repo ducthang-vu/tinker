@@ -31,6 +31,26 @@ export interface Token<T> {
    * neither a plain `{ name }` object nor a class can pass for a token.
    */
   readonly [TOKEN_TYPE]: T;
+  /**
+   * Whether several providers contribute to this token, and inject() returns
+   * all their values (see InjectionToken.multi). Absent means false.
+   */
+  readonly multi?: boolean;
+}
+
+/** Type-only key: lets a MultiToken carry the type of one contribution. */
+declare const ELEMENT_TYPE: unique symbol;
+
+/**
+ * A token several providers contribute to: `inject()` gives a list of their
+ * values, `readonly T[]`, and each provider gives one `T`. Created with
+ * `InjectionToken.multi<T>(name)`; at runtime it is an InjectionToken.
+ */
+export type MultiToken<T> = InjectionToken<readonly T[]> & { readonly [ELEMENT_TYPE]: T };
+
+/** Any token but a multi one: intersect with it to exclude MultiTokens. */
+export interface NotMulti {
+  readonly [ELEMENT_TYPE]?: never;
 }
 
 /** A token for a value of type `T`, e.g. `new InjectionToken<string>("API_URL")`. */
@@ -38,8 +58,29 @@ export class InjectionToken<T> implements Token<T> {
   /** Type-only (`declare`): no such property exists at runtime. */
   declare readonly [TOKEN_TYPE]: T;
 
-  /** @param name Used in messages, e.g. "No provider for API_URL". */
-  constructor(readonly name: string) {}
+  /**
+   * @param name Used in messages, e.g. "No provider for API_URL".
+   * @param multi Whether several providers contribute to it: use `InjectionToken.multi()`.
+   */
+  constructor(
+    readonly name: string,
+    readonly multi = false,
+  ) {}
+
+  /**
+   * A token several providers contribute to, e.g. validators or plugins:
+   *
+   *   const VALIDATORS = InjectionToken.multi<Validator>("VALIDATORS");
+   *   provide(VALIDATORS, { useClass: Required });     // one Validator each
+   *   inject(VALIDATORS);                               // readonly Validator[]
+   *
+   * The list holds the values of the nearest injector that has providers
+   * for it, in provider order (a child's list replaces its parent's), and
+   * is empty if none has.
+   */
+  static multi<T>(name: string): MultiToken<T> {
+    return new InjectionToken<readonly T[]>(name, true) as MultiToken<T>;
+  }
 }
 
 /** Where `inject()` looks, and what it does when nothing is found. */
@@ -86,6 +127,9 @@ export function inject<T, O extends InjectOptions = {}>(
     if (self || (host && injector.hostBoundary)) {
       break;
     }
+  }
+  if (token.multi) {
+    return [] as InjectResult<T, O>; // nothing contributes: an empty list
   }
   if (optional) {
     return null as InjectResult<T, O>;

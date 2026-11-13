@@ -12,7 +12,7 @@
 // must be concrete. Internally, every form is turned into a token and a factory.
 
 import type { AbstractClass, Class } from "../utils/types.ts";
-import type { Token } from "./internal/inject.ts";
+import type { MultiToken, NotMulti, Token } from "./internal/inject.ts";
 
 /** What identifies an injectable value: a Token, a class, or an abstract class. */
 export type ProviderToken<T> = Token<T> | AbstractClass<T>;
@@ -60,14 +60,28 @@ export type ProviderRecipe<T>
     | { readonly useExisting: ProviderToken<T> };
 
 /**
+ * A provider contributing one value to a multi token (see
+ * `InjectionToken.multi`): the recipe gives one `T`, and `inject()` gives
+ * the list of all contributions.
+ */
+export function provide<T>(
+  token: MultiToken<T>,
+  recipe: ProviderRecipe<NoInfer<T>>,
+): Provider<readonly T[]>;
+/**
  * A provider whose recipe is checked against its token. A plain `Provider[]`
  * list cannot do that (each entry would need its own type), so a mismatch
  * like `{ provide: API_URL, useValue: 42 }` would compile; with
  * `provide(API_URL, { useValue: 42 })` it does not.
  *
  * The value type `T` comes from the token only (`NoInfer` on the recipe), so
- * a mismatch is reported instead of being "explained" by widening `T`.
+ * a mismatch is reported instead of being "explained" by widening `T`. Not
+ * for multi tokens: their providers contribute one value each (overload above).
  */
+export function provide<T>(
+  token: ProviderToken<T> & NotMulti,
+  recipe: ProviderRecipe<NoInfer<T>>,
+): Provider<T>;
 export function provide<T>(
   token: ProviderToken<T>,
   recipe: ProviderRecipe<NoInfer<T>>,

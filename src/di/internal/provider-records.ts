@@ -2,6 +2,8 @@
 //
 // Each record holds the token's provider and, once created, its value: every
 // value is created once per injector, then shared (singleton per injector).
+// A multi token's record holds all its providers, in order, and its value is
+// the list of their values.
 // While its factory runs, a record is marked as being created: asking for it
 // again in that state means a dependency cycle.
 // The records create values themselves, through hooks given by the injector,
@@ -74,7 +76,8 @@ const UNSET: unique symbol = Symbol("UNSET");
 const CREATING: unique symbol = Symbol("CREATING");
 
 interface ProviderRecord<T> {
-  readonly provider: Provider<T>;
+  /** One provider; several, in order, for a multi token. */
+  readonly providers: Provider<unknown>[];
   value: T | typeof UNSET | typeof CREATING;
 }
 
@@ -97,9 +100,7 @@ export class ProviderRecords {
     private readonly hooks: CreationHooks,
   ) {
     for (const provider of providers) {
-      if (!this.records.has(provider.token)) {
-        this.records.set(provider.token, { provider, value: UNSET });
-      }
+      this.add(provider);
     }
   }
 
@@ -109,12 +110,16 @@ export class ProviderRecords {
   }
 
   /**
-   * Add a provider after creation (used for root providers, on first use).
-   * Does nothing if its token already has one: existing providers win.
+   * Add a provider (also after creation: root providers, on first use). For
+   * a single token, does nothing if it already has one: the first one wins.
+   * For a multi token, it is added to the token's list.
    */
   add(provider: Provider<unknown>): void {
-    if (!this.records.has(provider.token)) {
-      this.records.set(provider.token, { provider, value: UNSET });
+    const record = this.records.get(provider.token);
+    if (!record) {
+      this.records.set(provider.token, { providers: [provider], value: UNSET });
+    } else if (provider.token.multi) {
+      record.providers.push(provider);
     }
   }
 
@@ -140,7 +145,9 @@ export class ProviderRecords {
     creationPath.push({ owner: this, token });
     let value: T;
     try {
-      value = this.hooks.create(record.provider.factory);
+      value = token.multi
+        ? (record.providers.map((provider) => this.createValue(provider)) as T)
+        : (this.createValue(record.providers[0]!) as T);
     } catch (error) {
       record.value = UNSET; // never leave CREATING behind: the next call tries again
       throw error;
@@ -148,6 +155,12 @@ export class ProviderRecords {
       creationPath.pop();
     }
     record.value = value;
+    return value;
+  }
+
+  /** Create one provider's value, through the hooks. */
+  private createValue(provider: Provider<unknown>): unknown {
+    const value = this.hooks.create(provider.factory);
     this.hooks.created(value);
     return value;
   }
