@@ -13,9 +13,7 @@ It is a learning project, not a production framework.
 ## Example
 
 ```ts
-import { inject, Injectable } from "./src/di/index.ts";
-import { computed, signal } from "./src/signals/index.ts";
-import { Component, Directive, Engine, input } from "./src/view/index.ts";
+import { Component, computed, Directive, Engine, inject, Injectable, input, signal } from "tinker";
 
 @Injectable()
 class CounterStore {
@@ -57,7 +55,8 @@ The full version, with a clock and three directives, is in
 
 ## Modules
 
-Each module has an `index.ts` listing its public API.
+`tinker` ([`src/index.ts`](src/index.ts)) exports the public API of every
+module; each module also lists its own in its `index.ts`.
 
 | Module | What it does |
 |---|---|
@@ -113,6 +112,3 @@ only by the ESLint parser; the compiler is `typescript7`, run by the
 
 Not there yet: components inside templates, `[prop]` and `(event)` bindings in
 templates, queries (`viewChild`), `@if` / `@for`, and `engine.destroy()`.
-
-`src/signal.ts`, `src/dom.ts`, `src/index.ts` and `examples/counter` are the
-very first prototype, kept for reference until they are removed.

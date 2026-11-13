@@ -40,12 +40,11 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    // Tests live next to the files they test; test/ still holds the old prototype's tests.
-    include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+    // Tests live next to the files they test.
+    include: ["src/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      // The signal system. The old prototype (src/signal.ts, src/dom.ts) is left out.
-      include: ["src/signals/**/*.ts", "src/view/**/*.ts", "src/di/**/*.ts", "src/utils/**/*.ts", "src/functional/**/*.ts"],
+      include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts"],
       reporter: ["text", "html"],
       thresholds: {
