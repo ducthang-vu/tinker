@@ -62,3 +62,30 @@ their `onDestroy()` when it is destroyed. A component is created with
 **To do.** Provide the component in its own injector and create it with
 `inject(type)`, like host directives: its injector then calls its
 `onDestroy()` when the view is destroyed.
+
+### 2. Dynamic components do not know where they are
+
+**Problem.** A `ViewContainerRef` comes from `engine.createViewContainer(anchor)`,
+and the components it creates get an injector whose parent is the engine's,
+wherever the anchor is. A container inside a component's template, e.g. a
+directive in `<tk-list>` adding `<tk-item>`s at runtime, then creates items
+that:
+
+- cannot inject what is around them: not the list's providers (`ListStore`),
+  not `List` itself, not the directive next to them; worse, if the engine
+  also provides that token, they silently get the engine's instance;
+- outlive the list: they are not part of the list's view, so destroying the
+  list leaves them alive (effects still running) unless `container.clear()`
+  is called by hand.
+
+**To do.** As in Angular, let a directive inject its container:
+`inject(ViewContainerRef)` gives a container at the directive's element,
+which carries its place:
+
+- its parent injector is that element's injector, so created components
+  inject what surrounds them;
+- its owner view is the view of the template it is in, so created
+  components are destroyed with it.
+
+`engine.createViewContainer(anchor)` stays for containers outside any
+component (e.g. at the top of a page), with the engine's injector.
