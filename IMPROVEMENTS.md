@@ -33,22 +33,44 @@ first), e.g. by sorting each batch by view depth.
 
 ## Effects and render hooks (`src/view/authoring/effects.ts`, `render-hooks.ts`)
 
-### 1. Destroy effects and cancel render hooks with their owner — priority
+### 1. Stop the engine's own effects and hooks
 
-**Problem.** `Effects.create` returns a handle, and the effect runs until
-`destroy()` is called on it. `RenderHooks.afterEachRender` returns a Cancel,
-and the hook runs until it is called. An effect or hook registered by a
-component keeps running after the component's view is destroyed, and keeps
-the component in memory, unless the author stops it. Same for a service
-whose injector is destroyed. With the decorators (`@Effect()`,
-`@AfterEachRender()`, `@AfterNextRender()`) the author cannot even stop
-them: there is no handle.
+Each component has its own injector, which provides its own `Effects` and
+`RenderHooks`: everything a component registers through them (decorated
+methods included) stops when the component is destroyed. Done.
 
-**To do.** Stop them with their owner, as Angular does. Both are services,
-so this can be done in one place: give them a lifetime per owner.
-- In a component or directive: when its view is destroyed. Needs an
-  injector (or at least a destroy scope) per component, so `inject(Effects)`
-  and `inject(RenderHooks)` know their owner.
-- In a service: when its injector is destroyed. The public DI API has no
-  way to register a destroy callback yet: add one (a `DestroyRef`-like
-  service, injectable wherever `inject()` works).
+**Problem.** Services provided by the engine (`providedIn: "root"`, or
+`Engine.create({ providers })`) use the engine's `Effects` and
+`RenderHooks`, which stop only when the engine's injector is destroyed, and
+the engine has no `destroy()` yet. A service in a component's `providers`
+is fine: it uses the component's.
+
+**To do.** Add `engine.destroy()`: destroy the views, then the engine's
+injector (which stops its effects and cancels its hooks).
+
+### 2. Directives use the engine's injector: give elements their own
+
+**Problem.** Directives are created with the engine's injector, so their
+effects and hooks belong to the engine (see 1), not to the element they are
+on; and two directives on the same element cannot inject each other.
+
+**To do.** When templates create directives, give each element that carries
+directives its own injector (Angular's "element injector"):
+
+    engine injector
+      └─ <tk-app> component injector
+           └─ <form> element injector         ← FormDirective, its providers
+                └─ <input> element injector   ← ModelDirective, ValidatorDirective
+
+- The directives of an element are created in it, so they can inject each
+  other (`ValidatorDirective` injects `ModelDirective`).
+- Its parent is the injector of the enclosing element, up to the
+  component's: a directive finds its ancestors (`ModelDirective` injects
+  `FormDirective` from the `<form>` around it).
+- It provides the directives' `providers` (a new `@Directive` option), and
+  its own `Effects` and `RenderHooks`.
+- It is destroyed with its element (e.g. when an `@if` branch is removed),
+  so the directives' effects and hooks stop exactly then.
+
+Not one injector per directive: directives on one element are created and
+removed together, and must be able to see each other.

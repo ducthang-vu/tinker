@@ -34,12 +34,13 @@
 // The method becomes an effect when the instance is created (which must
 // happen in an injection context, as for any inject()).
 //
-// Not yet: destroying effects automatically with their owner (see "Effects
-// and render hooks" in IMPROVEMENTS.md). Until then, destroy an effect
-// yourself with the returned handle when its owner goes away.
+// Effects stop with their owner: a component's effects (decorated ones
+// included) are destroyed with the component, since each component injector
+// provides its own Effects. The returned handle stops one earlier.
 
 import { inject, Injectable } from "../../di/index.ts";
 import { type OnCleanup, type Watch, watch } from "../../signals/index.ts";
+import { runAll } from "../../utils/run-all.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 
 /** What an effect's function receives on each run. */
@@ -56,19 +57,38 @@ export interface EffectContext {
 /** An effect's function: what to do, given the hooks of this run. */
 export type EffectFn = (context: EffectContext) => void;
 
-/** Creates effects in the engine's change detection. One per engine. */
+/**
+ * Creates effects in the engine's change detection. Each component has its
+ * own (provided in its injector), the engine has one for services: the
+ * effects created through it are destroyed when its injector is.
+ */
 @Injectable()
 export class Effects {
   private readonly changeDetection = inject(ChangeDetection);
+  /** The effects created here and not destroyed yet. */
+  private readonly running = new Set<Watch>();
 
   /** Run `fn` in the next tick, then whenever the signals it read change, in the effects phase. */
   create(fn: EffectFn): Watch {
     let isFirst = true;
-    return watch((onCleanup) => {
+    const effect = watch((onCleanup) => {
       const context: EffectContext = { isFirst, onCleanup };
       isFirst = false;
       fn(context);
     }, this.changeDetection.effects);
+    const handle: Watch = {
+      destroy: () => {
+        this.running.delete(handle);
+        effect.destroy();
+      },
+    };
+    this.running.add(handle);
+    return handle;
+  }
+
+  /** Called when its injector is destroyed: destroy every effect still running. */
+  onDestroy(): void {
+    runAll([...this.running].map((effect) => () => effect.destroy()));
   }
 }
 

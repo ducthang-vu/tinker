@@ -32,31 +32,56 @@
 //     @AfterEachRender() resize() { ... }
 //   }
 //
-// Not yet: cancelling hooks automatically with their owner (see "Effects
-// and render hooks" in IMPROVEMENTS.md). Until then, call the returned
-// Cancel when the owner goes away.
+// Hooks stop with their owner: a component's hooks (decorated ones
+// included) are cancelled with the component, since each component injector
+// provides its own RenderHooks. The returned Cancel stops one earlier.
 
 import { inject, Injectable } from "../../di/index.ts";
 import type { Cancel } from "../../functional/index.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
 
 /**
- * Registers hooks to run after the app rendered. One per engine. Only
+ * Registers hooks to run after the app rendered. Each component has its own
+ * (provided in its injector), the engine has one for services: the hooks
+ * registered through it are cancelled when its injector is destroyed. Only
  * registering is public: running them is change detection's job (see
  * RenderHookRegistry).
  */
 @Injectable()
 export class RenderHooks {
   private readonly registry = inject(RenderHookRegistry);
+  /** How to cancel the hooks registered here and not cancelled yet. */
+  private readonly registered = new Set<Cancel>();
 
   /** Run `hook` after every render, until cancelled. */
   afterEachRender(hook: () => void): Cancel {
-    return this.registry.addEachRender(hook);
+    return this.track(this.registry.addEachRender(hook));
   }
 
   /** Run `hook` once, after the next render. Cancelling before that prevents it. */
   afterNextRender(hook: () => void): Cancel {
-    return this.registry.addNextRender(hook);
+    // Once it ran, there is nothing left to cancel: forget it.
+    const cancel = this.track(this.registry.addNextRender(() => {
+      this.registered.delete(cancel);
+      hook();
+    }));
+    return cancel;
+  }
+
+  /** Called when its injector is destroyed: cancel every hook registered here. */
+  onDestroy(): void {
+    for (const cancel of [...this.registered]) {
+      cancel();
+    }
+  }
+
+  private track(cancelInRegistry: Cancel): Cancel {
+    const cancel = () => {
+      this.registered.delete(cancel);
+      cancelInRegistry();
+    };
+    this.registered.add(cancel);
+    return cancel;
   }
 }
 

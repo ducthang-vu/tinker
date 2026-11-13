@@ -2,7 +2,9 @@
 // rendered View.
 //
 // Given a host element (or creating one from the component's selector), it
-// creates the component, parses its template (once per class), builds the
+// creates the component's own injector (child of the engine's: its
+// `providers`, plus its own Effects and RenderHooks, all destroyed with the
+// view), creates the component in it, parses its template (once per class), builds the
 // DOM through the Renderer, attaches the resulting View to the host's
 // ElementContext, and applies the component's host bindings (through the
 // DirectiveFactory: a component is a directive with a template).
@@ -28,12 +30,20 @@
 // child components come next; binding syntax in attributes is reported as
 // unsupported until then.
 
-import { inject, Injectable, Injector, runInInjectionContext } from "../../di/index.ts";
+import {
+  inject,
+  Injectable,
+  Injector,
+  type InjectorRef,
+  runInInjectionContext,
+} from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
+import { Effects } from "../authoring/effects.ts";
 import { inputsOf } from "../authoring/input.ts";
+import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
@@ -41,7 +51,7 @@ import { ChangeDetection } from "../runtime/change-detection.ts";
 import { type CompiledNode, compileTemplate } from "../template/compile.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
-import { TemplateBuilderFactory } from "./template-builder.ts";
+import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 
 /**
  * A selector a host element can be created from: an optional tag, then an
@@ -84,16 +94,21 @@ export class ComponentFactory {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
-    // In the engine's injection context, so the component can use inject()
-    // (and so Effects and RenderHooks).
-    const instance = runInInjectionContext(this.injector, () => new type());
-    const template = this.builders.create(instance);
-    const rendered = template.build(this.templateOf(type, metadata.template));
+    // Its own injector, child of the engine's: the component's providers, and
+    // its own Effects and RenderHooks, so what it registers through them stops
+    // when it is destroyed. The component is created in it, so its inject()
+    // calls resolve there first.
+    const ownInjector = Injector.create({
+      providers: [...(metadata.providers ?? []), Effects, RenderHooks],
+      parent: this.injector,
+    });
+    const { instance, rendered, template } = this.createAndBuild(type, metadata, ownInjector);
     for (const node of rendered) {
       this.renderer.appendChild(host, node);
     }
 
     const view = this.views.create(host, instance, rendered);
+    view.addDestroyCallback(() => ownInjector.destroy());
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
     // The view's one watch: updates the bindings in template order. (Later
@@ -118,6 +133,26 @@ export class ComponentFactory {
       this.contexts.forgetIfEmpty(context);
     });
     return view;
+  }
+
+  /**
+   * Create the instance in `ownInjector`, and build its template. If either
+   * fails, `ownInjector` is destroyed (no view exists yet to do it).
+   */
+  private createAndBuild<T extends object>(
+    type: Class<T>,
+    metadata: ComponentMetadata,
+    ownInjector: InjectorRef,
+  ): { instance: T; rendered: Node[]; template: TemplateBuilder } {
+    try {
+      const instance = runInInjectionContext(ownInjector.injector, () => new type());
+      const template = this.builders.create(instance);
+      const rendered = template.build(this.templateOf(type, metadata.template));
+      return { instance, rendered, template };
+    } catch (error) {
+      ownInjector.destroy();
+      throw error;
+    }
   }
 
   /** Create a host element for a selector: an optional tag, then an optional `[attribute]`. */

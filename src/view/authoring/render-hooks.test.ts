@@ -18,11 +18,11 @@ test("RenderHooks only registers: running the hooks is not part of its API", () 
   }
   const { render } = Engine.create()
     .createComponent(A).component;
+  // Registering, and onDestroy() (called by its injector, which only cancels): nothing runs hooks.
   expect(Object.getOwnPropertyNames(Object.getPrototypeOf(render))
+    .filter((name) => !["constructor", "track"].includes(name))
     .sort())
-    .toEqual(
-      ["afterEachRender", "afterNextRender", "constructor"],
-    );
+    .toEqual(["afterEachRender", "afterNextRender", "onDestroy"]);
   // @ts-expect-error rendered() is not public: only change detection runs the hooks
   expect(render.rendered)
     .toBeUndefined();
@@ -187,5 +187,29 @@ describe("@AfterEachRender() and @AfterNextRender()", () => {
       .toThrow("inject() must be called in an injection context");
     expect(() => new Other())
       .toThrow("inject() must be called in an injection context");
+  });
+});
+
+describe("RenderHooks lifetime", () => {
+  test("onDestroy cancels the hooks still registered; a run next-render hook is forgotten", () => {
+    const runs: string[] = [];
+    @Component({ selector: "tk-a", template: "<p>{{ count() }}</p>" })
+    class A {
+      readonly render = inject(RenderHooks);
+      readonly count = signal(1);
+    }
+    const engine = Engine.create();
+    const { component } = engine.createComponent(A);
+    engine.flush();
+    const cancelNext = component.render.afterNextRender(() => runs.push("next"));
+    component.render.afterEachRender(() => runs.push("each"));
+    component.count.set(2);
+    engine.flush();
+    cancelNext(); // already ran: nothing left to cancel
+    component.render.onDestroy();
+    component.count.set(3);
+    engine.flush();
+    expect(runs)
+      .toEqual(["each", "next"]); // each-render hooks first, then next-render ones
   });
 });

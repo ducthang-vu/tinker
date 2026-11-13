@@ -216,3 +216,21 @@ describe("host option", () => {
       .toEqual({ selector: "[d]" });
   });
 });
+
+test("@Component records its providers, frozen", () => {
+  class Service {}
+  @Component({ selector: "tk-p", template: "", providers: [Service] })
+  class WithProviders {}
+  @Component({ selector: "tk-q", template: "" })
+  class WithoutProviders {}
+  const metadata = getComponentMetadata(WithProviders)
+    .getOrElse(undefined)!;
+  expect(metadata.providers)
+    .toEqual([Service]);
+  expect(Object.isFrozen(metadata.providers))
+    .toBe(true);
+  expect(getComponentMetadata(WithoutProviders)
+    .map((m) => m.providers)
+    .getOrElse(undefined))
+    .toBeUndefined();
+});

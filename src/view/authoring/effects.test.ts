@@ -253,3 +253,29 @@ describe("@Effect()", () => {
       .toThrow("inject() must be called in an injection context");
   });
 });
+
+describe("Effects lifetime", () => {
+  test("onDestroy destroys the effects still running; a handle destroys one earlier", () => {
+    const runs: string[] = [];
+    @Component({ selector: "tk-a", template: "" })
+    class A {
+      readonly effects = inject(Effects);
+      readonly count = signal(1);
+    }
+    const engine = Engine.create();
+    const { component } = engine.createComponent(A);
+    const early = component.effects
+      .create(() => void runs.push(`early ${component.count()}`));
+    component.effects
+      .create(() => void runs.push(`late ${component.count()}`));
+    engine.flush();
+    early.destroy();
+    component.count.set(2);
+    engine.flush();
+    component.effects.onDestroy();
+    component.count.set(3);
+    engine.flush();
+    expect(runs)
+      .toEqual(["early 1", "late 1", "late 2"]);
+  });
+});

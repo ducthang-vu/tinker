@@ -11,6 +11,7 @@
 // A component is a directive with a template: @Component also makes the
 // class a directive with the same selector.
 
+import type { Provider } from "../../di/index.ts";
 import type { Maybe } from "../../functional/index.ts";
 import { defineMetadata, ownMetadata } from "../../utils/metadata.ts";
 import type { AbstractClass } from "../../utils/types.ts";
@@ -30,6 +31,12 @@ export interface DirectiveMetadata {
 export interface ComponentMetadata extends DirectiveMetadata {
   /** The component's template. */
   readonly template: string;
+  /**
+   * Services for this component and what it contains: provided in the
+   * component's own injector, so each instance of the component gets its
+   * own, destroyed with it.
+   */
+  readonly providers?: readonly Provider[];
 }
 
 /** Keys of the static metadata properties (module-private). */
@@ -53,6 +60,7 @@ export function Component(options: ComponentMetadata) {
     selector: options.selector,
     template: options.template,
     ...(options.host && { host: Object.freeze({ ...options.host }) }),
+    ...(options.providers && { providers: Object.freeze([...options.providers]) }),
   });
   const asDirective = Directive({ selector: options.selector, host: options.host });
   return function <C extends AbstractClass>(target: C, context: ClassDecoratorContext<C>): void {
