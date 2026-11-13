@@ -45,7 +45,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       // The signal system. The old prototype (src/signal.ts, src/dom.ts) is left out.
-      include: ["src/signals/**/*.ts", "src/view/**/*.ts", "src/di/**/*.ts", "src/utils/**/*.ts"],
+      include: ["src/signals/**/*.ts", "src/view/**/*.ts", "src/di/**/*.ts", "src/utils/**/*.ts", "src/functional/**/*.ts"],
       exclude: ["src/**/*.test.ts"],
       reporter: ["text", "html"],
       thresholds: {
