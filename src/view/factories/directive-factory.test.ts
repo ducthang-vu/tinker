@@ -1,0 +1,186 @@
+import { describe, expect, test } from "vitest";
+import { Injectable, inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
+import { signal } from "../../signals/index.ts";
+import { Effects } from "../authoring/effects.ts";
+import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
+import { ChangeDetection } from "../runtime/change-detection.ts";
+import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
+import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
+import { Ticker } from "../runtime/ticker.ts";
+import { Component, Directive } from "../authoring/decorators.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
+import { input } from "../authoring/input.ts";
+import { DomRenderer } from "../renderer.ts";
+import { RENDERER } from "../tokens.ts";
+import { View } from "../runtime/view.ts";
+import { DirectiveFactory } from "./directive-factory.ts";
+
+/** A DirectiveFactory created the way the engine creates it: through an injector. */
+function setup() {
+  const renderer = new DomRenderer();
+  const { injector } = Injector.create({
+    providers: [provide(RENDERER, { useValue: renderer }), ElementContexts, DirectiveFactory],
+  });
+  const { factory, contexts } = runInInjectionContext(injector, () => ({
+    factory: inject(DirectiveFactory),
+    contexts: inject(ElementContexts),
+  }));
+  const element = document.createElement("button");
+  const view = new View(document.createElement("div"), {}, [], renderer);
+  return { factory, contexts, element, view };
+}
+
+describe("DirectiveFactory", () => {
+  test("create makes the instance and registers it in the element's context", () => {
+    @Directive({ selector: "[tooltip]" })
+    class Tooltip {}
+    const { factory, contexts, element, view } = setup();
+
+    const tooltip = factory.create(Tooltip, element, view);
+
+    expect(tooltip)
+      .toBeInstanceOf(Tooltip);
+    expect(contexts.get(element)
+      .map((context) => context.directives)
+      .getOrElse(undefined))
+      .toEqual([tooltip]);
+  });
+
+  test("create records the directive's inputs in the view", () => {
+    @Directive({ selector: "[tooltip]" })
+    class Tooltip {
+      readonly text = input<string>();
+    }
+    const { factory, element, view } = setup();
+
+    const tooltip = factory.create(Tooltip, element, view);
+    view.input(tooltip, "text")
+      .ifSome((binding) => binding.bind("hello"));
+
+    expect(tooltip.text())
+      .toBe("hello");
+  });
+
+  test("create applies the host listeners", () => {
+    @Directive({ selector: "[counter]", host: { "(click)": "increment()" } })
+    class Counter {
+      count = 0;
+      increment() {
+        this.count++;
+      }
+    }
+    const { factory, element, view } = setup();
+    const counter = factory.create(Counter, element, view);
+    element.click();
+    element.click();
+    expect(counter.count)
+      .toBe(2);
+  });
+
+  test("destroying the view removes the listeners and the directive from the context", () => {
+    @Directive({ selector: "[counter]", host: { "(click)": "increment()" } })
+    class Counter {
+      count = 0;
+      increment() {
+        this.count++;
+      }
+    }
+    @Directive({ selector: "[other]" })
+    class Other {}
+    const { factory, contexts, element, view } = setup();
+    const counter = factory.create(Counter, element, view);
+    const otherView = new View(document.createElement("div"), {}, [], new DomRenderer());
+    const other = factory.create(Other, element, otherView);
+
+    view.destroy();
+    element.click();
+
+    expect(counter.count)
+      .toBe(0);
+    expect(contexts.get(element)
+      .map((context) => context.directives)
+      .getOrElse(undefined))
+      .toEqual([other]);
+    otherView.destroy();
+    expect(contexts.get(element)
+      .isNone())
+      .toBe(true);
+  });
+
+  test("several directives on one element", () => {
+    @Directive({ selector: "[a]" })
+    class A {}
+    @Directive({ selector: "[b]" })
+    class B {}
+    const { factory, contexts, element, view } = setup();
+    const a = factory.create(A, element, view);
+    const b = factory.create(B, element, view);
+    expect(contexts.get(element)
+      .map((context) => context.directives)
+      .getOrElse(undefined))
+      .toEqual([a, b]);
+  });
+
+  test("components are directives too: their host is read the same way", () => {
+    @Component({ selector: "tk-x", template: "", host: { "(click)": "go()" } })
+    class X {
+      go() {}
+    }
+    expect(setup().factory.metadataOf(X).host)
+      .toEqual({ "(click)": "go()" });
+  });
+
+  test("throws for a class that is not a directive", () => {
+    class Plain {}
+    const { factory, element, view } = setup();
+    expect(() => factory.create(Plain, element, view))
+      .toThrow(
+        "Plain is not a directive: decorate it with @Directive",
+      );
+  });
+});
+
+describe("DirectiveFactory injection context", () => {
+  test("creates directives in the engine's injection context: inject() and inject(Effects).create() work", () => {
+    @Injectable()
+    class Theme {
+      readonly color = signal("red");
+    }
+    const seen: string[] = [];
+    @Directive({ selector: "[tip]" })
+    class Tip {
+      readonly theme = inject(Theme);
+      constructor() {
+        inject(Effects)
+          .create(() => void seen.push(this.theme.color()));
+      }
+    }
+    const { injector } = Injector.create({
+      providers: [
+        provide(RENDERER, { useValue: new DomRenderer() }),
+        ElementContexts,
+        DirectiveFactory,
+        Theme,
+        Ticker,
+        EffectScheduler,
+        ViewScheduler,
+        RenderHookRegistry,
+        ChangeDetection,
+        Effects,
+      ],
+    });
+    const { factory, changeDetection } = runInInjectionContext(injector, () => ({
+      factory: inject(DirectiveFactory),
+      changeDetection: inject(ChangeDetection),
+    }));
+    const view = new View(document.createElement("div"), {}, [], new DomRenderer());
+
+    const tip = factory.create(Tip, document.createElement("p"), view);
+    changeDetection.tick();
+    tip.theme.color.set("blue");
+    changeDetection.tick();
+
+    expect(seen)
+      .toEqual(["red", "blue"]);
+  });
+});

@@ -1,4 +1,7 @@
-export { signal, effect, computed } from "./signal.ts";
-export type { Signal, Accessor } from "./signal.ts";
-export { h, mount } from "./dom.ts";
-export type { Child, Component, Props } from "./dom.ts";
+// Tinker's public API: everything an app imports from "tinker". Each module
+// lists its own public API in its index.ts; this file gathers them.
+
+export * from "./signals/index.ts";
+export * from "./di/index.ts";
+export * from "./view/index.ts";
+export * from "./functional/index.ts";

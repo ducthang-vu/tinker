@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Tinker basics</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; display: flex; gap: 2rem; }
+      tk-counter, tk-clock { display: block; padding: 1rem 1.5rem; border: 1px solid #ccc; border-radius: 8px; }
+      button { font-size: 1rem; margin-right: 0.5rem; padding: 0.3rem 0.8rem; }
+      p { transition: background-color 0.2s; padding: 0.2rem 0.4rem; }
+    </style>
+  </head>
+  <body>
+    <tk-counter></tk-counter>
+    <tk-clock></tk-clock>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -13,5 +13,5 @@
     "rewriteRelativeImportExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "test", "examples", "vite.config.ts"]
+  "include": ["src", "examples", "vite.config.ts"]
 }
