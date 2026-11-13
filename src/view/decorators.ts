@@ -11,6 +11,7 @@
 // A component is a directive with a template: @Component also makes the
 // class a directive with the same selector.
 
+import type { Maybe } from "../functional/index.ts";
 import { defineMetadata, ownMetadata } from "../utils/metadata.ts";
 import type { AbstractClass } from "../utils/types.ts";
 
@@ -60,12 +61,12 @@ export function Component(options: ComponentMetadata) {
   };
 }
 
-/** The directive metadata of `type` (components included), or `undefined`. */
-export function getDirectiveMetadata(type: AbstractClass): DirectiveMetadata | undefined {
+/** The directive metadata of `type` (components included), if it is a directive. */
+export function getDirectiveMetadata(type: AbstractClass): Maybe<DirectiveMetadata> {
   return ownMetadata(type, DIRECTIVE_METADATA);
 }
 
-/** The component metadata of `type`, or `undefined` if it is not a component. */
-export function getComponentMetadata(type: AbstractClass): ComponentMetadata | undefined {
+/** The component metadata of `type`, if it is a component. */
+export function getComponentMetadata(type: AbstractClass): Maybe<ComponentMetadata> {
   return ownMetadata(type, COMPONENT_METADATA);
 }

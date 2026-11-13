@@ -14,6 +14,7 @@
 
 import { Injectable } from "../di/index.ts";
 import type { Runnable, WatchScheduler } from "../signals/index.ts";
+import { runBatches } from "../utils/run-all.ts";
 
 @Injectable()
 export class ViewScheduler implements WatchScheduler {
@@ -41,20 +42,13 @@ export class ViewScheduler implements WatchScheduler {
    */
   flush(): void {
     this.flushRequested = false;
-    let failure: { error: unknown } | undefined;
-    while (this.queue.size > 0) {
-      const tasks = [...this.queue];
-      this.queue.clear();
-      for (const task of tasks) {
-        try {
-          task.run();
-        } catch (error) {
-          failure ??= { error };
-        }
-      }
-    }
-    if (failure) {
-      throw failure.error;
-    }
+    runBatches(() => this.takeQueued());
+  }
+
+  /** Empty the queue, returning what it held, as functions to run. */
+  private takeQueued(): (() => void)[] {
+    const tasks = [...this.queue].map((task) => () => task.run());
+    this.queue.clear();
+    return tasks;
   }
 }

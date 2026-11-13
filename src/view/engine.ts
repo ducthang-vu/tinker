@@ -18,6 +18,7 @@
 // - `flush()`, to run pending view updates now (see ViewScheduler).
 
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../di/index.ts";
+import { Maybe } from "../functional/index.ts";
 import type { Class } from "../utils/types.ts";
 import type { ElementContext } from "./element-context.ts";
 import { ElementContexts } from "./element-contexts.ts";
@@ -72,10 +73,9 @@ export class Engine {
   /** Start the app: render the root component `type` into its host element in the page. */
   bootstrap<T extends object>(type: Class<T>): View<T> {
     const { selector } = this.components.metadataOf(type);
-    const host = this.document.querySelector(selector);
-    if (!host) {
-      throw new Error(`No host element matches "${selector}" for ${type.name}`);
-    }
+    const host = Maybe.fromNullable(this.document.querySelector(selector)).getOrThrow(
+      () => new Error(`No host element matches "${selector}" for ${type.name}`),
+    );
     return this.components.create(type, host);
   }
 
@@ -97,8 +97,8 @@ export class Engine {
     this.scheduler.flush();
   }
 
-  /** What is on `element` (its directives and component), or `undefined` if nothing. */
-  getContext(element: Element): ElementContext | undefined {
+  /** What is on `element` (its directives and component), if anything. */
+  getContext(element: Element): Maybe<ElementContext> {
     return this.contexts.get(element);
   }
 }

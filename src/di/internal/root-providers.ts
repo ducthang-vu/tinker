@@ -6,6 +6,7 @@
 // each root injector creates (and destroys) its own instance, and explicit
 // providers always win.
 
+import { Maybe } from "../../functional/index.ts";
 import type { Token } from "./inject.ts";
 import type { Provider } from "./provider-records.ts";
 
@@ -19,7 +20,7 @@ export function registerRootProvider<T>(provider: Provider<T>): void {
   rootProviders.set(provider.token, provider as Provider<unknown>);
 }
 
-/** The root provider for `token`, or `undefined`. */
-export function findRootProvider<T>(token: Token<T>): Provider<T> | undefined {
-  return rootProviders.get(token) as Provider<T> | undefined;
+/** The root provider for `token`, if it has one. */
+export function findRootProvider<T>(token: Token<T>): Maybe<Provider<T>> {
+  return Maybe.fromNullable(rootProviders.get(token) as Provider<T> | undefined);
 }

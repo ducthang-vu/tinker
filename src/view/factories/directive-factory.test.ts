@@ -31,7 +31,7 @@ describe("DirectiveFactory", () => {
     const tooltip = factory.create(Tooltip, element, view);
 
     expect(tooltip).toBeInstanceOf(Tooltip);
-    expect(contexts.get(element)?.directives).toEqual([tooltip]);
+    expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([tooltip]);
   });
 
   test("create applies the host listeners", () => {
@@ -68,9 +68,9 @@ describe("DirectiveFactory", () => {
     element.click();
 
     expect(counter.count).toBe(0);
-    expect(contexts.get(element)?.directives).toEqual([other]);
+    expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([other]);
     otherView.destroy();
-    expect(contexts.get(element)).toBeUndefined();
+    expect(contexts.get(element).isNone()).toBe(true);
   });
 
   test("several directives on one element", () => {
@@ -81,7 +81,7 @@ describe("DirectiveFactory", () => {
     const { factory, contexts, element, view } = setup();
     const a = factory.create(A, element, view);
     const b = factory.create(B, element, view);
-    expect(contexts.get(element)?.directives).toEqual([a, b]);
+    expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([a, b]);
   });
 
   test("components are directives too: their host is read the same way", () => {

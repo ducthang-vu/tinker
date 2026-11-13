@@ -24,7 +24,7 @@ describe("Engine.create", () => {
     @Component({ selector: "tk-app", template: "" })
     class App {}
     const view = Engine.create().bootstrap(App);
-    expect(Engine.create().getContext(view.host)).toBeUndefined();
+    expect(Engine.create().getContext(view.host).isNone()).toBe(true);
   });
 });
 
@@ -125,11 +125,11 @@ describe("Engine.bootstrap", () => {
 
     expect(view).toBeInstanceOf(View);
     expect(view.nodes).toHaveLength(1);
-    const context = engine.getContext(view.host)!;
+    const context = engine.getContext(view.host).getOrElse(undefined)!;
     expect(context).toBeInstanceOf(ElementContext);
-    expect(context.componentView).toBe(view);
+    expect(context.componentView.getOrElse(undefined)).toBe(view);
     expect(context.directives).toEqual([]);
-    expect(engine.getContext(document.body)).toBeUndefined();
+    expect(engine.getContext(document.body).isNone()).toBe(true);
   });
 
   test("keeps the host's context while directives remain on it", () => {
@@ -138,13 +138,13 @@ describe("Engine.bootstrap", () => {
     class App {}
     const engine = Engine.create();
     const view = engine.bootstrap(App);
-    const context = engine.getContext(view.host)!;
+    const context = engine.getContext(view.host).getOrElse(undefined)!;
     context.addDirective({ name: "some directive" });
 
     view.destroy();
 
-    expect(engine.getContext(view.host)).toBe(context);
-    expect(context.componentView).toBeUndefined();
+    expect(engine.getContext(view.host).getOrElse(undefined)).toBe(context);
+    expect(context.componentView.isNone()).toBe(true);
   });
 
   test("forgets the view when it is destroyed, so the host can be used again", () => {
@@ -155,10 +155,10 @@ describe("Engine.bootstrap", () => {
 
     const first = engine.bootstrap(App);
     first.destroy();
-    expect(engine.getContext(first.host)).toBeUndefined();
+    expect(engine.getContext(first.host).isNone()).toBe(true);
 
     const second = engine.bootstrap(App);
-    expect(engine.getContext(second.host)?.componentView).toBe(second);
+    expect(engine.getContext(second.host).flatMap((context) => context.componentView).getOrElse(undefined)).toBe(second);
   });
 
   test("throws when the host already holds a component", () => {
@@ -181,7 +181,7 @@ describe("Engine.bootstrap", () => {
     const one = Engine.create();
     const view = one.bootstrap(App);
 
-    expect(Engine.create().getContext(view.host)).toBeUndefined();
+    expect(Engine.create().getContext(view.host).isNone()).toBe(true);
   });
 
   test("createComponent renders into a given host", () => {
@@ -194,7 +194,7 @@ describe("Engine.bootstrap", () => {
 
     expect(view.host).toBe(host);
     expect(host.innerHTML).toBe("<p>x</p>");
-    expect(engine.getContext(host)?.componentView).toBe(view);
+    expect(engine.getContext(host).flatMap((context) => context.componentView).getOrElse(undefined)).toBe(view);
   });
 
   test("createComponent without a host creates one from the selector", () => {

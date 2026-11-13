@@ -3,6 +3,7 @@
 // engine (which answers "what is on this element?").
 
 import { Injectable } from "../di/index.ts";
+import { Maybe } from "../functional/index.ts";
 import { ElementContext } from "./element-context.ts";
 
 @Injectable()
@@ -10,18 +11,21 @@ export class ElementContexts {
   /** Weak, so removed elements can be garbage-collected. */
   private readonly contexts = new WeakMap<Element, ElementContext>();
 
-  /** What is on `element`, or `undefined` if nothing. */
-  get(element: Element): ElementContext | undefined {
-    return this.contexts.get(element);
+  /** What is on `element`, if anything. */
+  get(element: Element): Maybe<ElementContext> {
+    return Maybe.fromNullable(this.contexts.get(element));
   }
 
   /** The context of `element`, created (and remembered) if it has none yet. */
   getOrCreate(element: Element): ElementContext {
-    let context = this.contexts.get(element);
-    if (!context) {
-      context = new ElementContext(element);
-      this.contexts.set(element, context);
-    }
+    return this.get(element).match({
+      some: (context) => context,
+      none: () => this.remember(new ElementContext(element)),
+    });
+  }
+
+  private remember(context: ElementContext): ElementContext {
+    this.contexts.set(context.element, context);
     return context;
   }
 

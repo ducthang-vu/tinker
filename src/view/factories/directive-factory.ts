@@ -28,11 +28,9 @@ export class DirectiveFactory {
 
   /** The @Directive metadata of `type` (components included). Throws if it is not a directive. */
   metadataOf(type: Class<unknown>): DirectiveMetadata {
-    const metadata = getDirectiveMetadata(type);
-    if (!metadata) {
-      throw new Error(`${type.name} is not a directive: decorate it with @Directive`);
-    }
-    return metadata;
+    return getDirectiveMetadata(type).getOrThrow(
+      () => new Error(`${type.name} is not a directive: decorate it with @Directive`),
+    );
   }
 
   /**

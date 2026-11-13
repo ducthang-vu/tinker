@@ -63,7 +63,7 @@ export class View<T> {
     }
     this.isDestroyed = true;
     for (const context of this.contexts) {
-      context.componentView?.destroy();
+      context.componentView.ifSome((view) => view.destroy());
     }
     for (const callback of this.destroyCallbacks.splice(0).reverse()) {
       callback();

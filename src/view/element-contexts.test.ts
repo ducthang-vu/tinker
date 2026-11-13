@@ -4,8 +4,8 @@ import { ElementContexts } from "./element-contexts.ts";
 import { View } from "./view.ts";
 
 describe("ElementContexts", () => {
-  test("get is undefined for an element with no context", () => {
-    expect(new ElementContexts().get(document.createElement("div"))).toBeUndefined();
+  test("get is None for an element with no context", () => {
+    expect(new ElementContexts().get(document.createElement("div")).isNone()).toBe(true);
   });
 
   test("getOrCreate creates a context once, then returns the same one", () => {
@@ -14,7 +14,7 @@ describe("ElementContexts", () => {
     const context = contexts.getOrCreate(element);
     expect(context.element).toBe(element);
     expect(contexts.getOrCreate(element)).toBe(context);
-    expect(contexts.get(element)).toBe(context);
+    expect(contexts.get(element).getOrElse(undefined)).toBe(context);
   });
 
   test("forgetIfEmpty forgets an empty context, and keeps a non-empty one", () => {
@@ -26,7 +26,7 @@ describe("ElementContexts", () => {
     contexts.forgetIfEmpty(empty);
     contexts.forgetIfEmpty(busy);
 
-    expect(contexts.get(empty.element)).toBeUndefined();
-    expect(contexts.get(busy.element)).toBe(busy);
+    expect(contexts.get(empty.element).isNone()).toBe(true);
+    expect(contexts.get(busy.element).getOrElse(undefined)).toBe(busy);
   });
 });

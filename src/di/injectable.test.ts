@@ -12,10 +12,10 @@ describe("@Injectable", () => {
     class Marker {}
     class Plain {}
 
-    expect(getInjectableMetadata(InRoot)).toEqual({ providedIn: "root" });
-    expect(getInjectableMetadata(Marker)).toEqual({});
-    expect(getInjectableMetadata(Plain)).toBeUndefined();
-    expect(Object.isFrozen(getInjectableMetadata(InRoot))).toBe(true);
+    expect(getInjectableMetadata(InRoot).getOrElse(undefined)).toEqual({ providedIn: "root" });
+    expect(getInjectableMetadata(Marker).getOrElse(undefined)).toEqual({});
+    expect(getInjectableMetadata(Plain).isNone()).toBe(true);
+    expect(Object.isFrozen(getInjectableMetadata(InRoot).getOrElse(undefined))).toBe(true);
   });
 
   test("providedIn root: available in a root injector without being listed", () => {

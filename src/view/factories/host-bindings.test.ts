@@ -36,6 +36,22 @@ describe("HostBindings parsing", () => {
       );
     }
   });
+
+  test("reports every invalid entry at once", () => {
+    let thrown: unknown;
+    try {
+      new HostBindings({ "[title]": "x()", "(click)": "go()", "(keyup)": "a.b()" });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(AggregateError);
+    const { errors, message } = thrown as AggregateError;
+    expect(errors).toHaveLength(2);
+    expect(message).toBe(
+      `Unsupported host binding "[title]": only "(event)" listeners are supported for now\n` +
+        `Unsupported host handler "a.b()": write "method()" or "method($event)"`,
+    );
+  });
 });
 
 describe("HostBindings.attach", () => {

@@ -5,6 +5,7 @@ import { runInInjectionContext } from "./context/current-injector.ts";
 import { InjectionToken, type Token } from "./inject.ts";
 import { type CreationHooks, type Provider, ProviderRecords } from "./provider-records.ts";
 import { findRootProvider } from "./root-providers.ts";
+import { runAll } from "../../utils/run-all.ts";
 
 /** A value that wants to clean up when the injector that created it is destroyed. */
 export interface OnDestroy {
@@ -109,17 +110,7 @@ export class Injector {
     this.detachFromParent?.();
     const callbacks = [...this.destroyCallbacks].reverse();
     this.destroyCallbacks.clear();
-    let failure: { error: unknown } | undefined;
-    for (const callback of callbacks) {
-      try {
-        callback();
-      } catch (error) {
-        failure ??= { error };
-      }
-    }
-    if (failure) {
-      throw failure.error;
-    }
+    runAll(callbacks);
   }
 
   /** Whether this injector is the root of its hierarchy (it has no parent). */
@@ -136,7 +127,7 @@ export class Injector {
    */
   has(token: Token<unknown>): boolean {
     this.assertNotDestroyed();
-    return this.records.has(token) || (this.isRoot() && findRootProvider(token) !== undefined);
+    return this.records.has(token) || (this.isRoot() && findRootProvider(token).isSome());
   }
 
   /**
@@ -150,10 +141,7 @@ export class Injector {
     this.assertNotDestroyed();
     if (this.isRoot() && !this.records.has(token)) {
       // A root injector also provides root providers: adopt it on first use.
-      const provider = findRootProvider(token);
-      if (provider) {
-        this.records.add(provider);
-      }
+      findRootProvider(token).ifSome((provider) => this.records.add(provider));
     }
     return this.records.get(token);
   }

@@ -8,6 +8,7 @@
 //
 // The metadata is stored as a static property of the class, like @Component.
 
+import type { Maybe } from "../functional/index.ts";
 import { defineMetadata, ownMetadata } from "../utils/metadata.ts";
 import type { AbstractClass, Class } from "../utils/types.ts";
 import { adaptProvider } from "./adapter.ts";
@@ -38,7 +39,7 @@ export function Injectable(options: InjectableOptions = {}) {
   };
 }
 
-/** The injectable metadata of `type`, or `undefined` if it is not decorated with @Injectable. */
-export function getInjectableMetadata(type: AbstractClass): InjectableOptions | undefined {
+/** The injectable metadata of `type`, if it is decorated with @Injectable. */
+export function getInjectableMetadata(type: AbstractClass): Maybe<InjectableOptions> {
   return ownMetadata(type, INJECTABLE_METADATA);
 }

@@ -58,7 +58,12 @@ export class Maybe<T> {
     return this.present ? f(this.value) : Maybe.none();
   }
 
-  /** Keep the value only if `predicate` accepts it. */
+  /**
+   * Keep the value only if `predicate` accepts it. With a type guard, the
+   * result has the narrowed type, e.g. `filter((v) => typeof v === "string")`.
+   */
+  filter<S extends T>(predicate: (value: T) => value is S): Maybe<S>;
+  filter(predicate: (value: T) => boolean): Maybe<T>;
   filter(predicate: (value: T) => boolean): Maybe<T> {
     return this.present && predicate(this.value) ? this : Maybe.none();
   }
@@ -71,6 +76,29 @@ export class Maybe<T> {
   /** The value, or `fallback` if there is none. */
   getOrElse<U>(fallback: U): T | U {
     return this.present ? this.value : fallback;
+  }
+
+  /**
+   * The value, or throw the error `makeError` creates. The error is only
+   * created when there is no value.
+   */
+  getOrThrow(makeError: () => unknown): T {
+    if (!this.present) {
+      throw makeError();
+    }
+    return this.value;
+  }
+
+  /** This Maybe if it has a value, otherwise the one `other` returns (called only then). */
+  orElse<U>(other: () => Maybe<U>): Maybe<T | U> {
+    return this.present ? this : other();
+  }
+
+  /** Run `action` with the value, if there is one. */
+  ifSome(action: (value: T) => void): void {
+    if (this.present) {
+      action(this.value);
+    }
   }
 
   /** `Right(value)`, or `Left(error)` if there is none. */

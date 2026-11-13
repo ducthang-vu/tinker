@@ -12,7 +12,7 @@ describe("ElementContext", () => {
     const context = new ElementContext(el);
     expect(context.element).toBe(el);
     expect(context.directives).toEqual([]);
-    expect(context.componentView).toBeUndefined();
+    expect(context.componentView.isNone()).toBe(true);
     expect(context.isEmpty).toBe(true);
   });
 
@@ -30,21 +30,21 @@ describe("ElementContext", () => {
     const context = new ElementContext(element());
     const first = view();
     context.attachComponent(first);
-    expect(context.componentView).toBe(first);
+    expect(context.componentView.getOrElse(undefined)).toBe(first);
     expect(context.isEmpty).toBe(false);
     expect(() => context.attachComponent(view())).toThrow("The element already holds a component");
-    expect(context.componentView).toBe(first);
+    expect(context.componentView.getOrElse(undefined)).toBe(first);
   });
 
   test("detachComponent frees the element for another component", () => {
     const context = new ElementContext(element());
     context.attachComponent(view());
     context.detachComponent();
-    expect(context.componentView).toBeUndefined();
+    expect(context.componentView.isNone()).toBe(true);
     expect(context.isEmpty).toBe(true);
     const next = view();
     context.attachComponent(next);
-    expect(context.componentView).toBe(next);
+    expect(context.componentView.getOrElse(undefined)).toBe(next);
   });
 });
 

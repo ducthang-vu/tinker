@@ -50,7 +50,7 @@ describe("ComponentFactory", () => {
 
     expect(host.innerHTML).toBe("<p>a</p>");
     expect(view.component).toBeInstanceOf(A);
-    expect(contexts.get(host)?.componentView).toBe(view);
+    expect(contexts.get(host).flatMap((context) => context.componentView).getOrElse(undefined)).toBe(view);
   });
 
   test("destroying the view forgets its now-empty context", () => {
@@ -59,7 +59,7 @@ describe("ComponentFactory", () => {
     const { factory, contexts } = makeFactory();
     const view = factory.create(A);
     view.destroy();
-    expect(contexts.get(view.host)).toBeUndefined();
+    expect(contexts.get(view.host).isNone()).toBe(true);
   });
 
   test("without a host, creates one from the selector", () => {

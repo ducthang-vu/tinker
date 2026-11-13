@@ -49,6 +49,38 @@ describe("Maybe", () => {
     expect(Maybe.none<number>().toEither("missing").match({ left: (e) => e, right: String })).toBe("missing");
   });
 
+  test("filter with a type guard narrows the type", () => {
+    const value: Maybe<unknown> = Maybe.some("text");
+    const text: Maybe<string> = value.filter((v) => typeof v === "string");
+    expect(text.getOrElse("")).toBe("text");
+    expect(Maybe.some(1 as unknown).filter((v) => typeof v === "string").isNone()).toBe(true);
+  });
+
+  test("getOrThrow returns the value, or throws the error it creates (only then)", () => {
+    let created = 0;
+    const makeError = () => (created++, new Error("missing"));
+    expect(Maybe.some(1).getOrThrow(makeError)).toBe(1);
+    expect(created).toBe(0);
+    expect(() => Maybe.none().getOrThrow(makeError)).toThrow("missing");
+    expect(created).toBe(1);
+  });
+
+  test("orElse keeps a Some, and asks the fallback only for a None", () => {
+    let asked = 0;
+    const fallback = () => (asked++, Maybe.some(0));
+    expect(show(Maybe.some(1).orElse(fallback))).toEqual(["some", 1]);
+    expect(asked).toBe(0);
+    expect(show(Maybe.none<number>().orElse(fallback))).toEqual(["some", 0]);
+    expect(show(Maybe.none<number>().orElse(() => Maybe.none()))).toEqual(["none"]);
+  });
+
+  test("ifSome runs the action only with a value", () => {
+    const seen: number[] = [];
+    Maybe.some(1).ifSome((v) => seen.push(v));
+    Maybe.none<number>().ifSome((v) => seen.push(v));
+    expect(seen).toEqual([1]);
+  });
+
   describe("monad laws", () => {
     const f = (n: number) => (n > 0 ? Maybe.some(n * 2) : Maybe.none<number>());
     const g = (n: number) => Maybe.some(`#${n}`);

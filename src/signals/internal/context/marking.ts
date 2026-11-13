@@ -7,6 +7,8 @@
 // graph is marked, so user code never sees it half-updated, and an error in
 // user code cannot stop the walk halfway.
 
+import { runBatches } from "../../../utils/run-all.ts";
+
 let depth = 0;
 let flushing = false;
 const queue: (() => void)[] = [];
@@ -42,20 +44,10 @@ function flush(): void {
     return; // an outer flush is already draining the queue
   }
   flushing = true;
-  let failure: { error: unknown } | undefined;
   try {
-    while (queue.length > 0) {
-      const fn = queue.shift()!;
-      try {
-        fn();
-      } catch (error) {
-        failure ??= { error };
-      }
-    }
+    // Work queued while flushing joins the queue, and runs in a later batch.
+    runBatches(() => queue.splice(0));
   } finally {
     flushing = false;
-  }
-  if (failure) {
-    throw failure.error;
   }
 }

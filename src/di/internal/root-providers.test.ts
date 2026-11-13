@@ -8,8 +8,8 @@ describe("root providers", () => {
     const TOKEN = new InjectionToken<string>("REGISTERED");
     const provider = { token: TOKEN, factory: () => "x" };
     registerRootProvider(provider);
-    expect(findRootProvider(TOKEN)).toBe(provider);
-    expect(findRootProvider(new InjectionToken<string>("OTHER"))).toBeUndefined();
+    expect(findRootProvider(TOKEN).getOrElse(undefined)).toBe(provider);
+    expect(findRootProvider(new InjectionToken<string>("OTHER")).isNone()).toBe(true);
   });
 
   test("a token can be registered only once", () => {

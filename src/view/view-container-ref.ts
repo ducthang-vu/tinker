@@ -7,6 +7,7 @@
 // A view destroyed from anywhere (through the container or directly) leaves
 // the container, and its host element is removed from the DOM.
 
+import { Maybe } from "../functional/index.ts";
 import type { Class } from "../utils/types.ts";
 import type { ComponentFactory } from "./factories/component-factory.ts";
 import type { Renderer } from "./renderer.ts";
@@ -32,9 +33,9 @@ export class ViewContainerRef {
     return this.views.length;
   }
 
-  /** The view at `index`, or `undefined`. */
-  get(index: number): View<unknown> | undefined {
-    return this.views[index];
+  /** The view at `index`, if there is one. */
+  get(index: number): Maybe<View<unknown>> {
+    return Maybe.fromNullable(this.views[index]);
   }
 
   /** The position of `view` in the container, or -1. */
@@ -70,7 +71,7 @@ export class ViewContainerRef {
 
   /** Destroy the view at `index` (default: the last one). Does nothing if there is none. */
   remove(index: number = this.length - 1): void {
-    this.views[index]?.destroy();
+    this.get(index).ifSome((view) => view.destroy());
   }
 
   /** Destroy all views, last first. */
@@ -82,7 +83,7 @@ export class ViewContainerRef {
 
   /** The node before which the view at `index` must sit: the next view's host, or the anchor. */
   private nodeAfter(index: number): Node {
-    return this.views[index + 1]?.host ?? this.anchor;
+    return this.get(index + 1).match({ some: (view) => view.host, none: () => this.anchor });
   }
 
   private parent(): Node {

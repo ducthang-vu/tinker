@@ -10,6 +10,7 @@
 // - There are no source positions for error messages.
 // Comments are dropped.
 
+import { Maybe } from "../../functional/index.ts";
 import type { AttributeNode, TemplateNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
 
@@ -26,17 +27,13 @@ export class BrowserTemplateParser implements TemplateParser {
 
 /** Convert a DOM node's children, skipping what the tree does not keep. */
 function convertChildren(parent: Node): TemplateNode[] {
-  const nodes: TemplateNode[] = [];
-  for (const child of parent.childNodes) {
-    const node = convert(child);
-    if (node) {
-      nodes.push(node);
-    }
-  }
-  return nodes;
+  return [...parent.childNodes].flatMap((child) =>
+    convert(child).match({ some: (node) => [node], none: () => [] }),
+  );
 }
 
-function convert(node: Node): TemplateNode | undefined {
+/** The tree node for a DOM node, or None for what the tree does not keep. */
+function convert(node: Node): Maybe<TemplateNode> {
   if (node.nodeType === node.ELEMENT_NODE) {
     const element = node as Element;
     const attributes: AttributeNode[] = [...element.attributes].map((a) => ({
@@ -45,15 +42,15 @@ function convert(node: Node): TemplateNode | undefined {
     }));
     // A nested <template> keeps its children in `content`, not in `childNodes`.
     const childSource = element instanceof HTMLTemplateElement ? element.content : element;
-    return {
+    return Maybe.some({
       kind: "element",
       name: element.localName,
       attributes,
       children: convertChildren(childSource),
-    };
+    });
   }
   if (node.nodeType === node.TEXT_NODE) {
-    return { kind: "text", value: (node as Text).data };
+    return Maybe.some({ kind: "text", value: (node as Text).data });
   }
-  return undefined; // comments and anything else
+  return Maybe.none(); // comments and anything else
 }

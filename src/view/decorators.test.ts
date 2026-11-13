@@ -6,7 +6,7 @@ describe("@Directive", () => {
     @Directive({ selector: "[highlight]" })
     class Highlight {}
 
-    expect(getDirectiveMetadata(Highlight)).toEqual({ selector: "[highlight]" });
+    expect(getDirectiveMetadata(Highlight).getOrElse(undefined)).toEqual({ selector: "[highlight]" });
   });
 
   test("keeps a copy: changing the options object later has no effect", () => {
@@ -15,7 +15,7 @@ describe("@Directive", () => {
     class A {}
     options.selector = "[b]";
 
-    expect(getDirectiveMetadata(A)?.selector).toBe("[a]");
+    expect(getDirectiveMetadata(A).map((metadata) => metadata.selector).getOrElse(undefined)).toBe("[a]");
   });
 
   test("each class has its own metadata", () => {
@@ -24,8 +24,8 @@ describe("@Directive", () => {
     @Directive({ selector: "[two]" })
     class Two {}
 
-    expect(getDirectiveMetadata(One)?.selector).toBe("[one]");
-    expect(getDirectiveMetadata(Two)?.selector).toBe("[two]");
+    expect(getDirectiveMetadata(One).map((metadata) => metadata.selector).getOrElse(undefined)).toBe("[one]");
+    expect(getDirectiveMetadata(Two).map((metadata) => metadata.selector).getOrElse(undefined)).toBe("[two]");
   });
 
   test("leaves the class itself unchanged", () => {
@@ -50,7 +50,7 @@ describe("@Directive", () => {
     expect(() => {
       (Highlight as unknown as Record<symbol, unknown>)[key] = { selector: "[other]" };
     }).toThrow(TypeError);
-    expect(Object.isFrozen(getDirectiveMetadata(Highlight))).toBe(true);
+    expect(Object.isFrozen(getDirectiveMetadata(Highlight).getOrElse(undefined))).toBe(true);
   });
 
   test("a subclass is not a directive unless it is decorated itself", () => {
@@ -60,15 +60,15 @@ describe("@Directive", () => {
     @Directive({ selector: "[child]" })
     class Child extends Base {}
 
-    expect(getDirectiveMetadata(Undecorated)).toBeUndefined();
-    expect(getDirectiveMetadata(Child)?.selector).toBe("[child]");
-    expect(getDirectiveMetadata(Base)?.selector).toBe("[base]");
+    expect(getDirectiveMetadata(Undecorated).isNone()).toBe(true);
+    expect(getDirectiveMetadata(Child).map((metadata) => metadata.selector).getOrElse(undefined)).toBe("[child]");
+    expect(getDirectiveMetadata(Base).map((metadata) => metadata.selector).getOrElse(undefined)).toBe("[base]");
   });
 
   test("a class without the decorator is not a directive", () => {
     class Plain {}
 
-    expect(getDirectiveMetadata(Plain)).toBeUndefined();
+    expect(getDirectiveMetadata(Plain).isNone()).toBe(true);
   });
 });
 
@@ -77,7 +77,7 @@ describe("@Component", () => {
     @Component({ selector: "tk-counter", template: "<p>count</p>" })
     class Counter {}
 
-    expect(getComponentMetadata(Counter)).toEqual({
+    expect(getComponentMetadata(Counter).getOrElse(undefined)).toEqual({
       selector: "tk-counter",
       template: "<p>count</p>",
     });
@@ -87,7 +87,7 @@ describe("@Component", () => {
     @Component({ selector: "tk-counter", template: "" })
     class Counter {}
 
-    expect(getDirectiveMetadata(Counter)).toEqual({ selector: "tk-counter" });
+    expect(getDirectiveMetadata(Counter).getOrElse(undefined)).toEqual({ selector: "tk-counter" });
   });
 
   test("keeps a frozen copy, stored as a read-only static property", () => {
@@ -96,7 +96,7 @@ describe("@Component", () => {
     class A {}
     options.template = "changed";
 
-    const metadata = getComponentMetadata(A)!;
+    const metadata = getComponentMetadata(A).getOrElse(undefined)!;
     expect(metadata.template).toBe("a");
     expect(Object.isFrozen(metadata)).toBe(true);
     const key = Object.getOwnPropertySymbols(A).find(
@@ -112,8 +112,8 @@ describe("@Component", () => {
     class Base {}
     class Undecorated extends Base {}
 
-    expect(getComponentMetadata(Undecorated)).toBeUndefined();
-    expect(getDirectiveMetadata(Undecorated)).toBeUndefined();
+    expect(getComponentMetadata(Undecorated).isNone()).toBe(true);
+    expect(getDirectiveMetadata(Undecorated).isNone()).toBe(true);
   });
 
   test("a plain directive is not a component", () => {
@@ -121,8 +121,8 @@ describe("@Component", () => {
     class Highlight {}
     class Plain {}
 
-    expect(getComponentMetadata(Highlight)).toBeUndefined();
-    expect(getComponentMetadata(Plain)).toBeUndefined();
+    expect(getComponentMetadata(Highlight).isNone()).toBe(true);
+    expect(getComponentMetadata(Plain).isNone()).toBe(true);
   });
 
   test("leaves the class itself unchanged", () => {
@@ -144,15 +144,15 @@ describe("host option", () => {
     class C {}
     host["(click)"] = "changed()";
 
-    expect(getDirectiveMetadata(D)?.host).toEqual({ "(click)": "go()" });
-    expect(Object.isFrozen(getDirectiveMetadata(D)?.host)).toBe(true);
-    expect(getComponentMetadata(C)?.host).toEqual({ "(click)": "go()" });
-    expect(getDirectiveMetadata(C)?.host).toEqual({ "(click)": "go()" });
+    expect(getDirectiveMetadata(D).map((metadata) => metadata.host).getOrElse(undefined)).toEqual({ "(click)": "go()" });
+    expect(Object.isFrozen(getDirectiveMetadata(D).map((metadata) => metadata.host).getOrElse(undefined))).toBe(true);
+    expect(getComponentMetadata(C).map((metadata) => metadata.host).getOrElse(undefined)).toEqual({ "(click)": "go()" });
+    expect(getDirectiveMetadata(C).map((metadata) => metadata.host).getOrElse(undefined)).toEqual({ "(click)": "go()" });
   });
 
   test("without host, the metadata has no host entry", () => {
     @Directive({ selector: "[d]" })
     class D {}
-    expect(getDirectiveMetadata(D)).toEqual({ selector: "[d]" });
+    expect(getDirectiveMetadata(D).getOrElse(undefined)).toEqual({ selector: "[d]" });
   });
 });

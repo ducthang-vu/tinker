@@ -35,7 +35,7 @@ describe("ViewContainerRef", () => {
     expect(container.length).toBe(2);
     expect(layout([a, b])).toEqual(["header", "item0", "item1", "#anchor", "footer"]);
     expect(a.host.innerHTML).toBe("<span>item</span>");
-    expect(engine.getContext(a.host)?.componentView).toBe(a);
+    expect(engine.getContext(a.host).flatMap((context) => context.componentView).getOrElse(undefined)).toBe(a);
   });
 
   test("inserts at a given index", () => {
@@ -45,7 +45,7 @@ describe("ViewContainerRef", () => {
     const c = container.createComponent(Item, 0);
     const d = container.createComponent(Item, 2);
 
-    expect([0, 1, 2, 3].map((i) => container.get(i))).toEqual([c, a, d, b]);
+    expect([0, 1, 2, 3].map((i) => container.get(i).getOrElse(undefined))).toEqual([c, a, d, b]);
     expect(layout([c, a, d, b])).toEqual(["header", "item0", "item1", "item2", "item3", "#anchor", "footer"]);
   });
 
@@ -54,8 +54,8 @@ describe("ViewContainerRef", () => {
     const a = container.createComponent(Item);
     const other = engine.createComponent(Item);
 
-    expect(container.get(0)).toBe(a);
-    expect(container.get(5)).toBeUndefined();
+    expect(container.get(0).getOrElse(undefined)).toBe(a);
+    expect(container.get(5).isNone()).toBe(true);
     expect(container.indexOf(a)).toBe(0);
     expect(container.indexOf(other)).toBe(-1);
   });
@@ -67,7 +67,7 @@ describe("ViewContainerRef", () => {
     const c = container.createComponent(Item);
 
     container.move(a, 2);
-    expect([container.get(0), container.get(1), container.get(2)]).toEqual([b, c, a]);
+    expect([container.get(0).getOrElse(undefined), container.get(1).getOrElse(undefined), container.get(2).getOrElse(undefined)]).toEqual([b, c, a]);
     expect(layout([b, c, a])).toEqual(["header", "item0", "item1", "item2", "#anchor", "footer"]);
 
     container.move(a, 0);
@@ -83,7 +83,7 @@ describe("ViewContainerRef", () => {
     container.remove(1);
     expect(b.destroyed).toBe(true);
     expect(b.host.isConnected).toBe(false);
-    expect(engine.getContext(b.host)).toBeUndefined();
+    expect(engine.getContext(b.host).isNone()).toBe(true);
     expect(layout([a, c])).toEqual(["header", "item0", "item1", "#anchor", "footer"]);
 
     container.remove();

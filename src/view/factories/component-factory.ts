@@ -17,6 +17,7 @@
 // `{{ }}` in text is rendered as written.
 
 import { inject, Injectable } from "../../di/index.ts";
+import { Maybe } from "../../functional/index.ts";
 import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../decorators.ts";
@@ -26,6 +27,9 @@ import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { View } from "../view.ts";
 import { ViewScheduler } from "../view-scheduler.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+
+/** A selector a host element can be created from: an optional tag, then an optional `[attribute]`. */
+const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 
 @Injectable()
 export class ComponentFactory {
@@ -39,11 +43,9 @@ export class ComponentFactory {
 
   /** The @Component metadata of `type`. Throws if it is not a component. */
   metadataOf(type: Class<unknown>): ComponentMetadata {
-    const metadata = getComponentMetadata(type);
-    if (!metadata) {
-      throw new Error(`${type.name} is not a component: decorate it with @Component`);
-    }
-    return metadata;
+    return getComponentMetadata(type).getOrThrow(
+      () => new Error(`${type.name} is not a component: decorate it with @Component`),
+    );
   }
 
   /**
@@ -55,7 +57,7 @@ export class ComponentFactory {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
     const context = this.contexts.getOrCreate(host);
-    if (context.componentView) {
+    if (context.componentView.isSome()) {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
@@ -81,11 +83,9 @@ export class ComponentFactory {
 
   /** Create a host element for a selector: an optional tag, then an optional `[attribute]`. */
   private createHost(selector: string, type: Class<unknown>): Element {
-    const match = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i.exec(selector);
-    if (!match || (!match[1] && !match[2])) {
-      throw new Error(`Cannot create a host element for ${type.name} from selector "${selector}"`);
-    }
-    const [, tag = "div", attribute] = match;
+    const [, tag = "div", attribute] = Maybe.fromNullable(HOST_SELECTOR.exec(selector))
+      .filter(([, tagName, attributeName]) => tagName !== undefined || attributeName !== undefined)
+      .getOrThrow(() => new Error(`Cannot create a host element for ${type.name} from selector "${selector}"`));
     const host = this.renderer.createElement(tag);
     if (attribute) {
       this.renderer.setAttribute(host, attribute, "");
