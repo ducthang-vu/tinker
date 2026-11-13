@@ -7,12 +7,16 @@
 // components' views, anything registered through `addDestroyCallback` (later: the
 // watches of its bindings, directive hooks), and finally its nodes.
 
+import { Maybe } from "../functional/index.ts";
 import type { ElementContext } from "./element-context.ts";
+import type { InputBinding } from "./input.ts";
 import type { Renderer } from "./renderer.ts";
 
 export class View<T> {
   private readonly contexts: ElementContext[] = [];
   private readonly destroyCallbacks: (() => void)[] = [];
+  /** The inputs of the directives in this view's template, per directive. */
+  private readonly directiveInputs = new Map<object, ReadonlyMap<string, InputBinding<unknown>>>();
   private isDestroyed = false;
 
   /**
@@ -41,6 +45,21 @@ export class View<T> {
   /** Record the context of an element declared in this view's template. */
   addElement(context: ElementContext): void {
     this.contexts.push(context);
+  }
+
+  /**
+   * Record the inputs of a directive in this view's template. The view's
+   * watch binds them from the template's bindings.
+   */
+  addInputs(directive: object, inputs: ReadonlyMap<string, InputBinding<unknown>>): void {
+    this.directiveInputs.set(directive, inputs);
+  }
+
+  /** The input `name` of `directive`, if the directive is in this view and has that input. */
+  input(directive: object, name: string): Maybe<InputBinding<unknown>> {
+    return Maybe.fromNullable(this.directiveInputs.get(directive)).flatMap((inputs) =>
+      Maybe.fromNullable(inputs.get(name)),
+    );
   }
 
   /** Run `callback` when the view is destroyed (right away if it already is). */

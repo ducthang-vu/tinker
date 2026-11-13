@@ -10,7 +10,7 @@
 // one page, or two tests, never share a queue. It can be replaced with a
 // provider, e.g. a synchronous scheduler for tests.
 //
-// Not yet: running parents before children (no child components exist yet).
+// Known gaps (loop guard, parents first, ...): see "View scheduler" in IMPROVEMENTS.md.
 
 import { Injectable } from "../di/index.ts";
 import type { Runnable, WatchScheduler } from "../signals/index.ts";

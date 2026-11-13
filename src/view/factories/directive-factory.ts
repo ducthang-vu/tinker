@@ -3,16 +3,20 @@
 // template, see ComponentFactory).
 //
 // - `create()` makes an attribute directive on an existing element: it
-//   creates the instance, registers it in the element's context, and applies
-//   its host bindings.
+//   creates the instance, registers it in the element's context, records its
+//   inputs in the view (whose watch binds them), and applies its host bindings.
 // - `applyHost()` applies only the host bindings, for instances created
 //   elsewhere (the component factory creates components itself).
 //
 // Everything is tied to a View: when it is destroyed, the listeners are
 // removed and the directive leaves its element's context.
+//
+// A directive has no watch of its own: the watch of the view it belongs to
+// updates it (see ComponentFactory).
 
 import { inject, Injectable } from "../../di/index.ts";
 import type { Class } from "../../utils/types.ts";
+import { inputsOf } from "../input.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../decorators.ts";
 import { ElementContexts } from "../element-contexts.ts";
 import { RENDERER } from "../tokens.ts";
@@ -46,6 +50,7 @@ export class DirectiveFactory {
       context.removeDirective(instance);
       this.contexts.forgetIfEmpty(context);
     });
+    view.addInputs(instance, inputsOf(instance));
     this.applyHost(type, instance, element, view);
     return instance;
   }

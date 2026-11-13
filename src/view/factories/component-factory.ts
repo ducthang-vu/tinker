@@ -7,9 +7,14 @@
 // ElementContext, and applies the component's host bindings (through the
 // DirectiveFactory: a component is a directive with a template).
 //
-// Every view also gets a watch, scheduled by the app's ViewScheduler and
-// destroyed with the view. It will evaluate the view's bindings; until
-// bindings exist it reads no signals, so it runs once and never again.
+// Reactivity is per view, not per directive: every view gets ONE watch,
+// scheduled by the app's ViewScheduler and destroyed with the view. It will
+// evaluate everything the template binds, in template order: its own
+// bindings, the inputs of the directives on its elements, and their host
+// bindings. Directives have no watch of their own, so a directive never
+// runs before the parent has set its inputs. (Re-evaluating a whole view is
+// cheap; only changed values touch the DOM.) Until bindings exist the watch
+// reads no signals: it runs once and never again.
 //
 // First step: elements, text and plain attributes are rendered. Bindings
 // (`[prop]`, `(event)`, `{{ }}`), directives and child components come next.
@@ -69,7 +74,8 @@ export class ComponentFactory {
 
     const view = new View(host, instance, rendered, this.renderer);
     const viewWatch = watch(() => {
-      // The view's bindings will be evaluated here.
+      // Empty for now. Will evaluate the template's bindings, the inputs of
+      // its directives and their host bindings, in template order.
     }, this.scheduler);
     view.addDestroyCallback(() => viewWatch.destroy());
     this.directives.applyHost(type, instance, host, view);

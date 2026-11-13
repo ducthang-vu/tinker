@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
 import { Component, Directive } from "../decorators.ts";
 import { ElementContexts } from "../element-contexts.ts";
+import { input } from "../input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import { View } from "../view.ts";
@@ -32,6 +33,19 @@ describe("DirectiveFactory", () => {
 
     expect(tooltip).toBeInstanceOf(Tooltip);
     expect(contexts.get(element).map((context) => context.directives).getOrElse(undefined)).toEqual([tooltip]);
+  });
+
+  test("create records the directive's inputs in the view", () => {
+    @Directive({ selector: "[tooltip]" })
+    class Tooltip {
+      readonly text = input<string>();
+    }
+    const { factory, element, view } = setup();
+
+    const tooltip = factory.create(Tooltip, element, view);
+    view.input(tooltip, "text").ifSome((binding) => binding.bind("hello"));
+
+    expect(tooltip.text()).toBe("hello");
   });
 
   test("create applies the host listeners", () => {
