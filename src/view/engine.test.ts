@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { Component, Directive } from "./authoring/decorators.ts";
 import { Effects } from "./authoring/effects.ts";
-import { RenderHooks } from "./authoring/render-hooks.ts";
+import { RenderHookRegistry } from "./runtime/render-hook-registry.ts";
 import { ElementContext } from "./runtime/element-context.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
@@ -17,7 +17,7 @@ import { ViewScheduler } from "./runtime/schedulers/view-scheduler.ts";
 
 /** A ChangeDetection of its own, from an injector, to hand to an engine and inspect. */
 function changeDetection(): ChangeDetection {
-  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, RenderHooks, ChangeDetection] });
+  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, RenderHookRegistry, ChangeDetection] });
   return runInInjectionContext(injector, () => inject(ChangeDetection));
 }
 import { View } from "./runtime/view.ts";

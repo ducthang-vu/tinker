@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { Injectable, inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
 import { signal } from "../../signals/index.ts";
 import { Effects } from "../authoring/effects.ts";
-import { RenderHooks } from "../authoring/render-hooks.ts";
+import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
@@ -145,7 +145,7 @@ describe("DirectiveFactory injection context", () => {
         Ticker,
         EffectScheduler,
         ViewScheduler,
-        RenderHooks,
+        RenderHookRegistry,
         ChangeDetection,
         Effects,
       ],

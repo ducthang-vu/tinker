@@ -2,14 +2,14 @@ import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, runInInjectionContext } from "../../di/index.ts";
 import { signal, watch } from "../../signals/index.ts";
 import { ChangeDetection, ChangeDetectionLoopError } from "./change-detection.ts";
-import { RenderHooks } from "../authoring/render-hooks.ts";
+import { RenderHookRegistry } from "./render-hook-registry.ts";
 import { EffectScheduler } from "./schedulers/effect-scheduler.ts";
 import { Ticker } from "./ticker.ts";
 import { ViewScheduler } from "./schedulers/view-scheduler.ts";
 
 /** Change detection, a log, and helpers queuing named work in each phase. */
 function setup() {
-  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, RenderHooks, ChangeDetection] });
+  const { injector } = Injector.create({ providers: [Ticker, EffectScheduler, ViewScheduler, RenderHookRegistry, ChangeDetection] });
   const changeDetection = runInInjectionContext(injector, () => inject(ChangeDetection));
   const log: string[] = [];
   const queue = (phase: "effects" | "views") => (label: string, work: () => void = () => {}) =>
@@ -108,10 +108,10 @@ describe("ChangeDetection", () => {
   });
 });
 
-describe("ChangeDetection.nextTick", () => {
+describe("ChangeDetection.afterStable", () => {
   test("completes at the end of the next tick, after the views rendered", async () => {
     const { changeDetection, log, view } = setup();
-    const done = changeDetection.nextTick().toPromise().then(() => log.push("tick ended"));
+    const done = changeDetection.afterStable().toPromise().then(() => log.push("tick ended"));
     view("render");
     await done;
     expect(log).toEqual(["views:render", "tick ended"]);
@@ -120,23 +120,23 @@ describe("ChangeDetection.nextTick", () => {
   test("is lazy: nothing waits until it is run", () => {
     const { changeDetection } = setup();
     const ended: string[] = [];
-    const nextTick = changeDetection.nextTick();
+    const stable = changeDetection.afterStable();
     changeDetection.tick();
     expect(ended).toEqual([]);
-    nextTick.run({ ok: () => ended.push("ended") });
+    stable.run({ ok: () => ended.push("ended") });
     changeDetection.tick();
     expect(ended).toEqual(["ended"]);
   });
 
   test("requests a tick itself, so it completes even with nothing pending", async () => {
     const { changeDetection } = setup();
-    await expect(changeDetection.nextTick().toPromise()).resolves.toBeUndefined();
+    await expect(changeDetection.afterStable().toPromise()).resolves.toBeUndefined();
   });
 
   test("cancelled before the tick, it never completes", () => {
     const { changeDetection } = setup();
     const ended: string[] = [];
-    const cancel = changeDetection.nextTick().run({ ok: () => ended.push("ended") });
+    const cancel = changeDetection.afterStable().run({ ok: () => ended.push("ended") });
     cancel();
     changeDetection.tick();
     expect(ended).toEqual([]);
@@ -144,9 +144,9 @@ describe("ChangeDetection.nextTick", () => {
 
   test("run again when it completes, it follows every tick, one at a time", () => {
     const { changeDetection } = setup();
-    const nextTick = changeDetection.nextTick();
+    const stable = changeDetection.afterStable();
     let ends = 0;
-    const follow = () => nextTick.run({ ok: () => (ends++, follow()) });
+    const follow = () => stable.run({ ok: () => (ends++, follow()) });
     follow();
     changeDetection.tick();
     expect(ends).toBe(1); // the re-run waits for the following tick
@@ -158,13 +158,13 @@ describe("ChangeDetection.nextTick", () => {
   test("completes after a failed tick too; the tick's error is re-thrown first", () => {
     const { changeDetection, effect } = setup();
     const ended: string[] = [];
-    changeDetection.nextTick().run({ ok: () => ended.push("first") });
-    changeDetection.nextTick().run({
+    changeDetection.afterStable().run({ ok: () => ended.push("first") });
+    changeDetection.afterStable().run({
       ok: () => {
         throw new Error("waiter failed");
       },
     });
-    changeDetection.nextTick().run({ ok: () => ended.push("third") });
+    changeDetection.afterStable().run({ ok: () => ended.push("third") });
     effect("fails", () => {
       throw new Error("tick failed");
     });
@@ -174,7 +174,7 @@ describe("ChangeDetection.nextTick", () => {
 
   test("a waiter's error is re-thrown when the tick itself succeeded", () => {
     const { changeDetection } = setup();
-    changeDetection.nextTick().run({
+    changeDetection.afterStable().run({
       ok: () => {
         throw new Error("waiter failed");
       },
@@ -184,12 +184,12 @@ describe("ChangeDetection.nextTick", () => {
 
   test("works with the other Task tools, e.g. a timeout", async () => {
     const { changeDetection } = setup();
-    await expect(changeDetection.nextTick().timeout(1000).toPromise()).resolves.toBeUndefined();
+    await expect(changeDetection.afterStable().timeout(1000).toPromise()).resolves.toBeUndefined();
   });
 
   test("work queued by a waiter runs in the same tick", async () => {
     const { changeDetection, log, view } = setup();
-    changeDetection.nextTick().run({ ok: () => view("queued by a waiter") });
+    changeDetection.afterStable().run({ ok: () => view("queued by a waiter") });
     await Promise.resolve();
     expect(log).toEqual(["views:queued by a waiter"]);
     expect(changeDetection.views.pending).toBe(0);
@@ -200,16 +200,16 @@ describe("ChangeDetection.nextTick", () => {
     const count = signal(1);
     const rendered: number[] = [];
     watch(() => rendered.push(count()), changeDetection.views);
-    changeDetection.nextTick().run({ ok: () => count.set(2) });
+    changeDetection.afterStable().run({ ok: () => count.set(2) });
     await Promise.resolve();
     expect(rendered).toEqual([1, 2]);
   });
 
   test("following every tick does not force ticks: it waits for the next change", async () => {
     const { changeDetection, view } = setup();
-    const nextTick = changeDetection.nextTick();
+    const stable = changeDetection.afterStable();
     let ends = 0;
-    const follow = () => nextTick.run({ ok: () => (ends++, follow()) });
+    const follow = () => stable.run({ ok: () => (ends++, follow()) });
     follow();
     await Promise.resolve();
     await Promise.resolve();
@@ -222,7 +222,7 @@ describe("ChangeDetection.nextTick", () => {
   test("the loop guard covers the whole tick, waiters included", () => {
     const { changeDetection, view } = setup();
     const again = () => view("again", again);
-    changeDetection.nextTick().run({ ok: again });
+    changeDetection.afterStable().run({ ok: again });
     expect(() => changeDetection.tick()).toThrow(ChangeDetectionLoopError);
     expect(changeDetection.views.pending).toBe(0);
   });

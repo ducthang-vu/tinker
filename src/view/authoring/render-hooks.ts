@@ -38,48 +38,25 @@
 
 import { inject, Injectable } from "../../di/index.ts";
 import type { Cancel } from "../../functional/index.ts";
-import { runAll } from "../../utils/run-all.ts";
+import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
 
-/** Runs hooks after the app rendered. One per engine. */
+/**
+ * Registers hooks to run after the app rendered. One per engine. Only
+ * registering is public: running them is change detection's job (see
+ * RenderHookRegistry).
+ */
 @Injectable()
 export class RenderHooks {
-  private readonly everyRender = new Set<() => void>();
-  private readonly nextRender = new Set<() => void>();
+  private readonly registry = inject(RenderHookRegistry);
 
   /** Run `hook` after every render, until cancelled. */
   afterEachRender(hook: () => void): Cancel {
-    return this.add(this.everyRender, hook);
+    return this.registry.addEachRender(hook);
   }
 
   /** Run `hook` once, after the next render. Cancelling before that prevents it. */
   afterNextRender(hook: () => void): Cancel {
-    return this.add(this.nextRender, hook);
-  }
-
-  /** Whether any hook is registered. */
-  get hasHooks(): boolean {
-    return this.everyRender.size > 0 || this.nextRender.size > 0;
-  }
-
-  /**
-   * The app rendered (called by ChangeDetection): run every hook, each-render
-   * ones first, then next-render ones (which are then dropped). A hook
-   * registered while they run waits for the next render. Every hook runs even
-   * if one throws; the first error is re-thrown.
-   */
-  rendered(): void {
-    const once = [...this.nextRender];
-    this.nextRender.clear();
-    runAll([...this.everyRender, ...once]);
-  }
-
-  private add(hooks: Set<() => void>, hook: () => void): Cancel {
-    // Wrapped, so the same function registered twice runs twice.
-    const entry = () => hook();
-    hooks.add(entry);
-    return () => {
-      hooks.delete(entry);
-    };
+    return this.registry.addNextRender(hook);
   }
 }
 

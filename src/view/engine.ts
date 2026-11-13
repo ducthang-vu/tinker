@@ -35,6 +35,7 @@ import { BindingFactory } from "./runtime/text-binding.ts";
 import { Effects } from "./authoring/effects.ts";
 import { RenderHooks } from "./authoring/render-hooks.ts";
 import { ChangeDetection } from "./runtime/change-detection.ts";
+import { RenderHookRegistry } from "./runtime/render-hook-registry.ts";
 import { EffectScheduler } from "./runtime/schedulers/effect-scheduler.ts";
 import { Ticker } from "./runtime/ticker.ts";
 import { ViewScheduler } from "./runtime/schedulers/view-scheduler.ts";
@@ -54,8 +55,9 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   Ticker,
   EffectScheduler,
   ViewScheduler,
-  RenderHooks,
+  RenderHookRegistry,
   ChangeDetection,
+  RenderHooks,
   Effects,
   DirectiveFactory,
   ViewFactory,
@@ -118,13 +120,13 @@ export class Engine {
    * The end of the next change detection tick, as a Task: once it completes,
    * effects have run and views are rendered. Lazy (nothing happens until it
    * is run) and cancellable; running it requests a tick, so it completes
-   * even when nothing is pending. See ChangeDetection.nextTick.
+   * even when nothing is pending. See ChangeDetection.afterStable.
    *
    *   count.set(2);
    *   await engine.afterStable().toPromise();   // the DOM shows 2
    */
   afterStable(): Task<void> {
-    return this.changeDetection.nextTick();
+    return this.changeDetection.afterStable();
   }
 
   /** What is on `element` (its directives and component), if anything. */
