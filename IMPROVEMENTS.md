@@ -47,3 +47,18 @@ is fine: it uses the component's.
 
 **To do.** Add `engine.destroy()`: destroy the views, then the engine's
 injector (which stops its effects and cancels its hooks).
+
+## Components
+
+### 1. A component's own `onDestroy()` is never called
+
+**Problem.** Services and directives are created by an injector, which calls
+their `onDestroy()` when it is destroyed. A component is created with
+`new type()` inside its injector's context, not by the injector, so an
+`onDestroy()` method on a component never runs. It can clean up through its
+`Effects` and `RenderHooks`, but not with a plain method, as with Angular's
+`ngOnDestroy`.
+
+**To do.** Provide the component in its own injector and create it with
+`inject(type)`, like host directives: its injector then calls its
+`onDestroy()` when the view is destroyed.
