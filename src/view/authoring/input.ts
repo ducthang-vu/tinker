@@ -25,8 +25,8 @@
 // - An optional input (`input(defaultValue)`) has its default until it is
 //   bound, so it can always be read.
 
-import { Maybe } from "../functional/index.ts";
-import { computed, type ReadonlySignal, type Signal, signal } from "../signals/index.ts";
+import { Maybe } from "../../functional/index.ts";
+import { computed, type ReadonlySignal, type Signal, signal } from "../../signals/index.ts";
 
 declare const INPUT_TYPE: unique symbol;
 

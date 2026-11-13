@@ -7,10 +7,10 @@
 // components' views, anything registered through `addDestroyCallback` (later: the
 // watches of its bindings, directive hooks), and finally its nodes.
 
-import { Maybe } from "../functional/index.ts";
+import { Maybe } from "../../functional/index.ts";
 import type { ElementContext } from "./element-context.ts";
-import type { InputBinding, InputName, InputValue } from "./input.ts";
-import type { Renderer } from "./renderer.ts";
+import type { InputBinding, InputName, InputValue } from "../authoring/input.ts";
+import type { Renderer } from "../renderer.ts";
 
 export class View<T> {
   private readonly contexts: ElementContext[] = [];

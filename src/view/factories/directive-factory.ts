@@ -16,11 +16,11 @@
 
 import { inject, Injectable } from "../../di/index.ts";
 import type { Class } from "../../utils/types.ts";
-import { inputsOf } from "../input.ts";
-import { type DirectiveMetadata, getDirectiveMetadata } from "../decorators.ts";
-import { ElementContexts } from "../element-contexts.ts";
+import { inputsOf } from "../authoring/input.ts";
+import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
 import { RENDERER } from "../tokens.ts";
-import type { View } from "../view.ts";
+import type { View } from "../runtime/view.ts";
 import { HostBindings } from "./host-bindings.ts";
 
 @Injectable()

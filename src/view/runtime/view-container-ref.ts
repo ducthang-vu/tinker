@@ -7,10 +7,10 @@
 // A view destroyed from anywhere (through the container or directly) leaves
 // the container, and its host element is removed from the DOM.
 
-import { Maybe } from "../functional/index.ts";
-import type { Class } from "../utils/types.ts";
-import type { ComponentFactory } from "./factories/component-factory.ts";
-import type { Renderer } from "./renderer.ts";
+import { Maybe } from "../../functional/index.ts";
+import type { Class } from "../../utils/types.ts";
+import type { ComponentFactory } from "../factories/component-factory.ts";
+import type { Renderer } from "../renderer.ts";
 import type { View } from "./view.ts";
 
 export class ViewContainerRef {

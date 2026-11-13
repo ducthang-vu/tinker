@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
-import { Component, Directive } from "../decorators.ts";
-import { ElementContexts } from "../element-contexts.ts";
-import { input } from "../input.ts";
+import { Component, Directive } from "../authoring/decorators.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
+import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
-import { View } from "../view.ts";
+import { View } from "../runtime/view.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 /** A DirectiveFactory created the way the engine creates it: through an injector. */

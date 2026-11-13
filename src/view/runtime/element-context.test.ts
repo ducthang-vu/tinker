@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ElementContext } from "./element-context.ts";
-import { DomRenderer } from "./renderer.ts";
+import { DomRenderer } from "../renderer.ts";
 import { View } from "./view.ts";
 
 const element = () => document.createElement("div");

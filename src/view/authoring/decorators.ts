@@ -11,9 +11,9 @@
 // A component is a directive with a template: @Component also makes the
 // class a directive with the same selector.
 
-import type { Maybe } from "../functional/index.ts";
-import { defineMetadata, ownMetadata } from "../utils/metadata.ts";
-import type { AbstractClass } from "../utils/types.ts";
+import type { Maybe } from "../../functional/index.ts";
+import { defineMetadata, ownMetadata } from "../../utils/metadata.ts";
+import type { AbstractClass } from "../../utils/types.ts";
 
 /** What a directive declares about itself. */
 export interface DirectiveMetadata {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { DomRenderer } from "./renderer.ts";
+import { DomRenderer } from "../renderer.ts";
 import { ElementContexts } from "./element-contexts.ts";
 import { View } from "./view.ts";
 

@@ -20,16 +20,16 @@
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../di/index.ts";
 import { Maybe } from "../functional/index.ts";
 import type { Class } from "../utils/types.ts";
-import type { ElementContext } from "./element-context.ts";
-import { ElementContexts } from "./element-contexts.ts";
+import type { ElementContext } from "./runtime/element-context.ts";
+import { ElementContexts } from "./runtime/element-contexts.ts";
 import { ComponentFactory } from "./factories/component-factory.ts";
 import { DirectiveFactory } from "./factories/directive-factory.ts";
 import { DomRenderer } from "./renderer.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
-import type { View } from "./view.ts";
-import { ViewContainerRef } from "./view-container-ref.ts";
-import { ViewScheduler } from "./view-scheduler.ts";
+import type { View } from "./runtime/view.ts";
+import { ViewContainerRef } from "./runtime/view-container-ref.ts";
+import { ViewScheduler } from "./runtime/view-scheduler.ts";
 
 /** What the engine is built from. */
 export interface EngineOptions {

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
-import { Component } from "../decorators.ts";
-import { ElementContexts } from "../element-contexts.ts";
-import { input } from "../input.ts";
+import { Component } from "../authoring/decorators.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
+import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { BrowserTemplateParser } from "../template/browser-parser.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
-import { ViewScheduler } from "../view-scheduler.ts";
+import { ViewScheduler } from "../runtime/view-scheduler.ts";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory() {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { computed, signal, watch } from "../signals/index.ts";
+import { computed, signal, watch } from "../../signals/index.ts";
 import { InputNotBoundError, input, inputsOf } from "./input.ts";
 
 const syncScheduler = { schedule: (task: { run(): void }) => task.run() };

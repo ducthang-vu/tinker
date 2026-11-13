@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { ElementContext } from "./element-context.ts";
-import { input, inputsOf } from "./input.ts";
-import { watch } from "../signals/index.ts";
-import { DomRenderer } from "./renderer.ts";
+import { input, inputsOf } from "../authoring/input.ts";
+import { watch } from "../../signals/index.ts";
+import { DomRenderer } from "../renderer.ts";
 import { View } from "./view.ts";
 
 function makeView() {

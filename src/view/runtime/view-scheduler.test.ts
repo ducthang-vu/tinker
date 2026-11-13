@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { signal, watch } from "../signals/index.ts";
+import { signal, watch } from "../../signals/index.ts";
 import { ViewScheduler } from "./view-scheduler.ts";
 
 /** A task that records its runs. */

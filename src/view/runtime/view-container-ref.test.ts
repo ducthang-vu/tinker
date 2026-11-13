@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { Component } from "./decorators.ts";
-import { Engine } from "./engine.ts";
+import { Component } from "../authoring/decorators.ts";
+import { Engine } from "../engine.ts";
 import type { View } from "./view.ts";
 
 @Component({ selector: "tk-item", template: "<span>item</span>" })

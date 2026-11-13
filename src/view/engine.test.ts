@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { Component, Directive } from "./decorators.ts";
-import { ElementContext } from "./element-context.ts";
+import { Component, Directive } from "./authoring/decorators.ts";
+import { ElementContext } from "./runtime/element-context.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
 import { provide } from "../di/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
-import { ViewScheduler } from "./view-scheduler.ts";
-import { View } from "./view.ts";
+import { ViewScheduler } from "./runtime/view-scheduler.ts";
+import { View } from "./runtime/view.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";

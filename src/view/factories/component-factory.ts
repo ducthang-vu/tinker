@@ -31,13 +31,13 @@ import { inject, Injectable } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
-import { type ComponentMetadata, getComponentMetadata } from "../decorators.ts";
-import { ElementContexts } from "../element-contexts.ts";
+import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
+import { ElementContexts } from "../runtime/element-contexts.ts";
 import type { TemplateNode } from "../template/ast.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
-import { View } from "../view.ts";
-import { ViewScheduler } from "../view-scheduler.ts";
-import { inputsOf } from "../input.ts";
+import { View } from "../runtime/view.ts";
+import { ViewScheduler } from "../runtime/view-scheduler.ts";
+import { inputsOf } from "../authoring/input.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 /** A selector a host element can be created from: an optional tag, then an optional `[attribute]`. */

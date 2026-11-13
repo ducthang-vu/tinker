@@ -3,7 +3,7 @@
 Known limitations, written down so they are not forgotten. Each entry says
 what the problem is, why it matters, and what to do.
 
-## View scheduler (`src/view/view-scheduler.ts`)
+## View scheduler (`src/view/runtime/view-scheduler.ts`)
 
 View updates are batched in a microtask: every signal write made in the same
 task (an event handler, a fetch callback) leads to one flush, before the

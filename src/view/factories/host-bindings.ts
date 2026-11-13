@@ -13,7 +13,7 @@
 
 import { type EitherError, Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
-import type { View } from "../view.ts";
+import type { View } from "../runtime/view.ts";
 
 /** One parsed `"(event)": "method(...)"` entry. */
 export interface HostListener {

@@ -4,7 +4,7 @@
 // A View owns the contexts of the elements in its template; the engine maps
 // each element to its context, so "what is on this element?" is one lookup.
 
-import { Maybe } from "../functional/index.ts";
+import { Maybe } from "../../functional/index.ts";
 import type { View } from "./view.ts";
 
 export class ElementContext {

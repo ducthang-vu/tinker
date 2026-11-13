@@ -12,9 +12,9 @@
 //
 // Known gaps (loop guard, parents first, ...): see "View scheduler" in IMPROVEMENTS.md.
 
-import { Injectable } from "../di/index.ts";
-import type { Runnable, WatchScheduler } from "../signals/index.ts";
-import { runBatches } from "../utils/run-all.ts";
+import { Injectable } from "../../di/index.ts";
+import type { Runnable, WatchScheduler } from "../../signals/index.ts";
+import { runBatches } from "../../utils/run-all.ts";
 
 @Injectable()
 export class ViewScheduler implements WatchScheduler {

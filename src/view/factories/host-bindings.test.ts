@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { DomRenderer } from "../renderer.ts";
-import { View } from "../view.ts";
+import { View } from "../runtime/view.ts";
 import { HostBindings } from "./host-bindings.ts";
 
 const renderer = new DomRenderer();
