@@ -91,3 +91,16 @@ templates can stop it: with `@if` / `@for`, a node renders children only
 while there are some. Keep the ban for a component that always contains
 itself.
 
+### 3. A child component's host bindings are updated by its own view
+
+**Problem.** A component's host class bindings (`host: { "[class.x]": … }`,
+and those of its host directives) are updated by the component's own view.
+Its host element, though, belongs to the parent's template, where the
+parent can bind classes on it too (`<tk-item [class.selected]="…">`): two
+watches then write to one element, and which runs last decides.
+
+**To do.** As in Angular, update a child component's host bindings in the
+view that contains its host element (the parent's), with a fixed
+precedence: the parent's template bindings over the child's host bindings.
+A root component, which has no parent view, keeps updating its own.
+

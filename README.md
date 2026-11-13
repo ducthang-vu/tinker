@@ -72,8 +72,13 @@ module; each module also lists its own in its `index.ts`.
   (child of the engine's), which holds their `providers` and their
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language
-  (fields and calls: `user().name`). The component's `imports` list the
-  directives its template may use, matched by CSS-like selectors.
+  (fields and calls: `user().name`), and class bindings
+  (`[class.done]="todo.done()"`). The component's `imports` list the
+  directives and components its template may use, matched by CSS-like
+  selectors; a component in a template gets its own injector, child of its
+  element's, so it can inject its parent.
+- **Host bindings** on directives and components: listeners
+  (`"(click)": "toggle()"`) and class bindings (`"[class.open]": "isOpen()"`).
 - **Directives** on an element share an element injector, so they can inject
   each other and their ancestors. Inputs are signals (`input()`); plain
   attributes bind them.
@@ -169,6 +174,7 @@ only by the ESLint parser; the compiler is `typescript7`, run by the
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: `[prop]` and `(event)` bindings in templates, content
+Not there yet: `[prop]`, `[style.x]`, `[attr.x]` and `(event)` bindings in
+templates (class bindings are there), content
 projection (content inside a component's element), queries (`viewChild`),
 `@if` / `@for`, recursive components, and `engine.destroy()`.

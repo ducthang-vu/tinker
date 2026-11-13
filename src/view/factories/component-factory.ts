@@ -173,9 +173,9 @@ export class ComponentFactory {
     view.addInputs(instance, inputsOf(instance));
     // In a template: its element's plain attributes set its inputs, before it renders.
     bindInputsToAttributes(instance, child?.attributes ?? []);
-    // Its host directives, on its host element.
+    // Its host directives, on its host element; their class bindings join the view's watch.
     hostDirectives.forEach((directive, i) =>
-      this.directives.attach(directive, hostInstances[i]!, host, view));
+      template.addBindings(this.directives.attach(directive, hostInstances[i]!, host, view)));
     // The directives and child components of the template's elements, now
     // that their view exists, and before the first render.
     try {
@@ -184,9 +184,13 @@ export class ComponentFactory {
       view.destroy(); // undoes the directives created so far, and the injectors
       throw error;
     }
-    // The view's one watch: updates the bindings in template order. (Later
-    // also the inputs of its directives and their host bindings.) Its first
-    // run happens now, so the view is complete when it is returned.
+    // Its own host bindings: listeners now, class bindings in the view's watch.
+    // (In a template, they will move to the parent's view, with the
+    // parent's own bindings on that element.)
+    template.addBindings(this.directives.applyHost(type, instance, host, view));
+    // The view's one watch: updates the bindings (the template's, then the
+    // host bindings of its directives and its own). Its first run happens
+    // now, so the view is complete when it is returned.
     const firstRun = new RunFirstNow(this.changeDetection.views);
     const viewWatch = watch(() => template.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
@@ -197,7 +201,6 @@ export class ComponentFactory {
     // The first render happened outside a tick: report it, so the render
     // hooks run in the next tick (e.g. an afterNextRender registered by the component).
     this.changeDetection.viewRendered();
-    this.directives.applyHost(type, instance, host, view);
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);

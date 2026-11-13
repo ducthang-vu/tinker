@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { DomRenderer } from "../renderer.ts";
 import { View } from "../runtime/view.ts";
+import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
 
 const renderer = new DomRenderer();
@@ -26,12 +27,30 @@ describe("HostBindings parsing", () => {
   });
 
   test("rejects other kinds of host bindings", () => {
-    expect(() => new HostBindings({ "[class.open]": "open()" }))
+    expect(() => new HostBindings({ "[title]": "open()" }))
       .toThrow(
-        `Unsupported host binding "[class.open]": only "(event)" listeners are supported for now`,
+        `Unsupported host binding "[title]": only "(event)" listeners and "[class.name]" bindings `
+        + "are supported for now",
       );
     expect(() => new HostBindings({ click: "go()" }))
       .toThrow("Unsupported host binding");
+  });
+
+  test("parses class bindings, keeping the class's case", () => {
+    const bindings = new HostBindings({ "[class.isOpen]": "open()", "(click)": "toggle()" });
+    expect(bindings.classes.map(({ name }) => name))
+      .toEqual(["isOpen"]);
+    expect(bindings.classes[0]!.expression)
+      .toEqual(ExpressionParser.parse("open()")
+        .getOrThrow());
+    expect(bindings.listeners.map(({ event }) => event))
+      .toEqual(["click"]);
+  });
+
+  test("reports an invalid class binding expression with its key", () => {
+    expect(() => new HostBindings({ "[class.open]": "a + b" }))
+      .toThrow(`Unexpected "+": only fields and calls are supported for now (at column 3 in "a + b"), `
+        + `in host binding "[class.open]"`);
   });
 
   test("rejects handlers other than method() and method($event)", () => {
@@ -57,7 +76,8 @@ describe("HostBindings parsing", () => {
       .toHaveLength(2);
     expect(message)
       .toBe(
-        `Unsupported host binding "[title]": only "(event)" listeners are supported for now\n`
+        `Unsupported host binding "[title]": only "(event)" listeners and "[class.name]" bindings `
+        + "are supported for now\n"
         + `Unsupported host handler "a.b()": write "method()" or "method($event)"`,
       );
   });

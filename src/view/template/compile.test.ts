@@ -31,6 +31,7 @@ describe("compileTemplate", () => {
           ],
           directives: [],
           component: Maybe.none(),
+          classBindings: [],
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
       ]);
@@ -68,6 +69,26 @@ describe("compileTemplate", () => {
       .toEqual([Tooltip, Primary]);
     expect(p!.directives)
       .toEqual([]);
+  });
+
+  test("sorts attributes: plain ones, and class bindings with their expression", () => {
+    const [p] = compileTemplate([
+      element("p", { "class": "note", "[class.done]": "todo.done()", "title": "x" }),
+    ]) as CompiledElement[];
+    expect(p!.attributes)
+      .toEqual([{ name: "class", value: "note" }, { name: "title", value: "x" }]);
+    expect(p!.classBindings)
+      .toEqual([{ name: "done", expression: ExpressionParser.parse("todo.done()")
+        .getOrThrow() }]);
+  });
+
+  test("rejects other binding syntax, and invalid class binding expressions", () => {
+    expect(() => compileTemplate([element("button", { "(click)": "go()" })]))
+      .toThrow(`Bindings are not supported yet: "(click)" on <button>`);
+    expect(() => compileTemplate([element("p", { "[title]": "t" })]))
+      .toThrow(`Bindings are not supported yet: "[title]" on <p>`);
+    expect(() => compileTemplate([element("p", { "[class.on]": "a(1)" })]))
+      .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [class.on] on <p>`);
   });
 
   test("an element matching a component is its host, and keeps its directives", () => {

@@ -14,7 +14,7 @@
 import { inject, Injectable, type Injector } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
-import { BindingFactory, type TextBinding } from "../runtime/text-binding.ts";
+import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
 import { RENDERER } from "../tokens.ts";
@@ -52,8 +52,12 @@ interface ElementWithDirectives {
 }
 
 export class TemplateBuilder {
-  /** The bindings created by `build`, in template order. */
-  private readonly bindings: TextBinding[] = [];
+  /**
+   * The bindings the view's watch updates: the template's (text and class
+   * bindings, in template order), then the host bindings of its directives
+   * and of the component.
+   */
+  private readonly bindings: Binding[] = [];
   /** The elements with directives, in template order (parents before children). */
   private readonly withDirectives: ElementWithDirectives[] = [];
   /** While building: the enclosing elements with directives (their indexes). */
@@ -94,11 +98,13 @@ export class TemplateBuilder {
         some: (index) => injectors[index]!,
         none: () => componentInjector,
       });
-      const injector = node.directives.length === 0
-        ? parentInjector
-        : this.directiveFactory
-          .createOnElement(node.directives, element, view, parentInjector, node.attributes)
-          .injector;
+      let injector = parentInjector;
+      if (node.directives.length > 0) {
+        const created = this.directiveFactory
+          .createOnElement(node.directives, element, view, parentInjector, node.attributes);
+        injector = created.injector;
+        this.addBindings(created.bindings);
+      }
       node.component.ifSome((type) => {
         this.components.create(type, element, {
           parentInjector: injector,
@@ -108,6 +114,11 @@ export class TemplateBuilder {
       });
       injectors.push(injector);
     }
+  }
+
+  /** Add bindings for the view's watch to update too (e.g. host bindings). */
+  addBindings(bindings: readonly Binding[]): void {
+    this.bindings.push(...bindings);
   }
 
   /** Evaluate every binding, in template order, writing to the DOM what changed. */
@@ -130,10 +141,11 @@ export class TemplateBuilder {
     }
     const element = this.renderer.createElement(node.name);
     for (const attribute of node.attributes) {
-      if (/^[[(]/.test(attribute.name)) {
-        throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
-      }
       this.renderer.setAttribute(element, attribute.name, attribute.value);
+    }
+    for (const { name, expression } of node.classBindings) {
+      this.bindings.push(this.bindingFactory
+        .classToggle(element, name, expression, this.component));
     }
     const index = this.recordDirectives(element, node);
     for (const child of this.build(node.children)) {

@@ -5,9 +5,12 @@
 // matches (among those the component imports). Done once per component
 // class; errors are reported here, before anything is rendered.
 //
-// Later: attributes are classified here too (static, `[prop]`, `(event)`).
+// Attributes are classified here too: plain ones, and class bindings
+// (`[class.done]="todo.done()"`, their expression parsed). Other binding
+// syntax (`[prop]`, `(event)`) is reported as not supported yet.
 
-import type { AttributeNode, TemplateNode } from "./ast.ts";
+import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
+import { type Expression, ExpressionParser } from "./expression.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
@@ -19,12 +22,21 @@ export type CompiledNode = CompiledElement | CompiledText;
 export interface CompiledElement {
   readonly kind: "element";
   readonly name: string;
+  /** Its plain attributes (not its bindings). */
   readonly attributes: readonly AttributeNode[];
+  /** Its class bindings, e.g. `[class.done]="todo.done()"`, in template order. */
+  readonly classBindings: readonly ClassBindingNode[];
   readonly children: readonly CompiledNode[];
   /** The directives matching this element (not its component), in import order. */
   readonly directives: readonly Class<object>[];
   /** The component matching this element, if any: the element is its host. */
   readonly component: Maybe<Class<object>>;
+}
+
+/** A class binding: class `name`, on while `expression` is truthy. */
+export interface ClassBindingNode {
+  readonly name: string;
+  readonly expression: Expression;
 }
 
 /** A directive the template may use, and where it applies. */
@@ -58,7 +70,9 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     return { kind: "text", interpolation: parseInterpolation(node.value)
       .getOrThrow() };
   }
-  const matched = candidates.filter((candidate) => candidate.selector.matches(node));
+  const { attributes, classBindings } = classifyAttributes(node);
+  const matched = candidates.filter((candidate) =>
+    candidate.selector.matches({ name: node.name, attributes }));
   const components = matched.filter(({ isComponent }) => isComponent);
   if (components.length > 1) {
     const names = components.map(({ type }) => type.name)
@@ -74,11 +88,43 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     }
   });
   return {
-    ...node,
+    kind: "element",
+    name: node.name,
+    attributes,
+    classBindings,
     // A component's element has no content of its own: the component renders into it.
     children: component.isSome() ? [] : compileTemplate(node.children, candidates),
     directives: matched.filter(({ isComponent }) => !isComponent)
       .map(({ type }) => type),
     component,
   };
+}
+
+const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
+
+/**
+ * Split the attributes of `node` into plain attributes and class bindings
+ * (parsing their expressions). Throws for other binding syntax, or an
+ * invalid expression.
+ */
+function classifyAttributes(node: ElementNode): {
+  attributes: AttributeNode[];
+  classBindings: ClassBindingNode[];
+} {
+  const attributes: AttributeNode[] = [];
+  const classBindings: ClassBindingNode[] = [];
+  for (const attribute of node.attributes) {
+    const className = CLASS_BINDING.exec(attribute.name)?.[1];
+    if (className !== undefined) {
+      const expression = ExpressionParser.parse(attribute.value)
+        .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
+        .getOrThrow();
+      classBindings.push({ name: className, expression });
+    } else if (/^[[(]/.test(attribute.name)) {
+      throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
+    } else {
+      attributes.push(attribute);
+    }
+  }
+  return { attributes, classBindings };
 }

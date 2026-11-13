@@ -13,13 +13,19 @@ import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import { View } from "../runtime/view.ts";
+import { BindingFactory } from "../runtime/text-binding.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 /** A DirectiveFactory created the way the engine creates it: through an injector. */
 function setup() {
   const renderer = new DomRenderer();
   const { injector } = Injector.create({
-    providers: [provide(RENDERER, { useValue: renderer }), ElementContexts, DirectiveFactory],
+    providers: [
+      provide(RENDERER, { useValue: renderer }),
+      ElementContexts,
+      BindingFactory,
+      DirectiveFactory,
+    ],
   });
   const { factory, contexts } = runInInjectionContext(injector, () => ({
     factory: inject(DirectiveFactory),
@@ -159,6 +165,7 @@ describe("DirectiveFactory injection context", () => {
       providers: [
         provide(RENDERER, { useValue: new DomRenderer() }),
         ElementContexts,
+        BindingFactory,
         DirectiveFactory,
         Theme,
         Ticker,
