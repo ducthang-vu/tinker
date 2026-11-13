@@ -7,6 +7,7 @@ export { Engine, type EngineOptions } from "./engine.ts";
 
 // Writing components and directives
 export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./authoring/decorators.ts";
+export { effect, type EffectContext, type EffectFn } from "./authoring/effect.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./authoring/input.ts";
 
 // What the engine creates and hands back

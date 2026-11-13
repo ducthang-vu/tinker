@@ -28,7 +28,7 @@
 // child components come next; binding syntax in attributes is reported as
 // unsupported until then.
 
-import { inject, Injectable } from "../../di/index.ts";
+import { inject, Injectable, Injector, runInInjectionContext } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import { watch } from "../../signals/index.ts";
 import type { Class } from "../../utils/types.ts";
@@ -55,6 +55,7 @@ export class ComponentFactory {
   private readonly builders = inject(TemplateBuilderFactory);
   private readonly views = inject(ViewFactory);
   private readonly changeDetection = inject(ChangeDetection);
+  private readonly injector = inject(Injector);
   /** Compiled templates, per component class: each template is parsed and compiled only once. */
   private readonly templates = new WeakMap<Class<unknown>, readonly CompiledNode[]>();
 
@@ -77,7 +78,8 @@ export class ComponentFactory {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
 
-    const instance = new type();
+    // In the engine's injection context, so the component can use inject() and effect().
+    const instance = runInInjectionContext(this.injector, () => new type());
     const template = this.builders.create(instance);
     const rendered = template.build(this.templateOf(type, metadata.template));
     for (const node of rendered) {

@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
+import { Injectable, inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
+import { signal } from "../../signals/index.ts";
+import { effect } from "../authoring/effect.ts";
+import { ChangeDetection } from "../runtime/change-detection.ts";
+import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
+import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
+import { Ticker } from "../runtime/ticker.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { input } from "../authoring/input.ts";
@@ -112,5 +118,46 @@ describe("DirectiveFactory", () => {
     expect(() => factory.create(Plain, element, view)).toThrow(
       "Plain is not a directive: decorate it with @Directive",
     );
+  });
+});
+
+describe("DirectiveFactory injection context", () => {
+  test("creates directives in the engine's injection context: inject() and effect() work", () => {
+    @Injectable()
+    class Theme {
+      readonly color = signal("red");
+    }
+    const seen: string[] = [];
+    @Directive({ selector: "[tip]" })
+    class Tip {
+      readonly theme = inject(Theme);
+      constructor() {
+        effect(() => void seen.push(this.theme.color()));
+      }
+    }
+    const { injector } = Injector.create({
+      providers: [
+        provide(RENDERER, { useValue: new DomRenderer() }),
+        ElementContexts,
+        DirectiveFactory,
+        Theme,
+        Ticker,
+        EffectScheduler,
+        ViewScheduler,
+        ChangeDetection,
+      ],
+    });
+    const { factory, changeDetection } = runInInjectionContext(injector, () => ({
+      factory: inject(DirectiveFactory),
+      changeDetection: inject(ChangeDetection),
+    }));
+    const view = new View(document.createElement("div"), {}, [], new DomRenderer());
+
+    const tip = factory.create(Tip, document.createElement("p"), view);
+    changeDetection.tick();
+    tip.theme.color.set("blue");
+    changeDetection.tick();
+
+    expect(seen).toEqual(["red", "blue"]);
   });
 });

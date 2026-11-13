@@ -30,3 +30,20 @@ inconsistent state.
 
 **To do.** When child components exist, run the queue in tree order (parents
 first), e.g. by sorting each batch by view depth.
+
+## Effects (`src/view/authoring/effect.ts`)
+
+### 1. Destroy effects automatically with their owner — priority
+
+**Problem.** `effect()` returns a handle, and the effect runs until
+`destroy()` is called on it. An effect created by a component keeps running
+after the component's view is destroyed, and keeps the component in memory,
+unless the author destroys it. Same for a service whose injector is
+destroyed.
+
+**To do.** Destroy each effect with its owner, as Angular does:
+- in a component or directive: when its view is destroyed (through the
+  lifecycle's `onDestroy`, in `stash@{0}`, once it is adapted to ticks);
+- in a service: when its injector is destroyed. The public DI API has no
+  way to register a destroy callback yet: add one (a `DestroyRef`-like
+  service, injectable wherever `inject()` works).

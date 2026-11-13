@@ -14,7 +14,7 @@
 // A directive has no watch of its own: the watch of the view it belongs to
 // updates it (see ComponentFactory).
 
-import { inject, Injectable } from "../../di/index.ts";
+import { inject, Injectable, Injector, runInInjectionContext } from "../../di/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { inputsOf } from "../authoring/input.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
@@ -27,6 +27,7 @@ import { HostBindings } from "./host-bindings.ts";
 export class DirectiveFactory {
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
+  private readonly injector = inject(Injector);
   /** Parsed host bindings, per class: each `host` option is parsed only once. */
   private readonly hostBindings = new WeakMap<Class<unknown>, HostBindings>();
 
@@ -43,7 +44,8 @@ export class DirectiveFactory {
    * Destroying `view` removes both.
    */
   create<T extends object>(type: Class<T>, element: Element, view: View<unknown>): T {
-    const instance = new type();
+    // In the engine's injection context, so the directive can use inject() and effect().
+    const instance = runInInjectionContext(this.injector, () => new type());
     const context = this.contexts.getOrCreate(element);
     context.addDirective(instance);
     view.addDestroyCallback(() => {

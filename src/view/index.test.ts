@@ -21,6 +21,7 @@ test("the public API exports exactly these values", () => {
       "Ticker",
       "ChangeDetectionLoopError",
       "input",
+      "effect",
     ].sort(),
   );
 });
