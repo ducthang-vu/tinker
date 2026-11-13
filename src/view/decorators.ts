@@ -18,6 +18,11 @@ import type { AbstractClass } from "../utils/types.ts";
 export interface DirectiveMetadata {
   /** Where the directive applies, e.g. `"[highlight]"`. */
   readonly selector: string;
+  /**
+   * Bindings on the host element. For now only event listeners, calling a
+   * method with or without the event: `{ "(click)": "toggle($event)" }`.
+   */
+  readonly host?: Readonly<Record<string, string>>;
 }
 
 /** What a component declares about itself. */
@@ -32,7 +37,10 @@ const COMPONENT_METADATA: unique symbol = Symbol("component metadata");
 
 /** Class decorator: marks the class as a directive. */
 export function Directive(options: DirectiveMetadata) {
-  const recorded: DirectiveMetadata = Object.freeze({ selector: options.selector });
+  const recorded: DirectiveMetadata = Object.freeze({
+    selector: options.selector,
+    ...(options.host && { host: Object.freeze({ ...options.host }) }),
+  });
   return function <C extends AbstractClass>(target: C, _context: ClassDecoratorContext<C>): void {
     defineMetadata(target, DIRECTIVE_METADATA, recorded);
   };
@@ -43,8 +51,9 @@ export function Component(options: ComponentMetadata) {
   const recorded: ComponentMetadata = Object.freeze({
     selector: options.selector,
     template: options.template,
+    ...(options.host && { host: Object.freeze({ ...options.host }) }),
   });
-  const asDirective = Directive({ selector: options.selector });
+  const asDirective = Directive({ selector: options.selector, host: options.host });
   return function <C extends AbstractClass>(target: C, context: ClassDecoratorContext<C>): void {
     asDirective(target, context);
     defineMetadata(target, COMPONENT_METADATA, recorded);

@@ -8,17 +8,22 @@
 // the container, and its host element is removed from the DOM.
 
 import type { Class } from "../utils/types.ts";
-import type { Engine } from "./engine.ts";
+import type { ComponentFactory } from "./factories/component-factory.ts";
 import type { Renderer } from "./renderer.ts";
 import type { View } from "./view.ts";
 
 export class ViewContainerRef {
   private readonly views: View<unknown>[] = [];
 
-  /** Created by `engine.createViewContainer(anchor)`. */
+  /**
+   * Usually created by `engine.createViewContainer(anchor)`.
+   * @param anchor Where the container is: its views sit just before it.
+   * @param components Creates the components this container holds.
+   * @param renderer Inserts, moves and removes their host elements.
+   */
   constructor(
     readonly anchor: Node,
-    private readonly engine: Engine,
+    private readonly components: ComponentFactory,
     private readonly renderer: Renderer,
   ) {}
 
@@ -38,10 +43,10 @@ export class ViewContainerRef {
   }
 
   /** Create component `type` (in a new host element) and insert it at `index` (default: the end). */
-  createComponent<T>(type: Class<T>, index: number = this.length): View<T> {
+  createComponent<T extends object>(type: Class<T>, index: number = this.length): View<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
-    const view = this.engine.createComponent(type);
+    const view = this.components.create(type);
     this.views.splice(index, 0, view);
     this.renderer.insertBefore(parent, view.host, this.nodeAfter(index));
     view.addDestroyCallback(() => {

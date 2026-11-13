@@ -3,11 +3,28 @@ import { Component, Directive } from "./decorators.ts";
 import { ElementContext } from "./element-context.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
+import { provide } from "../di/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
+import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { View } from "./view.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
+});
+
+describe("Engine.create", () => {
+  test("an engine can only be created through Engine.create()", () => {
+    expect(() => new Engine()).toThrow("inject() must be called in an injection context");
+    expect(Engine.create()).toBeInstanceOf(Engine);
+  });
+
+  test("each engine has its own root injector and services", () => {
+    document.body.innerHTML = "<tk-app></tk-app>";
+    @Component({ selector: "tk-app", template: "" })
+    class App {}
+    const view = Engine.create().bootstrap(App);
+    expect(Engine.create().getContext(view.host)).toBeUndefined();
+  });
 });
 
 describe("Engine.bootstrap", () => {
@@ -19,7 +36,7 @@ describe("Engine.bootstrap", () => {
     })
     class App {}
 
-    const ref = new Engine().bootstrap(App);
+    const ref = Engine.create().bootstrap(App);
 
     expect(ref.host).toBe(document.querySelector("tk-app"));
     expect(ref.host.innerHTML).toBe(`<h1 class="title">Hello</h1><p>from <b>Tinker</b></p>`);
@@ -32,7 +49,7 @@ describe("Engine.bootstrap", () => {
       title = "Tinker";
     }
 
-    const ref = new Engine().bootstrap(App);
+    const ref = Engine.create().bootstrap(App);
 
     expect(ref.component).toBeInstanceOf(App);
     expect(ref.component.title).toBe("Tinker");
@@ -43,7 +60,7 @@ describe("Engine.bootstrap", () => {
     @Component({ selector: "[app-root]", template: "<p>hi</p>" })
     class App {}
 
-    expect(new Engine().bootstrap(App).host.id).toBe("x");
+    expect(Engine.create().bootstrap(App).host.id).toBe("x");
   });
 
   test("renders {{ }} text as written, for now", () => {
@@ -51,7 +68,7 @@ describe("Engine.bootstrap", () => {
     @Component({ selector: "tk-app", template: "<p>{{ count() }}</p>" })
     class App {}
 
-    expect(new Engine().bootstrap(App).host.textContent).toBe("{{ count() }}");
+    expect(Engine.create().bootstrap(App).host.textContent).toBe("{{ count() }}");
   });
 
   test("destroy removes what was rendered, and only that", () => {
@@ -59,7 +76,7 @@ describe("Engine.bootstrap", () => {
     @Component({ selector: "tk-app", template: "<p>a</p><p>b</p>" })
     class App {}
 
-    const ref = new Engine().bootstrap(App);
+    const ref = Engine.create().bootstrap(App);
     expect(ref.host.children).toHaveLength(3);
     ref.destroy();
     ref.destroy();
@@ -72,7 +89,7 @@ describe("Engine.bootstrap", () => {
     class App {}
     const parser = new BrowserTemplateParser();
     const parse = vi.spyOn(parser, "parse");
-    const engine = new Engine({ parser });
+    const engine = Engine.create({ providers: [provide(TEMPLATE_PARSER, { useValue: parser })] });
 
     engine.bootstrap(App).destroy();
     engine.bootstrap(App);
@@ -81,7 +98,7 @@ describe("Engine.bootstrap", () => {
     expect(document.querySelector("tk-app")!.innerHTML).toBe("<p>hi</p>");
   });
 
-  test("uses the document, parser and renderer it is given", () => {
+  test("providers replace the default document and renderer", () => {
     const other = document.implementation.createHTMLDocument("other");
     other.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>other</p>" })
@@ -89,7 +106,9 @@ describe("Engine.bootstrap", () => {
     const renderer = new DomRenderer(other);
     const createElement = vi.spyOn(renderer, "createElement");
 
-    const ref = new Engine({ document: other, renderer }).bootstrap(App);
+    const ref = Engine.create({
+      providers: [provide(DOCUMENT, { useValue: other }), provide(RENDERER, { useValue: renderer })],
+    }).bootstrap(App);
 
     expect(ref.host.ownerDocument).toBe(other);
     expect(createElement).toHaveBeenCalledWith("p");
@@ -99,7 +118,7 @@ describe("Engine.bootstrap", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
-    const engine = new Engine();
+    const engine = Engine.create();
 
     const view = engine.bootstrap(App);
 
@@ -116,7 +135,7 @@ describe("Engine.bootstrap", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "" })
     class App {}
-    const engine = new Engine();
+    const engine = Engine.create();
     const view = engine.bootstrap(App);
     const context = engine.getContext(view.host)!;
     context.addDirective({ name: "some directive" });
@@ -131,7 +150,7 @@ describe("Engine.bootstrap", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
-    const engine = new Engine();
+    const engine = Engine.create();
 
     const first = engine.bootstrap(App);
     first.destroy();
@@ -145,7 +164,7 @@ describe("Engine.bootstrap", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
-    const engine = new Engine();
+    const engine = Engine.create();
     engine.bootstrap(App);
 
     expect(() => engine.bootstrap(App)).toThrow(
@@ -158,17 +177,17 @@ describe("Engine.bootstrap", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "" })
     class App {}
-    const one = new Engine();
+    const one = Engine.create();
     const view = one.bootstrap(App);
 
-    expect(new Engine().getContext(view.host)).toBeUndefined();
+    expect(Engine.create().getContext(view.host)).toBeUndefined();
   });
 
   test("createComponent renders into a given host", () => {
     const host = document.createElement("section");
     @Component({ selector: "tk-x", template: "<p>x</p>" })
     class X {}
-    const engine = new Engine();
+    const engine = Engine.create();
 
     const view = engine.createComponent(X, host);
 
@@ -184,7 +203,7 @@ describe("Engine.bootstrap", () => {
     class AttrOnly {}
     @Component({ selector: "tk-both[extra]", template: "" })
     class Both {}
-    const engine = new Engine();
+    const engine = Engine.create();
 
     expect(engine.createComponent(Tag).host.outerHTML).toBe("<tk-tag></tk-tag>");
     expect(engine.createComponent(AttrOnly).host.outerHTML).toBe(`<div attr-only=""></div>`);
@@ -197,7 +216,7 @@ describe("Engine.bootstrap", () => {
     class ByClass {}
     @Component({ selector: "", template: "" })
     class Empty {}
-    const engine = new Engine();
+    const engine = Engine.create();
 
     expect(() => engine.createComponent(ByClass)).toThrow(
       `Cannot create a host element for ByClass from selector ".a-class"`,
@@ -209,7 +228,7 @@ describe("Engine.bootstrap", () => {
     @Directive({ selector: "[x]" })
     class NotAComponent {}
 
-    expect(() => new Engine().bootstrap(NotAComponent)).toThrow(
+    expect(() => Engine.create().bootstrap(NotAComponent)).toThrow(
       "NotAComponent is not a component: decorate it with @Component",
     );
   });
@@ -218,7 +237,7 @@ describe("Engine.bootstrap", () => {
     @Component({ selector: "tk-missing", template: "" })
     class Missing {}
 
-    expect(() => new Engine().bootstrap(Missing)).toThrow(
+    expect(() => Engine.create().bootstrap(Missing)).toThrow(
       `No host element matches "tk-missing" for Missing`,
     );
   });
@@ -228,7 +247,7 @@ describe("Engine.bootstrap", () => {
     @Component({ selector: "tk-app", template: `<button (click)="go()">go</button>` })
     class App {}
 
-    expect(() => new Engine().bootstrap(App)).toThrow(
+    expect(() => Engine.create().bootstrap(App)).toThrow(
       `Bindings are not supported yet: "(click)" on <button>`,
     );
     expect(document.querySelector("tk-app")!.innerHTML).toBe("");

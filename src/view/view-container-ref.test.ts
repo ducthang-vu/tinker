@@ -11,7 +11,7 @@ let parent: HTMLElement;
 let anchor: Comment;
 
 beforeEach(() => {
-  engine = new Engine();
+  engine = Engine.create();
   parent = document.createElement("div");
   anchor = document.createComment("container");
   parent.append(document.createElement("header"), anchor, document.createElement("footer"));

@@ -32,6 +32,14 @@ export class ElementContext {
     this.directiveInstances.push(directive);
   }
 
+  /** Take `directive` off the element. Does nothing if it is not there. */
+  removeDirective(directive: object): void {
+    const index = this.directiveInstances.indexOf(directive);
+    if (index !== -1) {
+      this.directiveInstances.splice(index, 1);
+    }
+  }
+
   /** Put a component on the element. An element can hold only one. */
   attachComponent(view: View<unknown>): void {
     if (this.component) {

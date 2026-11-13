@@ -47,3 +47,18 @@ describe("ElementContext", () => {
     expect(context.componentView).toBe(next);
   });
 });
+
+describe("ElementContext.removeDirective", () => {
+  test("takes a directive off, and ignores one that is not there", () => {
+    const context = new ElementContext(element());
+    const a = { name: "a" };
+    const b = { name: "b" };
+    context.addDirective(a);
+    context.addDirective(b);
+    context.removeDirective(a);
+    context.removeDirective({ name: "not there" });
+    expect(context.directives).toEqual([b]);
+    context.removeDirective(b);
+    expect(context.isEmpty).toBe(true);
+  });
+});

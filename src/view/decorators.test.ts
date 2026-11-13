@@ -134,3 +134,25 @@ describe("@Component", () => {
     expect(new Counter().count).toBe(1);
   });
 });
+
+describe("host option", () => {
+  test("@Directive and @Component record a frozen copy of host", () => {
+    const host = { "(click)": "go()" };
+    @Directive({ selector: "[d]", host })
+    class D {}
+    @Component({ selector: "tk-c", template: "", host })
+    class C {}
+    host["(click)"] = "changed()";
+
+    expect(getDirectiveMetadata(D)?.host).toEqual({ "(click)": "go()" });
+    expect(Object.isFrozen(getDirectiveMetadata(D)?.host)).toBe(true);
+    expect(getComponentMetadata(C)?.host).toEqual({ "(click)": "go()" });
+    expect(getDirectiveMetadata(C)?.host).toEqual({ "(click)": "go()" });
+  });
+
+  test("without host, the metadata has no host entry", () => {
+    @Directive({ selector: "[d]" })
+    class D {}
+    expect(getDirectiveMetadata(D)).toEqual({ selector: "[d]" });
+  });
+});
