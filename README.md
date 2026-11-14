@@ -177,7 +177,11 @@ npm run repo-map
 
 This writes `.repo-map.json` at the repository root. The generated file is
 git-ignored by default. Use `npm run repo-map -- --pretty` for readable JSON,
-`npm run repo-map -- --stdout` to print it, or
+`npm run repo-map -- --format markdown` to generate a compact
+`.repo-map.md` for AI context, or `npm run repo-map -- --format markdown
+--stdout` to print it. Markdown omits documentation comments by default;
+add `--include-docs` when explanations are useful. Use
+`npm run repo-map -- --stdout` to print JSON, or
 `npm run repo-map -- --root path/to/project --output path/to/map.json`
 to select another project directory and output path.
 

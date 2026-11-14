@@ -262,11 +262,81 @@ export function buildRepoMap(rootDir = process.cwd()) {
   return createGraph(files);
 }
 
+/**
+ * Render the graph as a compact, model-friendly Markdown index.
+ * The output intentionally omits prose and function bodies.
+ */
+export function renderRepoMapMarkdown(graph, options = {}) {
+  const { includeDocs = false } = options;
+  const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
+  const files = graph.nodes
+    .filter((node) => node.type === "file")
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const importsByFile = new Map();
+  const exportsByFile = new Map();
+
+  for (const edge of graph.edges) {
+    if (edge.type === "imports") {
+      const imports = importsByFile.get(edge.from) ?? [];
+      imports.push(nodes.get(edge.to));
+      importsByFile.set(edge.from, imports);
+    } else if (edge.type === "exports") {
+      const exports = exportsByFile.get(edge.from) ?? [];
+      exports.push(nodes.get(edge.to));
+      exportsByFile.set(edge.from, exports);
+    }
+  }
+
+  const symbolCount = graph.nodes.filter((node) => node.type === "symbol").length;
+  const externalCount = graph.nodes.filter((node) => node.type === "module").length;
+  const lines = [
+    `# Repo map v${graph.schemaVersion}`,
+    `files:${files.length} symbols:${symbolCount} external:${externalCount}`,
+  ];
+
+  for (const file of files) {
+    const imports = (importsByFile.get(file.id) ?? [])
+      .filter(Boolean)
+      .map((node) => node.type === "file" ? node.path : `pkg:${node.name}`)
+      .sort();
+    const exports = (exportsByFile.get(file.id) ?? [])
+      .filter(Boolean)
+      .sort((left, right) => left.name.localeCompare(right.name));
+    const parts = [file.path];
+
+    if (imports.length) parts.push(`<- ${imports.join(",")}`);
+
+    if (exports.length) {
+      parts.push(`-> ${exports.map((symbol) => {
+        const origin = symbol.definedIn === file.path
+          ? ""
+          : `@${symbol.definedIn}`;
+
+        return `${symbol.name}:${symbol.signature}${origin}`;
+      }).join(";")}`);
+    }
+
+    lines.push(parts.join(" | "));
+
+    if (includeDocs) {
+      for (const symbol of exports) {
+        if (symbol.documentation) {
+          lines.push(`  ${symbol.name}: ${symbol.documentation}`);
+        }
+      }
+    }
+  }
+
+  return lines.join("\n").trimEnd() + "\n";
+}
+
 function runCli(args) {
-  let outputPath = ".repo-map.json";
+  let outputPath;
   let rootDir = process.cwd();
   let writeToStdout = false;
   let pretty = false;
+  let format = "json";
+  let includeDocs = false;
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -281,24 +351,35 @@ function runCli(args) {
       writeToStdout = true;
     } else if (argument === "--pretty") {
       pretty = true;
+    } else if (argument === "--format") {
+      format = args[++index];
+      if (!["json", "markdown"].includes(format)) {
+        throw new Error("--format must be json or markdown");
+      }
+    } else if (argument === "--include-docs") {
+      includeDocs = true;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
   }
 
   const repoMap = buildRepoMap(rootDir);
-  const json = JSON.stringify(repoMap, null, pretty ? 2 : undefined);
+  const output = format === "markdown"
+    ? renderRepoMapMarkdown(repoMap, { includeDocs })
+    : `${JSON.stringify(repoMap, null, pretty ? 2 : undefined)}\n`;
 
   if (writeToStdout) {
-    process.stdout.write(`${json}\n`);
+    process.stdout.write(output);
     return;
   }
 
-  const destination = path.resolve(rootDir, outputPath);
-  writeFileSync(destination, `${json}\n`);
+  const destination = path.resolve(
+    rootDir,
+    outputPath ?? (format === "markdown" ? ".repo-map.md" : ".repo-map.json"),
+  );
+  writeFileSync(destination, output);
   process.stdout.write(`Wrote ${path.relative(rootDir, destination)}\n`);
 }
-
 const scriptPath = process.argv[1]
   ? path.resolve(process.argv[1])
   : undefined;

@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { buildRepoMap } from "./repo-map.mjs";
+import { buildRepoMap, renderRepoMapMarkdown } from "./repo-map.mjs";
 
 test("builds a deterministic graph of files, imports, and exported symbols", () => {
   const rootDir = mkdtempSync(path.join(os.tmpdir(), "tinker-repo-map-"));
@@ -83,4 +83,36 @@ test("reports a helpful error when no tsconfig exists", () => {
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }
+});
+
+test("renders a compact Markdown view with imports and exported API", () => {
+  const graph = {
+    schemaVersion: 2,
+    nodes: [
+      { id: "file:src/index.ts", type: "file", path: "src/index.ts" },
+      { id: "file:src/math.ts", type: "file", path: "src/math.ts" },
+      { id: "module:node:fs", type: "module", name: "node:fs" },
+      {
+        id: "symbol:src/math.ts#add",
+        type: "symbol",
+        name: "add",
+        kind: "FunctionDeclaration",
+        definedIn: "src/math.ts",
+        signature: "(a: number, b: number) => number",
+        documentation: "Adds two numbers.",
+      },
+    ],
+    edges: [
+      { from: "file:src/index.ts", to: "file:src/math.ts", type: "imports" },
+      { from: "file:src/index.ts", to: "module:node:fs", type: "imports" },
+      { from: "file:src/index.ts", to: "symbol:src/math.ts#add", type: "exports" },
+    ],
+  };
+
+  const markdown = renderRepoMapMarkdown(graph);
+
+  assert.match(markdown, /files:2 symbols:1 external:1/);
+  assert.match(markdown, /src\\/index\\.ts \\| <- pkg:node:fs,src\\/math\\.ts \\| -> add:\\(a: number, b: number\\) => number@src\\/math\\.ts/);
+  assert.doesNotMatch(markdown, /Adds two numbers/);
+  assert.match(renderRepoMapMarkdown(graph, { includeDocs: true }), /Adds two numbers/);
 });
