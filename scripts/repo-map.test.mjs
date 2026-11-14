@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { buildRepoMap } from "./repo-map.mjs";
 
-test("builds a compact map of source files, exports, and local imports", () => {
+test("builds a deterministic graph of files, imports, and exported symbols", () => {
   const rootDir = mkdtempSync(path.join(os.tmpdir(), "tinker-repo-map-"));
 
   try {
@@ -28,27 +28,45 @@ test("builds a compact map of source files, exports, and local imports", () => {
     );
     writeFileSync(
       path.join(rootDir, "src", "index.ts"),
-      'export { add } from "./math";\n',
+      'export { add } from "./math";\nimport { readFile } from "node:fs";\n',
     );
     writeFileSync(
       path.join(rootDir, "src", "math.test.ts"),
       "export const testOnly = true;\n",
     );
 
-    const repoMap = buildRepoMap(rootDir);
-    const indexFile = repoMap.files.find((file) => file.path === "src/index.ts");
-    const mathFile = repoMap.files.find((file) => file.path === "src/math.ts");
+    const graph = buildRepoMap(rootDir);
+    const indexId = "file:src/index.ts";
+    const mathId = "file:src/math.ts";
+    const symbolId = "symbol:src/math.ts#add";
 
-    assert.equal(repoMap.schemaVersion, 1);
-    assert.equal(repoMap.files.length, 2);
-    assert.deepEqual(indexFile.imports, [
-      { source: "./math", resolved: "src/math.ts" },
-    ]);
-    assert.equal(indexFile.exports[0].name, "add");
-    assert.equal(indexFile.exports[0].definedIn, "src/math.ts");
-    assert.equal(mathFile.exports[0].name, "add");
-    assert.match(mathFile.exports[0].type, /number/);
-    assert.equal(mathFile.exports[0].documentation, "Adds two numbers.");
+    assert.equal(graph.schemaVersion, 2);
+    assert.deepEqual(
+      graph.nodes.map((node) => node.id),
+      [...graph.nodes.map((node) => node.id)].sort(),
+    );
+    assert.equal(graph.nodes.some((node) => node.id === "file:src/math.test.ts"), false);
+    assert.deepEqual(
+      graph.nodes.find((node) => node.id === symbolId),
+      {
+        id: symbolId,
+        type: "symbol",
+        name: "add",
+        kind: "FunctionDeclaration",
+        definedIn: "src/math.ts",
+        signature: "(a: number, b: number) => number",
+        documentation: "Adds two numbers.",
+      },
+    );
+    assert.ok(graph.edges.some((edge) =>
+      edge.from === indexId && edge.to === mathId && edge.type === "imports",
+    ));
+    assert.ok(graph.edges.some((edge) =>
+      edge.from === indexId && edge.to === symbolId && edge.type === "exports",
+    ));
+    assert.ok(graph.nodes.some((node) =>
+      node.id === "module:node:fs" && node.type === "module",
+    ));
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }

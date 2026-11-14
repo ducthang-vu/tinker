@@ -165,8 +165,9 @@ only by the ESLint parser; the compiler is `typescript7`, run by the
 
 ### Generate an AI-friendly repository map
 
-The repository map is a compact, model-independent JSON index of TypeScript
-source files, their imports, and exported symbols. It uses the TypeScript 6
+The repository map is a compact, model-independent JSON graph of TypeScript
+files, imports, and exported symbols. It stores entities as nodes and
+relationships as edges, so agents can retrieve only the parts they need. It uses the TypeScript 6
 Compiler API already installed as `typescript`; it does not add a dependency
 or send source code to an external service.
 
@@ -180,11 +181,19 @@ git-ignored by default. Use `npm run repo-map -- --pretty` for readable JSON,
 `npm run repo-map -- --root path/to/project --output path/to/map.json`
 to select another project directory and output path.
 
-The first version records file paths, local and package imports, exported
-symbol names, declaration kinds, concise type strings, and available
-documentation comments. Test and declaration files are omitted to keep the
-index focused. It is a structural index, not a call graph: function bodies
-and runtime behavior are intentionally not copied into the map.
+Schema version 2 stores file, symbol, and external-module nodes, connected
+by `imports` and `exports` edges. Symbol nodes include declaration kinds,
+concise type signatures, and available documentation comments. Test and
+declaration files are omitted to keep the graph focused. It is a structural
+graph, not a call graph: function bodies and runtime behavior are intentionally
+not copied into the map.
+
+JSON is the initial storage format because the graph is small, portable,
+inspectable, easy to diff, and directly consumable by any model or agent.
+SQLite can be added later behind the same graph schema if repository size or
+query volume makes indexed, incremental storage worthwhile. The JSON schema
+remains the interchange format, so changing storage does not tie the graph to
+an AI provider or database.
 
 Run its focused tests with `npm run test:repo-map`.
 

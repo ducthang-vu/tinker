@@ -87,10 +87,14 @@ function getExportEntries(sourceFile, checker, rootDir) {
       if (!declaration) return undefined;
 
       const declarationFile = declaration.getSourceFile();
+      const declarationPath = path.resolve(declarationFile.fileName);
+
+      if (!isWithinRoot(rootDir, declarationPath)) return undefined;
+
       const entry = {
         name: exportSymbol.getName(),
         kind: ts.SyntaxKind[declaration.kind],
-        definedIn: toRepoPath(rootDir, declarationFile.fileName),
+        definedIn: toRepoPath(rootDir, declarationPath),
         type: getSymbolType(checker, targetSymbol, declaration),
       };
       const documentation = getDocumentation(checker, targetSymbol);
@@ -143,8 +147,75 @@ function getImports(sourceFile, compilerOptions, rootDir) {
     .sort((left, right) => left.source.localeCompare(right.source));
 }
 
+function createGraph(files) {
+  const nodes = new Map();
+  const edges = new Map();
+
+  function addNode(node) {
+    nodes.set(node.id, node);
+  }
+
+  function addEdge(from, to, type) {
+    const id = `${from}\0${type}\0${to}`;
+    edges.set(id, { from, to, type });
+  }
+
+  for (const file of files) {
+    const fileId = `file:${file.path}`;
+
+    addNode({ id: fileId, type: "file", path: file.path });
+
+    for (const imported of file.imports) {
+      const targetId = imported.resolved
+        ? `file:${imported.resolved}`
+        : `module:${imported.source}`;
+
+      if (!imported.resolved) {
+        addNode({
+          id: targetId,
+          type: "module",
+          name: imported.source,
+        });
+      }
+
+      addEdge(fileId, targetId, "imports");
+    }
+
+    for (const exported of file.exports) {
+      const symbolId = `symbol:${exported.definedIn}#${exported.name}`;
+      const symbol = {
+        id: symbolId,
+        type: "symbol",
+        name: exported.name,
+        kind: exported.kind,
+        definedIn: exported.definedIn,
+        signature: exported.type,
+      };
+
+      if (exported.documentation) {
+        symbol.documentation = exported.documentation;
+      }
+
+      addNode(symbol);
+      addEdge(fileId, symbolId, "exports");
+    }
+  }
+
+  return {
+    schemaVersion: 2,
+    nodes: [...nodes.values()].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    ),
+    edges: [...edges.values()].sort((left, right) =>
+      left.from.localeCompare(right.from) ||
+      left.type.localeCompare(right.type) ||
+      left.to.localeCompare(right.to),
+    ),
+  };
+}
+
 /**
- * Build a compact, model-independent map of the project's TypeScript surface.
+ * Build a compact, model-independent graph of the project's TypeScript surface.
  *
  * @param {string} rootDir Project directory containing tsconfig.json.
  */
@@ -186,13 +257,9 @@ export function buildRepoMap(rootDir = process.cwd()) {
       path: toRepoPath(absoluteRoot, sourceFile.fileName),
       imports: getImports(sourceFile, parsedConfig.options, absoluteRoot),
       exports: getExportEntries(sourceFile, checker, absoluteRoot),
-    }))
-    .sort((left, right) => left.path.localeCompare(right.path));
+    }));
 
-  return {
-    schemaVersion: 1,
-    files,
-  };
+  return createGraph(files);
 }
 
 function runCli(args) {
