@@ -41,9 +41,9 @@ class CounterStore {
 class Step {
   private readonly store = inject(CounterStore);
   /** From the `step` attribute: a string, like every attribute. */
-  readonly step = input("1");
+  private readonly step = input("1");
   /** Each change made, for the template that uses this directive. */
-  readonly stepped = output<number>();
+  private readonly stepped = output<number>();
 
   apply(): void {
     const amount = Number(this.step());
@@ -84,7 +84,7 @@ class Highlight {
 })
 class Tooltip {
   /** From the `tooltip` attribute itself. */
-  readonly tooltip = input<string>();
+  private readonly tooltip = input<string>();
 }
 
 @Component({
