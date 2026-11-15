@@ -11,6 +11,7 @@ import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { inject, Injectable, type Injector } from "../../di/index.ts";
 import { ComponentFactory } from "../factories/component-factory.ts";
+import { ComponentRef, refOf } from "../component-ref.ts";
 import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import type { View } from "./view.ts";
@@ -32,7 +33,7 @@ export class ViewContainerRefFactory {
 }
 
 export class ViewContainerRef {
-  private readonly views: View<unknown>[] = [];
+  private readonly refs: ComponentRef<object>[] = [];
 
   /**
    * Created by ViewContainerRefFactory (e.g. through `engine.createViewContainer(anchor)`).
@@ -52,60 +53,61 @@ export class ViewContainerRef {
     owner?.addDestroyCallback(() => this.dispose());
   }
 
-  /** How many views the container holds. */
+  /** How many components the container holds. */
   get length(): number {
-    return this.views.length;
+    return this.refs.length;
   }
 
-  /** The view at `index`, if there is one. */
-  get(index: number): Maybe<View<unknown>> {
-    return Maybe.fromNullable(this.views[index]);
+  /** The component at `index`, if there is one. */
+  get(index: number): Maybe<ComponentRef<object>> {
+    return Maybe.fromNullable(this.refs[index]);
   }
 
-  /** The position of `view` in the container, or -1. */
-  indexOf(view: View<unknown>): number {
-    return this.views.indexOf(view);
+  /** The position of `ref` in the container, or -1. */
+  indexOf(ref: ComponentRef<object>): number {
+    return this.refs.indexOf(ref);
   }
 
   /**
    * Create component `type` (in a new host element) and insert it at `index`
    * (default: the end).
    */
-  createComponent<T extends object>(type: Class<T>, index: number = this.length): View<T> {
+  createComponent<T extends object>(type: Class<T>, index: number = this.length): ComponentRef<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
     const view = this.components.create(type, undefined, undefined, this.parentInjector);
-    this.views.splice(index, 0, view);
-    this.renderer.insertBefore(parent, view.host, this.nodeAfter(index));
+    const ref = refOf(view);
+    this.refs.splice(index, 0, ref);
+    this.renderer.insertBefore(parent, ref.host, this.nodeAfter(index));
     view.addDestroyCallback(() => {
-      this.views.splice(this.views.indexOf(view), 1);
-      this.renderer.removeChild(parent, view.host);
+      this.refs.splice(this.refs.indexOf(ref), 1);
+      this.renderer.removeChild(parent, ref.host);
     });
-    return view;
+    return ref;
   }
 
-  /** Move `view` (already in this container) to `index`. */
-  move(view: View<unknown>, index: number): void {
-    const from = this.views.indexOf(view);
+  /** Move `ref` (already in this container) to `index`. */
+  move(ref: ComponentRef<object>, index: number): void {
+    const from = this.refs.indexOf(ref);
     if (from === -1) {
-      throw new Error("The view is not in this container");
+      throw new Error("The component is not in this container");
     }
     this.checkIndex(index, this.length - 1);
-    this.views.splice(from, 1);
-    this.views.splice(index, 0, view);
-    this.renderer.insertBefore(this.parent(), view.host, this.nodeAfter(index));
+    this.refs.splice(from, 1);
+    this.refs.splice(index, 0, ref);
+    this.renderer.insertBefore(this.parent(), ref.host, this.nodeAfter(index));
   }
 
-  /** Destroy the view at `index` (default: the last one). Does nothing if there is none. */
+  /** Destroy the component at `index` (default: the last one). Does nothing if there is none. */
   remove(index: number = this.length - 1): void {
     this.get(index)
-      .ifSome((view) => view.destroy());
+      .ifSome((ref) => ref.destroy());
   }
 
-  /** Destroy all views, last first. */
+  /** Destroy all components, last first. */
   clear(): void {
-    for (const view of [...this.views].reverse()) {
-      view.destroy();
+    for (const ref of [...this.refs].reverse()) {
+      ref.destroy();
     }
   }
 
@@ -118,10 +120,10 @@ export class ViewContainerRef {
     }
   }
 
-  /** The node before which the view at `index` must sit: the next view's host, or the anchor. */
+  /** The node before which the component at `index` must sit: the next host, or the anchor. */
   private nodeAfter(index: number): Node {
     return this.get(index + 1)
-      .match({ some: (view) => view.host, none: () => this.anchor });
+      .match({ some: (ref) => ref.host, none: () => this.anchor });
   }
 
   private parent(): Node {

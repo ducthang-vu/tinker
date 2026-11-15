@@ -35,7 +35,7 @@ describe("input bindings", () => {
     expect(span.textContent)
       .toBe("Milk");
 
-    view.component.name.set("Bread");
+    view.instance.name.set("Bread");
     engine.flush();
 
     expect(span.textContent)
@@ -58,7 +58,7 @@ describe("input bindings", () => {
     const [tooltip] = instancesOn(engine, view.host.querySelector("button")!) as [Tooltip];
     expect(tooltip.shout())
       .toBe("SAVE");
-    view.component.hint.set("undo");
+    view.instance.hint.set("undo");
     engine.flush();
     expect(tooltip.shout())
       .toBe("UNDO");
@@ -129,7 +129,7 @@ describe("input bindings", () => {
     const view = engine.createComponent(List);
     expect(childRenders)
       .toBe(1);
-    view.component.count.set(1); // the parent re-renders; the bound value stays "Milk"
+    view.instance.count.set(1); // the parent re-renders; the bound value stays "Milk"
     engine.flush();
     expect(childRenders)
       .toBe(1);

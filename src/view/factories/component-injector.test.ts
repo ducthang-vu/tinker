@@ -29,8 +29,8 @@ describe("each component has its own injector", () => {
     const first = engine.createComponent(A);
     const second = engine.createComponent(A);
 
-    expect(first.component.counter)
-      .not.toBe(second.component.counter);
+    expect(first.instance.counter)
+      .not.toBe(second.instance.counter);
     first.destroy();
     expect(destroyed)
       .toEqual([1]);
@@ -50,7 +50,7 @@ describe("each component has its own injector", () => {
     const engine = Engine.create({
       providers: [provide(NAME, { useValue: "engine" }), provide(COLOR, { useValue: "red" })],
     });
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     expect([component.name, component.color])
       .toEqual(["component", "red"]);
   });
@@ -69,7 +69,7 @@ describe("each component has its own injector", () => {
       readonly store = inject(Store);
     }
     expect(Engine.create()
-      .createComponent(A).component.store.api.url)
+      .createComponent(A).instance.store.api.url)
       .toBe("/api");
   });
 
@@ -187,8 +187,8 @@ describe("effects and render hooks stop with their component", () => {
       readonly render = inject(RenderHooks);
     }
     const engine = Engine.create();
-    const first = engine.createComponent(A).component;
-    const second = engine.createComponent(A).component;
+    const first = engine.createComponent(A).instance;
+    const second = engine.createComponent(A).instance;
     expect(first.effects)
       .not.toBe(second.effects);
     expect(first.render)
@@ -233,6 +233,6 @@ describe("the component in its own injector", () => {
       .map((context) => context.directives)
       .getOrElse([]) as [Part];
     expect(part.owner)
-      .toBe(view.component);
+      .toBe(view.instance);
   });
 });

@@ -23,11 +23,11 @@ describe("class bindings in templates", () => {
     const p = view.host.querySelector("p")!;
     expect(p.className)
       .toBe("todo urgent");
-    view.component.done.set(true);
+    view.instance.done.set(true);
     engine.flush();
     expect(p.className)
       .toBe("todo urgent done");
-    view.component.done.set(false);
+    view.instance.done.set(false);
     engine.flush();
     expect(p.className)
       .toBe("todo urgent");
@@ -56,7 +56,7 @@ describe("class bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    view.component.selected.set(true);
+    view.instance.selected.set(true);
     engine.flush();
     expect(view.host.querySelector("tk-item")!.className)
       .toBe("selected");
@@ -109,7 +109,7 @@ describe("host class bindings", () => {
     const view = engine.createComponent(Menu);
     expect(view.host.className)
       .toBe("focusable open");
-    view.component.open.set(false);
+    view.instance.open.set(false);
     engine.flush();
     expect(view.host.className)
       .toBe("focusable");
@@ -181,7 +181,7 @@ describe("a child component's host class bindings", () => {
     const host = view.host.querySelector("tk-item")!;
     expect(host.className) // the child says selected, the parent says not: the parent wins
       .toBe("item");
-    view.component.selected.set(true);
+    view.instance.selected.set(true);
     engine.flush();
     expect(host.className)
       .toBe("item selected");

@@ -16,7 +16,7 @@ test("the public API exports exactly these values", () => {
         "InputNotBoundError",
         "RENDERER",
         "TEMPLATE_PARSER",
-        "View",
+        "ComponentRef",
         "ViewContainerRef",
         "ChangeDetectionLoopError",
         "input",

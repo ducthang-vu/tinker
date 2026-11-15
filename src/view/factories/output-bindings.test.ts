@@ -35,7 +35,7 @@ describe("output bindings in templates", () => {
     const view = engine.createComponent(A);
     view.host.querySelector("button")!.click();
     view.host.querySelector("button")!.click();
-    expect(view.component.chosen)
+    expect(view.instance.chosen)
       .toEqual([7, 7]);
   });
 
@@ -238,7 +238,7 @@ describe("output bindings in templates", () => {
     const button = view.host.querySelector("button")!;
     button.click();
     button.click();
-    expect(view.component.seen_)
+    expect(view.instance.seen_)
       .toEqual([1, 2]);
   });
 

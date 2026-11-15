@@ -106,7 +106,7 @@ describe("content projection", () => {
     const view = engine.createComponent(A, host);
     expect(host.querySelector("p")!.textContent)
       .toBe("first");
-    view.component.name.set("second");
+    view.instance.name.set("second");
     engine.flush();
     expect(host.querySelector("p")!.textContent)
       .toBe("second");

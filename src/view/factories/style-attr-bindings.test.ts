@@ -22,8 +22,8 @@ describe("style and attribute bindings in templates", () => {
     const p = view.host.querySelector("p")!;
     expect([p.style.color, p.getAttribute("title")])
       .toEqual(["red", "first"]);
-    view.component.color.set("blue");
-    view.component.title.set(undefined);
+    view.instance.color.set("blue");
+    view.instance.title.set(undefined);
     engine.flush();
     expect([p.style.color, p.hasAttribute("title")])
       .toEqual(["blue", false]);
@@ -45,7 +45,7 @@ describe("style and attribute bindings in templates", () => {
     const item = view.host.querySelector("tk-item") as HTMLElement;
     expect(item.style.opacity)
       .toBe("0.5");
-    view.component.opacity.set("1");
+    view.instance.opacity.set("1");
     engine.flush();
     expect(item.style.opacity)
       .toBe("1");

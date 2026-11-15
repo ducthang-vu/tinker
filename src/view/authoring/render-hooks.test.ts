@@ -17,7 +17,7 @@ test("RenderHooks only registers: running the hooks is not part of its API", () 
     readonly render = inject(RenderHooks);
   }
   const { render } = Engine.create()
-    .createComponent(A).component;
+    .createComponent(A).instance;
   // Registering, and onDestroy() (called by its injector, which only cancels): nothing runs hooks.
   // The class is wrapped by @final, so its methods are one prototype up: walk the chain.
   const names = new Set<string>();
@@ -46,7 +46,7 @@ describe("RenderHooks in change detection", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     engine.flush();
-    return { engine, view, component: view.component };
+    return { engine, view, component: view.instance };
   }
 
   test("run after the views rendered, seeing the updated DOM", () => {
@@ -127,7 +127,7 @@ describe("RenderHooks in change detection", () => {
       }
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     engine.flush();
     component.count.set(2);
     engine.flush();
@@ -173,7 +173,7 @@ describe("@AfterEachRender() and @AfterNextRender()", () => {
       }
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     engine.flush(); // the hooks run for the first render, made during create
     component.count.set(2);
     engine.flush();
@@ -206,7 +206,7 @@ describe("RenderHooks lifetime", () => {
       readonly count = signal(1);
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     engine.flush();
     const cancelNext = component.render.afterNextRender(() => runs.push("next"));
     component.render.afterEachRender(() => runs.push("each"));

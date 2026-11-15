@@ -27,8 +27,8 @@ describe("Effects", () => {
     await Promise.resolve();
     expect(runs)
       .toEqual([1]);
-    view.component.count.set(2);
-    view.component.count.set(3);
+    view.instance.count.set(2);
+    view.instance.count.set(3);
     await Promise.resolve();
     expect(runs)
       .toEqual([1, 3]);
@@ -49,7 +49,7 @@ describe("Effects", () => {
     engine.flush();
     expect(view.host.textContent)
       .toBe("2");
-    view.component.count.set(5);
+    view.instance.count.set(5);
     engine.flush();
     expect(view.host.textContent)
       .toBe("10");
@@ -68,7 +68,7 @@ describe("Effects", () => {
         });
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     engine.flush();
     component.count.set(2);
     engine.flush();
@@ -102,7 +102,7 @@ describe("Effects", () => {
     engine.flush();
     expect(log)
       .toEqual(["service 0", "component 0"]);
-    view.component.clock.time.set(1);
+    view.instance.clock.time.set(1);
     engine.flush();
     expect(log)
       .toEqual(["service 0", "component 0", "service 1", "component 1"]);
@@ -119,7 +119,7 @@ describe("Effects", () => {
       }
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     engine.flush();
     component.count.set(2);
     engine.flush();
@@ -149,7 +149,7 @@ describe("Effects", () => {
       }
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     expect(() => engine.flush())
       .toThrow("first run failed");
     component.count.set(2);
@@ -169,7 +169,7 @@ describe("Effects", () => {
       }
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     engine.flush();
     expect(runs)
       .toEqual([]);
@@ -191,8 +191,8 @@ describe("Effects", () => {
     }
     const one = Engine.create();
     const two = Engine.create();
-    one.createComponent(A).component.name.set("one");
-    two.createComponent(A).component.name.set("two");
+    one.createComponent(A).instance.name.set("one");
+    two.createComponent(A).instance.name.set("two");
     one.flush();
     expect(runs)
       .toEqual(["one"]);
@@ -216,7 +216,7 @@ describe("@Effect()", () => {
       }
     }
     const engine = Engine.create();
-    const first = engine.createComponent(A).component;
+    const first = engine.createComponent(A).instance;
     engine.createComponent(A);
     engine.flush();
     first.count.set(2);
@@ -239,7 +239,7 @@ describe("@Effect()", () => {
       readonly store = inject(Store);
     }
     const engine = Engine.create();
-    engine.createComponent(A).component.store.size.set(3);
+    engine.createComponent(A).instance.store.size.set(3);
     engine.flush();
     expect(runs)
       .toEqual([3]);
@@ -263,7 +263,7 @@ describe("Effects lifetime", () => {
       readonly count = signal(1);
     }
     const engine = Engine.create();
-    const { component } = engine.createComponent(A);
+    const { instance: component } = engine.createComponent(A);
     const early = component.effects
       .create(() => void runs.push(`early ${component.count()}`));
     component.effects
