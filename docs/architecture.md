@@ -1,152 +1,139 @@
 # How the view layer fits together
 
-This page shows how the objects of the view layer relate at runtime: components,
-directives, the DOM nodes they render, the `View` that owns each rendered
-component, and the `ViewContainerRef` that adds views later. The diagrams are
-Mermaid, which GitHub renders.
+This page explains how the view layer creates and owns components. It is
+meant for someone reading the code for the first time. Diagrams are Mermaid,
+which GitHub renders.
 
-## The objects
+## Public and internal
 
-| Object | What it is | Where |
-|---|---|---|
-| `Engine` | Creates components and containers, and owns the root injector. | `src/view/engine.ts` |
-| `ComponentFactory` | Creates a component: its injector, its template, its `View`. | `src/view/factories/component-factory.ts` |
-| `TemplateBuilder` | Builds one template's DOM and collects its bindings, then creates the directives and child components of its elements. | `src/view/factories/template-builder.ts` |
-| `DirectiveFactory` | Creates the directives of one element, with the element's injector and its host bindings. | `src/view/factories/directive-factory.ts` |
-| `ComponentRef` | The public handle of a created component: `instance`, `host` (an `ElementRef`), `setInput`, `subscribe` and `emit` for public members, `destroy()`. Returned by `engine.createComponent`, `engine.bootstrap` and `ViewContainerRef.createComponent`. | `src/view/component-ref.ts` |
-| `View` | Internal. One rendered component: its host element, its instance, its DOM nodes, its element contexts, and one reactive watch. | `src/view/runtime/view.ts` |
-| `ElementContext` | What Tinker put on one DOM element: its directive instances and, at most, one child `View`. | `src/view/runtime/element-context.ts` |
-| `ViewContainerRef` | A place in the DOM, marked by an anchor comment, where views are added, moved and removed. | `src/view/runtime/view-container-ref.ts` |
-| Injectors | A tree: the engine's, one per component, one per element with directives. | `src/di/` |
-| Native nodes | The DOM elements, text and comments, made through the `Renderer`. | `src/view/renderer.ts` |
+Client code sees a few objects. Everything else is internal.
 
-## Structure at rest
+| Public | What it is for |
+|---|---|
+| `Engine` | Starts the app with `bootstrap`, and creates containers with `createViewContainer`. |
+| `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
+| `ViewContainerRef` | Adds, moves and removes components at runtime. |
+| `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
 
-Each component has one `View`. Each element of its template that has a
-directive, a component or an event binding has an `ElementContext`. A child
-component is a `View` of its own, held by the `ElementContext` of its host
-element, and owned by the parent's `View`.
+| Internal | What it is for |
+|---|---|
+| `View` | One rendered component: its nodes, its element contexts, and its one reactive watch. |
+| `ComponentFactory` | Builds a component: its injector, its template, its `View`. |
+| `TemplateBuilder` | Builds one template's DOM and its bindings, and creates the components and directives in it. |
+| `DirectiveFactory` | Creates the directives of one element, with the element's injector. |
+| `ElementContext` | What is on one element: its directive instances, and at most one child `View`. |
 
-```mermaid
-flowchart TB
-  Engine["Engine<br/>root injector"]
-  Engine --> CF["ComponentFactory"]
-  Engine --> VCF["ViewContainerRefFactory"]
+`engine.createComponent` is deprecated and will be removed. See
+[IMPROVEMENTS.md](../IMPROVEMENTS.md), "The engine's entry points".
 
-  subgraph ParentView["View of <tk-list> (one reactive watch)"]
-    PHost["host element &lt;tk-list&gt;"]
-    PInst["instance: List"]
-    PCInj["component injector<br/>(providers, Effects, RenderHooks)"]
-    PNodes["native nodes<br/>(rendered into the host)"]
-    subgraph Elem["native &lt;div list&gt;"]
-      EInj["element injector<br/>(directives, ElementRef,<br/>ViewContainerRef on demand)"]
-      EDir["directive instance: List"]
-      EAnchor["anchor comment<br/>(only if injected)"]
-    end
-    PNodes --> Elem
-    EInj --> EDir
-  end
+## Three ways a component is created
 
-  CF -->|creates| ParentView
-  Elem -->|"ElementContext"| PCtxt["ElementContext"]
-  PCtxt -->|"componentView"| ChildView
-
-  subgraph ChildView["View of <tk-item> (child, owned by the parent)"]
-    CHost["host element &lt;tk-item&gt;"]
-    CInst["instance: Item"]
-    CNodes["native nodes"]
-  end
-
-  VCF -->|creates, per element| VCR["ViewContainerRef"]
-  VCR -->|"anchor, inserted after the element"| EAnchor
-  VCR -->|"views, inserted before the anchor"| ChildView2["View of dynamic component"]
-  EInj -.->|"parent injector of the<br/>components it creates"| ChildView2
-```
-
-Read it like this: the `Engine` owns the factories. A component's `View` holds
-the native nodes it rendered, and an `ElementContext` for each element that has
-something on it. A `ViewContainerRef` has no nodes of its own beyond its anchor;
-the views it holds are placed next to that anchor.
-
-## Creating a component in a template
-
-The parent's `TemplateBuilder` builds the DOM first, then creates the
-components of its elements, in template order, so a parent is always
-created before its children.
-
-```mermaid
-sequenceDiagram
-  participant TB as TemplateBuilder (parent)
-  participant CF as ComponentFactory
-  participant DF as DirectiveFactory
-  participant Child as Child component
-  participant V as View (child)
-  participant W as Parent's watch
-
-  TB->>TB: build DOM for the whole template (native nodes, bindings)
-  TB->>DF: createOnElement(directives, element, parentView, parentInjector)
-  DF-->>TB: element injector, directive instances, host bindings
-  TB->>CF: create(Child, element, {parentInjector, parentView, bindInputs, ...})
-  CF->>CF: own injector (child of the element injector)
-  CF->>Child: inject(Child) in the component injector
-  CF->>CF: template.build(Child's template)
-  CF->>V: new View(host, instance, nodes)
-  CF->>Child: createDirectivesAndComponents for Child's own elements
-  CF-->>TB: View (child)
-  TB->>W: the child's host bindings join the parent's watch
-  Note over V,W: the child's own watch runs its own bindings
-```
-
-## Creating a component at runtime
-
-A `ViewContainerRef` creates components the same way, with no template in
-between: the host element is created from the selector, and the container
-inserts it before its anchor.
-
-```mermaid
-sequenceDiagram
-  participant D as Directive on <div list>
-  participant C as ViewContainerRef
-  participant CF as ComponentFactory
-  participant V as View (new)
-
-  D->>C: inject(ViewContainerRef) (made on first use: anchor inserted after the element)
-  D->>C: createComponent(Item)
-  C->>CF: create(Item, undefined, undefined, element injector)
-  CF->>V: new View (host created from the selector, detached)
-  C->>C: insert the host before the anchor, keep it in order
-  Note over C,V: the owner view's destroy clears the container,<br/>then removes the anchor
-```
-
-## Who destroys what
-
-Destroying a `View` destroys, in order: the views of the components on its
-elements, its own destroy callbacks (most recent first), and then its top-level
-nodes. Those callbacks are where the rest is cleaned up.
+Every component is created in one of three ways. Each one asks
+`ComponentFactory` to build it, and differs only in where the component's
+element comes from.
 
 ```mermaid
 flowchart LR
-  PV["parent View.destroy()"] --> CV["child Views<br/>(via ElementContexts)"]
-  PV --> CB["destroy callbacks<br/>(most recent first)"]
-  CB --> EI["element injectors<br/>(directives' onDestroy)"]
-  CB --> CI["component injectors"]
-  CB --> VC["ViewContainerRef.dispose()<br/>(clears its views, removes its anchor)"]
-  CB --> OUT["outputs completed"]
-  PV --> RN["top-level nodes removed from the host"]
+  subgraph Root["1. Root: bootstrap"]
+    R1["element already on the page"] --> RF["ComponentFactory<br/>builds inside it"]
+  end
+  subgraph Tpl["2. Template child"]
+    T1["element built by the parent's template"] --> TF["ComponentFactory<br/>builds inside it,<br/>with the parent's context"]
+  end
+  subgraph Run["3. Runtime: ViewContainerRef"]
+    V1["no element yet"] --> VF["ComponentFactory<br/>creates the element from the selector"]
+    VF --> VI["the container inserts it<br/>before its anchor"]
+  end
 ```
+
+1. **Root.** `engine.bootstrap(type)` finds the element on the page that
+   matches the component's selector, and renders the component into it. Nothing
+   is inserted: the element is already there.
+2. **Template child.** A parent's template contains `<tk-item>`. The parent's
+   `TemplateBuilder` builds that element first, then creates the component
+   inside it, passing the parent context: the parent's injector and the
+   parent's view, which owns the child.
+3. **Runtime.** A directive injects `ViewContainerRef` on its element, and
+   calls `createComponent(type)`. The factory creates the element from the
+   selector, and the container inserts it before its anchor, in order.
+
+Only the runtime case uses a container. A template child is built by its
+parent's template, and the root fills an element that is already there.
+
+## Where a component's element comes from
+
+`ComponentFactory.create` takes an optional host:
+
+- **With a host**, it builds the component inside that element (cases 1 and 2).
+- **Without one**, it creates the element from the component's selector, so
+  `tk-item` gives `<tk-item>` and `[item]` gives `<div item>` (case 3).
+
+The factory never inserts the element into the page. Whoever placed the
+component does that: the container, for case 3, and the template, for case 2.
+
+## Runtime components and their anchor
+
+A `ViewContainerRef` is a position in the page, marked by a comment node called
+its anchor. Each component it holds has its element placed just before the
+anchor, in the container's order.
+
+```mermaid
+sequenceDiagram
+  participant D as Directive on div list
+  participant C as ViewContainerRef
+  participant F as ComponentFactory
+  participant V as View
+
+  D->>C: inject(ViewContainerRef)
+  Note over C: the first injection adds the anchor<br/>right after div list
+  D->>C: createComponent(Item)
+  C->>F: create(Item), no host
+  F->>V: a View, with its element built from the selector
+  F-->>C: the ComponentRef
+  C->>C: insert the element before the anchor
+```
+
+The container doesn't create the element and doesn't create the anchor on its
+own: the factory builds the element, and the directive's element creates the
+anchor when a directive first injects the container. Nothing is added to the
+page for an element that never injects its container.
+
+## Who owns what
+
+Each `View` owns the things created for it, and destroying the owner destroys
+them. The owner is the view whose template contains the element:
+
+- A child component is owned by its parent's view.
+- A runtime component is owned by the view of the directive that injected the
+  container. When that view is destroyed, the container clears its components
+  and removes its anchor.
+- The root component is owned by nothing: destroy it through its `ComponentRef`.
+
+```mermaid
+flowchart TB
+  P["parent View"] -->|owns| C["child View"]
+  P -->|owns| K["ViewContainerRef (if injected)"]
+  K -->|owns| R["components added at runtime"]
+  P -->|destroy, then| N["its nodes are removed from the page"]
+```
+
+## Glossary
+
+- **Host**: the element a component is rendered into. Its `ElementRef` is
+  `ComponentRef.host`.
+- **Anchor**: the comment node that marks a container's position in the page.
+- **Parent context**: what a component gets from the component it sits in: the
+  parent injector and the parent view (`ParentContext` in the code).
+- **Slot content**: the children of a component's element, which its `<slot>`s
+  show.
 
 ## Notes for reading the code
 
-- **Two kinds of injector.** A component has its own injector, child of its
-  element's (for a component in a template) or of the engine's. Each element with
-  directives has an element injector, shared by its directives, child of the
-  enclosing element's. A `ViewContainerRef` created at an element uses that
-  element's injector as the parent of the components it creates.
-- **One reactive watch per view.** The parent's watch updates its own bindings,
-  including the host bindings of its child components on their host elements.
-  A child's watch updates the child's template.
-- **Elements are the unit of "something on it".** An element gets an
+- **Two kinds of injector.** A component has its own injector, which is a child
+  of its element's injector, or of the engine's for a root. Each element with
+  directives has an element injector, shared by its directives.
+- **One reactive watch per view.** A view's watch updates its template's
+  bindings, and the host bindings of its child components on their elements.
+- **Elements with nothing on them are plain.** An element gets an
   `ElementContext` only when a directive, a component or an event binding is on
-  it. A plain element has no context and no injector.
-- **Anchors cost nothing until used.** The comment that marks a container is
-  inserted the first time a directive injects its `ViewContainerRef`.
+  it.
