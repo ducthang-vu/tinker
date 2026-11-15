@@ -1,0 +1,41 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests with coverage (must be 100%)
+        run: npm run coverage
+
+      - name: Repo map tests
+        run: npm run test:repo-map
+
+      - name: Repo map is up to date
+        run: npm run repo-map:check
+
+      - name: Build
+        run: npm run build
