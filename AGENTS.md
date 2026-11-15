@@ -1,0 +1,54 @@
+# Instructions for AI agents
+
+These guidelines apply to every AI agent working on this repository, whatever
+tool runs it. They are guidance, not dogma: use common sense, and when a rule
+gets in the way of clear code, say why and do what reads best.
+[CLAUDE.md](CLAUDE.md) adds notes for Claude; read
+[CONVENTIONS.md](CONVENTIONS.md) before writing code and
+[IMPROVEMENTS.md](IMPROVEMENTS.md) before adding something it may already
+list.
+
+## Design
+
+Prefer the established patterns when they fit the problem, and name them in
+the code or in a doc comment so the next reader sees them.
+
+- **SOLID**, as a rule of thumb: a class or function should have one clear
+  job, and depend on an abstraction (an `InjectionToken`, an interface, a
+  factory) where the implementation may change. Extending a feature is usually
+  easier by adding code than by editing working code.
+- **Gang of Four** patterns where they fit: Factory (`ViewFactory`), Strategy
+  (interchangeable schedulers), Observer (`Stream`, `Emitter`), Composite
+  (the view tree), Decorator (`@final`, `@Effect`), Adapter (wrapping the DOM
+  in `Renderer`). Do not reach for a pattern the problem does not need.
+- **Composition over inheritance.** Classes that must not be subclassed are
+  marked `@final`.
+
+## Declarative style
+
+Where it reads well, say *what* a piece of logic yields rather than *how* to
+step through it.
+
+- Prefer transformations such as `map`, `flatMap`, `match`, `getOrElse` on
+  `Maybe`, `Either`, `Task` and `Stream`, and computed signals, when they make
+  the code shorter and clearer.
+- Business logic should read as a description. A plain `if` or a short loop
+  there is fine when it is the clearest option; avoid deep nesting and long
+  branching chains, and turn them into a table, a combinator or a named
+  function.
+- Flow control is most at home in the basic bricks: `Maybe`, `Either`,
+  `Stream`, `Task`, `Emitter`, `ChangeDetection`, the parser and the renderer.
+  Keep the branching there where it is reused.
+
+## Working in this repository
+
+- Run the checks before reporting a change as done: `npm test`,
+  `npm run coverage` (100% lines and branches), `npm run lint`,
+  `npm run typecheck`, `npm run build`. Report any failure with its output.
+- Regenerate the repo map after changing exports or imports:
+  `npm run repo-map -- --format markdown`.
+- Do not skip tests, or add a disable comment or coverage exclusion to get
+  green, without a clear reason written next to it.
+- Do not open pull requests, or push to `main`, unless the user asks.
+- Keep commits and pull request bodies free of model names, and end them with
+  the attribution lines the tool gives you.
