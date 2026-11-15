@@ -50,6 +50,7 @@ import type { Class } from "../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
 import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
+import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
@@ -183,6 +184,8 @@ export class ComponentFactory {
 
     const view = this.views.create(host, instance, rendered);
     view.addDestroyCallback(() => ownInjector.destroy());
+    // Its outputs are over when it is: the templates subscribed to them are told.
+    view.addDestroyCallback(() => endOutputs(instance));
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
     // In a template: its element's plain attributes set its inputs, before it renders.

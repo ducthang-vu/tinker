@@ -161,3 +161,11 @@ describe("InjectorRef", () => {
       .toHaveProperty("destroy");
   });
 });
+
+describe("Injector is final", () => {
+  test("a subclass cannot be created", () => {
+    class Mine extends Injector {}
+    expect(() => new Mine())
+      .toThrow("Injector is final: it cannot be subclassed");
+  });
+});

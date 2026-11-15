@@ -41,6 +41,7 @@
 import { inject, Injectable } from "../../di/index.ts";
 import { type OnCleanup, type Watch, watch } from "../../signals/index.ts";
 import { runAll } from "../../utils/run-all.ts";
+import { final } from "../../utils/final.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 
 /** What an effect's function receives on each run. */
@@ -61,8 +62,12 @@ export type EffectFn = (context: EffectContext) => void;
  * Creates effects in the engine's change detection. Each component has its
  * own (provided in its injector), the engine has one for services: the
  * effects created through it are destroyed when its injector is.
+ *
+ * Final: it cannot be subclassed. Subclasses could override what registers and
+ * stops effects, and break the lifetime rules. Compose it instead.
  */
 @Injectable()
+@final
 export class Effects {
   private readonly changeDetection = inject(ChangeDetection);
   /** The effects created here and not destroyed yet. */

@@ -44,7 +44,9 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 
 - Standard TC39 decorators (not TypeScript's experimental ones).
 - Classes with static factories; private constructors where possible.
-- Composition over inheritance.
+- Composition over inheritance. A class that must not be subclassed (its
+  guarantees depend on it) is marked `@final` (`src/utils/final.ts`): a
+  subclass throws at creation.
 - Dependencies with `inject()` only: no constructor injection, and no
   Service Locator in the public API.
 - No `any` (`strict` already forbids implicit ones). Prefer a precise type,
