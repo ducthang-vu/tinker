@@ -6,13 +6,22 @@ import { inject, Injectable } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
+import type { Expression } from "../template/expression.ts";
 import type { Interpolation } from "../template/interpolation.ts";
+import { inputsNamed } from "../authoring/input.ts";
+import { ClassBinding } from "./class-binding.ts";
+import { InputBinder } from "./input-binder.ts";
 import { RENDERER } from "../tokens.ts";
 
 /**
  * Creates the bindings of templates, with the app's renderer. One method
  * per kind of binding: today `{{ }}` texts, later `[prop]` bindings.
  */
+/** Something the view's watch keeps up to date: it calls `update()` on each run. */
+export interface Binding {
+  update(): void;
+}
+
 @Injectable()
 export class BindingFactory {
   private readonly renderer = inject(RENDERER);
@@ -20,6 +29,40 @@ export class BindingFactory {
   /** A binding showing `interpolation`, evaluated against `component`, in `node`. */
   text(node: Text, interpolation: Interpolation, component: object): TextBinding {
     return new TextBinding(node, interpolation, component, this.renderer);
+  }
+
+  /**
+   * A binding setting the inputs named `name` of `instances` (the directives
+   * and component on element `<elementName>`) to `expression`, read from
+   * `context`. Throws if none of them has such an input.
+   */
+  inputs(
+    name: string,
+    expression: Expression,
+    context: object,
+    instances: readonly object[],
+    elementName: string,
+  ): InputBinder {
+    const targets = inputsNamed(instances, name);
+    if (targets.length === 0) {
+      throw new Error(
+        `[${name}] on <${elementName}>: no directive or component on this element has an input "${name}"`,
+      );
+    }
+    return new InputBinder(targets, expression, context);
+  }
+
+  /**
+   * A binding turning class `name` of `element` on while `expression`,
+   * read from `context`, is truthy.
+   */
+  classToggle(
+    element: Element,
+    name: string,
+    expression: Expression,
+    context: object,
+  ): ClassBinding {
+    return new ClassBinding(element, name, expression, context, this.renderer);
   }
 }
 

@@ -50,15 +50,43 @@ injector (which stops its effects and cancels its hooks).
 
 ## Components
 
-### 1. A component's own `onDestroy()` is never called
+### 1. Dynamic components do not know where they are
 
-**Problem.** Services and directives are created by an injector, which calls
-their `onDestroy()` when it is destroyed. A component is created with
-`new type()` inside its injector's context, not by the injector, so an
-`onDestroy()` method on a component never runs. It can clean up through its
-`Effects` and `RenderHooks`, but not with a plain method, as with Angular's
-`ngOnDestroy`.
+**Problem.** A `ViewContainerRef` comes from `engine.createViewContainer(anchor)`,
+and the components it creates get an injector whose parent is the engine's,
+wherever the anchor is. A container inside a component's template, e.g. a
+directive in `<tk-list>` adding `<tk-item>`s at runtime, then creates items
+that:
 
-**To do.** Provide the component in its own injector and create it with
-`inject(type)`, like host directives: its injector then calls its
-`onDestroy()` when the view is destroyed.
+- cannot inject what is around them: not the list's providers (`ListStore`),
+  not `List` itself, not the directive next to them; worse, if the engine
+  also provides that token, they silently get the engine's instance;
+- outlive the list: they are not part of the list's view, so destroying the
+  list leaves them alive (effects still running) unless `container.clear()`
+  is called by hand.
+
+**To do.** As in Angular, let a directive inject its container:
+`inject(ViewContainerRef)` gives a container at the directive's element,
+which carries its place:
+
+- its parent injector is that element's injector, so created components
+  inject what surrounds them;
+- its owner view is the view of the template it is in, so created
+  components are destroyed with it.
+
+`engine.createViewContainer(anchor)` stays for containers outside any
+component (e.g. at the top of a page), with the engine's injector.
+
+### 2. Recursive components cannot be written, and are banned
+
+**Problem.** `imports` is evaluated when the decorator runs, before the
+class exists: a component cannot import itself, nor two components each
+other. And `ComponentFactory` bans a component containing itself (it would
+never stop creating). So a tree (a node component rendering its children
+as nodes) cannot be built.
+
+**To do.** Accept forward references in `imports` (`ForwardRef.of(() =>
+TreeNode)`, which `src/utils` already has), and allow recursion once
+templates can stop it: with `@if` / `@for`, a node renders children only
+while there are some. Keep the ban for a component that always contains
+itself.

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
 import { type CompiledElement, compileTemplate } from "./compile.ts";
 import { Selector } from "./selector.ts";
+import { Maybe } from "../../functional/index.ts";
 import { ExpressionParser } from "./expression.ts";
 
 describe("compileTemplate", () => {
@@ -29,6 +30,9 @@ describe("compileTemplate", () => {
             },
           ],
           directives: [],
+          component: Maybe.none(),
+          classBindings: [],
+          inputBindings: [],
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
       ]);
@@ -68,13 +72,74 @@ describe("compileTemplate", () => {
       .toEqual([]);
   });
 
-  test("throws for an element matching a component: not supported yet", () => {
+  test("sorts attributes: plain ones, and class bindings with their expression", () => {
+    const [p] = compileTemplate([
+      element("p", { "class": "note", "[class.done]": "todo.done()", "title": "x" }),
+    ]) as CompiledElement[];
+    expect(p!.attributes)
+      .toEqual([{ name: "class", value: "note" }, { name: "title", value: "x" }]);
+    expect(p!.classBindings)
+      .toEqual([{ name: "done", expression: ExpressionParser.parse("todo.done()")
+        .getOrThrow() }]);
+  });
+
+  test("sorts input bindings apart, with their expression", () => {
+    class Item {}
+    const [host] = compileTemplate(
+      [element("tk-item", { "[label]": "item().name", "[class.done]": "done" })],
+      [{ type: Item, selector: selector("tk-item"), isComponent: true }],
+    ) as CompiledElement[];
+    expect(host!.inputBindings)
+      .toEqual([{ name: "label", expression: ExpressionParser.parse("item().name")
+        .getOrThrow() }]);
+    expect(host!.classBindings.map(({ name }) => name))
+      .toEqual(["done"]);
+  });
+
+  test("rejects other binding syntax, and invalid class binding expressions", () => {
+    expect(() => compileTemplate([element("button", { "(click)": "go()" })]))
+      .toThrow(`Bindings are not supported yet: "(click)" on <button>`);
+    expect(() => compileTemplate([element("p", { "[style.color]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[style.color]" on <p>`);
+    expect(() => compileTemplate([element("p", { "[title]": "t" })]))
+      .toThrow(
+        "[title] on <p>: only inputs can be bound, and no imported directive or component matches this element",
+      );
+    expect(() => compileTemplate([element("p", { "[class.on]": "a(1)" })]))
+      .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [class.on] on <p>`);
+  });
+
+  test("an element matching a component is its host, and keeps its directives", () => {
     class Child {}
+    class Tooltip {}
+    const [host] = compileTemplate(
+      [element("tk-child", { tip: "" }, [{ kind: "text", value: "  " }])],
+      [
+        { type: Child, selector: selector("tk-child"), isComponent: true },
+        { type: Tooltip, selector: selector("[tip]"), isComponent: false },
+      ],
+    ) as CompiledElement[];
+    expect(host!.component.getOrElse(undefined))
+      .toBe(Child);
+    expect(host!.directives)
+      .toEqual([Tooltip]);
+    expect(host!.children) // whitespace only: no content of its own
+      .toEqual([]);
+  });
+
+  test("throws for content inside a component's element, or two components on one", () => {
+    class Child {}
+    class Other {}
+    const child = { type: Child, selector: selector("tk-child"), isComponent: true };
+    expect(() => compileTemplate([element("tk-child", {}, [{ kind: "text", value: "Milk" }])], [child]))
+      .toThrow("Content inside <tk-child> is not supported yet: Child renders its own template");
+    expect(() => compileTemplate([element("tk-child", {}, [element("b", {})])], [child]))
+      .toThrow("Content inside <tk-child> is not supported yet");
     expect(() => compileTemplate(
-      [element("div", {}, [element("tk-child", {})])],
-      [{ type: Child, selector: selector("tk-child"), isComponent: true }],
+      [element("tk-child", {})],
+      [child, { type: Other, selector: selector("tk-child"), isComponent: true }],
     ))
-      .toThrow("Components in templates are not supported yet: <tk-child> matches Child");
+      .toThrow("<tk-child> matches several components: Child, Other");
   });
 });
 

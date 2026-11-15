@@ -265,14 +265,14 @@ describe("imports errors", () => {
       .toThrow(`Nested, imported by A: Unsupported selector "div p"`);
   });
 
-  test("a component used in a template is reported as not supported yet", () => {
+  test("content inside a component's element is reported as not supported yet", () => {
     @Component({ selector: "tk-child", template: "" })
     class Child {}
-    @Component({ selector: "tk-a", template: "<tk-child></tk-child>", imports: [Child] })
+    @Component({ selector: "tk-a", template: "<tk-child>Milk</tk-child>", imports: [Child] })
     class A {}
     expect(() => Engine.create()
       .createComponent(A))
-      .toThrow("Components in templates are not supported yet: <tk-child> matches Child");
+      .toThrow("Content inside <tk-child> is not supported yet: Child renders its own template");
   });
 });
 
