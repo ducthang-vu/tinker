@@ -65,7 +65,11 @@ export interface InputBindingNode {
   readonly expression: Expression;
 }
 
-/** An output binding: the handler runs for each value of the outputs `name`. */
+/**
+ * An event binding: the handler runs for each value of the outputs `name` of
+ * the element's directives and component, and for each DOM event `name` on the
+ * element (both, when both exist).
+ */
 export interface OutputBindingNode {
   readonly name: string;
   readonly method: string;
@@ -134,12 +138,6 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     throw new Error(
       `[${inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
       + "and no imported directive or component matches this element",
-    );
-  }
-  if (outputBindings.length > 0 && directives.length === 0 && component.isNone()) {
-    throw new Error(
-      `(${outputBindings[0]!.name}) on <${node.name}>: only outputs of directives and components `
-      + "can be bound, and no imported directive or component matches this element",
     );
   }
   return {
