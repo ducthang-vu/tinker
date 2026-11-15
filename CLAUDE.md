@@ -1,0 +1,34 @@
+# Tinker: notes for Claude
+
+Tinker is a learning frontend framework in TypeScript, modelled on Angular:
+signals, dependency injection, components and directives, change detection.
+
+## Before exploring the code
+
+Run `npm run repo-map -- --format markdown` and read `.repo-map.md`: one
+line per file (its imports), and one line per exported name (its signature).
+It is about a quarter of the size of the generated declarations, so it is the
+cheapest way to find where something lives. The file is gitignored, so
+regenerate it after changing exports or imports.
+
+## Layout
+
+- `src/signals`, `src/di`, `src/view`, `src/functional`: the four modules, each
+  with a public `index.ts`. `src/index.ts` re-exports them as `tinker`.
+- `src/utils`: shared helpers. `examples/basics`: the demo the root page opens.
+- `scripts/`: the repo-map generator and its tests.
+
+## Commands
+
+- `npm test`, `npm run coverage`: tests; coverage must stay at 100% lines and branches.
+- `npm run typecheck`, `npm run build`: these run TypeScript 7 (`typescript7`).
+  Do not use a bare `npx tsc`: it runs TypeScript 6 (the `typescript` package,
+  used only by ESLint's parser).
+- `npm run lint` and `npm run format`: ESLint is the only formatter. Every
+  chain of calls is split with one call per line.
+
+## Conventions
+
+Read `CONVENTIONS.md` before writing code (DI and factories, no `any`,
+`Maybe`/`Either`, tests next to their files). `IMPROVEMENTS.md` lists known
+gaps and planned work; check it before adding something it already covers.
