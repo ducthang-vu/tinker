@@ -3,7 +3,7 @@
 Known limitations, written down so they are not forgotten. Each entry says
 what the problem is, why it matters, and what to do.
 
-## Change detection (`src/view/runtime/change-detection.ts`, its schedulers)
+## Change detection (`src/view/internal/runtime/change-detection.ts`, its schedulers)
 
 A change detection cycle runs in a microtask: every signal write made in the
 same task (an event handler, a fetch callback) leads to one cycle, before the
@@ -31,7 +31,7 @@ inconsistent state.
 **To do.** When child components exist, run the queue in tree order (parents
 first), e.g. by sorting each batch by view depth.
 
-## Effects and render hooks (`src/view/authoring/effects.ts`, `render-hooks.ts`)
+## Effects and render hooks (`src/view/internal/authoring/effects.ts`, `render-hooks.ts`)
 
 ### 1. Stop the engine's own effects and hooks
 
@@ -96,7 +96,7 @@ templates can stop it: with `@if` / `@for`, a node renders children only
 while there are some. Keep the ban for a component that always contains
 itself.
 
-## The engine's entry points (`src/view/engine.ts`, `src/view/factories/component-factory.ts`)
+## The engine's entry points (`src/view/internal/engine.ts`, `src/view/internal/factories/component-factory.ts`)
 
 ### 1. `engine.createComponent` is deprecated; remove it
 
