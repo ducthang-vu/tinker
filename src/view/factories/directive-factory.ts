@@ -15,14 +15,14 @@
 // updates it (see ComponentFactory).
 
 import { inject, Injectable, Injector, provide, runInInjectionContext } from "../../di/index.ts";
-import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
-import { inputsOf } from "../authoring/input.ts";
+import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
+import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
@@ -32,6 +32,7 @@ import { HostBindings } from "./host-bindings.ts";
 export class DirectiveFactory {
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
+  private readonly bindingFactory = inject(BindingFactory);
   private readonly injector = inject(Injector);
   /** Parsed host bindings, per class: each `host` option is parsed only once. */
   private readonly hostBindings = new WeakMap<Class<unknown>, HostBindings>();
@@ -65,7 +66,12 @@ export class DirectiveFactory {
     view: View<unknown>,
     parent: Injector,
     attributes: readonly AttributeNode[] = [],
-  ): { readonly injector: Injector; readonly instances: readonly object[] } {
+  ): {
+    readonly injector: Injector;
+    readonly instances: readonly object[];
+    /** The directives' host bindings, for the view's watch to update. */
+    readonly bindings: readonly Binding[];
+  } {
     const elementInjector = Injector.create({
       providers: [
         ...types,
@@ -77,13 +83,14 @@ export class DirectiveFactory {
       parent,
     });
     view.addDestroyCallback(() => elementInjector.destroy());
+    const bindings: Binding[] = [];
     const instances = types.map((type) => {
       const instance = runInInjectionContext(elementInjector.injector, () => inject(type));
-      this.attach(type, instance, element, view);
-      bindAttributes(instance, attributes);
+      bindings.push(...this.attach(type, instance, element, view));
+      bindInputsToAttributes(instance, attributes);
       return instance;
     });
-    return { injector: elementInjector.injector, instances };
+    return { injector: elementInjector.injector, instances, bindings };
   }
 
   /**
@@ -105,7 +112,7 @@ export class DirectiveFactory {
     instance: T,
     element: Element,
     view: View<unknown>,
-  ): void {
+  ): Binding[] {
     const context = this.contexts.getOrCreate(element);
     context.addDirective(instance);
     view.addDestroyCallback(() => {
@@ -113,18 +120,24 @@ export class DirectiveFactory {
       this.contexts.forgetIfEmpty(context);
     });
     view.addInputs(instance, inputsOf(instance));
-    this.applyHost(type, instance, element, view);
+    return this.applyHost(type, instance, element, view);
   }
 
-  /** Apply the host bindings of `type` for `instance` on `element`, until `view` is destroyed. */
+  /**
+   * Apply the host bindings of `type` for `instance` on `element`, until
+   * `view` is destroyed: its listeners now, and its class bindings returned,
+   * for the view's watch to update (they read `instance`).
+   */
   applyHost<T extends object>(
     type: Class<T>,
     instance: T,
     element: Element,
     view: View<unknown>,
-  ): void {
-    this.hostBindingsOf(type)
-      .attach(instance, element, this.renderer, view);
+  ): Binding[] {
+    const hostBindings = this.hostBindingsOf(type);
+    hostBindings.attach(instance, element, this.renderer, view);
+    return hostBindings.classes.map(({ name, expression }) =>
+      this.bindingFactory.classToggle(element, name, expression, instance));
   }
 
   private hostBindingsOf(type: Class<unknown>): HostBindings {
@@ -134,18 +147,5 @@ export class DirectiveFactory {
       this.hostBindings.set(type, bindings);
     }
     return bindings;
-  }
-}
-
-/**
- * Bind each input of `instance` named like a plain attribute to the
- * attribute's value (compared case-insensitively: the browser's parser
- * lowercases attribute names).
- */
-function bindAttributes(instance: object, attributes: readonly AttributeNode[]): void {
-  const inputs = [...inputsOf(instance)];
-  for (const attribute of attributes) {
-    Maybe.fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
-      .ifSome(([, input]) => input.bind(attribute.value));
   }
 }

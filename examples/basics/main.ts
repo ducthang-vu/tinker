@@ -5,8 +5,10 @@
 //   it on click; the template shows the store's signals with {{ }}.
 // - <tk-clock> ticks with an effect, which clears its interval when the
 //   clock is destroyed, and logs its first render with a render hook.
-// - [highlight] and [tooltip] work on any element: through the RENDERER
-//   and ElementRef, with inputs set from plain attributes.
+// - [highlight] toggles a class on any element with a host class binding;
+//   [tooltip] sets its title through the RENDERER and ElementRef, with an
+//   input set from a plain attribute. The counter's paragraph turns red
+//   below zero with a template class binding.
 
 import { inject, Injectable } from "../../src/di/index.ts";
 import { computed, signal } from "../../src/signals/index.ts";
@@ -26,6 +28,7 @@ import {
 class CounterStore {
   readonly count = signal(0);
   readonly parity = computed(() => (this.count() % 2 === 0 ? "even" : "odd"));
+  readonly negative = computed(() => this.count() < 0);
 
   add(amount: number): void {
     this.count.update((count) => count + amount);
@@ -44,20 +47,28 @@ class Step {
   }
 }
 
-/** Colours its element's background while the pointer is over it. */
-@Directive({ selector: "[highlight]", host: { "(mouseenter)": "on()", "(mouseleave)": "off()" } })
+/**
+ * Marks its element as highlighted while the pointer is over it: a host
+ * class binding follows the `hovered` signal; the colour is CSS's business
+ * (the `--highlight` variable, set per element in the template).
+ */
+@Directive({
+  selector: "[highlight]",
+  host: {
+    "[class.highlighted]": "hovered()",
+    "(mouseenter)": "enter()",
+    "(mouseleave)": "leave()",
+  },
+})
 class Highlight {
-  private readonly host = inject(ElementRef<HTMLElement>);
-  private readonly renderer = inject(RENDERER);
-  /** From the `color` attribute, if any. */
-  readonly color = input("gold");
+  readonly hovered = signal(false);
 
-  on(): void {
-    this.renderer.setStyle(this.host.nativeElement, "background-color", this.color());
+  enter(): void {
+    this.hovered.set(true);
   }
 
-  off(): void {
-    this.renderer.removeStyle(this.host.nativeElement, "background-color");
+  leave(): void {
+    this.hovered.set(false);
   }
 }
 
@@ -79,10 +90,10 @@ class Tooltip {
   selector: "tk-counter",
   template: `
     <h2>Counter</h2>
-    <p highlight>Count: {{ store.count() }} ({{ store.parity() }})</p>
-    <button step="-1" highlight tooltip="Remove one">-1</button>
-    <button step="1" highlight color="lightgreen" tooltip="Add one">+1</button>
-    <button step="10" highlight color="lightblue" tooltip="Add ten">+10</button>
+    <p highlight [class.negative]="store.negative()">Count: {{ store.count() }} ({{ store.parity() }})</p>
+    <button step="-1" highlight style="--highlight: #ffd7d7" tooltip="Remove one">-1</button>
+    <button step="1" highlight style="--highlight: lightgreen" tooltip="Add one">+1</button>
+    <button step="10" highlight style="--highlight: lightblue" tooltip="Add ten">+10</button>
   `,
   imports: [Step, Highlight, Tooltip],
   providers: [CounterStore],
@@ -95,7 +106,7 @@ class Counter {
   selector: "tk-clock",
   template: `
     <h2>Clock</h2>
-    <p highlight color="lavender" tooltip="Updated every second">{{ time() }}</p>
+    <p highlight style="--highlight: lavender" tooltip="Updated every second">{{ time() }}</p>
   `,
   imports: [Highlight, Tooltip],
 })

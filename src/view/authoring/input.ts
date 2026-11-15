@@ -127,3 +127,30 @@ export function inputsOf(directive: object): ReadonlyMap<string, InputBinding<un
   }
   return inputs;
 }
+
+/**
+ * Bind each input of `instance` named like one of `attributes` (plain
+ * attributes of its element) to the attribute's value. Names are compared
+ * case-insensitively: the browser's parser lowercases attribute names.
+ */
+export function bindInputsToAttributes(
+  instance: object,
+  attributes: readonly { readonly name: string; readonly value: string }[],
+): void {
+  const inputs = [...inputsOf(instance)];
+  for (const attribute of attributes) {
+    Maybe.fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
+      .ifSome(([, input]) => input.bind(attribute.value));
+  }
+}
+
+/**
+ * The inputs named `name` (case-insensitively: the browser's parser
+ * lowercases attribute names) among those of `instances`, e.g. the
+ * directives and the component on one element.
+ */
+export function inputsNamed(instances: readonly object[], name: string): InputBinding<unknown>[] {
+  return instances.flatMap((instance) => [...inputsOf(instance)]
+    .filter(([inputName]) => inputName.toLowerCase() === name.toLowerCase())
+    .map(([, input]) => input));
+}

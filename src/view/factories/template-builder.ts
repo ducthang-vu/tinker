@@ -14,10 +14,12 @@
 import { inject, Injectable, type Injector } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
-import { BindingFactory, type TextBinding } from "../runtime/text-binding.ts";
+import { ClassBinding } from "../runtime/class-binding.ts";
+import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
 import { RENDERER } from "../tokens.ts";
+import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
@@ -27,18 +29,22 @@ export class TemplateBuilderFactory {
   private readonly bindingFactory = inject(BindingFactory);
   private readonly directiveFactory = inject(DirectiveFactory);
 
-  /** A builder for the template of `component`. */
-  create(component: object): TemplateBuilder {
+  /**
+   * A builder for the template of `component`, creating the components in
+   * its template with `components` (the ComponentFactory building `component`).
+   */
+  create(component: object, components: ComponentFactory): TemplateBuilder {
     return new TemplateBuilder(
       component,
       this.renderer,
       this.bindingFactory,
       this.directiveFactory,
+      components,
     );
   }
 }
 
-/** An element built with directives, waiting for `createDirectives`. */
+/** An element built with directives or a component, waiting for its view. */
 interface ElementWithDirectives {
   readonly element: Element;
   readonly node: CompiledElement;
@@ -47,8 +53,12 @@ interface ElementWithDirectives {
 }
 
 export class TemplateBuilder {
-  /** The bindings created by `build`, in template order. */
-  private readonly bindings: TextBinding[] = [];
+  /**
+   * The bindings the view's watch updates: the template's (text and class
+   * bindings, in template order), then the host bindings of its directives
+   * and of the component.
+   */
+  private readonly bindings: Binding[] = [];
   /** The elements with directives, in template order (parents before children). */
   private readonly withDirectives: ElementWithDirectives[] = [];
   /** While building: the enclosing elements with directives (their indexes). */
@@ -59,12 +69,14 @@ export class TemplateBuilder {
    * @param renderer Creates the DOM nodes.
    * @param bindingFactory Creates the bindings.
    * @param directiveFactory Creates the directives of the elements.
+   * @param components Creates the components of the elements.
    */
   constructor(
     private readonly component: object,
     private readonly renderer: Renderer,
     private readonly bindingFactory: BindingFactory,
     private readonly directiveFactory: DirectiveFactory,
+    private readonly components: ComponentFactory,
   ) {}
 
   /** Build the DOM for `nodes` (and their children), collecting their bindings. */
@@ -73,22 +85,63 @@ export class TemplateBuilder {
   }
 
   /**
-   * Create the directives of the elements built, once their view exists: in
-   * template order, each element in its own injector, child of the
-   * enclosing element's (or of `componentInjector`), so a directive can
-   * inject the directives of its element and of its ancestors.
+   * Create the directives and components of the elements built, once their
+   * view exists: in template order (parents first). An element's directives
+   * get its own injector, child of the enclosing element's (or of
+   * `componentInjector`), so they can inject the directives of their element
+   * and of its ancestors. Then the element's component, if any, is created
+   * there, so it can inject them too; `view` owns it.
    */
-  createDirectives(view: View<unknown>, componentInjector: Injector): void {
+  createDirectivesAndComponents(view: View<unknown>, componentInjector: Injector): void {
     const injectors: Injector[] = [];
     for (const { element, node, parent } of this.withDirectives) {
       const parentInjector = parent.match({
         some: (index) => injectors[index]!,
         none: () => componentInjector,
       });
-      const { injector } = this.directiveFactory
-        .createOnElement(node.directives, element, view, parentInjector, node.attributes);
+      // Host bindings on this element (its directives', its component's) join
+      // this view's watch, except for the classes this template binds on it:
+      // the template's own binding takes precedence.
+      const boundHere = new Set(node.classBindings.map(({ name }) => name));
+      const hostBindings = (bindings: readonly Binding[]) => this.addBindings(bindings
+        .filter((binding) => !(binding instanceof ClassBinding && boundHere.has(binding.name))));
+      let injector = parentInjector;
+      let directives: readonly object[] = [];
+      if (node.directives.length > 0) {
+        const created = this.directiveFactory
+          .createOnElement(node.directives, element, view, parentInjector, node.attributes);
+        injector = created.injector;
+        directives = created.instances;
+        hostBindings(created.bindings);
+      }
+      // Input bindings set the inputs of the element's directives and
+      // component: their first values now (before the component's first
+      // render), then this view's watch keeps them up to date.
+      const bindInputs = (instances: readonly object[]) => {
+        const binders = node.inputBindings.map(({ name, expression }) =>
+          this.bindingFactory.inputs(name, expression, this.component, instances, node.name));
+        for (const binder of binders) {
+          binder.update();
+        }
+        this.addBindings(binders);
+      };
+      node.component.match({
+        some: (type) => this.components.create(type, element, {
+          parentInjector: injector,
+          parentView: view,
+          attributes: node.attributes,
+          adoptHostBindings: hostBindings,
+          bindInputs: (component) => bindInputs([...directives, component]),
+        }),
+        none: () => bindInputs(directives),
+      });
       injectors.push(injector);
     }
+  }
+
+  /** Add bindings for the view's watch to update too (e.g. host bindings). */
+  addBindings(bindings: readonly Binding[]): void {
+    this.bindings.push(...bindings);
   }
 
   /** Evaluate every binding, in template order, writing to the DOM what changed. */
@@ -111,10 +164,11 @@ export class TemplateBuilder {
     }
     const element = this.renderer.createElement(node.name);
     for (const attribute of node.attributes) {
-      if (/^[[(]/.test(attribute.name)) {
-        throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
-      }
       this.renderer.setAttribute(element, attribute.name, attribute.value);
+    }
+    for (const { name, expression } of node.classBindings) {
+      this.bindings.push(this.bindingFactory
+        .classToggle(element, name, expression, this.component));
     }
     const index = this.recordDirectives(element, node);
     for (const child of this.build(node.children)) {
@@ -124,9 +178,12 @@ export class TemplateBuilder {
     return element;
   }
 
-  /** If `node` has directives, remember its element (and enter it, for its children). */
+  /**
+   * If `node` has directives or a component, remember its element (and
+   * enter it, for its children).
+   */
   private recordDirectives(element: Element, node: CompiledElement): Maybe<number> {
-    if (node.directives.length === 0) {
+    if (node.directives.length === 0 && node.component.isNone()) {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));

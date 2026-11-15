@@ -72,8 +72,15 @@ module; each module also lists its own in its `index.ts`.
   (child of the engine's), which holds their `providers` and their
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language
-  (fields and calls: `user().name`). The component's `imports` list the
-  directives its template may use, matched by CSS-like selectors.
+  (fields and calls: `user().name`), class bindings
+  (`[class.done]="todo.done()"`) and input bindings (`[label]="item().name"`,
+  setting an input of a child component or a directive on that element).
+  The component's `imports` list the
+  directives and components its template may use, matched by CSS-like
+  selectors; a component in a template gets its own injector, child of its
+  element's, so it can inject its parent.
+- **Host bindings** on directives and components: listeners
+  (`"(click)": "toggle()"`) and class bindings (`"[class.open]": "isOpen()"`).
 - **Directives** on an element share an element injector, so they can inject
   each other and their ancestors. Inputs are signals (`input()`); plain
   attributes bind them.
@@ -104,12 +111,15 @@ it is on purpose.
   plain field changed in a click handler does not update the view: make it a
   signal.
 - **No `ngOnInit` or `ngOnChanges`.** Inputs are signals, so what depends on
-  them is a `computed`. Services and directives clean up in an `onDestroy()`
-  method, called by the injector that created them; a component cleans up
-  through its `Effects` and `RenderHooks`, which stop when it is destroyed.
+  them is a `computed`. Components, directives and services clean up in an
+  `onDestroy()` method, called by the injector that created them.
 - **Inputs are required unless they have a default.** `input<string>()`
   throws if read before it is bound, and `input("top")` is optional: the
   reverse of Angular's `input()` and `input.required()`.
+- **`[name]` binds inputs only.** It sets the input `name` of the directives
+  and component on the element, never a DOM property: `[title]` on a plain
+  `<p>` is an error, not a write to `p.title`. Input names match
+  case-insensitively, since the browser's parser lowercases them.
 - **Multi tokens are declared once, on the token.**
   `InjectionToken.multi<Validator>("VALIDATORS")` instead of `multi: true` on
   every provider: `inject()` is typed as a list, a provider as one item, and
@@ -209,5 +219,7 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: components inside templates, `[prop]` and `(event)` bindings in
-templates, queries (`viewChild`), `@if` / `@for`, and `engine.destroy()`.
+Not there yet: `[style.x]`, `[attr.x]` and `(event)` bindings in templates
+(class and input bindings are there), content
+projection (content inside a component's element), queries (`viewChild`),
+`@if` / `@for`, recursive components, and `engine.destroy()`.
