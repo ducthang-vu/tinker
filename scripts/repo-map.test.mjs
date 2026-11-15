@@ -23,12 +23,12 @@ test("builds a deterministic graph of files, imports, and exported symbols", () 
     );
     writeFileSync(
       path.join(rootDir, "src", "math.ts"),
-      "/** Adds two numbers. */\nexport function add(a: number, b: number): number {\n" +
-        "  return a + b;\n}\n",
+      "/** Adds two numbers. */\nexport function add(a: number, b: number): number {\n"
+      + "  return a + b;\n}\n",
     );
     writeFileSync(
       path.join(rootDir, "src", "index.ts"),
-      'export { add } from "./math";\nimport { readFile } from "node:fs";\n',
+      "export { add } from \"./math\";\nimport { readFile } from \"node:fs\";\n",
     );
     writeFileSync(
       path.join(rootDir, "src", "math.test.ts"),
@@ -112,7 +112,44 @@ test("renders a compact Markdown view with imports and exported API", () => {
   const markdown = renderRepoMapMarkdown(graph);
 
   assert.match(markdown, /files:2 symbols:1 external:1/);
-  assert.match(markdown, /src\\/index\\.ts \\| <- pkg:node:fs,src\\/math\\.ts \\| -> add:\\(a: number, b: number\\) => number@src\\/math\\.ts/);
+  assert.match(markdown, /^src\/index\.ts <- pkg:node:fs,src\/math\.ts$/m);
+  assert.match(markdown, /^  add: \(a: number, b: number\) => number@src\/math\.ts$/m);
   assert.doesNotMatch(markdown, /Adds two numbers/);
   assert.match(renderRepoMapMarkdown(graph, { includeDocs: true }), /Adds two numbers/);
+});
+
+test("keeps each export on its own line, whatever its signature or docs contain", () => {
+  const graph = {
+    schemaVersion: 2,
+    nodes: [
+      { id: "file:src/x.ts", type: "file", path: "src/x.ts" },
+      {
+        id: "symbol:src/x.ts#over",
+        type: "symbol",
+        name: "over",
+        kind: "VariableDeclaration",
+        definedIn: "src/x.ts",
+        signature: "{ <T>(a: T): T;\n  <T>(b: T): T; }",
+        documentation: "Two\nlines; with | pipes.",
+      },
+      {
+        id: "symbol:src/x.ts#union",
+        type: "symbol",
+        name: "union",
+        kind: "TypeAliasDeclaration",
+        definedIn: "src/x.ts",
+        signature: "string | undefined",
+      },
+    ],
+    edges: [
+      { from: "file:src/x.ts", to: "symbol:src/x.ts#over", type: "exports" },
+      { from: "file:src/x.ts", to: "symbol:src/x.ts#union", type: "exports" },
+    ],
+  };
+
+  const markdown = renderRepoMapMarkdown(graph, { includeDocs: true });
+
+  assert.match(markdown, /^  over: \{ <T>\(a: T\): T; <T>\(b: T\): T; \}$/m);
+  assert.match(markdown, /^    Two lines; with \| pipes\.$/m);
+  assert.match(markdown, /^  union: string \| undefined$/m);
 });

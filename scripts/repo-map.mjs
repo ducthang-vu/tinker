@@ -18,26 +18,29 @@ const TEST_SUFFIXES = [
 ];
 
 function toRepoPath(rootDir, fileName) {
-  return path.relative(rootDir, fileName).split(path.sep).join("/");
+  return path.relative(rootDir, fileName)
+    .split(path.sep)
+    .join("/");
 }
 
 function isWithinRoot(rootDir, fileName) {
   const relativePath = path.relative(rootDir, fileName);
 
-  return relativePath === "" ||
-    (!relativePath.startsWith(`..${path.sep}`) &&
-      relativePath !== ".." &&
-      !path.isAbsolute(relativePath));
+  return relativePath === ""
+    || (!relativePath.startsWith(`..${path.sep}`)
+      && relativePath !== ".."
+      && !path.isAbsolute(relativePath));
 }
 
 function isIncludedSourceFile(rootDir, sourceFile) {
   const fileName = path.resolve(sourceFile.fileName);
   const repoPath = toRepoPath(rootDir, fileName);
 
-  return isWithinRoot(rootDir, fileName) &&
-    !sourceFile.isDeclarationFile &&
-    !repoPath.split("/").includes("node_modules") &&
-    !TEST_SUFFIXES.some((suffix) => repoPath.endsWith(suffix));
+  return isWithinRoot(rootDir, fileName)
+    && !sourceFile.isDeclarationFile
+    && !repoPath.split("/")
+      .includes("node_modules")
+      && !TEST_SUFFIXES.some((suffix) => repoPath.endsWith(suffix));
 }
 
 function truncate(value, limit) {
@@ -47,10 +50,10 @@ function truncate(value, limit) {
 function getSymbolType(checker, symbol, declaration) {
   const isTypeDeclaration = Boolean(
     symbol.flags & (
-      ts.SymbolFlags.Class |
-      ts.SymbolFlags.Interface |
-      ts.SymbolFlags.TypeAlias |
-      ts.SymbolFlags.Enum
+      ts.SymbolFlags.Class
+      | ts.SymbolFlags.Interface
+      | ts.SymbolFlags.TypeAlias
+      | ts.SymbolFlags.Enum
     ),
   );
   const type = isTypeDeclaration
@@ -66,7 +69,8 @@ function getSymbolType(checker, symbol, declaration) {
 function getDocumentation(checker, symbol) {
   const documentation = ts.displayPartsToString(
     symbol.getDocumentationComment(checker),
-  ).trim();
+  )
+    .trim();
 
   return documentation ? truncate(documentation, DOC_LENGTH_LIMIT) : undefined;
 }
@@ -81,8 +85,8 @@ function getExportEntries(sourceFile, checker, rootDir) {
       const targetSymbol = exportSymbol.flags & ts.SymbolFlags.Alias
         ? checker.getAliasedSymbol(exportSymbol)
         : exportSymbol;
-      const declaration = targetSymbol.valueDeclaration ??
-        targetSymbol.declarations?.[0];
+      const declaration = targetSymbol.valueDeclaration
+        ?? targetSymbol.declarations?.[0];
 
       if (!declaration) return undefined;
 
@@ -112,15 +116,15 @@ function getImports(sourceFile, compilerOptions, rootDir) {
 
   for (const statement of sourceFile.statements) {
     if (
-      !ts.isImportDeclaration(statement) &&
-      !ts.isExportDeclaration(statement)
+      !ts.isImportDeclaration(statement)
+      && !ts.isExportDeclaration(statement)
     ) {
       continue;
     }
 
     if (
-      !statement.moduleSpecifier ||
-      !ts.isStringLiteral(statement.moduleSpecifier)
+      !statement.moduleSpecifier
+      || !ts.isStringLiteral(statement.moduleSpecifier)
     ) {
       continue;
     }
@@ -133,9 +137,10 @@ function getImports(sourceFile, compilerOptions, rootDir) {
       ts.sys,
     ).resolvedModule;
     const resolvedFileName = resolvedModule?.resolvedFileName;
-    const resolved = resolvedFileName &&
-      isWithinRoot(rootDir, path.resolve(resolvedFileName)) &&
-      !resolvedFileName.split(path.sep).includes("node_modules")
+    const resolved = resolvedFileName
+      && isWithinRoot(rootDir, path.resolve(resolvedFileName))
+      && !resolvedFileName.split(path.sep)
+        .includes("node_modules")
       ? toRepoPath(rootDir, resolvedFileName)
       : undefined;
     const key = `${source}\0${resolved ?? ""}`;
@@ -207,9 +212,9 @@ function createGraph(files) {
       left.id.localeCompare(right.id),
     ),
     edges: [...edges.values()].sort((left, right) =>
-      left.from.localeCompare(right.from) ||
-      left.type.localeCompare(right.type) ||
-      left.to.localeCompare(right.to),
+      left.from.localeCompare(right.from)
+      || left.type.localeCompare(right.type)
+      || left.to.localeCompare(right.to),
     ),
   };
 }
@@ -302,32 +307,33 @@ export function renderRepoMapMarkdown(graph, options = {}) {
     const exports = (exportsByFile.get(file.id) ?? [])
       .filter(Boolean)
       .sort((left, right) => left.name.localeCompare(right.name));
-    const parts = [file.path];
+    lines.push(imports.length
+      ? `${file.path} <- ${imports.join(",")}`
+      : file.path);
 
-    if (imports.length) parts.push(`<- ${imports.join(",")}`);
+    // One export per line: signatures may contain any character (`;`, `|`,
+    // line breaks), so nothing is needed to separate them.
+    for (const symbol of exports) {
+      const origin = symbol.definedIn === file.path
+        ? ""
+        : `@${symbol.definedIn}`;
 
-    if (exports.length) {
-      parts.push(`-> ${exports.map((symbol) => {
-        const origin = symbol.definedIn === file.path
-          ? ""
-          : `@${symbol.definedIn}`;
+      lines.push(`  ${symbol.name}: ${oneLine(symbol.signature)}${origin}`);
 
-        return `${symbol.name}:${symbol.signature}${origin}`;
-      }).join(";")}`);
-    }
-
-    lines.push(parts.join(" | "));
-
-    if (includeDocs) {
-      for (const symbol of exports) {
-        if (symbol.documentation) {
-          lines.push(`  ${symbol.name}: ${symbol.documentation}`);
-        }
+      if (includeDocs && symbol.documentation) {
+        lines.push(`    ${oneLine(symbol.documentation)}`);
       }
     }
   }
 
-  return lines.join("\n").trimEnd() + "\n";
+  return lines.join("\n")
+    .trimEnd() + "\n";
+}
+
+/** Collapse whitespace, including line breaks, so a value stays on one line. */
+function oneLine(value) {
+  return value.replace(/\s+/g, " ")
+    .trim();
 }
 
 function runCli(args) {
