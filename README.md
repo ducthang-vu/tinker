@@ -238,6 +238,8 @@ Run its focused tests with `npm run test:repo-map`.
 - [CONVENTIONS.md](CONVENTIONS.md): how the code is written (DI and
   factories, no `any`, `Maybe`/`Either`, formatting with every call chain on
   its own lines, 100% coverage).
+- [docs/architecture.md](docs/architecture.md): how components, directives,
+  native nodes, `View`s and `ViewContainerRef`s relate, with diagrams.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
 Not there yet: property bindings (`[value]` on a plain element), queries (`viewChild`),
