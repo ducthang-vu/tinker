@@ -72,7 +72,7 @@ import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder
 const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 
 /** Where a component in another component's template is: see ComponentFactory.create. */
-export interface ChildPlacement {
+export interface ParentContext {
   readonly parentInjector: Injector;
   readonly parentView: View<unknown>;
   readonly attributes: readonly AttributeNode[];
@@ -128,7 +128,7 @@ export class ComponentFactory {
   create<T extends object>(
     type: Class<T>,
     host?: Element,
-    child?: ChildPlacement,
+    child?: ParentContext,
     parentInjector?: Injector,
   ): View<T> {
     const start = this.creating.indexOf(type);
@@ -148,7 +148,7 @@ export class ComponentFactory {
   private createView<T extends object>(
     type: Class<T>,
     host?: Element,
-    child?: ChildPlacement,
+    child?: ParentContext,
     parentInjector?: Injector,
   ): View<T> {
     const metadata = this.metadataOf(type);
