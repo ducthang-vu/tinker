@@ -2,4 +2,3 @@ node_modules/
 dist/
 coverage/
 .repo-map.json
-.repo-map.md

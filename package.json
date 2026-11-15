@@ -20,10 +20,11 @@
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "lint": "eslint .",
     "format": "eslint --fix .",
-    "test": "vitest run",
+    "test": "vitest run && npm run test:repo-map && npm run repo-map:check",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "repo-map": "node scripts/repo-map.mjs",
+    "repo-map:check": "node scripts/repo-map.mjs --format markdown --stdout | diff - .repo-map.md || (echo 'The repo map is out of date: run npm run repo-map -- --format markdown' && exit 1)",
     "test:repo-map": "node --test scripts/repo-map.test.mjs"
   },
   "license": "MIT",
