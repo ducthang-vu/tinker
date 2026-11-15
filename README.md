@@ -82,6 +82,10 @@ module; each module also lists its own in its `index.ts`.
   value of a directive's or component's output, and for each DOM event of that
   name on the element, whatever is on it: `(click)="go()"` needs no directive).
   When both exist, both fire.
+  A component's element can have content: the component shows it in its
+  `<slot>` (the children without `slot="name"`), or in `<slot name="name">`
+  (the children with `slot="name"`), as on the web. Content no slot takes is
+  not rendered, and a second slot with the same name shows nothing.
   The component's `imports` list the
   directives and components its template may use, matched by CSS-like
   selectors; a component in a template gets its own injector, child of its
@@ -234,6 +238,5 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: property bindings (`[value]` on a plain element), content
-projection (content inside a component's element), queries (`viewChild`),
+Not there yet: property bindings (`[value]` on a plain element), queries (`viewChild`),
 `@if` / `@for`, recursive components, and `engine.destroy()`.

@@ -147,18 +147,29 @@ describe("compileTemplate", () => {
       .toBe(Child);
     expect(host!.directives)
       .toEqual([Tooltip]);
-    expect(host!.children) // whitespace only: no content of its own
-      .toEqual([]);
+    expect(host!.children) // its content (here whitespace): the component shows it in its slots
+      .toHaveLength(1);
   });
 
-  test("throws for content inside a component's element, or two components on one", () => {
+  test("compiles the content of a component's element, and <slot> with its name", () => {
+    class Child {}
+    const child = { type: Child, selector: selector("tk-child"), isComponent: true };
+    const [host] = compileTemplate(
+      [element("tk-child", {}, [{ kind: "text", value: "Milk" }, element("b", { slot: "x" })])],
+      [child],
+    ) as CompiledElement[];
+    expect(host!.children.map((node) => node.kind))
+      .toEqual(["text", "element"]);
+    expect(compileTemplate([element("slot", { name: "title" })]))
+      .toEqual([{ kind: "slot", name: "title" }]);
+    expect(compileTemplate([element("slot", {})]))
+      .toEqual([{ kind: "slot", name: "" }]);
+  });
+
+  test("throws for two components on one element", () => {
     class Child {}
     class Other {}
     const child = { type: Child, selector: selector("tk-child"), isComponent: true };
-    expect(() => compileTemplate([element("tk-child", {}, [{ kind: "text", value: "Milk" }])], [child]))
-      .toThrow("Content inside <tk-child> is not supported yet: Child renders its own template");
-    expect(() => compileTemplate([element("tk-child", {}, [element("b", {})])], [child]))
-      .toThrow("Content inside <tk-child> is not supported yet");
     expect(() => compileTemplate(
       [element("tk-child", {})],
       [child, { type: Other, selector: selector("tk-child"), isComponent: true }],

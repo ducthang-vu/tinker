@@ -16,7 +16,7 @@ import { Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
-import type { CompiledElement, CompiledNode } from "../template/compile.ts";
+import type { CompiledElement, CompiledNode, CompiledText } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
 import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
@@ -49,6 +49,8 @@ export class TemplateBuilderFactory {
 interface ElementWithDirectives {
   readonly element: Element;
   readonly node: CompiledElement;
+  /** A component's element: the content of its children, by slot name, for the component. */
+  readonly projected: ReadonlyMap<string, Node[]>;
   /** The nearest enclosing element with directives (its index), if any. */
   readonly parent: Maybe<number>;
 }
@@ -64,6 +66,8 @@ export class TemplateBuilder {
   private readonly withDirectives: ElementWithDirectives[] = [];
   /** While building: the enclosing elements with directives (their indexes). */
   private readonly enclosing: number[] = [];
+  /** The content this template's `<slot>`s show, by name; a slot takes its content once. */
+  private projected = new Map<string, Node[]>();
 
   /**
    * @param component The instance whose fields the template's expressions read.
@@ -80,9 +84,21 @@ export class TemplateBuilder {
     private readonly components: ComponentFactory,
   ) {}
 
-  /** Build the DOM for `nodes` (and their children), collecting their bindings. */
-  build(nodes: readonly CompiledNode[]): Node[] {
-    return nodes.map((node) => this.buildNode(node));
+  /**
+   * Build the DOM for `nodes` (and their children), collecting their bindings.
+   * `projected` is the content of the component's element, by slot name, which
+   * the template's `<slot>`s show.
+   */
+  build(
+    nodes: readonly CompiledNode[],
+    projected: ReadonlyMap<string, Node[]> = new Map(),
+  ): Node[] {
+    this.projected = new Map(projected);
+    return this.buildAll(nodes);
+  }
+
+  private buildAll(nodes: readonly CompiledNode[]): Node[] {
+    return nodes.flatMap((node) => this.buildNode(node));
   }
 
   /**
@@ -95,7 +111,7 @@ export class TemplateBuilder {
    */
   createDirectivesAndComponents(view: View<unknown>, componentInjector: Injector): void {
     const injectors: Injector[] = [];
-    for (const { element, node, parent } of this.withDirectives) {
+    for (const { element, node, parent, projected } of this.withDirectives) {
       const parentInjector = parent.match({
         some: (index) => injectors[index]!,
         none: () => componentInjector,
@@ -137,6 +153,7 @@ export class TemplateBuilder {
             parentInjector: injector,
             parentView: view,
             attributes: node.attributes,
+            projected,
             adoptHostBindings: hostBindings,
             bindInputs: (component) => bindInputs([...directives, component]),
           });
@@ -147,6 +164,17 @@ export class TemplateBuilder {
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
       this.bindEvents(node, element, instances, view);
       injectors.push(injector);
+    }
+  }
+
+  /**
+   * Build the children of a component's element, grouped by their `slot`
+   * attribute (the default slot, "", for the others), for the component to show.
+   */
+  private projectChildren(children: readonly CompiledNode[], groups: Map<string, Node[]>): void {
+    for (const child of children) {
+      const name = slotOf(child);
+      groups.set(name, [...(groups.get(name) ?? []), ...this.buildNode(child)]);
     }
   }
 
@@ -200,8 +228,18 @@ export class TemplateBuilder {
     }
   }
 
+  /** A `<slot>` shows the content its name has, once; a text or an element is one node. */
+  private buildNode(node: CompiledNode): Node[] {
+    if (node.kind === "slot") {
+      const nodes = this.projected.get(node.name) ?? [];
+      this.projected.delete(node.name);
+      return nodes;
+    }
+    return [this.buildTextOrElement(node)];
+  }
+
   /** A text with `{{ }}` starts empty and gets a binding, filled by `update`. */
-  private buildNode(node: CompiledNode): Node {
+  private buildTextOrElement(node: CompiledText | CompiledElement): Node {
     if (node.kind === "text") {
       const { strings, expressions } = node.interpolation;
       if (expressions.length === 0) {
@@ -225,9 +263,14 @@ export class TemplateBuilder {
     for (const { name, expression } of node.attributeBindings) {
       this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.component));
     }
-    const index = this.recordDirectives(element, node);
-    for (const child of this.build(node.children)) {
-      this.renderer.appendChild(element, child);
+    const projected = new Map<string, Node[]>();
+    const index = this.recordDirectives(element, node, projected);
+    if (node.component.isSome()) {
+      this.projectChildren(node.children, projected);
+    } else {
+      for (const child of this.buildAll(node.children)) {
+        this.renderer.appendChild(element, child);
+      }
     }
     index.ifSome(() => this.enclosing.pop());
     return element;
@@ -237,14 +280,26 @@ export class TemplateBuilder {
    * If `node` has directives, a component or event bindings, remember its
    * element (and enter it, for its children).
    */
-  private recordDirectives(element: Element, node: CompiledElement): Maybe<number> {
+  private recordDirectives(
+    element: Element,
+    node: CompiledElement,
+    projected: Map<string, Node[]>,
+  ): Maybe<number> {
     const hasEvents = node.outputBindings.length > 0;
     if (node.directives.length === 0 && node.component.isNone() && !hasEvents) {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));
-    const index = this.withDirectives.push({ element, node, parent }) - 1;
+    const index = this.withDirectives.push({ element, node, parent, projected }) - 1;
     this.enclosing.push(index);
     return Maybe.some(index);
   }
+}
+
+/** The slot a child of a component's element goes to: its `slot` attribute, or the default one. */
+function slotOf(node: CompiledNode): string {
+  if (node.kind !== "element") {
+    return "";
+  }
+  return node.attributes.find((attribute) => attribute.name === "slot")?.value ?? "";
 }
