@@ -125,7 +125,12 @@ export class ComponentFactory {
    * it), and the plain attributes of its element, bound to its inputs before
    * its first render. Throws if a component contains itself, directly or not.
    */
-  create<T extends object>(type: Class<T>, host?: Element, child?: ChildPlacement): View<T> {
+  create<T extends object>(
+    type: Class<T>,
+    host?: Element,
+    child?: ChildPlacement,
+    parentInjector?: Injector,
+  ): View<T> {
     const start = this.creating.indexOf(type);
     if (start !== -1) {
       const path = [...this.creating.slice(start), type].map((creating) => creating.name)
@@ -134,7 +139,7 @@ export class ComponentFactory {
     }
     this.creating.push(type);
     try {
-      return this.createView(type, host, child);
+      return this.createView(type, host, child, parentInjector);
     } finally {
       this.creating.pop();
     }
@@ -144,6 +149,7 @@ export class ComponentFactory {
     type: Class<T>,
     host?: Element,
     child?: ChildPlacement,
+    parentInjector?: Injector,
   ): View<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
@@ -172,7 +178,7 @@ export class ComponentFactory {
         ...hostDirectives.flatMap((directive) =>
           this.directives.metadataOf(directive).providers ?? []),
       ],
-      parent: child?.parentInjector ?? this.injector,
+      parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });
     const { instance, hostInstances, rendered, template } = this.createAndBuild(
       type,

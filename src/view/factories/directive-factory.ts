@@ -23,6 +23,7 @@ import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
+import { ViewContainerRef, ViewContainerRefFactory } from "../runtime/view-container-ref.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { AttributeNode } from "../template/ast.ts";
@@ -77,6 +78,11 @@ export class DirectiveFactory {
       providers: [
         ...types,
         provide(ElementRef, { useValue: new ElementRef(element) }),
+        // Made when a directive first injects it: its anchor is added then, so an
+        // element without such a directive gets no extra node.
+        provide(ViewContainerRef, {
+          useFactory: () => this.containerAt(element, elementInjector.injector, view),
+        }),
         Effects,
         RenderHooks,
         ...types.flatMap((type) => this.metadataOf(type).providers ?? []),
@@ -100,6 +106,25 @@ export class DirectiveFactory {
    */
   create<T extends object>(type: Class<T>, element: Element, view: View<unknown>): T {
     return this.createOnElement([type], element, view, this.injector).instances[0] as T;
+  }
+
+  /**
+   * A view container at `element`: its anchor, a comment, is inserted right
+   * after the element, and its views are created under `injector` (the
+   * element's own), and disposed with `owner`.
+   */
+  private containerAt(
+    element: Element,
+    injector: Injector,
+    owner: View<unknown>,
+  ): ViewContainerRef {
+    const anchor = this.renderer.createComment("");
+    const parent = element.parentNode;
+    if (parent) {
+      this.renderer.insertBefore(parent, anchor, element.nextSibling);
+    }
+    return inject(ViewContainerRefFactory)
+      .create(anchor, injector, owner);
   }
 
   /**

@@ -390,9 +390,13 @@ describe("Engine collaborators", () => {
     const anchor = document.createComment("anchor");
     const anchors: Node[] = [];
     class RecordingContainers extends ViewContainerRefFactory {
-      override create(node: Node): ViewContainerRef {
+      override create(
+        node: Node,
+        parentInjector: Injector,
+        owner?: View<unknown>,
+      ): ViewContainerRef {
         anchors.push(node);
-        return super.create(node);
+        return super.create(node, parentInjector, owner);
       }
     }
     const engine = Engine.create({

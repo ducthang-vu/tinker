@@ -65,7 +65,12 @@ that:
   list leaves them alive (effects still running) unless `container.clear()`
   is called by hand.
 
-**To do.** As in Angular, let a directive inject its container:
+**Done for directives.** A directive injects its element's `ViewContainerRef`
+(`inject(ViewContainerRef)`): its parent injector is the element's injector, and
+its owner is the view of the template it is in. Still to do: a component
+injecting the container of its own host element, and the test for it.
+
+**To do (the original plan).** As in Angular, let a directive inject its container:
 `inject(ViewContainerRef)` gives a container at the directive's element,
 which carries its place:
 

@@ -96,7 +96,9 @@ module; each module also lists its own in its `index.ts`.
   `"[attr.role]": "role()"`). A template binding on an element wins over a
   host binding of the same class, style or attribute.
 - **Directives** on an element share an element injector, so they can inject
-  each other and their ancestors. Inputs are signals (`input()`); plain
+  each other and their ancestors. A directive can also inject its element's
+  `ViewContainerRef`: the components it adds sit after the element, are created
+  under the element's injector, and are removed with the view. Inputs are signals (`input()`); plain
   attributes bind them.
 - **Change detection**: signals are the only trigger. A tick runs dirty effects,
   then dirty views, then render hooks, until nothing changes.

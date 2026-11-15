@@ -78,6 +78,7 @@ export class Engine {
   private readonly components = inject(ComponentFactory);
   private readonly changeDetection = inject(ChangeDetection);
   private readonly containers = inject(ViewContainerRefFactory);
+  private readonly injector = inject(Injector);
 
   /**
    * Create an engine: its root injector (your providers, then the defaults),
@@ -112,7 +113,7 @@ export class Engine {
 
   /** Create a container that inserts views just before `anchor` (usually a comment). */
   createViewContainer(anchor: Node): ViewContainerRef {
-    return this.containers.create(anchor);
+    return this.containers.create(anchor, this.injector);
   }
 
   /** Run a change detection tick now, instead of waiting for the microtask. */

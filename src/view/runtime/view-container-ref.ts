@@ -9,7 +9,7 @@
 
 import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
-import { inject, Injectable } from "../../di/index.ts";
+import { inject, Injectable, type Injector } from "../../di/index.ts";
 import { ComponentFactory } from "../factories/component-factory.ts";
 import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
@@ -21,9 +21,13 @@ export class ViewContainerRefFactory {
   private readonly components = inject(ComponentFactory);
   private readonly renderer = inject(RENDERER);
 
-  /** A container inserting its views just before `anchor`. */
-  create(anchor: Node): ViewContainerRef {
-    return new ViewContainerRef(anchor, this.components, this.renderer);
+  /**
+   * A container inserting its views just before `anchor`. Its components are
+   * created under `parentInjector`. With an `owner`, the container is cleared
+   * and its anchor removed when the owner view is destroyed.
+   */
+  create(anchor: Node, parentInjector: Injector, owner?: View<unknown>): ViewContainerRef {
+    return new ViewContainerRef(anchor, this.components, this.renderer, parentInjector, owner);
   }
 }
 
@@ -35,12 +39,18 @@ export class ViewContainerRef {
    * @param anchor Where the container is: its views sit just before it.
    * @param components Creates the components this container holds.
    * @param renderer Inserts, moves and removes their host elements.
+   * @param parentInjector The injector the components are created under.
+   * @param owner If given, the container is disposed with it.
    */
   constructor(
     readonly anchor: Node,
     private readonly components: ComponentFactory,
     private readonly renderer: Renderer,
-  ) {}
+    private readonly parentInjector: Injector,
+    owner?: View<unknown>,
+  ) {
+    owner?.addDestroyCallback(() => this.dispose());
+  }
 
   /** How many views the container holds. */
   get length(): number {
@@ -64,7 +74,7 @@ export class ViewContainerRef {
   createComponent<T extends object>(type: Class<T>, index: number = this.length): View<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
-    const view = this.components.create(type);
+    const view = this.components.create(type, undefined, undefined, this.parentInjector);
     this.views.splice(index, 0, view);
     this.renderer.insertBefore(parent, view.host, this.nodeAfter(index));
     view.addDestroyCallback(() => {
@@ -96,6 +106,15 @@ export class ViewContainerRef {
   clear(): void {
     for (const view of [...this.views].reverse()) {
       view.destroy();
+    }
+  }
+
+  /** Destroy the views, then remove the anchor: the owner view is being destroyed. */
+  private dispose(): void {
+    this.clear();
+    const parent = this.anchor.parentNode;
+    if (parent) {
+      this.renderer.removeChild(parent, this.anchor);
     }
   }
 
