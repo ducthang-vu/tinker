@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { inject } from "../../di/index.ts";
 import { signal } from "../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
@@ -122,5 +123,107 @@ describe("host class bindings", () => {
     expect(() => Engine.create()
       .createComponent(A))
       .toThrow(`in host binding "[class.on]"`);
+  });
+});
+
+describe("a child component's host class bindings", () => {
+  test("are updated by the parent's view, not the child's", () => {
+    let childRenders = 0;
+    @Component({ selector: "tk-item", template: "{{ render() }}", host: { "[class.active]": "active()" } })
+    class Item {
+      readonly active = signal(false);
+      render() {
+        childRenders++;
+        return "item";
+      }
+    }
+    @Component({ selector: "tk-list", template: "<tk-item></tk-item>", imports: [Item] })
+    class List {}
+    const engine = Engine.create();
+    const view = engine.createComponent(List);
+    const host = view.host.querySelector("tk-item")!;
+    const item = engine.getContext(host)
+      .flatMap((context) => context.componentView)
+      .map((child) => child.component as Item)
+      .getOrThrow(() => new Error("no item"));
+    expect(childRenders)
+      .toBe(1);
+
+    item.active.set(true);
+    engine.flush();
+
+    expect(host.className)
+      .toBe("active");
+    expect(childRenders) // the child's own template did not re-render for its host binding
+      .toBe(1);
+  });
+
+  test("the parent's template binding on that element takes precedence, for the same class", () => {
+    @Component({
+      selector: "tk-item",
+      template: "",
+      host: { "[class.selected]": "selected()", "[class.item]": "always" },
+    })
+    class Item {
+      readonly selected = signal(true);
+      readonly always = true;
+    }
+    @Component({
+      selector: "tk-list",
+      template: `<tk-item [class.selected]="selected()"></tk-item>`,
+      imports: [Item],
+    })
+    class List {
+      readonly selected = signal(false);
+    }
+    const engine = Engine.create();
+    const view = engine.createComponent(List);
+    const host = view.host.querySelector("tk-item")!;
+    expect(host.className) // the child says selected, the parent says not: the parent wins
+      .toBe("item");
+    view.component.selected.set(true);
+    engine.flush();
+    expect(host.className)
+      .toBe("item selected");
+  });
+
+  test("the same precedence over a directive's host binding on that element", () => {
+    @Directive({ selector: "[marker]", host: { "[class.on]": "on" } })
+    class Marker {
+      readonly on = true;
+    }
+    @Component({
+      selector: "tk-a",
+      template: `<p marker [class.on]="off"></p>`,
+      imports: [Marker],
+    })
+    class A {
+      readonly off = false;
+    }
+    expect(Engine.create()
+      .createComponent(A).host.querySelector("p")!.className)
+      .toBe("");
+  });
+
+  test("its host directives' bindings move to the parent's view too", () => {
+    @Directive({ selector: "[pressable]", host: { "[class.pressed]": "pressed()" } })
+    class Pressable {
+      readonly pressed = signal(false);
+    }
+    @Component({ selector: "tk-button", template: "ok", hostDirectives: [Pressable] })
+    class Button {
+      readonly pressable = inject(Pressable);
+    }
+    @Component({ selector: "tk-bar", template: "<tk-button></tk-button>", imports: [Button] })
+    class Bar {}
+    const engine = Engine.create();
+    const view = engine.createComponent(Bar);
+    const host = view.host.querySelector("tk-button")!;
+    engine.getContext(host)
+      .flatMap((context) => context.componentView)
+      .map((child) => (child.component as Button).pressable.pressed.set(true));
+    engine.flush();
+    expect(host.className)
+      .toBe("pressed");
   });
 });

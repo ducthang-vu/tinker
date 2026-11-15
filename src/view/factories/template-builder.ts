@@ -14,6 +14,7 @@
 import { inject, Injectable, type Injector } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
+import { ClassBinding } from "../runtime/class-binding.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
@@ -98,18 +99,25 @@ export class TemplateBuilder {
         some: (index) => injectors[index]!,
         none: () => componentInjector,
       });
+      // Host bindings on this element (its directives', its component's) join
+      // this view's watch, except for the classes this template binds on it:
+      // the template's own binding takes precedence.
+      const boundHere = new Set(node.classBindings.map(({ name }) => name));
+      const hostBindings = (bindings: readonly Binding[]) => this.addBindings(bindings
+        .filter((binding) => !(binding instanceof ClassBinding && boundHere.has(binding.name))));
       let injector = parentInjector;
       if (node.directives.length > 0) {
         const created = this.directiveFactory
           .createOnElement(node.directives, element, view, parentInjector, node.attributes);
         injector = created.injector;
-        this.addBindings(created.bindings);
+        hostBindings(created.bindings);
       }
       node.component.ifSome((type) => {
         this.components.create(type, element, {
           parentInjector: injector,
           parentView: view,
           attributes: node.attributes,
+          adoptHostBindings: hostBindings,
         });
       });
       injectors.push(injector);

@@ -55,6 +55,7 @@ import { ElementRef } from "../runtime/element-ref.ts";
 import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { type View, ViewFactory } from "../runtime/view.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
+import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Selector } from "../template/selector.ts";
@@ -73,6 +74,12 @@ export interface ChildPlacement {
   readonly parentInjector: Injector;
   readonly parentView: View<unknown>;
   readonly attributes: readonly AttributeNode[];
+  /**
+   * Takes the child's host bindings (its own and its host directives'): its
+   * host element is in the parent's template, so the parent's watch updates
+   * them, with the parent's own bindings on that element.
+   */
+  readonly adoptHostBindings: (bindings: readonly Binding[]) => void;
 }
 
 @Injectable()
@@ -173,9 +180,9 @@ export class ComponentFactory {
     view.addInputs(instance, inputsOf(instance));
     // In a template: its element's plain attributes set its inputs, before it renders.
     bindInputsToAttributes(instance, child?.attributes ?? []);
-    // Its host directives, on its host element; their class bindings join the view's watch.
-    hostDirectives.forEach((directive, i) =>
-      template.addBindings(this.directives.attach(directive, hostInstances[i]!, host, view)));
+    // Its host directives, on its host element (their host bindings: below).
+    const hostBindings = hostDirectives.flatMap((directive, i) =>
+      this.directives.attach(directive, hostInstances[i]!, host, view));
     // The directives and child components of the template's elements, now
     // that their view exists, and before the first render.
     try {
@@ -184,13 +191,19 @@ export class ComponentFactory {
       view.destroy(); // undoes the directives created so far, and the injectors
       throw error;
     }
-    // Its own host bindings: listeners now, class bindings in the view's watch.
-    // (In a template, they will move to the parent's view, with the
-    // parent's own bindings on that element.)
-    template.addBindings(this.directives.applyHost(type, instance, host, view));
+    // Its own host bindings: listeners now. The class bindings (with its host
+    // directives') belong to whichever view contains its host element: the
+    // parent's for a component in a template, which updates them with its
+    // own bindings on that element; its own view for a root component.
+    hostBindings.push(...this.directives.applyHost(type, instance, host, view));
+    if (child) {
+      child.adoptHostBindings(hostBindings);
+    } else {
+      template.addBindings(hostBindings);
+    }
     // The view's one watch: updates the bindings (the template's, then the
-    // host bindings of its directives and its own). Its first run happens
-    // now, so the view is complete when it is returned.
+    // host bindings of its template's directives, and its own if it is a
+    // root). Its first run happens now, so the view is complete when it is returned.
     const firstRun = new RunFirstNow(this.changeDetection.views);
     const viewWatch = watch(() => template.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());

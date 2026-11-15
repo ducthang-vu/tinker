@@ -21,7 +21,7 @@ export class ClassBinding {
    */
   constructor(
     private readonly element: Element,
-    private readonly name: string,
+    readonly name: string,
     private readonly expression: Expression,
     private readonly context: object,
     private readonly renderer: Renderer,
