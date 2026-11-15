@@ -143,47 +143,43 @@ export class TemplateBuilder {
         },
         none: () => bindInputs(directives),
       });
-      // Output bindings subscribe to the outputs of the element's directives and component.
-      this.bindOutputs(node, instances, view);
+      // Event bindings: the outputs of the element's directives and component, and the DOM events.
+      this.bindEvents(node, element, instances, view);
       injectors.push(injector);
     }
   }
 
   /**
-   * Subscribe each `(name)` of `node` to the outputs `name` of `instances`
-   * (its directives): the handler is called for each value, with the
-   * component (the template's owner) as `this`. The subscriptions end with
-   * `view`.
+   * Bind each `(name)` of `node` two ways, both calling the same handler with
+   * the component (the template's owner) as `this`, for each value:
+   * - the outputs `name` of `instances` (its directives and component), if any;
+   * - the DOM event `name` on `element`, whatever is on it.
+   * Both end with `view`.
    */
-  private bindOutputs(
+  private bindEvents(
     node: CompiledElement,
+    element: Element,
     instances: readonly object[],
     view: View<unknown>,
   ): void {
     for (const { name, method, passEvent } of node.outputBindings) {
-      const emitters = outputsNamed(instances, name);
-      if (emitters.length === 0) {
-        throw new Error(
-          `(${name}) on <${node.name}>: no directive or component on this element has an output "${name}"`,
-        );
-      }
       const handler = this.handlerOf(name, method);
-      for (const emitter of emitters) {
-        view.addDestroyCallback(emitter.stream.run({
-          next: (value) => (passEvent
-            ? handler.call(this.component, value)
-            : handler.call(this.component)),
-        }));
+      const call = (value: unknown) => (passEvent
+        ? handler.call(this.component, value)
+        : handler.call(this.component));
+      for (const emitter of outputsNamed(instances, name)) {
+        view.addDestroyCallback(emitter.stream.run({ next: call }));
       }
+      view.addDestroyCallback(this.renderer.listen(element, name, call));
     }
   }
 
-  /** The method `method` of the component, for the output `name`. Throws if there is none. */
+  /** The method `method` of the component, for the event `name`. Throws if there is none. */
   private handlerOf(name: string, method: string): (...args: unknown[]) => unknown {
     const handler = (this.component as Record<string, unknown>)[method];
     if (typeof handler !== "function") {
       throw new Error(
-        `${this.component.constructor.name} has no method "${method}" for output "(${name})"`,
+        `${this.component.constructor.name} has no method "${method}" for event "(${name})"`,
       );
     }
     return handler as (...args: unknown[]) => unknown;
@@ -235,11 +231,12 @@ export class TemplateBuilder {
   }
 
   /**
-   * If `node` has directives or a component, remember its element (and
-   * enter it, for its children).
+   * If `node` has directives, a component or event bindings, remember its
+   * element (and enter it, for its children).
    */
   private recordDirectives(element: Element, node: CompiledElement): Maybe<number> {
-    if (node.directives.length === 0 && node.component.isNone()) {
+    const hasEvents = node.outputBindings.length > 0;
+    if (node.directives.length === 0 && node.component.isNone() && !hasEvents) {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));

@@ -123,24 +123,26 @@ describe("output bindings in templates", () => {
       .toEqual([7]);
   });
 
-  test("a binding with no output of that name on the element is an error, and leaves nothing behind", () => {
+  test("a binding with no output of that name listens to the DOM event on the element", () => {
+    const calls: unknown[] = [];
     @Component({
       selector: "tk-a",
-      template: `<button pick (other)="choose()">x</button>`,
+      template: `<button pick (other)="choose($event)">x</button>`,
       imports: [Pick],
     })
     class A {
-      choose() {}
+      choose(event: unknown) {
+        calls.push(event);
+      }
     }
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.createComponent(A, host))
-      .toThrow(`(other) on <button>: no directive or component on this element has an output "other"`);
-    expect(host.innerHTML)
-      .toBe("");
-    expect(engine.getContext(host)
-      .isNone())
-      .toBe(true);
+    engine.createComponent(A, host);
+    host.querySelector("button")!.dispatchEvent(new Event("other"));
+    expect(calls)
+      .toHaveLength(1);
+    expect(calls[0])
+      .toBeInstanceOf(Event);
   });
 
   test("the component must have the method", () => {
@@ -152,17 +154,51 @@ describe("output bindings in templates", () => {
     class A {}
     expect(() => Engine.create()
       .createComponent(A))
-      .toThrow(`A has no method "missing" for output "(selected)"`);
+      .toThrow(`A has no method "missing" for event "(selected)"`);
   });
 
-  test("an output binding on an element no directive matches is a compile error", () => {
-    @Component({ selector: "tk-a", template: `<button (click)="go()">x</button>`, imports: [] })
+  test("a click on an element with no directive is a DOM event, with no directive needed", () => {
+    let clicks = 0;
+    @Component({ selector: "tk-a", template: `<button (click)="go()">x</button>` })
     class A {
-      go() {}
+      go() {
+        clicks += 1;
+      }
     }
-    expect(() => Engine.create()
-      .createComponent(A))
-      .toThrow("(click) on <button>: only outputs of directives and components can be bound");
+    const host = document.createElement("div");
+    Engine.create()
+      .createComponent(A, host);
+    host.querySelector("button")!.click();
+    expect(clicks)
+      .toBe(1);
+  });
+
+  test("a directive output and a DOM event with the same name both fire", () => {
+    const seen: string[] = [];
+    @Directive({ selector: "[relay]", host: { "(click)": "relay()" } })
+    class Relay {
+      readonly click = output<string>();
+
+      relay() {
+        this.click.emit("from output");
+      }
+    }
+    @Component({
+      selector: "tk-a",
+      template: `<button relay (click)="log($event)">x</button>`,
+      imports: [Relay],
+    })
+    class A {
+      log(value: unknown) {
+        seen.push(value instanceof Event ? "from DOM event" : String(value));
+      }
+    }
+    const host = document.createElement("div");
+    Engine.create()
+      .createComponent(A, host);
+    host.querySelector("button")!.click();
+    expect(seen.sort())
+      .toEqual(["from DOM event", "from output"]);
   });
 
   test("an invalid handler is reported where it is written", () => {
