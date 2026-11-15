@@ -19,6 +19,7 @@ import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
 import { RENDERER } from "../tokens.ts";
+import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
@@ -162,7 +163,7 @@ export class TemplateBuilder {
     instances: readonly object[],
     view: View<unknown>,
   ): void {
-    for (const { name, method, passEvent } of node.outputBindings) {
+    for (const { name, method, passEvent, modifiers } of node.outputBindings) {
       const handler = this.handlerOf(name, method);
       const call = (value: unknown) => (passEvent
         ? handler.call(this.component, value)
@@ -170,7 +171,7 @@ export class TemplateBuilder {
       for (const emitter of outputsNamed(instances, name)) {
         view.addDestroyCallback(emitter.stream.run({ next: call }));
       }
-      view.addDestroyCallback(this.renderer.listen(element, name, call));
+      view.addDestroyCallback(listenWithModifiers(this.renderer, element, { event: name, modifiers }, call));
     }
   }
 

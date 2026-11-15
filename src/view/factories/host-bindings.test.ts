@@ -12,15 +12,15 @@ describe("HostBindings parsing", () => {
     const bindings = new HostBindings({ "(click)": "toggle()", "(keydown)": "onKey($event)" });
     expect(bindings.listeners)
       .toEqual([
-        { event: "click", method: "toggle", passEvent: false },
-        { event: "keydown", method: "onKey", passEvent: true },
+        { event: "click", modifiers: [], method: "toggle", passEvent: false },
+        { event: "keydown", modifiers: [], method: "onKey", passEvent: true },
       ]);
   });
 
   test("allows spaces, and has no listeners without a host option", () => {
     expect(new HostBindings({ "(click)": "  go( $event )  " }).listeners)
       .toEqual([
-        { event: "click", method: "go", passEvent: true },
+        { event: "click", modifiers: [], method: "go", passEvent: true },
       ]);
     expect(new HostBindings().listeners)
       .toEqual([]);

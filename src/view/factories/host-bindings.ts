@@ -17,6 +17,8 @@
 import { type EitherError, Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { parseHandler } from "../template/handler.ts";
+import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";
+import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
 import type { View } from "../runtime/view.ts";
 
@@ -24,6 +26,8 @@ import type { View } from "../runtime/view.ts";
 export interface HostListener {
   /** The DOM event, e.g. `"click"`. */
   readonly event: string;
+  /** Its modifiers, e.g. `.prevent`, in the order written. */
+  readonly modifiers: readonly EventModifier[];
   /** The method of the instance to call, e.g. `"toggle"`. */
   readonly method: string;
   /** Whether the method receives the event (`"toggle($event)"`). */
@@ -80,13 +84,13 @@ export class HostBindings {
    * Throws if the instance has no such method.
    */
   attach(instance: object, element: Element, renderer: Renderer, view: View<unknown>): void {
-    for (const { event, method, passEvent } of this.listeners) {
+    for (const { event, method, passEvent, modifiers } of this.listeners) {
       const handler = Maybe.of((instance as Record<string, unknown>)[method])
         .filter((value) => typeof value === "function")
         .getOrThrow(
           () => new Error(`${instance.constructor.name} has no method "${method}" for host listener "(${event})"`),
         );
-      const stop = renderer.listen(element, event, (e) =>
+      const stop = listenWithModifiers(renderer, element, { event, modifiers }, (e) =>
         passEvent ? handler.call(instance, e) : handler.call(instance),
       );
       view.addDestroyCallback(stop);
@@ -94,7 +98,7 @@ export class HostBindings {
   }
 }
 
-const LISTENER_KEY = /^\(([\w.-]+)\)$/;
+const LISTENER_KEY = /^\(([^)\s]+)\)$/;
 const VALUE_KEY = /^\[(class|style|attr)\.([^\]\s]+)\]$/;
 
 /** One `host` entry, or the error explaining why it is not supported. */
@@ -111,15 +115,17 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
 function parseListener(key: string, handler: string): EitherError<HostListener> {
-  const event = Maybe.fromNullable(LISTENER_KEY.exec(key)?.[1])
+  const source = Maybe.fromNullable(LISTENER_KEY.exec(key)?.[1])
     .toEither(
       new Error(
         `Unsupported host binding "${key}": only "(event)" listeners and "[class.name]", `
         + "\"[style.name]\" and \"[attr.name]\" bindings are supported for now",
       ),
     );
-  return event.flatMap((name) =>
-    parseHandler(handler, "host handler")
-      .map((call) => ({ event: name, ...call })),
-  );
+  return source
+    .flatMap((name) => parseEventName(name, `host listener "${key}"`))
+    .flatMap((listener) =>
+      parseHandler(handler, "host handler")
+        .map((call) => ({ ...listener, ...call })),
+    );
 }
