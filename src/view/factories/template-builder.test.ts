@@ -71,9 +71,9 @@ describe("TemplateBuilder", () => {
   });
 
   test("rejects attribute bindings, which are not supported yet", () => {
-    expect(() => build(`<button (click)="go()">go</button>`, {}))
+    expect(() => build(`<button [style.color]="c">go</button>`, {}))
       .toThrow(
-        `Bindings are not supported yet: "(click)" on <button>`,
+        `Bindings are not supported yet: "[style.color]" on <button>`,
       );
     expect(() => build(`<p [style.color]="c">x</p>`, {}))
       .toThrow(`"[style.color]" on <p>`);

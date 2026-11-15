@@ -333,13 +333,13 @@ describe("Engine.bootstrap", () => {
 
   test("throws for binding syntax, which is not supported yet", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
-    @Component({ selector: "tk-app", template: `<button (click)="go()">go</button>` })
+    @Component({ selector: "tk-app", template: `<button [style.color]="c">go</button>` })
     class App {}
 
     expect(() => Engine.create()
       .bootstrap(App))
       .toThrow(
-        `Bindings are not supported yet: "(click)" on <button>`,
+        `Bindings are not supported yet: "[style.color]" on <button>`,
       );
     expect(document.querySelector("tk-app")!.innerHTML)
       .toBe("");

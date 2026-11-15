@@ -19,6 +19,7 @@ import type { Class } from "../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
 import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
+import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
@@ -119,6 +120,8 @@ export class DirectiveFactory {
       context.removeDirective(instance);
       this.contexts.forgetIfEmpty(context);
     });
+    // Its outputs are over when it is: the templates subscribed to them are told.
+    view.addDestroyCallback(() => endOutputs(instance));
     view.addInputs(instance, inputsOf(instance));
     return this.applyHost(type, instance, element, view);
   }

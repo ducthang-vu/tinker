@@ -19,8 +19,15 @@ test("RenderHooks only registers: running the hooks is not part of its API", () 
   const { render } = Engine.create()
     .createComponent(A).component;
   // Registering, and onDestroy() (called by its injector, which only cancels): nothing runs hooks.
-  expect(Object.getOwnPropertyNames(Object.getPrototypeOf(render))
-    .filter((name) => !["constructor", "track"].includes(name))
+  // The class is wrapped by @final, so its methods are one prototype up: walk the chain.
+  const names = new Set<string>();
+  for (let proto = Object.getPrototypeOf(render); proto && proto !== Object.prototype;
+    proto = Object.getPrototypeOf(proto)) {
+    for (const name of Object.getOwnPropertyNames(proto)) {
+      names.add(name);
+    }
+  }
+  expect([...names].filter((name) => !["constructor", "track"].includes(name))
     .sort())
     .toEqual(["afterEachRender", "afterNextRender", "onDestroy"]);
   // @ts-expect-error rendered() is not public: only change detection runs the hooks
@@ -211,5 +218,13 @@ describe("RenderHooks lifetime", () => {
     engine.flush();
     expect(runs)
       .toEqual(["each", "next"]); // each-render hooks first, then next-render ones
+  });
+});
+
+describe("RenderHooks is final", () => {
+  test("a subclass cannot be created", () => {
+    class Mine extends RenderHooks {}
+    expect(() => new Mine())
+      .toThrow("RenderHooks is final: it cannot be subclassed");
   });
 });

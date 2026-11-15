@@ -63,7 +63,7 @@ module; each module also lists its own in its `index.ts`.
 | [`src/signals`](src/signals/index.ts) | `signal`, `computed`, `watch`, `untracked`: push-pull reactivity with versions, lazy and glitch-free computeds, cycle detection |
 | [`src/di`](src/di/index.ts) | `inject()`, `InjectionToken` (and `InjectionToken.multi`), `provide()`, `@Injectable`, hierarchical injectors with `self` / `skipSelf` / `host` / `optional` lookups, `onDestroy` cleanup |
 | [`src/view`](src/view/index.ts) | `Engine`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
-| [`src/functional`](src/functional/index.ts) | `Maybe`, `Either` and a lazy, cancellable `Task`, used across the codebase |
+| [`src/functional`](src/functional/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, and `Stream` / `Emitter` (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
 | [`src/utils`](src/utils) | small shared helpers (context variables, metadata, `runAll`) |
 
 ### The view, in short
@@ -73,8 +73,10 @@ module; each module also lists its own in its `index.ts`.
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language
   (fields and calls: `user().name`), class bindings
-  (`[class.done]="todo.done()"`) and input bindings (`[label]="item().name"`,
-  setting an input of a child component or a directive on that element).
+  (`[class.done]="todo.done()"`), input bindings (`[label]="item().name"`,
+  setting an input of a child component or a directive on that element) and
+  output bindings (`(selected)="choose($event)"`, calling a method for each
+  value of a directive's or component's output).
   The component's `imports` list the
   directives and components its template may use, matched by CSS-like
   selectors; a component in a template gets its own injector, child of its
@@ -113,6 +115,11 @@ it is on purpose.
 - **No `ngOnInit` or `ngOnChanges`.** Inputs are signals, so what depends on
   them is a `computed`. Components, directives and services clean up in an
   `onDestroy()` method, called by the injector that created them.
+- **Two-way binding with `model()`.** A model is an input (`[value]`) and an
+  output (`(valueChange)`) in one. Only its owner can set it, and a value that
+  comes from the template changes it without emitting, so the template's
+  handler never hears its own update. Other code that needs every change
+  reads the signal in an effect.
 - **Inputs are required unless they have a default.** `input<string>()`
   throws if read before it is bound, and `input("top")` is optional: the
   reverse of Angular's `input()` and `input.required()`.
@@ -219,7 +226,7 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: `[style.x]`, `[attr.x]` and `(event)` bindings in templates
-(class and input bindings are there), content
+Not there yet: `[style.x]`, `[attr.x]` and DOM event bindings (outputs of
+directives and components are there), content
 projection (content inside a component's element), queries (`viewChild`),
 `@if` / `@for`, recursive components, and `engine.destroy()`.

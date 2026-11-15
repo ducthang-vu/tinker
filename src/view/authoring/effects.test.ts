@@ -279,3 +279,13 @@ describe("Effects lifetime", () => {
       .toEqual(["early 1", "late 1", "late 2"]);
   });
 });
+
+describe("Effects is final", () => {
+  test("a subclass cannot be created, but Effects still works through DI", () => {
+    class Mine extends Effects {}
+    expect(() => new Mine())
+      .toThrow("Effects is final: it cannot be subclassed");
+    expect(Effects)
+      .toBeDefined();
+  });
+});

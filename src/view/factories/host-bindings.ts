@@ -16,6 +16,7 @@
 
 import { type EitherError, Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
+import { parseHandler } from "../template/handler.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
 import type { View } from "../runtime/view.ts";
 
@@ -97,7 +98,6 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
       none: () => parseListener(key, value),
     });
 }
-const METHOD_CALL = /^\s*([A-Za-z_$][\w$]*)\(\s*(\$event)?\s*\)\s*$/;
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
 function parseListener(key: string, handler: string): EitherError<HostListener> {
@@ -108,11 +108,8 @@ function parseListener(key: string, handler: string): EitherError<HostListener> 
         + "are supported for now",
       ),
     );
-  const call = Maybe.fromNullable(METHOD_CALL.exec(handler))
-    .toEither(
-      new Error(`Unsupported host handler "${handler}": write "method()" or "method($event)"`),
-    );
   return event.flatMap((name) =>
-    call.map((match) => ({ event: name, method: match[1]!, passEvent: match[2] !== undefined })),
+    parseHandler(handler, "host handler")
+      .map((call) => ({ event: name, ...call })),
   );
 }

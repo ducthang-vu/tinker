@@ -18,6 +18,7 @@ import { ClassBinding } from "../runtime/class-binding.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
+import { outputsNamed } from "../authoring/output.ts";
 import { RENDERER } from "../tokens.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
@@ -125,18 +126,64 @@ export class TemplateBuilder {
         }
         this.addBindings(binders);
       };
+      let instances = directives;
       node.component.match({
-        some: (type) => this.components.create(type, element, {
-          parentInjector: injector,
-          parentView: view,
-          attributes: node.attributes,
-          adoptHostBindings: hostBindings,
-          bindInputs: (component) => bindInputs([...directives, component]),
-        }),
+        some: (type) => {
+          const child = this.components.create(type, element, {
+            parentInjector: injector,
+            parentView: view,
+            attributes: node.attributes,
+            adoptHostBindings: hostBindings,
+            bindInputs: (component) => bindInputs([...directives, component]),
+          });
+          instances = [...directives, child.component];
+        },
         none: () => bindInputs(directives),
       });
+      // Output bindings subscribe to the outputs of the element's directives and component.
+      this.bindOutputs(node, instances, view);
       injectors.push(injector);
     }
+  }
+
+  /**
+   * Subscribe each `(name)` of `node` to the outputs `name` of `instances`
+   * (its directives): the handler is called for each value, with the
+   * component (the template's owner) as `this`. The subscriptions end with
+   * `view`.
+   */
+  private bindOutputs(
+    node: CompiledElement,
+    instances: readonly object[],
+    view: View<unknown>,
+  ): void {
+    for (const { name, method, passEvent } of node.outputBindings) {
+      const emitters = outputsNamed(instances, name);
+      if (emitters.length === 0) {
+        throw new Error(
+          `(${name}) on <${node.name}>: no directive or component on this element has an output "${name}"`,
+        );
+      }
+      const handler = this.handlerOf(name, method);
+      for (const emitter of emitters) {
+        view.addDestroyCallback(emitter.stream.run({
+          next: (value) => (passEvent
+            ? handler.call(this.component, value)
+            : handler.call(this.component)),
+        }));
+      }
+    }
+  }
+
+  /** The method `method` of the component, for the output `name`. Throws if there is none. */
+  private handlerOf(name: string, method: string): (...args: unknown[]) => unknown {
+    const handler = (this.component as Record<string, unknown>)[method];
+    if (typeof handler !== "function") {
+      throw new Error(
+        `${this.component.constructor.name} has no method "${method}" for output "(${name})"`,
+      );
+    }
+    return handler as (...args: unknown[]) => unknown;
   }
 
   /** Add bindings for the view's watch to update too (e.g. host bindings). */

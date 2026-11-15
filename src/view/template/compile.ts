@@ -13,6 +13,7 @@
 
 import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
+import { parseHandler } from "./handler.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
@@ -30,6 +31,8 @@ export interface CompiledElement {
   readonly classBindings: readonly ClassBindingNode[];
   /** Its input bindings, e.g. `[label]="item().name"`, in template order. */
   readonly inputBindings: readonly InputBindingNode[];
+  /** Its output bindings, e.g. `(selected)="choose($event)"`, in template order. */
+  readonly outputBindings: readonly OutputBindingNode[];
   readonly children: readonly CompiledNode[];
   /** The directives matching this element (not its component), in import order. */
   readonly directives: readonly Class<object>[];
@@ -50,6 +53,14 @@ export interface ClassBindingNode {
 export interface InputBindingNode {
   readonly name: string;
   readonly expression: Expression;
+}
+
+/** An output binding: the handler runs for each value of the outputs `name`. */
+export interface OutputBindingNode {
+  readonly name: string;
+  readonly method: string;
+  /** Whether the handler receives the value (`$event`) or nothing. */
+  readonly passEvent: boolean;
 }
 
 /** A directive the template may use, and where it applies. */
@@ -83,7 +94,7 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     return { kind: "text", interpolation: parseInterpolation(node.value)
       .getOrThrow() };
   }
-  const { attributes, classBindings, inputBindings } = classifyAttributes(node);
+  const { attributes, classBindings, inputBindings, outputBindings } = classifyAttributes(node);
   const matched = candidates.filter((candidate) =>
     candidate.selector.matches({ name: node.name, attributes }));
   const components = matched.filter(({ isComponent }) => isComponent);
@@ -108,12 +119,19 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
       + "and no imported directive or component matches this element",
     );
   }
+  if (outputBindings.length > 0 && directives.length === 0 && component.isNone()) {
+    throw new Error(
+      `(${outputBindings[0]!.name}) on <${node.name}>: only outputs of directives and components `
+      + "can be bound, and no imported directive or component matches this element",
+    );
+  }
   return {
     kind: "element",
     name: node.name,
     attributes,
     classBindings,
     inputBindings,
+    outputBindings,
     // A component's element has no content of its own: the component renders into it.
     children: component.isSome() ? [] : compileTemplate(node.children, candidates),
     directives,
@@ -123,6 +141,7 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
 const INPUT_BINDING = /^\[([^\].\s]+)\]$/;
+const OUTPUT_BINDING = /^\(([^).\s]+)\)$/;
 
 /**
  * Split the attributes of `node` into plain attributes, class bindings and
@@ -133,25 +152,34 @@ function classifyAttributes(node: ElementNode): {
   attributes: AttributeNode[];
   classBindings: ClassBindingNode[];
   inputBindings: InputBindingNode[];
+  outputBindings: OutputBindingNode[];
 } {
   const attributes: AttributeNode[] = [];
   const classBindings: ClassBindingNode[] = [];
   const inputBindings: InputBindingNode[] = [];
+  const outputBindings: OutputBindingNode[] = [];
   const parse = (attribute: AttributeNode) => ExpressionParser.parse(attribute.value)
     .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
     .getOrThrow();
   for (const attribute of node.attributes) {
     const className = CLASS_BINDING.exec(attribute.name)?.[1];
     const inputName = INPUT_BINDING.exec(attribute.name)?.[1];
+    const outputName = OUTPUT_BINDING.exec(attribute.name)?.[1];
     if (className !== undefined) {
       classBindings.push({ name: className, expression: parse(attribute) });
     } else if (inputName !== undefined) {
       inputBindings.push({ name: inputName, expression: parse(attribute) });
+    } else if (outputName !== undefined) {
+      const handler = parseHandler(attribute.value, "event handler")
+        .mapLeft((error) =>
+          new Error(`${error.message}, on <${node.name}>`))
+        .getOrThrow();
+      outputBindings.push({ name: outputName, ...handler });
     } else if (/^[[(]/.test(attribute.name)) {
       throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
     } else {
       attributes.push(attribute);
     }
   }
-  return { attributes, classBindings, inputBindings };
+  return { attributes, classBindings, inputBindings, outputBindings };
 }

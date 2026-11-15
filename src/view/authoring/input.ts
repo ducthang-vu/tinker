@@ -26,7 +26,7 @@
 //   bound, so it can always be read.
 
 import { Maybe } from "../../functional/index.ts";
-import { computed, type ReadonlySignal, type Signal, signal } from "../../signals/index.ts";
+import { computed, type ReadonlySignal, type Signal, signal, untracked } from "../../signals/index.ts";
 
 declare const INPUT_TYPE: unique symbol;
 
@@ -88,6 +88,11 @@ export class InputBinding<T> {
   bind(value: T): void {
     this.state.set(Maybe.some(value));
   }
+
+  /** The current value, if there is one, read without tracking it. */
+  current(): Maybe<T> {
+    return untracked(() => this.state());
+  }
 }
 
 /** The binding of each input signal created by `input()`. */
@@ -116,6 +121,14 @@ export function input<T>(...defaultValue: [] | [T]): InputSignal<T> {
  * The inputs of `directive`, by name: its own properties holding a signal
  * created by `input()`. Each one is named after its property.
  */
+/**
+ * Make `key` an input of its owner, set through `binding`. Used by `model()`,
+ * whose readable side is the input (internal).
+ */
+export function registerInput<T>(key: object, binding: InputBinding<T>): void {
+  bindings.set(key, binding as InputBinding<unknown>);
+}
+
 export function inputsOf(directive: object): ReadonlyMap<string, InputBinding<unknown>> {
   const inputs = new Map<string, InputBinding<unknown>>();
   for (const [name, value] of Object.entries(directive)) {

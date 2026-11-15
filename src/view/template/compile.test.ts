@@ -33,6 +33,7 @@ describe("compileTemplate", () => {
           component: Maybe.none(),
           classBindings: [],
           inputBindings: [],
+          outputBindings: [],
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
       ]);
@@ -97,8 +98,8 @@ describe("compileTemplate", () => {
   });
 
   test("rejects other binding syntax, and invalid class binding expressions", () => {
-    expect(() => compileTemplate([element("button", { "(click)": "go()" })]))
-      .toThrow(`Bindings are not supported yet: "(click)" on <button>`);
+    expect(() => compileTemplate([element("button", { "[style.color]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[style.color]" on <button>`);
     expect(() => compileTemplate([element("p", { "[style.color]": "c" })]))
       .toThrow(`Bindings are not supported yet: "[style.color]" on <p>`);
     expect(() => compileTemplate([element("p", { "[title]": "t" })]))
