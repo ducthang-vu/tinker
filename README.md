@@ -25,7 +25,7 @@ class CounterStore {
 @Directive({ selector: "[step]", host: { "(click)": "apply()" } })
 class Step {
   private readonly store = inject(CounterStore);
-  readonly step = input("1"); // set from the `step` attribute
+  private readonly step = input("1"); // set from the `step` attribute
 
   apply() {
     this.store.count.update((count) => count + Number(this.step()));

@@ -43,6 +43,7 @@ export function registerChangeOutput<T>(key: object, emitter: Emitter<T, void, n
 
 /**
  * Declare an output, as a field initializer: `readonly selected = output<number>()`.
+ * Make it `private` unless other code should emit it: only the owner emits.
  */
 export function output<T>(): Output<T> {
   const emitter = Emitter.create<T, void, never>();

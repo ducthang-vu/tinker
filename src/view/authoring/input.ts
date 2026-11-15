@@ -100,12 +100,13 @@ const bindings = new WeakMap<object, InputBinding<unknown>>();
 
 /**
  * Declare a required input, as a field initializer: `readonly text = input<string>()`.
+ * Make it `private` unless other code should set it: inputs are set by the template.
  * Its value comes from the template binding of the same name; reading it
  * before that throws InputNotBoundError.
  */
 export function input<T>(): InputSignal<T>;
 /**
- * Declare an optional input: `readonly position = input("top")`. It holds
+ * Declare an optional input: `private readonly position = input("top")`. It holds
  * `defaultValue` until the template binding of the same name sets it.
  */
 export function input<T>(defaultValue: T): InputSignal<T>;

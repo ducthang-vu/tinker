@@ -2,7 +2,8 @@
 //
 // - <tk-counter> provides its own CounterStore (one per counter). Its
 //   buttons use the [step] directive, which injects that store and changes
-//   it on click; the template shows the store's signals with {{ }}.
+//   it on click, and emits what it did through its `stepped` output; the
+//   template handles that with (stepped), and shows the store's signals.
 // - <tk-clock> ticks with an @Effect method, which clears its interval when
 //   the clock is destroyed, and logs its first render with @AfterNextRender.
 // - [highlight] toggles a class on any element with a host class binding;
@@ -20,6 +21,7 @@ import {
   type EffectContext,
   Engine,
   input,
+  output,
 } from "../../src/view/index.ts";
 
 /** The state of one counter: provided by each <tk-counter>. */
@@ -34,15 +36,19 @@ class CounterStore {
   }
 }
 
-/** On click, adds `step` to the store of the counter it is in. */
+/** On click, adds `step` to the store of the counter it is in, and emits it. */
 @Directive({ selector: "[step]", host: { "(click)": "apply()" } })
 class Step {
   private readonly store = inject(CounterStore);
   /** From the `step` attribute: a string, like every attribute. */
-  readonly step = input("1");
+  private readonly step = input("1");
+  /** Each change made, for the template that uses this directive. */
+  private readonly stepped = output<number>();
 
   apply(): void {
-    this.store.add(Number(this.step()));
+    const amount = Number(this.step());
+    this.store.add(amount);
+    this.stepped.emit(amount);
   }
 }
 
@@ -78,7 +84,7 @@ class Highlight {
 })
 class Tooltip {
   /** From the `tooltip` attribute itself. */
-  readonly tooltip = input<string>();
+  private readonly tooltip = input<string>();
 }
 
 @Component({
@@ -86,15 +92,22 @@ class Tooltip {
   template: `
     <h2>Counter</h2>
     <p highlight [class.negative]="store.negative()">Count: {{ store.count() }} ({{ store.parity() }})</p>
-    <button step="-1" highlight style="--highlight: #ffd7d7" tooltip="Remove one">-1</button>
-    <button step="1" highlight style="--highlight: lightgreen" tooltip="Add one">+1</button>
-    <button step="10" highlight style="--highlight: lightblue" tooltip="Add ten">+10</button>
+    <p>{{ last() }}</p>
+    <button step="-1" (stepped)="onStep($event)" highlight style="--highlight: #ffd7d7" tooltip="Remove one">-1</button>
+    <button step="1" (stepped)="onStep($event)" highlight style="--highlight: lightgreen" tooltip="Add one">+1</button>
+    <button step="10" (stepped)="onStep($event)" highlight style="--highlight: lightblue" tooltip="Add ten">+10</button>
   `,
   imports: [Step, Highlight, Tooltip],
   providers: [CounterStore],
 })
 class Counter {
   readonly store = inject(CounterStore);
+  readonly last = signal("no change yet");
+
+  /** Called by each button's `stepped` output, with the amount it applied. */
+  onStep(amount: number): void {
+    this.last.set(`last change: ${amount > 0 ? "+" : ""}${amount}`);
+  }
 }
 
 @Component({
