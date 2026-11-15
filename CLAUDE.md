@@ -8,8 +8,8 @@ signals, dependency injection, components and directives, change detection.
 Run `npm run repo-map -- --format markdown` and read `.repo-map.md`: one
 line per file (its imports), and one line per exported name (its signature).
 It is about a quarter of the size of the generated declarations, so it is the
-cheapest way to find where something lives. The file is gitignored, so
-regenerate it after changing exports or imports.
+cheapest way to find where something lives. It is committed, and `npm test`
+fails when it is out of date: regenerate it after changing exports or imports.
 
 ## Layout
 
