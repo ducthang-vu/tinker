@@ -63,7 +63,7 @@ module; each module also lists its own in its `index.ts`.
 | [`src/signals`](src/signals/index.ts) | `signal`, `computed`, `watch`, `untracked`: push-pull reactivity with versions, lazy and glitch-free computeds, cycle detection |
 | [`src/di`](src/di/index.ts) | `inject()`, `InjectionToken` (and `InjectionToken.multi`), `provide()`, `@Injectable`, hierarchical injectors with `self` / `skipSelf` / `host` / `optional` lookups, `onDestroy` cleanup |
 | [`src/view`](src/view/index.ts) | `Engine`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
-| [`src/functional`](src/functional/index.ts) | `Maybe`, `Either` and a lazy, cancellable `Task`, used across the codebase |
+| [`src/functional`](src/functional/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, and `Stream` / `Emitter` (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
 | [`src/utils`](src/utils) | small shared helpers (context variables, metadata, `runAll`) |
 
 ### The view, in short
