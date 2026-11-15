@@ -171,7 +171,9 @@ export class TemplateBuilder {
       for (const emitter of outputsNamed(instances, name)) {
         view.addDestroyCallback(emitter.stream.run({ next: call }));
       }
-      view.addDestroyCallback(listenWithModifiers(this.renderer, element, { event: name, modifiers }, call));
+      view.addDestroyCallback(
+        listenWithModifiers(this.renderer, element, { event: name, modifiers }, call),
+      );
     }
   }
 
