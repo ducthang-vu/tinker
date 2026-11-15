@@ -73,8 +73,10 @@ module; each module also lists its own in its `index.ts`.
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language
   (fields and calls: `user().name`), class bindings
-  (`[class.done]="todo.done()"`) and input bindings (`[label]="item().name"`,
-  setting an input of a child component or a directive on that element).
+  (`[class.done]="todo.done()"`), input bindings (`[label]="item().name"`,
+  setting an input of a child component or a directive on that element) and
+  output bindings (`(selected)="choose($event)"`, calling a method for each
+  value of a directive's output).
   The component's `imports` list the
   directives and components its template may use, matched by CSS-like
   selectors; a component in a template gets its own injector, child of its
@@ -219,7 +221,7 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: `[style.x]`, `[attr.x]` and `(event)` bindings in templates
-(class and input bindings are there), content
+Not there yet: `[style.x]`, `[attr.x]`, DOM event bindings and outputs of
+components (directive outputs are there), content
 projection (content inside a component's element), queries (`viewChild`),
 `@if` / `@for`, recursive components, and `engine.destroy()`.

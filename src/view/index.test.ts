@@ -20,6 +20,7 @@ test("the public API exports exactly these values", () => {
         "ViewContainerRef",
         "ChangeDetectionLoopError",
         "input",
+        "output",
         "Effects",
         "Effect",
         "RenderHooks",
