@@ -1,12 +1,26 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Either } from "./either.ts";
+import type { Stream } from "./stream.ts";
 import { Task, TimeoutError } from "./task.ts";
 
 /** Run a task and record what happens (synchronously, or after timers/promises). */
-function record<T>(task: Task<T>) {
+function record<T, E>(task: Task<T, E>) {
   const log: unknown[] = [];
   const cancel = task.run({ ok: (v) => log.push(["ok", v]), error: (e) => log.push(["error", e]) });
   return { log, cancel };
+}
+
+/**
+ * The Error a task failed with, as plain data: whatever was thrown becomes
+ * an Error carrying it as its `cause`.
+ */
+function failure(log: unknown[]) {
+  const [kind, error] = log[0] as [string, Error];
+  expect(kind)
+    .toBe("error");
+  expect(error)
+    .toBeInstanceOf(Error);
+  return { message: error.message, cause: error.cause };
 }
 
 describe("Task", () => {
@@ -31,15 +45,15 @@ describe("Task", () => {
     const throwing = Task.create(() => {
       throw "thrown";
     });
-    expect(record(throwing).log)
-      .toEqual([["error", "thrown"]]);
+    expect(failure(record(throwing).log))
+      .toEqual({ message: "thrown", cause: "thrown" });
   });
 
   test("calls one handler, once", () => {
     const task = Task.create<number>((ok, error) => {
       ok(1);
       ok(2);
-      error("late");
+      error(new Error("late"));
     });
     expect(record(task).log)
       .toEqual([["ok", 1]]);
@@ -66,27 +80,27 @@ describe("Task", () => {
     expect(record(Task.of(2)
       .map((n) => n * 10)).log)
       .toEqual([["ok", 20]]);
-    expect(record(Task.fail<number>("e")
+    expect(record(Task.fail("e")
       .map((n) => n * 10)).log)
       .toEqual([["error", "e"]]);
-    expect(record(Task.of(2)
-      .map(() => { throw "in f"; })).log)
-      .toEqual([["error", "in f"]]);
+    expect(failure(record(Task.of(2)
+      .map(() => { throw "in f"; })).log))
+      .toEqual({ message: "in f", cause: "in f" });
   });
 
   test("flatMap chains tasks; errors anywhere fail the whole", () => {
     expect(record(Task.of(2)
       .flatMap((n) => Task.of(n + 1))).log)
       .toEqual([["ok", 3]]);
-    expect(record(Task.fail<number>("first")
+    expect(record(Task.fail("first")
       .flatMap((n) => Task.of(n))).log)
       .toEqual([["error", "first"]]);
     expect(record(Task.of(2)
       .flatMap(() => Task.fail("second"))).log)
       .toEqual([["error", "second"]]);
-    expect(record(Task.of(2)
-      .flatMap(() => { throw "in f"; })).log)
-      .toEqual([["error", "in f"]]);
+    expect(failure(record(Task.of(2)
+      .flatMap(() => { throw "in f"; })).log))
+      .toEqual({ message: "in f", cause: "in f" });
   });
 
   test("fromEither: a Right succeeds, a Left fails", () => {
@@ -104,10 +118,11 @@ describe("Task", () => {
   });
 
   describe("monad laws", () => {
-    const f = (n: number) => (n > 0 ? Task.of(n * 2) : Task.fail<number>("not positive"));
+    const f = (n: number): Task<number, string> =>
+      n > 0 ? Task.of(n * 2) : Task.fail("not positive");
     const g = (n: number) => Task.of(`#${n}`);
-    const tasks = [Task.of(3), Task.of(-1), Task.fail<number>("e")];
-    const outcome = <T>(t: Task<T>) => record(t).log;
+    const tasks: Task<number, string>[] = [Task.of(3), Task.of(-1), Task.fail("e")];
+    const outcome = <T, E>(t: Task<T, E>) => record(t).log;
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
       for (const a of [3, -1]) expect(outcome(Task.of(a)
@@ -126,6 +141,52 @@ describe("Task", () => {
             .flatMap(g))));
       }
     });
+  });
+});
+
+describe("Task as a stream", () => {
+  test("a task is a stream with no items, ending with its outcome", () => {
+    const events: unknown[] = [];
+    const observe = (stream: Stream<never, number, unknown>) => stream.subscribe({
+      next: () => events.push("item"),
+      end: (result) => events.push(result.match({ left: (e) => ["left", e], right: (v) => ["right", v] })),
+    });
+    observe(Task.of(1)
+      .toStream());
+    observe(Task.fail("bad")
+      .toStream());
+    expect(events)
+      .toEqual([["right", 1], ["left", "bad"]]);
+  });
+
+  test("is lazy as a stream too: converting does not run it, and each subscription runs it again", () => {
+    let runs = 0;
+    const stream = Task.create<number>((ok) => (runs++, ok(runs)))
+      .toStream();
+    expect(runs)
+      .toBe(0);
+    const seen: number[] = [];
+    stream.run({ ok: (n) => seen.push(n) });
+    stream.run({ ok: (n) => seen.push(n) });
+    expect(seen)
+      .toEqual([1, 2]);
+  });
+
+  test("flatMap is the stream's: a task's flatMap and its stream's flatMap agree", () => {
+    const viaTask: unknown[] = [];
+    const viaStream: unknown[] = [];
+    Task.of(2)
+      .flatMap((n) => Task.of(n * 10))
+      .run({ ok: (n) => viaTask.push(n) });
+    Task.of(2)
+      .toStream()
+      .flatMap((n) => Task.of(n * 10)
+        .toStream())
+      .run({ ok: (n) => viaStream.push(n) });
+    expect(viaTask)
+      .toEqual([20]);
+    expect(viaStream)
+      .toEqual(viaTask);
   });
 });
 
@@ -241,7 +302,10 @@ describe("Task.fromPromise", () => {
     const rejecting = Task.fromPromise(async () => {
       throw "rejected";
     });
-    await expect(rejecting.toPromise()).rejects.toBe("rejected");
+    await expect(rejecting.toPromise()).rejects.toMatchObject({
+      message: "rejected",
+      cause: "rejected",
+    });
   });
 
   test("cancelling aborts the signal, and the result is ignored", async () => {

@@ -20,8 +20,11 @@ import { Maybe } from "./maybe.ts";
  */
 export type EitherError<T> = Either<Error, T>;
 
-/** `value` as an Error: an Error as is, anything else wrapped (kept as its `cause`). */
-function toError(value: unknown): Error {
+/**
+ * `value` as an Error: an Error as is, anything else wrapped (kept as its
+ * `cause`). Used wherever something that was thrown becomes a failure value.
+ */
+export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value), { cause: value });
 }
 
