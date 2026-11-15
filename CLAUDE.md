@@ -32,3 +32,8 @@ fails when it is out of date: regenerate it after changing exports or imports.
 Read `CONVENTIONS.md` before writing code (DI and factories, no `any`,
 `Maybe`/`Either`, tests next to their files). `IMPROVEMENTS.md` lists known
 gaps and planned work; check it before adding something it already covers.
+
+## Agent instructions
+
+The rules for every AI agent (design patterns, SOLID, declarative code,
+where flow control is allowed) are in [AGENTS.md](AGENTS.md). Follow them.
