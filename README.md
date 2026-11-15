@@ -72,8 +72,10 @@ module; each module also lists its own in its `index.ts`.
   (child of the engine's), which holds their `providers` and their
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language
-  (fields and calls: `user().name`), and class bindings
-  (`[class.done]="todo.done()"`). The component's `imports` list the
+  (fields and calls: `user().name`), class bindings
+  (`[class.done]="todo.done()"`) and input bindings (`[label]="item().name"`,
+  setting an input of a child component or a directive on that element).
+  The component's `imports` list the
   directives and components its template may use, matched by CSS-like
   selectors; a component in a template gets its own injector, child of its
   element's, so it can inject its parent.
@@ -114,6 +116,10 @@ it is on purpose.
 - **Inputs are required unless they have a default.** `input<string>()`
   throws if read before it is bound, and `input("top")` is optional: the
   reverse of Angular's `input()` and `input.required()`.
+- **`[name]` binds inputs only.** It sets the input `name` of the directives
+  and component on the element, never a DOM property: `[title]` on a plain
+  `<p>` is an error, not a write to `p.title`. Input names match
+  case-insensitively, since the browser's parser lowercases them.
 - **Multi tokens are declared once, on the token.**
   `InjectionToken.multi<Validator>("VALIDATORS")` instead of `multi: true` on
   every provider: `inject()` is typed as a list, a provider as one item, and
@@ -213,7 +219,7 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: `[prop]`, `[style.x]`, `[attr.x]` and `(event)` bindings in
-templates (class bindings are there), content
+Not there yet: `[style.x]`, `[attr.x]` and `(event)` bindings in templates
+(class and input bindings are there), content
 projection (content inside a component's element), queries (`viewChild`),
 `@if` / `@for`, recursive components, and `engine.destroy()`.

@@ -143,3 +143,14 @@ export function bindInputsToAttributes(
       .ifSome(([, input]) => input.bind(attribute.value));
   }
 }
+
+/**
+ * The inputs named `name` (case-insensitively: the browser's parser
+ * lowercases attribute names) among those of `instances`, e.g. the
+ * directives and the component on one element.
+ */
+export function inputsNamed(instances: readonly object[], name: string): InputBinding<unknown>[] {
+  return instances.flatMap((instance) => [...inputsOf(instance)]
+    .filter(([inputName]) => inputName.toLowerCase() === name.toLowerCase())
+    .map(([, input]) => input));
+}

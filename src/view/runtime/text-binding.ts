@@ -8,7 +8,9 @@ import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Interpolation } from "../template/interpolation.ts";
+import { inputsNamed } from "../authoring/input.ts";
 import { ClassBinding } from "./class-binding.ts";
+import { InputBinder } from "./input-binder.ts";
 import { RENDERER } from "../tokens.ts";
 
 /**
@@ -27,6 +29,27 @@ export class BindingFactory {
   /** A binding showing `interpolation`, evaluated against `component`, in `node`. */
   text(node: Text, interpolation: Interpolation, component: object): TextBinding {
     return new TextBinding(node, interpolation, component, this.renderer);
+  }
+
+  /**
+   * A binding setting the inputs named `name` of `instances` (the directives
+   * and component on element `<elementName>`) to `expression`, read from
+   * `context`. Throws if none of them has such an input.
+   */
+  inputs(
+    name: string,
+    expression: Expression,
+    context: object,
+    instances: readonly object[],
+    elementName: string,
+  ): InputBinder {
+    const targets = inputsNamed(instances, name);
+    if (targets.length === 0) {
+      throw new Error(
+        `[${name}] on <${elementName}>: no directive or component on this element has an input "${name}"`,
+      );
+    }
+    return new InputBinder(targets, expression, context);
   }
 
   /**

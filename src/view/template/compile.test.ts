@@ -32,6 +32,7 @@ describe("compileTemplate", () => {
           directives: [],
           component: Maybe.none(),
           classBindings: [],
+          inputBindings: [],
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
       ]);
@@ -82,11 +83,28 @@ describe("compileTemplate", () => {
         .getOrThrow() }]);
   });
 
+  test("sorts input bindings apart, with their expression", () => {
+    class Item {}
+    const [host] = compileTemplate(
+      [element("tk-item", { "[label]": "item().name", "[class.done]": "done" })],
+      [{ type: Item, selector: selector("tk-item"), isComponent: true }],
+    ) as CompiledElement[];
+    expect(host!.inputBindings)
+      .toEqual([{ name: "label", expression: ExpressionParser.parse("item().name")
+        .getOrThrow() }]);
+    expect(host!.classBindings.map(({ name }) => name))
+      .toEqual(["done"]);
+  });
+
   test("rejects other binding syntax, and invalid class binding expressions", () => {
     expect(() => compileTemplate([element("button", { "(click)": "go()" })]))
       .toThrow(`Bindings are not supported yet: "(click)" on <button>`);
+    expect(() => compileTemplate([element("p", { "[style.color]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[style.color]" on <p>`);
     expect(() => compileTemplate([element("p", { "[title]": "t" })]))
-      .toThrow(`Bindings are not supported yet: "[title]" on <p>`);
+      .toThrow(
+        "[title] on <p>: only inputs can be bound, and no imported directive or component matches this element",
+      );
     expect(() => compileTemplate([element("p", { "[class.on]": "a(1)" })]))
       .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [class.on] on <p>`);
   });

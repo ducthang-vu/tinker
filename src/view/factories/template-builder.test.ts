@@ -75,8 +75,10 @@ describe("TemplateBuilder", () => {
       .toThrow(
         `Bindings are not supported yet: "(click)" on <button>`,
       );
+    expect(() => build(`<p [style.color]="c">x</p>`, {}))
+      .toThrow(`"[style.color]" on <p>`);
     expect(() => build(`<p [title]="t">x</p>`, {}))
-      .toThrow(`"[title]" on <p>`);
+      .toThrow("[title] on <p>: only inputs can be bound");
   });
 });
 

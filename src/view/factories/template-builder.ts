@@ -106,19 +106,34 @@ export class TemplateBuilder {
       const hostBindings = (bindings: readonly Binding[]) => this.addBindings(bindings
         .filter((binding) => !(binding instanceof ClassBinding && boundHere.has(binding.name))));
       let injector = parentInjector;
+      let directives: readonly object[] = [];
       if (node.directives.length > 0) {
         const created = this.directiveFactory
           .createOnElement(node.directives, element, view, parentInjector, node.attributes);
         injector = created.injector;
+        directives = created.instances;
         hostBindings(created.bindings);
       }
-      node.component.ifSome((type) => {
-        this.components.create(type, element, {
+      // Input bindings set the inputs of the element's directives and
+      // component: their first values now (before the component's first
+      // render), then this view's watch keeps them up to date.
+      const bindInputs = (instances: readonly object[]) => {
+        const binders = node.inputBindings.map(({ name, expression }) =>
+          this.bindingFactory.inputs(name, expression, this.component, instances, node.name));
+        for (const binder of binders) {
+          binder.update();
+        }
+        this.addBindings(binders);
+      };
+      node.component.match({
+        some: (type) => this.components.create(type, element, {
           parentInjector: injector,
           parentView: view,
           attributes: node.attributes,
           adoptHostBindings: hostBindings,
-        });
+          bindInputs: (component) => bindInputs([...directives, component]),
+        }),
+        none: () => bindInputs(directives),
       });
       injectors.push(injector);
     }

@@ -30,10 +30,11 @@
 // and the directives and components the component imports, on the elements
 // matching their selectors (see TemplateBuilder.createDirectivesAndComponents).
 // A component in a template is created with this factory, in the injector of
-// its element, and is owned by the parent's view. Not yet: attribute
-// bindings (`[prop]`, `(event)`), reported as unsupported, and content
-// inside a component's element (projection), reported too. A component may
-// not contain itself, directly or through others.
+// its element, and is owned by the parent's view; its element's input
+// bindings (`[label]="…"`) set its inputs before its first render. Not yet:
+// `(event)`, `[style.x]` and `[attr.x]` bindings, reported as unsupported,
+// and content inside a component's element (projection), reported too. A
+// component may not contain itself, directly or through others.
 
 import {
   inject,
@@ -80,6 +81,12 @@ export interface ChildPlacement {
    * them, with the parent's own bindings on that element.
    */
   readonly adoptHostBindings: (bindings: readonly Binding[]) => void;
+  /**
+   * Binds the input bindings of its element (`[label]="…"`) to the new
+   * component (and the directives on that element): called before its
+   * first render, so they have their first values.
+   */
+  readonly bindInputs: (component: object) => void;
 }
 
 @Injectable()
@@ -183,9 +190,11 @@ export class ComponentFactory {
     // Its host directives, on its host element (their host bindings: below).
     const hostBindings = hostDirectives.flatMap((directive, i) =>
       this.directives.attach(directive, hostInstances[i]!, host, view));
-    // The directives and child components of the template's elements, now
-    // that their view exists, and before the first render.
+    // In a template: its element's input bindings, then the directives and
+    // child components of its own template's elements, now that its view
+    // exists, and before the first render.
     try {
+      child?.bindInputs(instance);
       template.createDirectivesAndComponents(view, ownInjector.injector);
     } catch (error) {
       view.destroy(); // undoes the directives created so far, and the injectors

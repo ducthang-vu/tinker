@@ -5,9 +5,11 @@
 // matches (among those the component imports). Done once per component
 // class; errors are reported here, before anything is rendered.
 //
-// Attributes are classified here too: plain ones, and class bindings
-// (`[class.done]="todo.done()"`, their expression parsed). Other binding
-// syntax (`[prop]`, `(event)`) is reported as not supported yet.
+// Attributes are classified here too: plain ones, class bindings
+// (`[class.done]="todo.done()"`) and input bindings (`[label]="name()"`,
+// which set an input of the directives or component on the element), their
+// expressions parsed. Other binding syntax (`[style.x]`, `[attr.x]`,
+// `(event)`) is reported as not supported yet.
 
 import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
@@ -26,6 +28,8 @@ export interface CompiledElement {
   readonly attributes: readonly AttributeNode[];
   /** Its class bindings, e.g. `[class.done]="todo.done()"`, in template order. */
   readonly classBindings: readonly ClassBindingNode[];
+  /** Its input bindings, e.g. `[label]="item().name"`, in template order. */
+  readonly inputBindings: readonly InputBindingNode[];
   readonly children: readonly CompiledNode[];
   /** The directives matching this element (not its component), in import order. */
   readonly directives: readonly Class<object>[];
@@ -35,6 +39,15 @@ export interface CompiledElement {
 
 /** A class binding: class `name`, on while `expression` is truthy. */
 export interface ClassBindingNode {
+  readonly name: string;
+  readonly expression: Expression;
+}
+
+/**
+ * An input binding: the inputs `name` of the element's directives and
+ * component get the value of `expression`.
+ */
+export interface InputBindingNode {
   readonly name: string;
   readonly expression: Expression;
 }
@@ -70,7 +83,7 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     return { kind: "text", interpolation: parseInterpolation(node.value)
       .getOrThrow() };
   }
-  const { attributes, classBindings } = classifyAttributes(node);
+  const { attributes, classBindings, inputBindings } = classifyAttributes(node);
   const matched = candidates.filter((candidate) =>
     candidate.selector.matches({ name: node.name, attributes }));
   const components = matched.filter(({ isComponent }) => isComponent);
@@ -87,44 +100,58 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
       );
     }
   });
+  const directives = matched.filter(({ isComponent }) => !isComponent)
+    .map(({ type }) => type);
+  if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
+    throw new Error(
+      `[${inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
+      + "and no imported directive or component matches this element",
+    );
+  }
   return {
     kind: "element",
     name: node.name,
     attributes,
     classBindings,
+    inputBindings,
     // A component's element has no content of its own: the component renders into it.
     children: component.isSome() ? [] : compileTemplate(node.children, candidates),
-    directives: matched.filter(({ isComponent }) => !isComponent)
-      .map(({ type }) => type),
+    directives,
     component,
   };
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
+const INPUT_BINDING = /^\[([^\].\s]+)\]$/;
 
 /**
- * Split the attributes of `node` into plain attributes and class bindings
- * (parsing their expressions). Throws for other binding syntax, or an
- * invalid expression.
+ * Split the attributes of `node` into plain attributes, class bindings and
+ * input bindings (parsing their expressions). Throws for other binding
+ * syntax, or an invalid expression.
  */
 function classifyAttributes(node: ElementNode): {
   attributes: AttributeNode[];
   classBindings: ClassBindingNode[];
+  inputBindings: InputBindingNode[];
 } {
   const attributes: AttributeNode[] = [];
   const classBindings: ClassBindingNode[] = [];
+  const inputBindings: InputBindingNode[] = [];
+  const parse = (attribute: AttributeNode) => ExpressionParser.parse(attribute.value)
+    .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
+    .getOrThrow();
   for (const attribute of node.attributes) {
     const className = CLASS_BINDING.exec(attribute.name)?.[1];
+    const inputName = INPUT_BINDING.exec(attribute.name)?.[1];
     if (className !== undefined) {
-      const expression = ExpressionParser.parse(attribute.value)
-        .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
-        .getOrThrow();
-      classBindings.push({ name: className, expression });
+      classBindings.push({ name: className, expression: parse(attribute) });
+    } else if (inputName !== undefined) {
+      inputBindings.push({ name: inputName, expression: parse(attribute) });
     } else if (/^[[(]/.test(attribute.name)) {
       throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
     } else {
       attributes.push(attribute);
     }
   }
-  return { attributes, classBindings };
+  return { attributes, classBindings, inputBindings };
 }
