@@ -29,6 +29,10 @@ export interface CompiledElement {
   readonly attributes: readonly AttributeNode[];
   /** Its class bindings, e.g. `[class.done]="todo.done()"`, in template order. */
   readonly classBindings: readonly ClassBindingNode[];
+  /** Its style bindings, e.g. `[style.color]="item().color"`, in template order. */
+  readonly styleBindings: readonly ValueBindingNode[];
+  /** Its attribute bindings, e.g. `[attr.title]="item().label"`, in template order. */
+  readonly attributeBindings: readonly ValueBindingNode[];
   /** Its input bindings, e.g. `[label]="item().name"`, in template order. */
   readonly inputBindings: readonly InputBindingNode[];
   /** Its output bindings, e.g. `(selected)="choose($event)"`, in template order. */
@@ -38,6 +42,12 @@ export interface CompiledElement {
   readonly directives: readonly Class<object>[];
   /** The component matching this element, if any: the element is its host. */
   readonly component: Maybe<Class<object>>;
+}
+
+/** A style or attribute binding: `name` gets the value of `expression`. */
+export interface ValueBindingNode {
+  readonly name: string;
+  readonly expression: Expression;
 }
 
 /** A class binding: class `name`, on while `expression` is truthy. */
@@ -94,7 +104,14 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     return { kind: "text", interpolation: parseInterpolation(node.value)
       .getOrThrow() };
   }
-  const { attributes, classBindings, inputBindings, outputBindings } = classifyAttributes(node);
+  const {
+    attributes,
+    classBindings,
+    inputBindings,
+    outputBindings,
+    styleBindings,
+    attributeBindings,
+  } = classifyAttributes(node);
   const matched = candidates.filter((candidate) =>
     candidate.selector.matches({ name: node.name, attributes }));
   const components = matched.filter(({ isComponent }) => isComponent);
@@ -132,6 +149,8 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     classBindings,
     inputBindings,
     outputBindings,
+    styleBindings,
+    attributeBindings,
     // A component's element has no content of its own: the component renders into it.
     children: component.isSome() ? [] : compileTemplate(node.children, candidates),
     directives,
@@ -142,6 +161,8 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
 const INPUT_BINDING = /^\[([^\].\s]+)\]$/;
 const OUTPUT_BINDING = /^\(([^).\s]+)\)$/;
+const STYLE_BINDING = /^\[style\.([^\]\s]+)\]$/;
+const ATTRIBUTE_BINDING = /^\[attr\.([^\]\s]+)\]$/;
 
 /**
  * Split the attributes of `node` into plain attributes, class bindings and
@@ -153,11 +174,15 @@ function classifyAttributes(node: ElementNode): {
   classBindings: ClassBindingNode[];
   inputBindings: InputBindingNode[];
   outputBindings: OutputBindingNode[];
+  styleBindings: ValueBindingNode[];
+  attributeBindings: ValueBindingNode[];
 } {
   const attributes: AttributeNode[] = [];
   const classBindings: ClassBindingNode[] = [];
   const inputBindings: InputBindingNode[] = [];
   const outputBindings: OutputBindingNode[] = [];
+  const styleBindings: ValueBindingNode[] = [];
+  const attributeBindings: ValueBindingNode[] = [];
   const parse = (attribute: AttributeNode) => ExpressionParser.parse(attribute.value)
     .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
     .getOrThrow();
@@ -165,7 +190,13 @@ function classifyAttributes(node: ElementNode): {
     const className = CLASS_BINDING.exec(attribute.name)?.[1];
     const inputName = INPUT_BINDING.exec(attribute.name)?.[1];
     const outputName = OUTPUT_BINDING.exec(attribute.name)?.[1];
-    if (className !== undefined) {
+    const styleName = STYLE_BINDING.exec(attribute.name)?.[1];
+    const attrName = ATTRIBUTE_BINDING.exec(attribute.name)?.[1];
+    if (styleName !== undefined) {
+      styleBindings.push({ name: styleName, expression: parse(attribute) });
+    } else if (attrName !== undefined) {
+      attributeBindings.push({ name: attrName, expression: parse(attribute) });
+    } else if (className !== undefined) {
       classBindings.push({ name: className, expression: parse(attribute) });
     } else if (inputName !== undefined) {
       inputBindings.push({ name: inputName, expression: parse(attribute) });
@@ -181,5 +212,12 @@ function classifyAttributes(node: ElementNode): {
       attributes.push(attribute);
     }
   }
-  return { attributes, classBindings, inputBindings, outputBindings };
+  return {
+    attributes,
+    classBindings,
+    inputBindings,
+    outputBindings,
+    styleBindings,
+    attributeBindings,
+  };
 }

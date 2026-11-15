@@ -73,7 +73,10 @@ module; each module also lists its own in its `index.ts`.
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language
   (fields and calls: `user().name`), class bindings
-  (`[class.done]="todo.done()"`), input bindings (`[label]="item().name"`,
+  (`[class.done]="todo.done()"`), style and attribute bindings
+  (`[style.color]="color()"`, `[attr.title]="label()"`, with kebab-case names
+  such as `[style.background-color]` and `[attr.aria-label]`; an empty value
+  removes the style or the attribute), input bindings (`[label]="item().name"`,
   setting an input of a child component or a directive on that element) and
   output bindings (`(selected)="choose($event)"`, calling a method for each
   value of a directive's or component's output).
@@ -82,7 +85,10 @@ module; each module also lists its own in its `index.ts`.
   selectors; a component in a template gets its own injector, child of its
   element's, so it can inject its parent.
 - **Host bindings** on directives and components: listeners
-  (`"(click)": "toggle()"`) and class bindings (`"[class.open]": "isOpen()"`).
+  (`"(click)": "toggle()"`), and class, style and attribute bindings
+  (`"[class.open]": "isOpen()"`, `"[style.opacity]": "opacity()"`,
+  `"[attr.role]": "role()"`). A template binding on an element wins over a
+  host binding of the same class, style or attribute.
 - **Directives** on an element share an element injector, so they can inject
   each other and their ancestors. Inputs are signals (`input()`); plain
   attributes bind them.
@@ -226,7 +232,7 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: `[style.x]`, `[attr.x]` and DOM event bindings (outputs of
-directives and components are there), content
+Not there yet: DOM event bindings in templates (outputs of directives and
+components are there), property bindings (`[value]` on a plain element), content
 projection (content inside a component's element), queries (`viewChild`),
 `@if` / `@for`, recursive components, and `engine.destroy()`.

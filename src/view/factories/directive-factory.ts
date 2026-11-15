@@ -139,8 +139,14 @@ export class DirectiveFactory {
   ): Binding[] {
     const hostBindings = this.hostBindingsOf(type);
     hostBindings.attach(instance, element, this.renderer, view);
-    return hostBindings.classes.map(({ name, expression }) =>
-      this.bindingFactory.classToggle(element, name, expression, instance));
+    return [
+      ...hostBindings.classes.map(({ name, expression }) =>
+        this.bindingFactory.classToggle(element, name, expression, instance)),
+      ...hostBindings.styles.map(({ name, expression }) =>
+        this.bindingFactory.style(element, name, expression, instance)),
+      ...hostBindings.attributes.map(({ name, expression }) =>
+        this.bindingFactory.attribute(element, name, expression, instance)),
+    ];
   }
 
   private hostBindingsOf(type: Class<unknown>): HostBindings {

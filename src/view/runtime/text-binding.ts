@@ -9,8 +9,10 @@ import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Interpolation } from "../template/interpolation.ts";
 import { inputsNamed } from "../authoring/input.ts";
+import { AttributeBinding } from "./attribute-binding.ts";
 import { ClassBinding } from "./class-binding.ts";
 import { InputBinder } from "./input-binder.ts";
+import { StyleBinding } from "./style-binding.ts";
 import { RENDERER } from "../tokens.ts";
 
 /**
@@ -20,6 +22,8 @@ import { RENDERER } from "../tokens.ts";
 /** Something the view's watch keeps up to date: it calls `update()` on each run. */
 export interface Binding {
   update(): void;
+  /** What a template binding on the same element replaces (e.g. `class:done`), if anything. */
+  readonly key?: string;
 }
 
 @Injectable()
@@ -63,6 +67,21 @@ export class BindingFactory {
     context: object,
   ): ClassBinding {
     return new ClassBinding(element, name, expression, context, this.renderer);
+  }
+
+  /** A binding setting the inline style property `name` of `element` to `expression`'s value. */
+  style(element: Element, name: string, expression: Expression, context: object): StyleBinding {
+    return new StyleBinding(element, name, expression, context, this.renderer);
+  }
+
+  /** A binding setting the attribute `name` of `element` to `expression`'s value. */
+  attribute(
+    element: Element,
+    name: string,
+    expression: Expression,
+    context: object,
+  ): AttributeBinding {
+    return new AttributeBinding(element, name, expression, context, this.renderer);
   }
 }
 
