@@ -3,12 +3,12 @@
 // - <tk-counter> provides its own CounterStore (one per counter). Its
 //   buttons use the [step] directive, which injects that store and changes
 //   it on click; the template shows the store's signals with {{ }}.
-// - <tk-clock> ticks with an effect, which clears its interval when the
-//   clock is destroyed, and logs its first render with a render hook.
+// - <tk-clock> ticks with an @Effect method, which clears its interval when
+//   the clock is destroyed, and logs its first render with @AfterNextRender.
 // - [highlight] toggles a class on any element with a host class binding;
-//   [tooltip] sets its title through the RENDERER and ElementRef, with an
-//   input set from a plain attribute. The counter's paragraph turns red
-//   below zero with a template class binding.
+//   [tooltip] sets its title with a host attribute binding, from an input
+//   set by a plain attribute. The counter's paragraph turns red below zero
+//   with a template class binding.
 
 import { inject, Injectable } from "../../src/di/index.ts";
 import { computed, signal } from "../../src/signals/index.ts";
@@ -16,11 +16,10 @@ import {
   AfterNextRender,
   Component,
   Directive,
-  Effects,
-  ElementRef,
+  Effect,
+  type EffectContext,
   Engine,
   input,
-  RENDERER,
 } from "../../src/view/index.ts";
 
 /** The state of one counter: provided by each <tk-counter>. */
@@ -72,18 +71,14 @@ class Highlight {
   }
 }
 
-/** Shows its text as the element's native tooltip (its title). */
-@Directive({ selector: "[tooltip]" })
+/** Shows its text as the element's native tooltip: a host attribute binding. */
+@Directive({
+  selector: "[tooltip]",
+  host: { "[attr.title]": "tooltip()" },
+})
 class Tooltip {
   /** From the `tooltip` attribute itself. */
   readonly tooltip = input<string>();
-
-  constructor() {
-    const host = inject(ElementRef);
-    const renderer = inject(RENDERER);
-    inject(Effects)
-      .create(() => renderer.setAttribute(host.nativeElement, "title", this.tooltip()));
-  }
 }
 
 @Component({
@@ -115,13 +110,10 @@ class Clock {
   readonly time = computed(() => this.now()
     .toLocaleTimeString());
 
-  constructor() {
-    // Reads no signal: runs once. Its cleanup runs when the clock is destroyed.
-    inject(Effects)
-      .create(({ onCleanup }) => {
-        const id = setInterval(() => this.now.set(new Date()), 1000);
-        onCleanup(() => clearInterval(id));
-      });
+  /** Reads no signal: runs once. Its cleanup runs when the clock is destroyed. */
+  @Effect() tick({ onCleanup }: EffectContext): void {
+    const id = setInterval(() => this.now.set(new Date()), 1000);
+    onCleanup(() => clearInterval(id));
   }
 
   @AfterNextRender() ready(): void {

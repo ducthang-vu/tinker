@@ -14,7 +14,6 @@
 import { inject, Injectable, type Injector } from "../../di/index.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
-import { ClassBinding } from "../runtime/class-binding.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode } from "../template/compile.ts";
@@ -103,9 +102,13 @@ export class TemplateBuilder {
       // Host bindings on this element (its directives', its component's) join
       // this view's watch, except for the classes this template binds on it:
       // the template's own binding takes precedence.
-      const boundHere = new Set(node.classBindings.map(({ name }) => name));
+      const boundHere = new Set([
+        ...node.classBindings.map(({ name }) => `class:${name}`),
+        ...node.styleBindings.map(({ name }) => `style:${name}`),
+        ...node.attributeBindings.map(({ name }) => `attr:${name}`),
+      ]);
       const hostBindings = (bindings: readonly Binding[]) => this.addBindings(bindings
-        .filter((binding) => !(binding instanceof ClassBinding && boundHere.has(binding.name))));
+        .filter((binding) => binding.key === undefined || !boundHere.has(binding.key)));
       let injector = parentInjector;
       let directives: readonly object[] = [];
       if (node.directives.length > 0) {
@@ -216,6 +219,12 @@ export class TemplateBuilder {
     for (const { name, expression } of node.classBindings) {
       this.bindings.push(this.bindingFactory
         .classToggle(element, name, expression, this.component));
+    }
+    for (const { name, expression } of node.styleBindings) {
+      this.bindings.push(this.bindingFactory.style(element, name, expression, this.component));
+    }
+    for (const { name, expression } of node.attributeBindings) {
+      this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.component));
     }
     const index = this.recordDirectives(element, node);
     for (const child of this.build(node.children)) {

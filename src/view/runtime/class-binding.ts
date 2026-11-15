@@ -27,6 +27,11 @@ export class ClassBinding {
     private readonly renderer: Renderer,
   ) {}
 
+  /** The precedence key: a template binding on the element replaces a host binding with it. */
+  get key(): string {
+    return `class:${this.name}`;
+  }
+
   /** Evaluate the expression, and add or remove the class if that changed. */
   update(): void {
     const on = Boolean(evaluate(this.expression, this.context));

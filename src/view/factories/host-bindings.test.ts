@@ -29,8 +29,8 @@ describe("HostBindings parsing", () => {
   test("rejects other kinds of host bindings", () => {
     expect(() => new HostBindings({ "[title]": "open()" }))
       .toThrow(
-        `Unsupported host binding "[title]": only "(event)" listeners and "[class.name]" bindings `
-        + "are supported for now",
+        "Unsupported host binding \"[title]\": only \"(event)\" listeners and "
+        + "\"[class.name]\", \"[style.name]\" and \"[attr.name]\" bindings are supported for now",
       );
     expect(() => new HostBindings({ click: "go()" }))
       .toThrow("Unsupported host binding");
@@ -51,6 +51,25 @@ describe("HostBindings parsing", () => {
     expect(() => new HostBindings({ "[class.open]": "a + b" }))
       .toThrow(`Unexpected "+": only fields and calls are supported for now (at column 3 in "a + b"), `
         + `in host binding "[class.open]"`);
+  });
+
+  test("parses style and attribute bindings, attr mapping to the attribute kind", () => {
+    const bindings = new HostBindings({
+      "[style.--highlight]": "color()",
+      "[style.font-size]": "size()",
+      "[attr.role]": "role()",
+    });
+    expect(bindings.styles.map(({ name }) => name))
+      .toEqual(["--highlight", "font-size"]);
+    expect(bindings.attributes.map(({ kind, name }) => [kind, name]))
+      .toEqual([["attribute", "role"]]);
+    expect(bindings.classes)
+      .toEqual([]);
+  });
+
+  test("reports an invalid style or attribute expression with its key", () => {
+    expect(() => new HostBindings({ "[attr.title]": "a + b" }))
+      .toThrow(`in host binding "[attr.title]"`);
   });
 
   test("rejects handlers other than method() and method($event)", () => {
@@ -76,8 +95,8 @@ describe("HostBindings parsing", () => {
       .toHaveLength(2);
     expect(message)
       .toBe(
-        `Unsupported host binding "[title]": only "(event)" listeners and "[class.name]" bindings `
-        + "are supported for now\n"
+        "Unsupported host binding \"[title]\": only \"(event)\" listeners and "
+        + "\"[class.name]\", \"[style.name]\" and \"[attr.name]\" bindings are supported for now\n"
         + `Unsupported host handler "a.b()": write "method()" or "method($event)"`,
       );
   });

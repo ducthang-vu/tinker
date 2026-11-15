@@ -33,6 +33,8 @@ describe("compileTemplate", () => {
           component: Maybe.none(),
           classBindings: [],
           inputBindings: [],
+          styleBindings: [],
+          attributeBindings: [],
           outputBindings: [],
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
@@ -84,6 +86,27 @@ describe("compileTemplate", () => {
         .getOrThrow() }]);
   });
 
+  test("sorts style and attribute bindings apart, with their expression", () => {
+    const [p] = compileTemplate([
+      element("p", { "[style.background-color]": "bg()", "[attr.aria-label]": "label()" }),
+    ]) as CompiledElement[];
+    expect(p!.styleBindings)
+      .toEqual([{ name: "background-color", expression: ExpressionParser.parse("bg()")
+        .getOrThrow() }]);
+    expect(p!.attributeBindings)
+      .toEqual([{ name: "aria-label", expression: ExpressionParser.parse("label()")
+        .getOrThrow() }]);
+    expect(p!.classBindings)
+      .toEqual([]);
+  });
+
+  test("reports an invalid style or attribute expression with its key", () => {
+    expect(() => compileTemplate([element("p", { "[style.color]": "a + b" })]))
+      .toThrow(/in \[style\.color\] on <p>/);
+    expect(() => compileTemplate([element("p", { "[attr.title]": "a(1)" })]))
+      .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [attr.title] on <p>`);
+  });
+
   test("sorts input bindings apart, with their expression", () => {
     class Item {}
     const [host] = compileTemplate(
@@ -98,10 +121,10 @@ describe("compileTemplate", () => {
   });
 
   test("rejects other binding syntax, and invalid class binding expressions", () => {
-    expect(() => compileTemplate([element("button", { "[style.color]": "c" })]))
-      .toThrow(`Bindings are not supported yet: "[style.color]" on <button>`);
-    expect(() => compileTemplate([element("p", { "[style.color]": "c" })]))
-      .toThrow(`Bindings are not supported yet: "[style.color]" on <p>`);
+    expect(() => compileTemplate([element("button", { "[foo.bar]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[foo.bar]" on <button>`);
+    expect(() => compileTemplate([element("p", { "[foo.bar]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[foo.bar]" on <p>`);
     expect(() => compileTemplate([element("p", { "[title]": "t" })]))
       .toThrow(
         "[title] on <p>: only inputs can be bound, and no imported directive or component matches this element",

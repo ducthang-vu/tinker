@@ -30,11 +30,13 @@ export interface HostListener {
   readonly passEvent: boolean;
 }
 
-/** One parsed `"[class.name]": "expression"` entry. */
-export interface HostClassBinding {
-  /** The class, e.g. `"open"`. */
+/**
+ * One parsed `"[class.name]"`, `"[style.name]"` or `"[attr.name]"` entry: its
+ * `name` gets the value of `expression`, read from the instance.
+ */
+export interface HostValueBinding {
+  readonly kind: "class" | "style" | "attribute";
   readonly name: string;
-  /** Turns the class on while truthy; its names are read from the instance. */
   readonly expression: Expression;
 }
 
@@ -42,7 +44,11 @@ export class HostBindings {
   /** The parsed event listeners. */
   readonly listeners: readonly HostListener[];
   /** The parsed class bindings. */
-  readonly classes: readonly HostClassBinding[];
+  readonly classes: readonly HostValueBinding[];
+  /** The parsed style bindings. */
+  readonly styles: readonly HostValueBinding[];
+  /** The parsed attribute bindings. */
+  readonly attributes: readonly HostValueBinding[];
 
   /**
    * Parse a `host` option. Throws for anything but `"(event)": "method()"`,
@@ -62,7 +68,10 @@ export class HostBindings {
     }
     const entries = parsed.map((result) => result.getOrThrow());
     this.listeners = entries.filter((entry): entry is HostListener => "event" in entry);
-    this.classes = entries.filter((entry): entry is HostClassBinding => "expression" in entry);
+    const values = entries.filter((entry): entry is HostValueBinding => "kind" in entry);
+    this.classes = values.filter((value) => value.kind === "class");
+    this.styles = values.filter((value) => value.kind === "style");
+    this.attributes = values.filter((value) => value.kind === "attribute");
   }
 
   /**
@@ -86,17 +95,18 @@ export class HostBindings {
 }
 
 const LISTENER_KEY = /^\(([\w.-]+)\)$/;
-const CLASS_KEY = /^\[class\.([^\]\s]+)\]$/;
+const VALUE_KEY = /^\[(class|style|attr)\.([^\]\s]+)\]$/;
 
 /** One `host` entry, or the error explaining why it is not supported. */
-function parseEntry(key: string, value: string): EitherError<HostListener | HostClassBinding> {
-  return Maybe.fromNullable(CLASS_KEY.exec(key)?.[1])
-    .match<EitherError<HostListener | HostClassBinding>>({
-      some: (name) => ExpressionParser.parse(value)
-        .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`))
-        .map((expression) => ({ name, expression })),
-      none: () => parseListener(key, value),
-    });
+function parseEntry(key: string, value: string): EitherError<HostListener | HostValueBinding> {
+  const match = VALUE_KEY.exec(key);
+  if (!match) {
+    return parseListener(key, value);
+  }
+  const kind = match[1] === "attr" ? "attribute" : (match[1] as "class" | "style");
+  return ExpressionParser.parse(value)
+    .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`))
+    .map((expression) => ({ kind, name: match[2]!, expression }));
 }
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
@@ -104,8 +114,8 @@ function parseListener(key: string, handler: string): EitherError<HostListener> 
   const event = Maybe.fromNullable(LISTENER_KEY.exec(key)?.[1])
     .toEither(
       new Error(
-        `Unsupported host binding "${key}": only "(event)" listeners and "[class.name]" bindings `
-        + "are supported for now",
+        `Unsupported host binding "${key}": only "(event)" listeners and "[class.name]", `
+        + "\"[style.name]\" and \"[attr.name]\" bindings are supported for now",
       ),
     );
   return event.flatMap((name) =>
