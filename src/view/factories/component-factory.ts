@@ -31,10 +31,10 @@
 // matching their selectors (see TemplateBuilder.createDirectivesAndComponents).
 // A component in a template is created with this factory, in the injector of
 // its element, and is owned by the parent's view; its element's input
-// bindings (`[label]="…"`) set its inputs before its first render. Not yet:
-// `(event)`, `[style.x]` and `[attr.x]` bindings, reported as unsupported,
-// and content inside a component's element (projection), reported too. A
-// component may not contain itself, directly or through others.
+// bindings (`[label]="…"`) set its inputs before its first render. Its
+// element's children are its content: the component shows them in its
+// `<slot>`s (see TemplateBuilder.build). A component may not contain itself,
+// directly or through others.
 
 import {
   inject,
@@ -88,6 +88,8 @@ export interface ChildPlacement {
    * first render, so they have their first values.
    */
   readonly bindInputs: (component: object) => void;
+  /** The content of its element's children, by slot name, which its template's `<slot>`s show. */
+  readonly projected: ReadonlyMap<string, Node[]>;
 }
 
 @Injectable()
@@ -177,6 +179,7 @@ export class ComponentFactory {
       metadata,
       hostDirectives,
       ownInjector,
+      child?.projected ?? new Map(),
     );
     for (const node of rendered) {
       this.renderer.appendChild(host, node);
@@ -247,6 +250,7 @@ export class ComponentFactory {
     metadata: ComponentMetadata,
     hostDirectives: readonly Class<object>[],
     ownInjector: InjectorRef,
+    projected: ReadonlyMap<string, Node[]>,
   ): { instance: T; hostInstances: object[]; rendered: Node[]; template: TemplateBuilder } {
     try {
       // Host directives first, in order, so the component can inject them.
@@ -258,7 +262,7 @@ export class ComponentFactory {
       }));
       // The builder creates the template's child components with this factory.
       const template = this.builders.create(instance, this);
-      const rendered = template.build(this.templateOf(type, metadata));
+      const rendered = template.build(this.templateOf(type, metadata), projected);
       return { instance, hostInstances, rendered, template };
     } catch (error) {
       ownInjector.destroy();

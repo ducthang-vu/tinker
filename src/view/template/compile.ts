@@ -21,7 +21,16 @@ import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 
 /** A node of a compiled template. */
-export type CompiledNode = CompiledElement | CompiledText;
+export type CompiledNode = CompiledElement | CompiledText | CompiledSlot;
+
+/**
+ * A `<slot>` in a component's template: the content the component's user put
+ * in its element, with `slot="name"` (or without one, for `name` = "").
+ */
+export interface CompiledSlot {
+  readonly kind: "slot";
+  readonly name: string;
+}
 
 export interface CompiledElement {
   readonly kind: "element";
@@ -112,6 +121,10 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     return { kind: "text", interpolation: parseInterpolation(node.value)
       .getOrThrow() };
   }
+  if (node.name === "slot") {
+    const name = node.attributes.find((attribute) => attribute.name === "name")?.value ?? "";
+    return { kind: "slot", name };
+  }
   const {
     attributes,
     classBindings,
@@ -129,13 +142,6 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     throw new Error(`<${node.name}> matches several components: ${names}`);
   }
   const component = Maybe.fromNullable(components[0]?.type);
-  component.ifSome((type) => {
-    if (node.children.some((child) => child.kind === "element" || child.value.trim() !== "")) {
-      throw new Error(
-        `Content inside <${node.name}> is not supported yet: ${type.name} renders its own template`,
-      );
-    }
-  });
   const directives = matched.filter(({ isComponent }) => !isComponent)
     .map(({ type }) => type);
   if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
@@ -153,8 +159,8 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
     outputBindings,
     styleBindings,
     attributeBindings,
-    // A component's element has no content of its own: the component renders into it.
-    children: component.isSome() ? [] : compileTemplate(node.children, candidates),
+    // A component's element has content too: the component shows it in its `<slot>`s.
+    children: compileTemplate(node.children, candidates),
     directives,
     component,
   };
