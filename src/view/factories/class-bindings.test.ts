@@ -20,7 +20,7 @@ describe("class bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(Todo);
-    const p = view.host.querySelector("p")!;
+    const p = view.host.nativeElement.querySelector("p")!;
     expect(p.className)
       .toBe("todo urgent");
     view.instance.done.set(true);
@@ -39,7 +39,7 @@ describe("class bindings in templates", () => {
       readonly open = true;
     }
     expect(Engine.create()
-      .createComponent(A).host.querySelector("p")!.className)
+      .createComponent(A).host.nativeElement.querySelector("p")!.className)
       .toBe("isopen");
   });
 
@@ -58,7 +58,7 @@ describe("class bindings in templates", () => {
     const view = engine.createComponent(List);
     view.instance.selected.set(true);
     engine.flush();
-    expect(view.host.querySelector("tk-item")!.className)
+    expect(view.host.nativeElement.querySelector("tk-item")!.className)
       .toBe("selected");
   });
 });
@@ -78,7 +78,7 @@ describe("host class bindings", () => {
     @Component({ selector: "tk-a", template: `<button toggle>x</button>`, imports: [Toggle] })
     class A {}
     const engine = Engine.create();
-    const button = engine.createComponent(A).host.querySelector("button")!;
+    const button = engine.createComponent(A).host.nativeElement.querySelector("button")!;
     expect(button.className)
       .toBe("");
     button.click();
@@ -107,11 +107,11 @@ describe("host class bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(Menu);
-    expect(view.host.className)
+    expect(view.host.nativeElement.className)
       .toBe("focusable open");
     view.instance.open.set(false);
     engine.flush();
-    expect(view.host.className)
+    expect(view.host.nativeElement.className)
       .toBe("focusable");
   });
 
@@ -141,7 +141,7 @@ describe("a child component's host class bindings", () => {
     class List {}
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const host = view.host.querySelector("tk-item")!;
+    const host = view.host.nativeElement.querySelector("tk-item")!;
     const item = engine.getContext(host)
       .flatMap((context) => context.componentView)
       .map((child) => child.component as Item)
@@ -178,7 +178,7 @@ describe("a child component's host class bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const host = view.host.querySelector("tk-item")!;
+    const host = view.host.nativeElement.querySelector("tk-item")!;
     expect(host.className) // the child says selected, the parent says not: the parent wins
       .toBe("item");
     view.instance.selected.set(true);
@@ -201,7 +201,7 @@ describe("a child component's host class bindings", () => {
       readonly off = false;
     }
     expect(Engine.create()
-      .createComponent(A).host.querySelector("p")!.className)
+      .createComponent(A).host.nativeElement.querySelector("p")!.className)
       .toBe("");
   });
 
@@ -218,7 +218,7 @@ describe("a child component's host class bindings", () => {
     class Bar {}
     const engine = Engine.create();
     const view = engine.createComponent(Bar);
-    const host = view.host.querySelector("tk-button")!;
+    const host = view.host.nativeElement.querySelector("tk-button")!;
     engine.getContext(host)
       .flatMap((context) => context.componentView)
       .map((child) => (child.component as Button).pressable.pressed.set(true));

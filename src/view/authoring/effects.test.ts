@@ -47,11 +47,11 @@ describe("Effects", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     engine.flush();
-    expect(view.host.textContent)
+    expect(view.host.nativeElement.textContent)
       .toBe("2");
     view.instance.count.set(5);
     engine.flush();
-    expect(view.host.textContent)
+    expect(view.host.nativeElement.textContent)
       .toBe("10");
   });
 

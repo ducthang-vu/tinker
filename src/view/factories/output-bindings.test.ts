@@ -33,8 +33,8 @@ describe("output bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    view.host.querySelector("button")!.click();
-    view.host.querySelector("button")!.click();
+    view.host.nativeElement.querySelector("button")!.click();
+    view.host.nativeElement.querySelector("button")!.click();
     expect(view.instance.chosen)
       .toEqual([7, 7]);
   });
@@ -53,7 +53,7 @@ describe("output bindings in templates", () => {
     }
     const view = Engine.create()
       .createComponent(A);
-    view.host.querySelector("button")!.click();
+    view.host.nativeElement.querySelector("button")!.click();
     expect(seen)
       .toEqual([[]]);
   });
@@ -72,7 +72,7 @@ describe("output bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const button = view.host.querySelector("button")!;
+    const button = view.host.nativeElement.querySelector("button")!;
     view.destroy();
     button.click(); // the directive is gone: nothing is called
     expect(chosen)
@@ -93,7 +93,7 @@ describe("output bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const button = view.host.querySelector("button")!;
+    const button = view.host.nativeElement.querySelector("button")!;
     const [pick] = engine.getContext(button)
       .map((context) => context.directives)
       .getOrElse([]) as [Pick];
@@ -118,7 +118,7 @@ describe("output bindings in templates", () => {
     }
     const view = Engine.create()
       .createComponent(A);
-    view.host.querySelector("button")!.click();
+    view.host.nativeElement.querySelector("button")!.click();
     expect(chosen)
       .toEqual([7]);
   });
@@ -235,7 +235,7 @@ describe("output bindings in templates", () => {
     }
     const view = Engine.create()
       .createComponent(A);
-    const button = view.host.querySelector("button")!;
+    const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
     expect(view.instance.seen_)
@@ -256,7 +256,7 @@ describe("output bindings in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [pick, relay] = engine.getContext(view.host.querySelector("button")!)
+    const [pick, relay] = engine.getContext(view.host.nativeElement.querySelector("button")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Pick, Relay];
     expect(relay.pick)

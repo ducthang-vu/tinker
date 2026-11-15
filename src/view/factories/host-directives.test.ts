@@ -36,7 +36,7 @@ describe("host directives", () => {
 
     expect(order)
       .toEqual(["focusable", "draggable", "menu"]);
-    expect(engine.getContext(view.host)
+    expect(engine.getContext(view.host.nativeElement)
       .map((context) => context.directives)
       .getOrElse([]))
       .toEqual([view.instance.focusable, view.instance.draggable]);
@@ -58,11 +58,11 @@ describe("host directives", () => {
     }
     const view = Engine.create()
       .createComponent(Button);
-    (view.host.querySelector("span") as HTMLElement).click(); // bubbles to the host
+    (view.host.nativeElement.querySelector("span") as HTMLElement).click(); // bubbles to the host
     expect(view.instance.clickable.host.nativeElement)
-      .toBe(view.host);
+      .toBe(view.host.nativeElement);
     expect(view.instance.host.nativeElement)
-      .toBe(view.host);
+      .toBe(view.host.nativeElement);
     expect(view.instance.clickable.clicks)
       .toBe(1);
   });
@@ -113,7 +113,7 @@ describe("host directives", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(Menu);
-    const [item] = engine.getContext(view.host.querySelector("li")!)
+    const [item] = engine.getContext(view.host.nativeElement.querySelector("li")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Item];
     expect(item.focusable)
@@ -135,7 +135,7 @@ describe("host directives", () => {
     view.destroy();
     expect(destroyed)
       .toEqual(["tracked"]);
-    expect(engine.getContext(view.host)
+    expect(engine.getContext(view.host.nativeElement)
       .isNone())
       .toBe(true);
   });
@@ -149,7 +149,7 @@ describe("host directives", () => {
     const view = Engine.create()
       .createComponent(A);
     expect(view.instance.host.nativeElement)
-      .toBe(view.host);
+      .toBe(view.host.nativeElement);
   });
 
   test("must be directives, and not components", () => {

@@ -44,7 +44,7 @@ describe("Engine.create", () => {
     const view = Engine.create()
       .bootstrap(App);
     expect(Engine.create()
-      .getContext(view.host)
+      .getContext(view.host.nativeElement)
       .isNone())
       .toBe(true);
   });
@@ -62,9 +62,9 @@ describe("Engine.bootstrap", () => {
     const ref = Engine.create()
       .bootstrap(App);
 
-    expect(ref.host)
+    expect(ref.host.nativeElement)
       .toBe(document.querySelector("tk-app"));
-    expect(ref.host.innerHTML)
+    expect(ref.host.nativeElement.innerHTML)
       .toBe(`<h1 class="title">Hello</h1><p>from <b>Tinker</b></p>`);
   });
 
@@ -90,7 +90,7 @@ describe("Engine.bootstrap", () => {
     class App {}
 
     expect(Engine.create()
-      .bootstrap(App).host.id)
+      .bootstrap(App).host.nativeElement.id)
       .toBe("x");
   });
 
@@ -104,11 +104,11 @@ describe("Engine.bootstrap", () => {
 
     const view = Engine.create()
       .bootstrap(App);
-    expect(view.host.textContent)
+    expect(view.host.nativeElement.textContent)
       .toBe("1 clicks");
     view.instance.count.set(2);
     await Promise.resolve(); // the scheduler flushes in a microtask
-    expect(view.host.textContent)
+    expect(view.host.nativeElement.textContent)
       .toBe("2 clicks");
   });
 
@@ -119,11 +119,11 @@ describe("Engine.bootstrap", () => {
 
     const ref = Engine.create()
       .bootstrap(App);
-    expect(ref.host.children)
+    expect(ref.host.nativeElement.children)
       .toHaveLength(3);
     ref.destroy();
     ref.destroy();
-    expect(ref.host.innerHTML)
+    expect(ref.host.nativeElement.innerHTML)
       .toBe("<span>existing</span>");
   });
 
@@ -161,7 +161,7 @@ describe("Engine.bootstrap", () => {
     })
       .bootstrap(App);
 
-    expect(ref.host.ownerDocument)
+    expect(ref.host.nativeElement.ownerDocument)
       .toBe(other);
     expect(createElement)
       .toHaveBeenCalledWith("p");
@@ -177,15 +177,15 @@ describe("Engine.bootstrap", () => {
 
     expect(view)
       .toBeInstanceOf(ComponentRef);
-    expect(view.host.childNodes)
+    expect(view.host.nativeElement.childNodes)
       .toHaveLength(1);
-    const context = engine.getContext(view.host)
+    const context = engine.getContext(view.host.nativeElement)
       .getOrElse(undefined)!;
     expect(context)
       .toBeInstanceOf(ElementContext);
     expect(context.componentView.map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(view.host);
+      .toBe(view.host.nativeElement);
     expect(context.directives)
       .toEqual([]);
     expect(engine.getContext(document.body)
@@ -199,13 +199,13 @@ describe("Engine.bootstrap", () => {
     class App {}
     const engine = Engine.create();
     const view = engine.bootstrap(App);
-    const context = engine.getContext(view.host)
+    const context = engine.getContext(view.host.nativeElement)
       .getOrElse(undefined)!;
     context.addDirective({ name: "some directive" });
 
     view.destroy();
 
-    expect(engine.getContext(view.host)
+    expect(engine.getContext(view.host.nativeElement)
       .getOrElse(undefined))
       .toBe(context);
     expect(context.componentView.isNone())
@@ -220,16 +220,16 @@ describe("Engine.bootstrap", () => {
 
     const first = engine.bootstrap(App);
     first.destroy();
-    expect(engine.getContext(first.host)
+    expect(engine.getContext(first.host.nativeElement)
       .isNone())
       .toBe(true);
 
     const second = engine.bootstrap(App);
-    expect(engine.getContext(second.host)
+    expect(engine.getContext(second.host.nativeElement)
       .flatMap((context) => context.componentView)
       .map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(second.host);
+      .toBe(second.host.nativeElement);
   });
 
   test("throws when the host already holds a component", () => {
@@ -255,7 +255,7 @@ describe("Engine.bootstrap", () => {
     const view = one.bootstrap(App);
 
     expect(Engine.create()
-      .getContext(view.host)
+      .getContext(view.host.nativeElement)
       .isNone())
       .toBe(true);
   });
@@ -268,7 +268,7 @@ describe("Engine.bootstrap", () => {
 
     const view = engine.createComponent(X, host);
 
-    expect(view.host)
+    expect(view.host.nativeElement)
       .toBe(host);
     expect(host.innerHTML)
       .toBe("<p>x</p>");
@@ -276,7 +276,7 @@ describe("Engine.bootstrap", () => {
       .flatMap((context) => context.componentView)
       .map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(view.host);
+      .toBe(view.host.nativeElement);
   });
 
   test("createComponent without a host creates one from the selector", () => {
@@ -288,13 +288,13 @@ describe("Engine.bootstrap", () => {
     class Both {}
     const engine = Engine.create();
 
-    expect(engine.createComponent(Tag).host.outerHTML)
+    expect(engine.createComponent(Tag).host.nativeElement.outerHTML)
       .toBe("<tk-tag></tk-tag>");
-    expect(engine.createComponent(AttrOnly).host.outerHTML)
+    expect(engine.createComponent(AttrOnly).host.nativeElement.outerHTML)
       .toBe(`<div attr-only=""></div>`);
-    expect(engine.createComponent(Both).host.outerHTML)
+    expect(engine.createComponent(Both).host.nativeElement.outerHTML)
       .toBe(`<tk-both extra=""></tk-both>`);
-    expect(engine.createComponent(Tag).host.isConnected)
+    expect(engine.createComponent(Tag).host.nativeElement.isConnected)
       .toBe(false);
   });
 
@@ -367,7 +367,7 @@ describe("Engine view updates", () => {
     engine.flush();
     expect(detection.views.pending)
       .toBe(0);
-    expect(view.host.textContent)
+    expect(view.host.nativeElement.textContent)
       .toBe("2");
   });
 
@@ -434,7 +434,7 @@ describe("Engine.afterStable", () => {
     view.instance.count.set(5);
     await engine.afterStable()
       .toPromise();
-    log.push(view.host.textContent!);
+    log.push(view.host.nativeElement.textContent!);
 
     expect(log)
       .toEqual(["10"]);

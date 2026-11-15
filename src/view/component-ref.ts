@@ -9,20 +9,21 @@
 import { Maybe } from "../functional/index.ts";
 import type { InputName, InputValue } from "./authoring/input.ts";
 import { type OutputName, type OutputValue, outputsOf } from "./authoring/output.ts";
+import { ElementRef } from "./runtime/element-ref.ts";
 import type { View } from "./runtime/view.ts";
 
 export class ComponentRef<T extends object> {
+  /** The element the component is rendered into. */
+  readonly host: ElementRef<Element>;
+
   /** @param view The view the engine created for the component (internal). */
-  constructor(private readonly view: View<T>) {}
+  constructor(private readonly view: View<T>) {
+    this.host = new ElementRef(view.host);
+  }
 
   /** The component instance. */
   get instance(): T {
     return this.view.component;
-  }
-
-  /** The element the component is rendered into. */
-  get host(): Element {
-    return this.view.host;
   }
 
   /**

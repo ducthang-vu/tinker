@@ -229,7 +229,7 @@ describe("the component in its own injector", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [part] = engine.getContext(view.host.querySelector("p")!)
+    const [part] = engine.getContext(view.host.nativeElement.querySelector("p")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Part];
     expect(part.owner)
