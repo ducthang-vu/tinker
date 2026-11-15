@@ -9,12 +9,12 @@ export { Engine, type EngineOptions } from "./engine.ts";
 export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./authoring/decorators.ts";
 export { Effect, type EffectContext, Effects, type EffectFn } from "./authoring/effects.ts";
 export { AfterEachRender, AfterNextRender, RenderHooks } from "./authoring/render-hooks.ts";
-export { output, type Output } from "./authoring/output.ts";
+export { output, type Output, type OutputName, type OutputValue } from "./authoring/output.ts";
 export { model, type ModelSignal } from "./authoring/model.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./authoring/input.ts";
 
 // What the engine creates and hands back
-export { View } from "./runtime/view.ts";
+export { ComponentRef } from "./component-ref.ts";
 export { ViewContainerRef } from "./runtime/view-container-ref.ts";
 export { ChangeDetectionLoopError } from "./runtime/change-detection.ts";
 

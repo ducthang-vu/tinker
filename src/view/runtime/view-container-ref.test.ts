@@ -1,7 +1,18 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
-import type { View } from "./view.ts";
+import { ComponentRef } from "../component-ref.ts";
+
+let tracked = 0;
+const order: number[] = [];
+@Component({ selector: "tk-tracked", template: "" })
+class Tracked {
+  readonly id = tracked++;
+
+  onDestroy(): void {
+    order.push(this.id);
+  }
+}
 
 @Component({ selector: "tk-item", template: "<span>item</span>" })
 class Item {}
@@ -18,7 +29,7 @@ beforeEach(() => {
 });
 
 /** The parent's children as tags, with the anchor shown as "#anchor" and items numbered. */
-function layout(views: View<unknown>[]): string[] {
+function layout(views: ComponentRef<object>[]): string[] {
   return [...parent.childNodes].map((node) => {
     if (node === anchor) return "#anchor";
     const index = views.findIndex((v) => v.host === node);
@@ -40,8 +51,9 @@ describe("ViewContainerRef", () => {
       .toBe("<span>item</span>");
     expect(engine.getContext(a.host)
       .flatMap((context) => context.componentView)
+      .map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(a);
+      .toBe(a.host);
   });
 
   test("inserts at a given index", () => {
@@ -102,8 +114,8 @@ describe("ViewContainerRef", () => {
     const c = container.createComponent(Item);
 
     container.remove(1);
-    expect(b.destroyed)
-      .toBe(true);
+    expect(container.indexOf(b))
+      .toBe(-1);
     expect(b.host.isConnected)
       .toBe(false);
     expect(engine.getContext(b.host)
@@ -113,8 +125,8 @@ describe("ViewContainerRef", () => {
       .toEqual(["header", "item0", "item1", "#anchor", "footer"]);
 
     container.remove();
-    expect(c.destroyed)
-      .toBe(true);
+    expect(container.indexOf(c))
+      .toBe(-1);
     expect(container.length)
       .toBe(1);
 
@@ -137,9 +149,8 @@ describe("ViewContainerRef", () => {
 
   test("clear destroys every view, last first", () => {
     const container = engine.createViewContainer(anchor);
-    const order: number[] = [];
-    for (let i = 0; i < 3; i++) container.createComponent(Item)
-      .addDestroyCallback(() => order.push(i));
+    order.length = 0;
+    for (let i = 0; i < 3; i++) container.createComponent(Tracked);
 
     container.clear();
 
@@ -171,7 +182,7 @@ describe("ViewContainerRef", () => {
     const container = engine.createViewContainer(anchor);
     expect(() => container.move(engine.createComponent(Item), 0))
       .toThrow(
-        "The view is not in this container",
+        "The component is not in this container",
       );
   });
 

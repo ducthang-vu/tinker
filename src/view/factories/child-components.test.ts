@@ -68,9 +68,9 @@ describe("components in templates", () => {
     const view = engine.createComponent(List);
     const item = componentOn<Item>(engine, view.host.querySelector("tk-item")!);
     expect(item.list)
-      .toBe(view.component);
+      .toBe(view.instance);
     expect(item.store)
-      .toBe(view.component.store);
+      .toBe(view.instance.store);
     expect(item.row)
       .toBeInstanceOf(Row);
     expect(item.selectable)
@@ -89,7 +89,7 @@ describe("components in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     expect(componentOn<C>(engine, view.host.querySelector("tk-c")!).a)
-      .toBe(view.component);
+      .toBe(view.instance);
   });
 
   test("plain attributes set their inputs before their first render", () => {

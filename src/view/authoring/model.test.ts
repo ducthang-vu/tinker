@@ -136,7 +136,7 @@ describe("two-way binding in templates", () => {
   test("the parent's change reaches the child's model, and does not echo back to the parent's handler", () => {
     const changes: string[] = [];
     const { engine, form, item, span } = setup((value) => changes.push(value));
-    form.component.name.set("from the parent");
+    form.instance.name.set("from the parent");
     engine.flush();
     expect(item.value())
       .toBe("from the parent");
@@ -150,7 +150,7 @@ describe("two-way binding in templates", () => {
     const changes: string[] = [];
     const { engine, form, item } = setup((value) => {
       changes.push(value);
-      form.component.name.set(value);
+      form.instance.name.set(value);
     });
     item.value.set("b");
     engine.flush();
@@ -190,7 +190,7 @@ describe("two-way binding in templates", () => {
     pick!.choose("second");
     expect(changes)
       .toEqual(["second"]);
-    view.component.name.set("third");
+    view.instance.name.set("third");
     engine.flush();
     expect(pick!.value())
       .toBe("third");

@@ -22,7 +22,8 @@ function changeDetection(): ChangeDetection {
   });
   return runInInjectionContext(injector, () => inject(ChangeDetection));
 }
-import { View } from "./runtime/view.ts";
+import { ComponentRef } from "./component-ref.ts";
+import type { View } from "./runtime/view.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -77,9 +78,9 @@ describe("Engine.bootstrap", () => {
     const ref = Engine.create()
       .bootstrap(App);
 
-    expect(ref.component)
+    expect(ref.instance)
       .toBeInstanceOf(App);
-    expect(ref.component.title)
+    expect(ref.instance.title)
       .toBe("Tinker");
   });
 
@@ -105,7 +106,7 @@ describe("Engine.bootstrap", () => {
       .bootstrap(App);
     expect(view.host.textContent)
       .toBe("1 clicks");
-    view.component.count.set(2);
+    view.instance.count.set(2);
     await Promise.resolve(); // the scheduler flushes in a microtask
     expect(view.host.textContent)
       .toBe("2 clicks");
@@ -175,15 +176,16 @@ describe("Engine.bootstrap", () => {
     const view = engine.bootstrap(App);
 
     expect(view)
-      .toBeInstanceOf(View);
-    expect(view.nodes)
+      .toBeInstanceOf(ComponentRef);
+    expect(view.host.childNodes)
       .toHaveLength(1);
     const context = engine.getContext(view.host)
       .getOrElse(undefined)!;
     expect(context)
       .toBeInstanceOf(ElementContext);
-    expect(context.componentView.getOrElse(undefined))
-      .toBe(view);
+    expect(context.componentView.map((componentView) => componentView.host)
+      .getOrElse(undefined))
+      .toBe(view.host);
     expect(context.directives)
       .toEqual([]);
     expect(engine.getContext(document.body)
@@ -225,8 +227,9 @@ describe("Engine.bootstrap", () => {
     const second = engine.bootstrap(App);
     expect(engine.getContext(second.host)
       .flatMap((context) => context.componentView)
+      .map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(second);
+      .toBe(second.host);
   });
 
   test("throws when the host already holds a component", () => {
@@ -271,8 +274,9 @@ describe("Engine.bootstrap", () => {
       .toBe("<p>x</p>");
     expect(engine.getContext(host)
       .flatMap((context) => context.componentView)
+      .map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(view);
+      .toBe(view.host);
   });
 
   test("createComponent without a host creates one from the selector", () => {
@@ -357,7 +361,7 @@ describe("Engine view updates", () => {
       providers: [provide(ChangeDetection, { useValue: detection })],
     });
     const view = engine.createComponent(A);
-    view.component.count.set(2);
+    view.instance.count.set(2);
     expect(detection.views.pending)
       .toBe(1);
     engine.flush();
@@ -377,7 +381,7 @@ describe("Engine view updates", () => {
     const view = Engine.create({ providers: [provide(ChangeDetection, { useValue: one })] })
       .createComponent(A);
     Engine.create({ providers: [provide(ChangeDetection, { useValue: two })] });
-    view.component.count.set(2);
+    view.instance.count.set(2);
     expect(one.views.pending)
       .toBe(1);
     expect(two.views.pending)
@@ -427,7 +431,7 @@ describe("Engine.afterStable", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
 
-    view.component.count.set(5);
+    view.instance.count.set(5);
     await engine.afterStable()
       .toPromise();
     log.push(view.host.textContent!);

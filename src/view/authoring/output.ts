@@ -27,6 +27,15 @@ export interface Output<T> {
   emit(value: T): void;
 }
 
+/** The names of the outputs of a directive or component of type `T`: its public `Output` fields. */
+export type OutputName<T> = {
+  [K in keyof T]: T[K] extends Output<unknown> ? K : never;
+}[keyof T]
+& string;
+
+/** The value an output of type `S` emits. */
+export type OutputValue<S> = S extends Output<infer V> ? V : never;
+
 /** The emitter behind each output: the framework subscribes to it and completes it. */
 const emitters = new WeakMap<object, Emitter<unknown, void, never>>();
 /** Keys of outputs that are named `<property>Change` (a model's). */

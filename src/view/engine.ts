@@ -30,6 +30,7 @@ import { DomRenderer } from "./renderer.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type View, ViewFactory } from "./runtime/view.ts";
+import { ComponentRef, refOf } from "./component-ref.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
 import { Effects } from "./authoring/effects.ts";
@@ -94,21 +95,21 @@ export class Engine {
   }
 
   /** Start the app: render the root component `type` into its host element in the page. */
-  bootstrap<T extends object>(type: Class<T>): View<T> {
+  bootstrap<T extends object>(type: Class<T>): ComponentRef<T> {
     const { selector } = this.components.metadataOf(type);
     const host = Maybe.fromNullable(this.document.querySelector(selector))
       .getOrThrow(
         () => new Error(`No host element matches "${selector}" for ${type.name}`),
       );
-    return this.components.create(type, host);
+    return refOf(this.components.create(type, host));
   }
 
   /**
    * Render component `type` into `host`, or into a new (detached) host
    * element created from its selector. See ComponentFactory.create.
    */
-  createComponent<T extends object>(type: Class<T>, host?: Element): View<T> {
-    return this.components.create(type, host);
+  createComponent<T extends object>(type: Class<T>, host?: Element): ComponentRef<T> {
+    return refOf(this.components.create(type, host));
   }
 
   /** Create a container that inserts views just before `anchor` (usually a comment). */

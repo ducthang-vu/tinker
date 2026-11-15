@@ -39,7 +39,7 @@ describe("host directives", () => {
     expect(engine.getContext(view.host)
       .map((context) => context.directives)
       .getOrElse([]))
-      .toEqual([view.component.focusable, view.component.draggable]);
+      .toEqual([view.instance.focusable, view.instance.draggable]);
   });
 
   test("are on the host element: ElementRef, and their host listeners", () => {
@@ -59,11 +59,11 @@ describe("host directives", () => {
     const view = Engine.create()
       .createComponent(Button);
     (view.host.querySelector("span") as HTMLElement).click(); // bubbles to the host
-    expect(view.component.clickable.host.nativeElement)
+    expect(view.instance.clickable.host.nativeElement)
       .toBe(view.host);
-    expect(view.component.host.nativeElement)
+    expect(view.instance.host.nativeElement)
       .toBe(view.host);
-    expect(view.component.clickable.clicks)
+    expect(view.instance.clickable.clicks)
       .toBe(1);
   });
 
@@ -87,7 +87,7 @@ describe("host directives", () => {
       readonly dragState = inject(DragState);
       readonly menuState = inject(MenuState);
     }
-    const { component } = Engine.create()
+    const { instance: component } = Engine.create()
       .createComponent(Menu);
     expect(component.dragState)
       .toBe(component.draggable.state);
@@ -117,7 +117,7 @@ describe("host directives", () => {
       .map((context) => context.directives)
       .getOrElse([]) as [Item];
     expect(item.focusable)
-      .toBe(view.component.focusable);
+      .toBe(view.instance.focusable);
   });
 
   test("are destroyed with the component, and leave its host clean", () => {
@@ -148,7 +148,7 @@ describe("host directives", () => {
     }
     const view = Engine.create()
       .createComponent(A);
-    expect(view.component.host.nativeElement)
+    expect(view.instance.host.nativeElement)
       .toBe(view.host);
   });
 
