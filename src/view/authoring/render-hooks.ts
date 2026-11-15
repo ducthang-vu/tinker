@@ -38,6 +38,7 @@
 
 import { inject, Injectable } from "../../di/index.ts";
 import type { Cancel } from "../../functional/index.ts";
+import { final } from "../../utils/final.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
 
 /**
@@ -47,13 +48,11 @@ import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
  * registering is public: running them is change detection's job (see
  * RenderHookRegistry).
  *
- * Final: do not subclass it. Subclasses could override what registers and
- * cancels hooks, and break the lifetime rules. Compose it instead. TypeScript
- * cannot enforce this (the constructor must stay public to be a token).
- *
- * @final
+ * Final: it cannot be subclassed. Subclasses could override what registers and
+ * cancels hooks, and break the lifetime rules. Compose it instead.
  */
 @Injectable()
+@final
 export class RenderHooks {
   private readonly registry = inject(RenderHookRegistry);
   /** How to cancel the hooks registered here and not cancelled yet. */

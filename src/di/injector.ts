@@ -8,6 +8,7 @@
 // At runtime the handle is the internal injector itself, typed as opaque:
 // reaching anything else means deliberately breaking the type contract.
 
+import { final } from "../utils/final.ts";
 import { adaptProvider, registerClassToken } from "./adapter.ts";
 import { runInInjectionContext as internalRunInInjectionContext } from "./internal/context/current-injector.ts";
 import type { Token } from "./internal/inject.ts";
@@ -42,13 +43,11 @@ export interface InjectorRef {
  * for it, and `Injector.create()`. It is opaque: no methods, and abstract,
  * so it cannot be instantiated.
  *
- * Final: do not subclass it. TypeScript cannot enforce this (the constructor
- * must stay public for the class to be usable as a token), but only
- * `Injector.create()` and the framework make real injectors; a subclass
- * instance would break `runInInjectionContext()` and everything else.
+ * Final: it cannot be subclassed; creating a subclass instance throws.
  *
  * @final
  */
+@final
 export abstract class Injector {
   /** Type-only brand: makes the class nominal, so a plain `{}` cannot pass for one. */
   declare private readonly brand: void;
