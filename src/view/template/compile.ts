@@ -119,10 +119,10 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
       + "and no imported directive or component matches this element",
     );
   }
-  if (outputBindings.length > 0 && directives.length === 0) {
+  if (outputBindings.length > 0 && directives.length === 0 && component.isNone()) {
     throw new Error(
-      `(${outputBindings[0]!.name}) on <${node.name}>: only outputs of directives can be bound, `
-      + "and no imported directive matches this element",
+      `(${outputBindings[0]!.name}) on <${node.name}>: only outputs of directives and components `
+      + "can be bound, and no imported directive or component matches this element",
     );
   }
   return {

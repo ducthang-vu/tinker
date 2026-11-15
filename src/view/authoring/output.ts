@@ -29,6 +29,17 @@ export interface Output<T> {
 
 /** The emitter behind each output: the framework subscribes to it and completes it. */
 const emitters = new WeakMap<object, Emitter<unknown, void, never>>();
+/** Keys of outputs that are named `<property>Change` (a model's). */
+const changeOutputs = new WeakSet<object>();
+
+/**
+ * Make `key` an output of its owner, emitted through `emitter`, and named
+ * `<property>Change` (internal, used by `model()`).
+ */
+export function registerChangeOutput<T>(key: object, emitter: Emitter<T, void, never>): void {
+  emitters.set(key, emitter as unknown as Emitter<unknown, void, never>);
+  changeOutputs.add(key);
+}
 
 /**
  * Declare an output, as a field initializer: `readonly selected = output<number>()`.
@@ -43,9 +54,12 @@ export function output<T>(): Output<T> {
 /** The outputs of `instance`, by property name. */
 export function outputsOf(instance: object): ReadonlyMap<string, Emitter<unknown, void, never>> {
   const outputs = new Map<string, Emitter<unknown, void, never>>();
-  for (const [name, value] of Object.entries(instance)) {
+  for (const [property, value] of Object.entries(instance)) {
     Maybe.fromNullable(emitters.get(Object(value)))
-      .ifSome((emitter) => outputs.set(name, emitter));
+      .ifSome((emitter) => {
+        const name = changeOutputs.has(Object(value)) ? `${property}Change` : property;
+        outputs.set(name, emitter);
+      });
   }
   return outputs;
 }

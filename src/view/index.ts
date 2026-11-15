@@ -10,6 +10,7 @@ export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } 
 export { Effect, type EffectContext, Effects, type EffectFn } from "./authoring/effects.ts";
 export { AfterEachRender, AfterNextRender, RenderHooks } from "./authoring/render-hooks.ts";
 export { output, type Output } from "./authoring/output.ts";
+export { model, type ModelSignal } from "./authoring/model.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./authoring/input.ts";
 
 // What the engine creates and hands back

@@ -135,7 +135,7 @@ describe("output bindings in templates", () => {
     const host = document.createElement("div");
     const engine = Engine.create();
     expect(() => engine.createComponent(A, host))
-      .toThrow(`(other) on <button>: no directive on this element has an output "other"`);
+      .toThrow(`(other) on <button>: no directive or component on this element has an output "other"`);
     expect(host.innerHTML)
       .toBe("");
     expect(engine.getContext(host)
@@ -162,7 +162,7 @@ describe("output bindings in templates", () => {
     }
     expect(() => Engine.create()
       .createComponent(A))
-      .toThrow("(click) on <button>: only outputs of directives can be bound");
+      .toThrow("(click) on <button>: only outputs of directives and components can be bound");
   });
 
   test("an invalid handler is reported where it is written", () => {

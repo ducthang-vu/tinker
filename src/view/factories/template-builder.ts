@@ -115,8 +115,6 @@ export class TemplateBuilder {
         directives = created.instances;
         hostBindings(created.bindings);
       }
-      // Output bindings subscribe to the outputs of the element's directives.
-      this.bindOutputs(node, directives, view);
       // Input bindings set the inputs of the element's directives and
       // component: their first values now (before the component's first
       // render), then this view's watch keeps them up to date.
@@ -128,16 +126,22 @@ export class TemplateBuilder {
         }
         this.addBindings(binders);
       };
+      let instances = directives;
       node.component.match({
-        some: (type) => this.components.create(type, element, {
-          parentInjector: injector,
-          parentView: view,
-          attributes: node.attributes,
-          adoptHostBindings: hostBindings,
-          bindInputs: (component) => bindInputs([...directives, component]),
-        }),
+        some: (type) => {
+          const child = this.components.create(type, element, {
+            parentInjector: injector,
+            parentView: view,
+            attributes: node.attributes,
+            adoptHostBindings: hostBindings,
+            bindInputs: (component) => bindInputs([...directives, component]),
+          });
+          instances = [...directives, child.component];
+        },
         none: () => bindInputs(directives),
       });
+      // Output bindings subscribe to the outputs of the element's directives and component.
+      this.bindOutputs(node, instances, view);
       injectors.push(injector);
     }
   }
@@ -157,7 +161,7 @@ export class TemplateBuilder {
       const emitters = outputsNamed(instances, name);
       if (emitters.length === 0) {
         throw new Error(
-          `(${name}) on <${node.name}>: no directive on this element has an output "${name}"`,
+          `(${name}) on <${node.name}>: no directive or component on this element has an output "${name}"`,
         );
       }
       const handler = this.handlerOf(name, method);
