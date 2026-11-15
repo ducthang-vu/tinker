@@ -95,3 +95,53 @@ TreeNode)`, which `src/utils` already has), and allow recursion once
 templates can stop it: with `@if` / `@for`, a node renders children only
 while there are some. Keep the ban for a component that always contains
 itself.
+
+## The engine's entry points (`src/view/engine.ts`, `src/view/factories/component-factory.ts`)
+
+### 1. `engine.createComponent` is deprecated; remove it
+
+**Problem.** It creates a component without a place in the page, which is
+the job of a container, and it renders into a host, which is the job of
+`bootstrap`. It is used mostly by tests, and tests should not drive the API.
+Keeping it means two entry points for each case.
+
+**To do.** Move the tests off it, then delete it:
+
+- Tests that render a component at runtime use
+  `engine.createViewContainer(anchor)` on a comment node in a parent they
+  control, then `createComponent`. Their checks read the parent, not the
+  detached host.
+- Tests that render the root component use `bootstrap`, with the host
+  attached to the document first.
+- The few tests that check the factory itself call `ComponentFactory` through
+  the engine's providers, not through a public method.
+
+A test helper in the test folder (not in `src`) can absorb the two
+differences (host identity, attachment) so each test changes by one line.
+
+### 2. Rename `ChildPlacement` to `ParentContext` (done)
+
+The object describes the context a component gets from its parent, not where
+it sits. Renamed; no behaviour change.
+
+### 3. Move template-only work out of the component factory
+
+**Problem.** The factory still takes `attributes`, `bindInputs` and
+`adoptHostBindings`, which describe the parent's template, not how to build
+the component.
+
+**To do.** The template builder applies the element's inputs and adopts the
+host bindings around the factory call. The factory then takes only the host,
+the type, the parent context (injector and owner view), and the slot content.
+This is a cleanup, not a new architecture: the factory's API keeps the same
+shape.
+
+### 4. Make the root path consistent with the container
+
+**Problem.** Bootstrap renders into an existing element, which a container
+(which inserts a new element before its anchor) cannot do. So the root is a
+separate path, and it is the only one that does not use a container.
+
+**To do.** Decide whether a root component should be a container anchored at
+its host, with a placement mode that does not insert. If not, document the
+root as the one case that renders into an existing element.

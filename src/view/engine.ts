@@ -106,7 +106,11 @@ export class Engine {
 
   /**
    * Render component `type` into `host`, or into a new (detached) host
-   * element created from its selector. See ComponentFactory.create.
+   * element created from its selector.
+   *
+   * @deprecated Use `engine.createViewContainer(anchor).createComponent(type)`
+   * for components added at runtime, or `engine.bootstrap(type)` for the root
+   * component. Planned removal: see IMPROVEMENTS.md, "The engine's entry points".
    */
   createComponent<T extends object>(type: Class<T>, host?: Element): ComponentRef<T> {
     return refOf(this.components.create(type, host));
