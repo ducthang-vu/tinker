@@ -32,7 +32,7 @@ describe("directives in templates", () => {
 
     expect(seen)
       .toEqual(["p", "b"]);
-    const p = view.host.querySelector("p")!;
+    const p = view.host.nativeElement.querySelector("p")!;
     expect(engine.getContext(p)
       .map((context) => context.directives.length)
       .getOrElse(0))
@@ -69,7 +69,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const button = view.host.querySelector("button")!;
+    const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
     const [counter] = engine.getContext(button)
@@ -96,7 +96,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [validator, model] = engine.getContext(view.host.querySelector("input")!)
+    const [validator, model] = engine.getContext(view.host.nativeElement.querySelector("input")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Validator, Model];
     expect(validator.model)
@@ -124,10 +124,10 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [form] = engine.getContext(view.host.querySelector("form")!)
+    const [form] = engine.getContext(view.host.nativeElement.querySelector("form")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Form];
-    const [model] = engine.getContext(view.host.querySelector("input")!)
+    const [model] = engine.getContext(view.host.nativeElement.querySelector("input")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Model];
     expect(model.form)
@@ -151,7 +151,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [parent] = engine.getContext(view.host.querySelector("div")!)
+    const [parent] = engine.getContext(view.host.nativeElement.querySelector("div")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Parent];
     expect(parent.child)
@@ -181,7 +181,7 @@ describe("directives in templates", () => {
     engine.flush();
     expect(seen)
       .toEqual(["Save 200 top"]);
-    expect(view.host.querySelector("button")!.getAttribute("text"))
+    expect(view.host.nativeElement.querySelector("button")!.getAttribute("text"))
       .toBe("Save");
   });
 
@@ -203,7 +203,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const p = view.host.querySelector("p")!;
+    const p = view.host.nativeElement.querySelector("p")!;
     engine.flush();
     view.destroy();
     count.set(2);
@@ -296,9 +296,9 @@ describe("directive providers", () => {
     const directivesOf = (element: Element) => engine.getContext(element)
       .map((context) => context.directives)
       .getOrElse([]);
-    const [first, second] = [...view.host.querySelectorAll("div")];
+    const [first, second] = [...view.host.nativeElement.querySelectorAll("div")];
     const [stateful, sibling] = directivesOf(first!) as [Stateful, Sibling];
-    const [inner] = directivesOf(view.host.querySelector("p")!) as [Inner];
+    const [inner] = directivesOf(view.host.nativeElement.querySelector("p")!) as [Inner];
     const [otherStateful] = directivesOf(second!) as [Stateful];
 
     expect(sibling.state)
@@ -354,7 +354,7 @@ describe("directive providers", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const p = view.host.querySelector("p")!;
+    const p = view.host.nativeElement.querySelector("p")!;
     const [first] = engine.getContext(p)
       .map((context) => context.directives)
       .getOrElse([]) as [First];
@@ -381,8 +381,8 @@ describe("ElementRef", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    document.body.append(view.host);
-    const input = view.host.querySelector("input")!;
+    document.body.append(view.host.nativeElement);
+    const input = view.host.nativeElement.querySelector("input")!;
     const [autofocus] = engine.getContext(input)
       .map((context) => context.directives)
       .getOrElse([]) as [Autofocus];
@@ -405,7 +405,7 @@ describe("ElementRef", () => {
     class X {}
     const engine = Engine.create();
     const view = engine.createComponent(X);
-    const [a, b] = engine.getContext(view.host.querySelector("p")!)
+    const [a, b] = engine.getContext(view.host.nativeElement.querySelector("p")!)
       .map((context) => context.directives)
       .getOrElse([]) as [A, B];
     expect(a.host)

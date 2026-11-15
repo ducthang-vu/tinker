@@ -78,10 +78,10 @@ export class ViewContainerRef {
     const view = this.components.create(type, undefined, undefined, this.parentInjector);
     const ref = refOf(view);
     this.refs.splice(index, 0, ref);
-    this.renderer.insertBefore(parent, ref.host, this.nodeAfter(index));
+    this.renderer.insertBefore(parent, ref.host.nativeElement, this.nodeAfter(index));
     view.addDestroyCallback(() => {
       this.refs.splice(this.refs.indexOf(ref), 1);
-      this.renderer.removeChild(parent, ref.host);
+      this.renderer.removeChild(parent, ref.host.nativeElement);
     });
     return ref;
   }
@@ -95,7 +95,7 @@ export class ViewContainerRef {
     this.checkIndex(index, this.length - 1);
     this.refs.splice(from, 1);
     this.refs.splice(index, 0, ref);
-    this.renderer.insertBefore(this.parent(), ref.host, this.nodeAfter(index));
+    this.renderer.insertBefore(this.parent(), ref.host.nativeElement, this.nodeAfter(index));
   }
 
   /** Destroy the component at `index` (default: the last one). Does nothing if there is none. */
@@ -123,7 +123,7 @@ export class ViewContainerRef {
   /** The node before which the component at `index` must sit: the next host, or the anchor. */
   private nodeAfter(index: number): Node {
     return this.get(index + 1)
-      .match({ some: (ref) => ref.host, none: () => this.anchor });
+      .match({ some: (ref) => ref.host.nativeElement, none: () => this.anchor });
   }
 
   private parent(): Node {

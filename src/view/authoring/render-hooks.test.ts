@@ -52,7 +52,7 @@ describe("RenderHooks in change detection", () => {
   test("run after the views rendered, seeing the updated DOM", () => {
     const { engine, view, component } = setup();
     const seen: string[] = [];
-    component.render.afterEachRender(() => seen.push(view.host.textContent!));
+    component.render.afterEachRender(() => seen.push(view.host.nativeElement.textContent!));
     component.count.set(2);
     engine.flush();
     component.count.set(3);
@@ -68,7 +68,7 @@ describe("RenderHooks in change detection", () => {
       label = "ready";
       constructor() {
         inject(RenderHooks)
-          .afterNextRender(() => seen.push(view.host.textContent!));
+          .afterNextRender(() => seen.push(view.host.nativeElement.textContent!));
       }
     }
     const view = Engine.create()
@@ -93,7 +93,7 @@ describe("RenderHooks in change detection", () => {
     const { engine, view, component } = setup();
     const seen: string[] = [];
     component.count.set(5);
-    component.render.afterNextRender(() => seen.push(view.host.textContent!));
+    component.render.afterNextRender(() => seen.push(view.host.nativeElement.textContent!));
     engine.flush();
     component.count.set(6);
     engine.flush();
@@ -105,10 +105,10 @@ describe("RenderHooks in change detection", () => {
     const { engine, view, component } = setup();
     const seen: string[] = [];
     component.render.afterNextRender(() => component.count.set(100));
-    component.render.afterEachRender(() => seen.push(view.host.textContent!));
+    component.render.afterEachRender(() => seen.push(view.host.nativeElement.textContent!));
     component.count.set(2);
     engine.flush();
-    expect(view.host.textContent)
+    expect(view.host.nativeElement.textContent)
       .toBe("100");
     expect(seen)
       .toEqual(["2", "100"]);

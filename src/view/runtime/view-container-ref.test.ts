@@ -32,7 +32,7 @@ beforeEach(() => {
 function layout(views: ComponentRef<object>[]): string[] {
   return [...parent.childNodes].map((node) => {
     if (node === anchor) return "#anchor";
-    const index = views.findIndex((v) => v.host === node);
+    const index = views.findIndex((v) => v.host.nativeElement === node);
     return index >= 0 ? `item${index}` : (node as Element).localName;
   });
 }
@@ -47,13 +47,13 @@ describe("ViewContainerRef", () => {
       .toBe(2);
     expect(layout([a, b]))
       .toEqual(["header", "item0", "item1", "#anchor", "footer"]);
-    expect(a.host.innerHTML)
+    expect(a.host.nativeElement.innerHTML)
       .toBe("<span>item</span>");
-    expect(engine.getContext(a.host)
+    expect(engine.getContext(a.host.nativeElement)
       .flatMap((context) => context.componentView)
       .map((componentView) => componentView.host)
       .getOrElse(undefined))
-      .toBe(a.host);
+      .toBe(a.host.nativeElement);
   });
 
   test("inserts at a given index", () => {
@@ -116,9 +116,9 @@ describe("ViewContainerRef", () => {
     container.remove(1);
     expect(container.indexOf(b))
       .toBe(-1);
-    expect(b.host.isConnected)
+    expect(b.host.nativeElement.isConnected)
       .toBe(false);
-    expect(engine.getContext(b.host)
+    expect(engine.getContext(b.host.nativeElement)
       .isNone())
       .toBe(true);
     expect(layout([a, c]))

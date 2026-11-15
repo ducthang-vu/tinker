@@ -117,7 +117,7 @@ describe("two-way binding in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(Form);
-    const itemHost = view.host.querySelector("tk-item")!;
+    const itemHost = view.host.nativeElement.querySelector("tk-item")!;
     const item = engine.getContext(itemHost)
       .flatMap((context) => context.componentView)
       .map((child) => child.component as Item)
@@ -182,7 +182,7 @@ describe("two-way binding in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [pick] = engine.getContext(view.host.querySelector("button")!)
+    const [pick] = engine.getContext(view.host.nativeElement.querySelector("button")!)
       .map((context) => context.directives)
       .getOrElse([]) as [Pick];
     expect(pick!.value())

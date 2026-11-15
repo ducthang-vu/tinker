@@ -19,7 +19,7 @@ describe("ComponentRef", () => {
       .createComponent(Label, host);
     expect(ref.instance)
       .toBeInstanceOf(Label);
-    expect(ref.host)
+    expect(ref.host.nativeElement)
       .toBe(host);
   });
 
@@ -28,11 +28,11 @@ describe("ComponentRef", () => {
     const ref = engine.createComponent(Label);
     ref.setInput("label", "first");
     engine.flush();
-    expect(ref.host.textContent)
+    expect(ref.host.nativeElement.textContent)
       .toBe("first");
     ref.setInput("label", "second");
     engine.flush();
-    expect(ref.host.textContent)
+    expect(ref.host.nativeElement.textContent)
       .toBe("second");
   });
 

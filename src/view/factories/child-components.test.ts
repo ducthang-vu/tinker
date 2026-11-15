@@ -32,9 +32,9 @@ describe("components in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
 
-    expect(view.host.innerHTML)
+    expect(view.host.nativeElement.innerHTML)
       .toBe("<ul><li><tk-item><span>item</span></tk-item></li><li><tk-item><span>item</span></tk-item></li></ul>");
-    const [first, second] = [...view.host.querySelectorAll("tk-item")];
+    const [first, second] = [...view.host.nativeElement.querySelectorAll("tk-item")];
     expect(componentOn(engine, first!))
       .toBeInstanceOf(Item);
     expect(componentOn(engine, first!))
@@ -66,7 +66,7 @@ describe("components in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const item = componentOn<Item>(engine, view.host.querySelector("tk-item")!);
+    const item = componentOn<Item>(engine, view.host.nativeElement.querySelector("tk-item")!);
     expect(item.list)
       .toBe(view.instance);
     expect(item.store)
@@ -88,7 +88,7 @@ describe("components in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    expect(componentOn<C>(engine, view.host.querySelector("tk-c")!).a)
+    expect(componentOn<C>(engine, view.host.nativeElement.querySelector("tk-c")!).a)
       .toBe(view.instance);
   });
 
@@ -101,7 +101,7 @@ describe("components in templates", () => {
     class List {}
     const view = Engine.create()
       .createComponent(List);
-    expect(view.host.querySelector("span")!.textContent)
+    expect(view.host.nativeElement.querySelector("span")!.textContent)
       .toBe("Milk");
   });
 
@@ -158,7 +158,7 @@ describe("components in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const itemHost = view.host.querySelector("tk-item")!;
+    const itemHost = view.host.nativeElement.querySelector("tk-item")!;
     engine.flush();
     view.destroy();
     count.set(2);
@@ -243,7 +243,7 @@ describe("recursion", () => {
     @Component({ selector: "tk-pair", template: "<tk-leaf></tk-leaf><tk-leaf></tk-leaf>", imports: [Leaf] })
     class Pair {}
     expect(Engine.create()
-      .createComponent(Pair).host.querySelectorAll("tk-leaf"))
+      .createComponent(Pair).host.nativeElement.querySelectorAll("tk-leaf"))
       .toHaveLength(2);
   });
 });

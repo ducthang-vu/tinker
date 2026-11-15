@@ -13,7 +13,7 @@ Mermaid, which GitHub renders.
 | `ComponentFactory` | Creates a component: its injector, its template, its `View`. | `src/view/factories/component-factory.ts` |
 | `TemplateBuilder` | Builds one template's DOM and collects its bindings, then creates the directives and child components of its elements. | `src/view/factories/template-builder.ts` |
 | `DirectiveFactory` | Creates the directives of one element, with the element's injector and its host bindings. | `src/view/factories/directive-factory.ts` |
-| `ComponentRef` | The public handle of a created component: `instance`, `host`, `setInput`, `subscribe` and `emit` for public members, `destroy()`. Returned by `engine.createComponent`, `engine.bootstrap` and `ViewContainerRef.createComponent`. | `src/view/component-ref.ts` |
+| `ComponentRef` | The public handle of a created component: `instance`, `host` (an `ElementRef`), `setInput`, `subscribe` and `emit` for public members, `destroy()`. Returned by `engine.createComponent`, `engine.bootstrap` and `ViewContainerRef.createComponent`. | `src/view/component-ref.ts` |
 | `View` | Internal. One rendered component: its host element, its instance, its DOM nodes, its element contexts, and one reactive watch. | `src/view/runtime/view.ts` |
 | `ElementContext` | What Tinker put on one DOM element: its directive instances and, at most, one child `View`. | `src/view/runtime/element-context.ts` |
 | `ViewContainerRef` | A place in the DOM, marked by an anchor comment, where views are added, moved and removed. | `src/view/runtime/view-container-ref.ts` |

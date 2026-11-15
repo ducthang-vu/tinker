@@ -19,7 +19,7 @@ describe("style and attribute bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const p = view.host.querySelector("p")!;
+    const p = view.host.nativeElement.querySelector("p")!;
     expect([p.style.color, p.getAttribute("title")])
       .toEqual(["red", "first"]);
     view.instance.color.set("blue");
@@ -42,7 +42,7 @@ describe("style and attribute bindings in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const item = view.host.querySelector("tk-item") as HTMLElement;
+    const item = view.host.nativeElement.querySelector("tk-item") as HTMLElement;
     expect(item.style.opacity)
       .toBe("0.5");
     view.instance.opacity.set("1");
@@ -66,7 +66,7 @@ describe("style and attribute bindings in host bindings", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const p = view.host.querySelector("p")!;
+    const p = view.host.nativeElement.querySelector("p")!;
     expect([p.style.opacity, p.getAttribute("role")])
       .toEqual(["0.25", "status"]);
     const [fade] = engine.getContext(p)
@@ -101,7 +101,7 @@ describe("precedence: a template binding on the element wins over a host binding
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const item = view.host.querySelector("tk-item") as HTMLElement;
+    const item = view.host.nativeElement.querySelector("tk-item") as HTMLElement;
     expect([item.getAttribute("title"), item.style.color])
       .toEqual(["parent", "green"]);
   });
@@ -125,7 +125,7 @@ describe("precedence: a template binding on the element wins over a host binding
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const item = view.host.querySelector("tk-item")!;
+    const item = view.host.nativeElement.querySelector("tk-item")!;
     expect([item.getAttribute("title"), item.getAttribute("role")])
       .toEqual(["t", "listitem"]);
   });

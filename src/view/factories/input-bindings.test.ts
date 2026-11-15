@@ -31,7 +31,7 @@ describe("input bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const span = view.host.querySelector("span")!;
+    const span = view.host.nativeElement.querySelector("span")!;
     expect(span.textContent)
       .toBe("Milk");
 
@@ -55,7 +55,7 @@ describe("input bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [tooltip] = instancesOn(engine, view.host.querySelector("button")!) as [Tooltip];
+    const [tooltip] = instancesOn(engine, view.host.nativeElement.querySelector("button")!) as [Tooltip];
     expect(tooltip.shout())
       .toBe("SAVE");
     view.instance.hint.set("undo");
@@ -83,7 +83,7 @@ describe("input bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
-    const [labelled, item] = instancesOn(engine, view.host.querySelector("tk-item")!) as [Labelled, Item];
+    const [labelled, item] = instancesOn(engine, view.host.nativeElement.querySelector("tk-item")!) as [Labelled, Item];
     expect([labelled.label(), item.label()])
       .toEqual(["Milk", "Milk"]);
   });
@@ -102,7 +102,7 @@ describe("input bindings", () => {
       readonly width = "200";
     }
     expect(Engine.create()
-      .createComponent(A).host.querySelector("tk-box")!.textContent)
+      .createComponent(A).host.nativeElement.querySelector("tk-box")!.textContent)
       .toBe("200");
   });
 
