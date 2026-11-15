@@ -46,6 +46,12 @@ import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
  * registered through it are cancelled when its injector is destroyed. Only
  * registering is public: running them is change detection's job (see
  * RenderHookRegistry).
+ *
+ * Final: do not subclass it. Subclasses could override what registers and
+ * cancels hooks, and break the lifetime rules. Compose it instead. TypeScript
+ * cannot enforce this (the constructor must stay public to be a token).
+ *
+ * @final
  */
 @Injectable()
 export class RenderHooks {

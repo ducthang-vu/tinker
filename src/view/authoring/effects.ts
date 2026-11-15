@@ -61,6 +61,12 @@ export type EffectFn = (context: EffectContext) => void;
  * Creates effects in the engine's change detection. Each component has its
  * own (provided in its injector), the engine has one for services: the
  * effects created through it are destroyed when its injector is.
+ *
+ * Final: do not subclass it. Subclasses could override what registers and
+ * stops effects, and break the lifetime rules. Compose it instead. TypeScript
+ * cannot enforce this (the constructor must stay public to be a token).
+ *
+ * @final
  */
 @Injectable()
 export class Effects {
