@@ -14,6 +14,7 @@
 import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { parseHandler } from "./handler.ts";
+import { type EventModifier, parseEventName } from "./event-modifiers.ts";
 import { Maybe } from "../../functional/index.ts";
 import type { Class } from "../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
@@ -71,7 +72,10 @@ export interface InputBindingNode {
  * element (both, when both exist).
  */
 export interface OutputBindingNode {
+  /** The event (directive output and DOM event) name, without modifiers. */
   readonly name: string;
+  /** The modifiers of the DOM event, e.g. `.prevent`. */
+  readonly modifiers: readonly EventModifier[];
   readonly method: string;
   /** Whether the handler receives the value (`$event`) or nothing. */
   readonly passEvent: boolean;
@@ -158,7 +162,7 @@ function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
 const INPUT_BINDING = /^\[([^\].\s]+)\]$/;
-const OUTPUT_BINDING = /^\(([^).\s]+)\)$/;
+const OUTPUT_BINDING = /^\(([^)\s]+)\)$/;
 const STYLE_BINDING = /^\[style\.([^\]\s]+)\]$/;
 const ATTRIBUTE_BINDING = /^\[attr\.([^\]\s]+)\]$/;
 
@@ -187,7 +191,7 @@ function classifyAttributes(node: ElementNode): {
   for (const attribute of node.attributes) {
     const className = CLASS_BINDING.exec(attribute.name)?.[1];
     const inputName = INPUT_BINDING.exec(attribute.name)?.[1];
-    const outputName = OUTPUT_BINDING.exec(attribute.name)?.[1];
+    const eventName = OUTPUT_BINDING.exec(attribute.name)?.[1];
     const styleName = STYLE_BINDING.exec(attribute.name)?.[1];
     const attrName = ATTRIBUTE_BINDING.exec(attribute.name)?.[1];
     if (styleName !== undefined) {
@@ -198,12 +202,15 @@ function classifyAttributes(node: ElementNode): {
       classBindings.push({ name: className, expression: parse(attribute) });
     } else if (inputName !== undefined) {
       inputBindings.push({ name: inputName, expression: parse(attribute) });
-    } else if (outputName !== undefined) {
+    } else if (eventName !== undefined) {
+      const { event, modifiers } = parseEventName(eventName, "event binding")
+        .mapLeft((error) => new Error(`${error.message}, on <${node.name}>`))
+        .getOrThrow();
       const handler = parseHandler(attribute.value, "event handler")
         .mapLeft((error) =>
           new Error(`${error.message}, on <${node.name}>`))
         .getOrThrow();
-      outputBindings.push({ name: outputName, ...handler });
+      outputBindings.push({ name: event, modifiers, ...handler });
     } else if (/^[[(]/.test(attribute.name)) {
       throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
     } else {
