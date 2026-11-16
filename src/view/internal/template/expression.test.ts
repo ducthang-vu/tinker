@@ -8,6 +8,11 @@ function parse(source: string): Expression {
 }
 
 /** The error message for `source`. */
+function parsed(source: string) {
+  return ExpressionParser.parse(source)
+    .getOrThrow();
+}
+
 function error(source: string): string {
   return ExpressionParser.parse(source)
     .match({ left: (e) => e.message, right: () => "no error" });
@@ -73,8 +78,8 @@ describe("ExpressionParser", () => {
       .toBe(`Expected a name, found "1" (at column 6 in "user.1")`);
     expect(error("1 2"))
       .toBe(`Unexpected "2" (at column 3 in "1 2")`);
-    expect(error("'text'"))
-      .toMatch(/^Expected a name, found "'"/);
+    expect(error("#tag"))
+      .toMatch(/^Expected a name, found "#"/);
   });
 
   test("reports an operator with a missing operand, or an unclosed group", () => {
@@ -86,5 +91,34 @@ describe("ExpressionParser", () => {
       .toBe(`Missing ")" (at column 7 in "(1 + 2")`);
     expect(error("(1 2)"))
       .toBe(`Expected ")", found "2" (at column 4 in "(1 2)")`);
+  });
+
+  test("reads string and keyword literals", () => {
+    expect(parsed("\"loading\""))
+      .toEqual({ kind: "literal", value: "loading" });
+    expect(parsed("'it'"))
+      .toEqual({ kind: "literal", value: "it" });
+    expect(parsed("\"say \\\"hi\\\"\\n\""))
+      .toEqual({ kind: "literal", value: "say \"hi\"\n" });
+    expect(parsed("\"a\\tb\""))
+      .toEqual({ kind: "literal", value: "a\tb" });
+    expect(parsed("true"))
+      .toEqual({ kind: "literal", value: true });
+    expect(parsed("false"))
+      .toEqual({ kind: "literal", value: false });
+    expect(parsed("null"))
+      .toEqual({ kind: "literal", value: null });
+    expect(parsed("undefined"))
+      .toEqual({ kind: "literal", value: undefined });
+  });
+
+  test("a name that starts with a keyword is still a name", () => {
+    expect(parsed("trueValue"))
+      .toEqual({ kind: "property", receiver: { kind: "component" }, name: "trueValue" });
+  });
+
+  test("reports an unclosed string", () => {
+    expect(error("\"open"))
+      .toBe(`Missing closing " (at column 6 in ""open")`);
   });
 });

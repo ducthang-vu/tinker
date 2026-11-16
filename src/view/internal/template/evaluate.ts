@@ -21,7 +21,7 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
         return scope.lets.get(expression.name);
       }
       return read(evaluate(expression.receiver, scope), expression.name);
-    case "number":
+    case "literal":
       return expression.value;
     case "binary":
       return operate(
@@ -91,8 +91,10 @@ function read(receiver: unknown, name: string): unknown {
 /** The expression as written (normalized), for error messages. */
 export function print(expression: Expression): string {
   switch (expression.kind) {
-    case "number":
-      return String(expression.value);
+    case "literal":
+      return typeof expression.value === "string"
+        ? JSON.stringify(expression.value)
+        : String(expression.value);
     case "binary":
       return `${print(expression.left)} ${expression.operator} ${print(expression.right)}`;
     case "component":
