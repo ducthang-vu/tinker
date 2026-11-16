@@ -94,4 +94,52 @@ describe("@let template variables", () => {
     expect(() => bootstrap(Bad, { host: document.createElement("div") }))
       .toThrow("in @let x");
   });
+
+  test("a variable is computed once per change, however many times it is read", async () => {
+    let calls = 0;
+    @Component({ selector: "tk-shared", template: "@let n = count(); {{ n }} {{ n }}" })
+    class Shared {
+      readonly total = signal(1);
+
+      count(): number {
+        calls += 1;
+        return this.total();
+      }
+    }
+    const host = document.createElement("section");
+    const app = bootstrap(Shared, { host });
+    expect(calls)
+      .toBe(1);
+    app.root.instance.total.set(2);
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(calls)
+      .toBe(2);
+    expect(host.textContent!.trim())
+      .toBe("2 2");
+    app.destroy();
+  });
+
+  test("a variable sees only the variables declared above it", () => {
+    @Component({ selector: "tk-order", template: "@let a = b(); @let b = 'let'; {{ a }}" })
+    class Order {
+      b(): string {
+        return "field";
+      }
+    }
+    const host = document.createElement("section");
+    bootstrap(Order, { host });
+    expect(host.textContent!.trim())
+      .toBe("field");
+  });
+
+  test("a variable that refers to its own name reads the field of that name", () => {
+    @Component({ selector: "tk-self", template: "@let title = title; {{ title }}" })
+    class Self {
+      readonly title = "field";
+    }
+    const host = document.createElement("section");
+    bootstrap(Self, { host });
+    expect(host.textContent!.trim())
+      .toBe("field");
+  });
 });

@@ -2,12 +2,15 @@
 // the template variables declared with `@let` (which shadow the fields).
 //
 // One Scope is made per template. The component is what bare names fall back
-// to, and `lets` holds the value of each `@let` declared so far.
+// to. `lets` holds, for each `@let` declared so far, a computed signal of its
+// value: reading it inside a watch makes the watch depend on what it reads.
+
+import type { ReadonlySignal } from "../../../signals/index.ts";
 
 export class Scope {
-  /** The `@let` values, by name. A declaration sets its name before later bindings read it. */
-  readonly lets = new Map<string, unknown>();
-
   /** @param component The component: what names not declared with `@let` are read from. */
-  constructor(readonly component: object) {}
+  constructor(
+    readonly component: object,
+    readonly lets: Map<string, ReadonlySignal<unknown>> = new Map(),
+  ) {}
 }
