@@ -28,6 +28,21 @@ one place when we know more about its costs.
 6. **Values are written only when they change.** A binding writes the DOM only
    when its value differs from the last one it wrote.
 
+## Where a view lives
+
+Every view sits in one of two places, and Tinker never adds an element of its
+own to hold one:
+
+1. **On an element the author wrote.** A component's view is on its host
+   element, which is the element the author put in the page or in a template.
+2. **After a comment.** An embedded view, or a view a container adds at runtime,
+   sits after an anchor comment that the container owns. Its nodes are the
+   top-level nodes it renders, in order, and they are moved and removed together.
+
+So the framework never wraps a view in a `<div>` or any other element. A wrapper
+would change CSS selectors (such as `ul > li`), make some HTML invalid (a `<div>`
+directly in a `<ul>`), and affect layout, none of which the author asked for.
+
 ## Where we differ from Angular
 
 | | Angular | Tinker |
