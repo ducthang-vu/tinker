@@ -20,8 +20,8 @@ import { parseHandler } from "../template/handler.ts";
 import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
+import type { ComponentView } from "../runtime/component-view.ts";
 import type { View } from "../runtime/view.ts";
-import type { ViewLike } from "../runtime/view-like.ts";
 
 /** One parsed `"(event)": "method(...)"` entry. */
 export interface HostListener {
@@ -84,7 +84,7 @@ export class HostBindings {
    * call the method. Every listener is removed when `view` is destroyed.
    * Throws if the instance has no such method.
    */
-  attach(instance: object, element: Element, renderer: Renderer, view: ViewLike): void {
+  attach(instance: object, element: Element, renderer: Renderer, view: View): void {
     for (const { event, method, passEvent, modifiers } of this.listeners) {
       const handler = Maybe.of((instance as Record<string, unknown>)[method])
         .filter((value) => typeof value === "function")

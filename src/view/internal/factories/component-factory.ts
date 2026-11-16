@@ -1,12 +1,12 @@
 // The component factory: everything needed to turn a component class into a
-// rendered View.
+// rendered ComponentView.
 //
 // Given a host element (or creating one from the component's selector), it
 // creates the component's own injector (child of the engine's: its host
 // directives, ElementRef, its own Effects and RenderHooks, and its and its host
 // directives' `providers`, all destroyed with the view), creates the host
 // directives then the component in it, parses its template (once per class), builds the
-// DOM through the Renderer, attaches the resulting View to the host's
+// DOM through the Renderer, attaches the resulting ComponentView to the host's
 // ElementContext, and applies the component's host bindings (through the
 // DirectiveFactory: a component is a directive with a template).
 //
@@ -55,7 +55,7 @@ import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { RunFirstNow } from "../runtime/run-first-now.ts";
-import { type View, ViewFactory } from "../runtime/view.ts";
+import { type ComponentView, ComponentViewFactory } from "../runtime/component-view.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
@@ -64,7 +64,7 @@ import { Selector } from "../template/selector.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
-import type { ViewLike } from "../runtime/view-like.ts";
+import type { View } from "../runtime/view.ts";
 
 /**
  * A selector a host element can be created from: an optional tag, then an
@@ -75,7 +75,7 @@ const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 /** Where a component in another component's template is: see ComponentFactory.create. */
 export interface ParentContext {
   readonly parentInjector: Injector;
-  readonly parentView: ViewLike;
+  readonly parentView: View;
   readonly attributes: readonly AttributeNode[];
   /**
    * Takes the child's host bindings (its own and its host directives'): its
@@ -102,7 +102,7 @@ export class ComponentFactory {
   private readonly contexts = inject(ElementContexts);
   private readonly directives = inject(DirectiveFactory);
   private readonly builders = inject(TemplateBuilderFactory);
-  private readonly views = inject(ViewFactory);
+  private readonly views = inject(ComponentViewFactory);
   private readonly changeDetection = inject(ChangeDetection);
   private readonly injector = inject(Injector);
   /** Compiled templates, per component class: each template is parsed and compiled only once. */
@@ -131,7 +131,7 @@ export class ComponentFactory {
     host?: Element,
     child?: ParentContext,
     parentInjector?: Injector,
-  ): View<T> {
+  ): ComponentView<T> {
     const start = this.creating.indexOf(type);
     if (start !== -1) {
       const path = [...this.creating.slice(start), type].map((creating) => creating.name)
@@ -151,7 +151,7 @@ export class ComponentFactory {
     host?: Element,
     child?: ParentContext,
     parentInjector?: Injector,
-  ): View<T> {
+  ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
     if (this.contexts.get(host)

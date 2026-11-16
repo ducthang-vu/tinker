@@ -1,11 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
 import { DomRenderer } from "../renderer.ts";
-import { View } from "../runtime/view.ts";
+import { ComponentView } from "../runtime/component-view.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
 
 const renderer = new DomRenderer();
-const makeView = (host: Element) => new View(host, {}, [], renderer);
+const makeView = (host: Element) => new ComponentView(host, {}, [], renderer);
 
 describe("HostBindings parsing", () => {
   test("parses listeners with and without $event", () => {

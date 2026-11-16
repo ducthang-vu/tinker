@@ -1,6 +1,6 @@
 // A ComponentRef: the handle client code gets for a component it created
 // (through `engine.createComponent`, `engine.bootstrap` or a ViewContainerRef).
-// It is the public face of a View, which stays internal: the instance, its host
+// It is the public face of a ComponentView, which stays internal: the instance, its host
 // element, its public inputs (set with `setInput`), its public outputs (emitted
 // with `emit`), and its destruction. A field is reachable here only when the
 // component's author made it public: a private input or output is not in the
@@ -10,14 +10,14 @@ import { Maybe } from "../../functional/index.ts";
 import type { InputName, InputValue } from "./authoring/input.ts";
 import { type OutputName, type OutputValue, outputsOf } from "./authoring/output.ts";
 import { ElementRef } from "./runtime/element-ref.ts";
-import type { View } from "./runtime/view.ts";
+import type { ComponentView } from "./runtime/component-view.ts";
 
 export class ComponentRef<T extends object> {
   /** The element the component is rendered into. */
   readonly host: ElementRef<Element>;
 
   /** @param view The view the engine created for the component (internal). */
-  constructor(private readonly view: View<T>) {
+  constructor(private readonly view: ComponentView<T>) {
     this.host = new ElementRef(view.host);
   }
 
@@ -70,6 +70,6 @@ export class ComponentRef<T extends object> {
 }
 
 /** Wrap a view for client code. */
-export function refOf<T extends object>(view: View<T>): ComponentRef<T> {
+export function refOf<T extends object>(view: ComponentView<T>): ComponentRef<T> {
   return new ComponentRef(view);
 }

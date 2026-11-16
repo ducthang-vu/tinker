@@ -3,7 +3,7 @@ import { ElementContext } from "./element-context.ts";
 import { input, inputsOf } from "../authoring/input.ts";
 import { watch } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
-import { View } from "./view.ts";
+import { ComponentView } from "./component-view.ts";
 
 function makeView() {
   const host = document.createElement("div");
@@ -12,11 +12,11 @@ function makeView() {
   const nodes = [document.createElement("p"), document.createTextNode("text")];
   host.append(...nodes);
   const component = { name: "component" };
-  const view = new View(host, component, nodes, new DomRenderer());
+  const view = new ComponentView(host, component, nodes, new DomRenderer());
   return { view, host, kept, nodes, component };
 }
 
-describe("View", () => {
+describe("ComponentView", () => {
   test("records the inputs of its directives, and finds one by directive and name", () => {
     const { view } = makeView();
     class Tooltip {
@@ -57,7 +57,7 @@ describe("View", () => {
     }
     function cardView() {
       const card = new Card();
-      const view = new View(document.createElement("div"), card, [], new DomRenderer());
+      const view = new ComponentView(document.createElement("div"), card, [], new DomRenderer());
       view.addInputs(card, inputsOf(card));
       return { card, view };
     }
@@ -134,7 +134,7 @@ describe("View", () => {
   test("destroy first destroys the views of components on its elements", () => {
     const { view } = makeView();
     const childHost = document.createElement("tk-child");
-    const child = new View(childHost, {}, [], new DomRenderer());
+    const child = new ComponentView(childHost, {}, [], new DomRenderer());
     const context = new ElementContext(childHost);
     context.attachComponent(child);
     view.addElement(context);

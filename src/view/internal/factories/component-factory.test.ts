@@ -9,7 +9,7 @@ import { BrowserTemplateParser } from "../template/browser-parser.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ComponentFactory } from "./component-factory.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
-import { type View, ViewFactory } from "../runtime/view.ts";
+import { type ComponentView, ComponentViewFactory } from "../runtime/component-view.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilderFactory } from "./template-builder.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
@@ -32,7 +32,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
       RenderHookRegistry,
       ChangeDetection,
       DirectiveFactory,
-      ViewFactory,
+      ComponentViewFactory,
       BindingFactory,
       TemplateBuilderFactory,
       ComponentFactory,
@@ -303,17 +303,19 @@ describe("ComponentFactory view watch", () => {
 });
 
 describe("ComponentFactory collaborators", () => {
-  test("creates views through the injected ViewFactory", () => {
+  test("creates views through the injected ComponentViewFactory", () => {
     @Component({ selector: "tk-a", template: "<p>a</p>" })
     class A {}
     const created: unknown[] = [];
-    class RecordingViewFactory extends ViewFactory {
-      override create<T>(host: Element, component: T, nodes: readonly Node[]): View<T> {
+    class RecordingViewFactory extends ComponentViewFactory {
+      override create<T>(host: Element, component: T, nodes: readonly Node[]): ComponentView<T> {
         created.push(component);
         return super.create(host, component, nodes);
       }
     }
-    const { factory } = makeFactory([provide(ViewFactory, { useClass: RecordingViewFactory })]);
+    const { factory } = makeFactory([
+      provide(ComponentViewFactory, { useClass: RecordingViewFactory }),
+    ]);
 
     const view = factory.create(A);
 

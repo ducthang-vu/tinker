@@ -17,11 +17,13 @@ Client code sees a few objects. Everything else is internal.
 
 | Internal | What it is for |
 |---|---|
-| `View` | One rendered component: its nodes, its element contexts, and its one reactive watch. |
-| `ComponentFactory` | Builds a component: its injector, its template, its `View`. |
+| `View` | The interface the factories and containers work with: destroy callbacks, inputs, elements, destroy. |
+| `ComponentView` | A component's template, on the host element the author wrote: its nodes, element contexts, and one reactive watch. |
+| `EmbeddedView` | A block's template, after an anchor comment: its top-level nodes and its own watch. |
+| `ComponentFactory` | Builds a component: its injector, its template, its `ComponentView`. |
 | `TemplateBuilder` | Builds one template's DOM and its bindings, and creates the components and directives in it. |
 | `DirectiveFactory` | Creates the directives of one element, with the element's injector. |
-| `ElementContext` | What is on one element: its directive instances, and at most one child `View`. |
+| `ElementContext` | What is on one element: its directive instances, and at most one child `ComponentView`. |
 
 `engine.createComponent` is deprecated and will be removed. See
 [IMPROVEMENTS.md](../IMPROVEMENTS.md), "The engine's entry points".
@@ -100,7 +102,7 @@ page for an element that never injects its container.
 
 ## Who owns what
 
-Each `View` owns the things created for it, and destroying the owner destroys
+Each view owns the things created for it, and destroying the owner destroys
 them. The owner is the view whose template contains the element:
 
 - A child component is owned by its parent's view.

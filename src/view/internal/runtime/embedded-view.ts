@@ -7,9 +7,9 @@
 import type { InputBinding } from "../authoring/input.ts";
 import type { Renderer } from "../renderer.ts";
 import type { ElementContext } from "./element-context.ts";
-import type { ViewLike } from "./view-like.ts";
+import type { View } from "./view.ts";
 
-export class EmbeddedView implements ViewLike {
+export class EmbeddedView implements View {
   private readonly contexts: ElementContext[] = [];
   private readonly destroyCallbacks: (() => void)[] = [];
   private readonly directiveInputs = new Map<object, ReadonlyMap<string, InputBinding<unknown>>>();

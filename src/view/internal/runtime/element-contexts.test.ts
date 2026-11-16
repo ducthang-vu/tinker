@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { DomRenderer } from "../renderer.ts";
 import { ElementContexts } from "./element-contexts.ts";
-import { View } from "./view.ts";
+import { ComponentView } from "./component-view.ts";
 
 describe("ElementContexts", () => {
   test("get is None for an element with no context", () => {
@@ -28,7 +28,7 @@ describe("ElementContexts", () => {
     const contexts = new ElementContexts();
     const empty = contexts.getOrCreate(document.createElement("p"));
     const busy = contexts.getOrCreate(document.createElement("tk-x"));
-    busy.attachComponent(new View(busy.element, {}, [], new DomRenderer()));
+    busy.attachComponent(new ComponentView(busy.element, {}, [], new DomRenderer()));
 
     contexts.forgetIfEmpty(empty);
     contexts.forgetIfEmpty(busy);
