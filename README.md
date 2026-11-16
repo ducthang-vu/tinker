@@ -122,6 +122,10 @@ it is on purpose.
   patterns (literals, `truthy` and `falsy`, objects, arrays, guards), and `@if`
   is the simplest case of it. Angular's `@switch` only compares values. The
   design is in [docs/control-flow.md](docs/control-flow.md).
+- **Change detection is our own design.** Each view has its own watch, and a
+  view is scheduled by the signals it reads, not by its parent's refresh. Angular
+  refreshes embedded views through the parent instead. The rules, the differences
+  and the known gaps are in [docs/change-detection.md](docs/change-detection.md).
 - **Standard decorators.** TC39 decorators, not TypeScript's experimental
   ones; the metadata is kept on the class.
 - **`inject()` only.** No constructor injection, and no Service Locator: the
