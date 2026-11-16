@@ -27,7 +27,7 @@ operator to the tightest:
 
 ```
 expression := equality
-equality   := additive ( ("===" | "==" | "!==" | "!=") additive )*      -- planned: !== !=
+equality   := ... (see below)
 additive   := term ( ("+" | "-") term )*
 term       := power ( ("*" | "/") power )*
 power      := operand ( "**" power )?                                   -- right-associative
@@ -44,9 +44,9 @@ access     := identifier ( "." identifier | "(" ")" )*
 | `===`, `==` | done | `==` converts operands, as JavaScript does |
 | String literals: `"loading"` | done | single or double quotes; a backslash escapes the next character |
 | `true`, `false`, `null`, `undefined` | done | |
-| `>`, `<`, `>=`, `<=` | planned | |
-| `!==`, `!=` | planned | |
-| `&&`, `\|\|`, `!` | planned | short-circuit, as in JavaScript |
+| `>`, `<`, `>=`, `<=` | done | |
+| `!==`, `!=` | done | |
+| `&&`, `\|\|`, `!` | done | short-circuit, as in JavaScript |
 | Call arguments: `format(x)` | later | |
 | Arrow functions: `t => t.done` | later | needed for `filter` and `map` in templates |
 | Unary minus: `-1` | later | |
@@ -147,8 +147,7 @@ Each step depends on the one before. The order below is the cheapest path to a
 working `@if` and `@match`, and it keeps every step testable on its own.
 
 1. **Literals: strings, `true`, `false`, `null`, `undefined`.** Done.
-2. **Comparison and logical operators: `> < >= <=`, `!== !=`, `&& || !`.** Needed
-   for guards. `&&` and `||` must short-circuit.
+2. **Comparison and logical operators: `> < >= <=`, `!== !=`, `&& || !`.** Done.
 3. **Embedded views.** A `View` kind with no host element and no component, owned
    by an anchor, that a block creates and removes. This is the machinery `@if`,
    `@match` and `@for` all need.

@@ -121,4 +121,13 @@ describe("ExpressionParser", () => {
     expect(error("\"open"))
       .toBe(`Missing closing " (at column 6 in ""open")`);
   });
+
+  test("reports a comparison or logical operator with a missing operand", () => {
+    expect(error("a <"))
+      .toBe(`Missing a name at the end (at column 4 in "a <")`);
+    expect(error("a &&"))
+      .toBe(`Missing a name at the end (at column 5 in "a &&")`);
+    expect(error("!"))
+      .toBe(`Missing a name at the end (at column 2 in "!")`);
+  });
 });
