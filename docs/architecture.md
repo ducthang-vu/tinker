@@ -10,7 +10,7 @@ Client code sees a few objects. Everything else is internal.
 
 | Public | What it is for |
 |---|---|
-| `Engine` | Starts the app with `bootstrap`, and creates containers with `createViewContainer`. |
+| `bootstrap` | Starts an app and returns its `AppRef` (`root`, `destroy()`). The engine behind it is internal. |
 | `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
@@ -46,7 +46,7 @@ flowchart LR
   end
 ```
 
-1. **Root.** `engine.bootstrap(type)` finds the element on the page that
+1. **Root.** `bootstrap(type)` finds the element on the page that
    matches the component's selector, and renders the component into it. Nothing
    is inserted: the element is already there.
 2. **Template child.** A parent's template contains `<tk-item>`. The parent's

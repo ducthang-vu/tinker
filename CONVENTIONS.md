@@ -23,7 +23,7 @@ and `create(...)` takes what differs per object. Every factory is listed in
 the engine's default providers, so a test (or an app) can replace it:
 
 ```ts
-Engine.create({ providers: [provide(ViewFactory, { useClass: RecordingViewFactory })] });
+bootstrap(App, { providers: [provide(ViewFactory, { useClass: RecordingViewFactory })] });
 ```
 
 Exempt: values (`Maybe`, `Either`, `Task`, `ForwardRef`), data holders
