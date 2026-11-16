@@ -80,6 +80,12 @@ test("print writes an expression back", () => {
   expect(print(ExpressionParser.parse("count() * 2 + 1")
     .getOrThrow()))
     .toBe("count() * 2 + 1");
+  expect(print(ExpressionParser.parse("\"loading\"")
+    .getOrThrow()))
+    .toBe("\"loading\"");
+  expect(print(ExpressionParser.parse("true")
+    .getOrThrow()))
+    .toBe("true");
 });
 
 describe("operators", () => {
@@ -115,5 +121,27 @@ describe("operators", () => {
       .toBe(7);
     expect(run("total === 0", component))
       .toBe(true);
+  });
+});
+
+describe("literals", () => {
+  test("strings, booleans, null and undefined evaluate to their values", () => {
+    expect(run("\"loading\"", {}))
+      .toBe("loading");
+    expect(run("true", {}))
+      .toBe(true);
+    expect(run("false", {}))
+      .toBe(false);
+    expect(run("null", {}))
+      .toBe(null);
+    expect(run("undefined", {}))
+      .toBe(undefined);
+  });
+
+  test("a literal compares with a field", () => {
+    expect(run("status === \"loading\"", { status: "loading" }))
+      .toBe(true);
+    expect(run("status === \"loading\"", { status: "done" }))
+      .toBe(false);
   });
 });

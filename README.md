@@ -71,8 +71,9 @@ module; each module also lists its own in its `index.ts`.
   (child of the engine's), which holds their `providers` and their
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language:
-  fields and calls (`user().name`), numbers, `+ - * / **` (with parentheses),
-  and `===` and `==`. Calls take no arguments yet. Class bindings
+  fields and calls (`user().name`), numbers, strings, `true`, `false`, `null`,
+  `undefined`, `+ - * / **` (with parentheses), and `===` and `==`. Calls take
+  no arguments yet. Class bindings
   (`[class.done]="todo.done()"`), style and attribute bindings
   (`[style.color]="color()"`, `[attr.title]="label()"`, with kebab-case names
   such as `[style.background-color]` and `[attr.aria-label]`; an empty value
@@ -116,6 +117,10 @@ it is on purpose.
   HTML parser, and expressions by a small parser of Tinker's own (no `eval`,
   so it works under a strict Content Security Policy). The cost: templates
   are not type-checked, and the browser lowercases names.
+- **Pattern matching in templates (planned).** `@match` tests a value against
+  patterns (literals, `truthy` and `falsy`, objects, arrays, guards), and `@if`
+  is the simplest case of it. Angular's `@switch` only compares values. The
+  design is in [docs/control-flow.md](docs/control-flow.md).
 - **Standard decorators.** TC39 decorators, not TypeScript's experimental
   ones; the metadata is kept on the class.
 - **`inject()` only.** No constructor injection, and no Service Locator: the

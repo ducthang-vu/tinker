@@ -27,12 +27,12 @@
 import { Either, type EitherError } from "../../../functional/index.ts";
 
 /** A parsed template expression. */
-export type Expression = ComponentReceiver | PropertyRead | Call | NumberLiteral | Binary;
+export type Expression = ComponentReceiver | PropertyRead | Call | Literal | Binary;
 
-/** A number, e.g. `2` or `0.5`. */
-export interface NumberLiteral {
-  readonly kind: "number";
-  readonly value: number;
+/** A value written in the expression: a number, a string, or one of the keyword values. */
+export interface Literal {
+  readonly kind: "literal";
+  readonly value: string | number | boolean | null | undefined;
 }
 
 /** The operators, from `===` to `**`. */
@@ -69,6 +69,12 @@ export interface Call {
 const COMPONENT: ComponentReceiver = { kind: "component" };
 const IDENTIFIER = /[A-Za-z_$][\w$]*/y;
 const NUMBER = /\d+(\.\d+)?/y;
+const KEYWORD_VALUES: ReadonlyMap<string, boolean | null | undefined> = new Map([
+  ["true", true],
+  ["false", false],
+  ["null", null],
+  ["undefined", undefined],
+]);
 const WHITESPACE = /\s*/y;
 
 /** Parses one expression. Create one per source through `ExpressionParser.parse`. */
@@ -156,13 +162,48 @@ export class ExpressionParser {
       this.position++;
       return inner;
     }
+    const quote = this.source[this.position];
+    if (quote === "\"" || quote === "'") {
+      return { kind: "literal", value: this.string(quote) };
+    }
     NUMBER.lastIndex = this.position;
     const number = NUMBER.exec(this.source);
     if (number) {
       this.position = NUMBER.lastIndex;
-      return { kind: "number", value: Number(number[0]) };
+      return { kind: "literal", value: Number(number[0]) };
+    }
+    IDENTIFIER.lastIndex = this.position;
+    const word = IDENTIFIER.exec(this.source)?.[0];
+    if (word !== undefined && KEYWORD_VALUES.has(word)) {
+      this.position += word.length;
+      return { kind: "literal", value: KEYWORD_VALUES.get(word) };
     }
     return this.access();
+  }
+
+  /**
+   * A quoted text, from `quote` to the same quote. A backslash escapes the next
+   * character; `\n` and `\t` give a newline and a tab.
+   */
+  private string(quote: string): string {
+    let text = "";
+    this.position++;
+    while (this.source[this.position] !== quote) {
+      if (this.atEnd()) {
+        throw this.error(`Missing closing ${quote}`);
+      }
+      const char = this.source[this.position]!;
+      if (char === "\\") {
+        this.position++;
+        const escaped = this.source[this.position];
+        text += escaped === "n" ? "\n" : escaped === "t" ? "\t" : escaped;
+      } else {
+        text += char;
+      }
+      this.position++;
+    }
+    this.position++;
+    return text;
   }
 
   /** A name, then any `.name` or `()` after it. */
