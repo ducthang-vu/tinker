@@ -19,9 +19,42 @@ import { Maybe } from "../../../functional/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
+import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
 
 /** A node of a compiled template. */
-export type CompiledNode = CompiledElement | CompiledText | CompiledSlot | CompiledLet;
+export type CompiledNode
+  = | CompiledElement
+    | CompiledText
+    | CompiledSlot
+    | CompiledLet
+    | CompiledMatch;
+
+/**
+ * A `@match`, and so an `@if` (which is a match with one truthy case). The
+ * first case whose pattern matches is shown; the default otherwise, if there is one.
+ */
+export interface CompiledMatch {
+  readonly kind: "match";
+  readonly subject: Expression;
+  readonly cases: readonly CompiledCase[];
+  readonly default?: readonly CompiledNode[];
+}
+
+/** A `@case`: its pattern, and what it shows. */
+export interface CompiledCase {
+  readonly pattern: Pattern;
+  readonly body: readonly CompiledNode[];
+}
+
+/**
+ * What a case tests the subject against: `truthy` and `falsy` (JavaScript's
+ * rules), `_` (anything), or a literal (compared with `===`).
+ */
+export type Pattern
+  = | { readonly kind: "truthy" }
+    | { readonly kind: "falsy" }
+    | { readonly kind: "any" }
+    | { readonly kind: "value"; readonly value: string | number | boolean | null | undefined };
 
 /**
  * A `@let name = expression;` in a template: it declares `name` for the
@@ -123,9 +156,101 @@ export function compileTemplate(
   nodes: readonly TemplateNode[],
   candidates: readonly DirectiveCandidate[] = [],
 ): readonly CompiledNode[] {
-  return nodes.flatMap((node) => (node.kind === "text"
-    ? compileText(node.value)
-    : [compileNode(node, candidates)]));
+  return compileItems(itemsOf(nodes), candidates);
+}
+
+function compileItems(
+  items: readonly Item[],
+  candidates: readonly DirectiveCandidate[],
+): CompiledNode[] {
+  return items.flatMap((item) => {
+    if ("keyword" in item) {
+      return [compileBlock(item, candidates)];
+    }
+    return item.kind === "text" ? compileText(item.value) : [compileNode(item, candidates)];
+  });
+}
+
+/** `@if` and `@else if` are a match with one truthy case; `@match` is a match with its cases. */
+function compileBlock(block: BlockItem, candidates: readonly DirectiveCandidate[]): CompiledMatch {
+  switch (block.keyword) {
+    case "elseif":
+      throw new Error("@else if must follow an @if");
+    case "if":
+      return {
+        kind: "match",
+        subject: condition(block),
+        cases: [{ pattern: { kind: "truthy" }, body: compileItems(block.body, candidates) }],
+        default: block.otherwise ? compileItems(block.otherwise, candidates) : undefined,
+      };
+    case "match": {
+      const cases: CompiledCase[] = [];
+      let fallback: readonly CompiledNode[] | undefined;
+      for (const item of block.body) {
+        if (!("keyword" in item)) {
+          if (item.kind === "text" && item.value.trim() === "") {
+            continue;
+          }
+          throw new Error("Only @case and @default blocks can be inside @match");
+        }
+        if (item.keyword === "case") {
+          cases.push({ pattern: pattern(item), body: compileItems(item.body, candidates) });
+        } else if (item.keyword === "default") {
+          if (fallback) {
+            throw new Error("A @match has one @default");
+          }
+          fallback = compileItems(item.body, candidates);
+        } else {
+          throw new Error("Only @case and @default blocks can be inside @match");
+        }
+      }
+      return { kind: "match", subject: expressionOf(block), cases, default: fallback };
+    }
+    case "case":
+      throw new Error("@case must be inside @match");
+    case "default":
+      throw new Error("@default must be inside @match");
+    case "else":
+      throw new Error("@else must follow an @if");
+  }
+}
+
+/** The condition of an `@if`: an expression in parentheses. */
+function condition(block: BlockItem): Expression {
+  if (!block.header.startsWith("(") || !block.header.endsWith(")")) {
+    throw new Error(`@${block.keyword} needs a condition in parentheses, e.g. @if (user())`);
+  }
+  return expressionOf({ ...block, header: block.header.slice(1, -1) });
+}
+
+function expressionOf(block: BlockItem): Expression {
+  if (block.header === "") {
+    throw new Error(`@${block.keyword} needs a value, e.g. @match state`);
+  }
+  return ExpressionParser.parse(block.header)
+    .mapLeft((error) => new Error(`${error.message}, in @${block.keyword}`))
+    .getOrThrow();
+}
+
+/** The pattern of a `@case`: `truthy`, `falsy`, `_`, or a literal. */
+function pattern(block: BlockItem): Pattern {
+  switch (block.header) {
+    case "":
+      throw new Error("@case needs a pattern, e.g. @case \"loading\"");
+    case "truthy":
+      return { kind: "truthy" };
+    case "falsy":
+      return { kind: "falsy" };
+    case "_":
+      return { kind: "any" };
+    default: {
+      const expression = expressionOf({ ...block, keyword: "case" });
+      if (expression.kind !== "literal") {
+        throw new Error(`Only literals, truthy, falsy and _ are patterns for now: "${block.header}"`);
+      }
+      return { kind: "value", value: expression.value };
+    }
+  }
 }
 
 /** A `@let` declaration in a text: `@let name = expression;`. */
