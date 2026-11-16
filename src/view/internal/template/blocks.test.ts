@@ -1,6 +1,4 @@
 import { describe, expect, test } from "vitest";
-import { bootstrap } from "../../bootstrap.ts";
-import { Component } from "../authoring/decorators.ts";
 import { BrowserTemplateParser } from "./browser-parser.ts";
 import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compile.ts";
 import { ExpressionParser } from "./expression.ts";
@@ -187,14 +185,5 @@ describe("more block cases", () => {
   test("an invalid expression in a block header is an error, naming the block", () => {
     expect(() => compile("@if (a +) { x }"))
       .toThrow("in @if");
-  });
-});
-
-describe("blocks in a component", () => {
-  test("rendering a block is not supported yet, and says so", () => {
-    @Component({ selector: "tk-block", template: "@if (true) { x }" })
-    class Block {}
-    expect(() => bootstrap(Block, { host: document.createElement("div") }))
-      .toThrow("@if and @match are not rendered yet");
   });
 });

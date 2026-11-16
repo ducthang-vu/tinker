@@ -4,23 +4,36 @@ import { computed, signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
 import { BrowserTemplateParser } from "../template/browser-parser.ts";
-import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
+import { compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";
 import { Selector } from "../template/selector.ts";
+import { ComponentFactory } from "./component-factory.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
+import { TemplateBuilderFactory } from "./template-builder.ts";
+import type { CompiledNode } from "../template/compile.ts";
 
 let factory!: EmbeddedViewFactory;
 let injector!: Injector;
+let builders!: TemplateBuilderFactory;
+let components!: ComponentFactory;
+
+function render(owner: object, children: readonly CompiledNode[], scope: Scope, anchor: Node) {
+  return factory.create(builders.create(owner, components, scope), children, anchor, injector);
+}
 
 @Component({ selector: "tk-owner", template: "" })
 class Owner {
   readonly text = signal("first");
   readonly embedded = inject(EmbeddedViewFactory);
   readonly own = inject(Injector);
+  readonly builderFactory = inject(TemplateBuilderFactory);
+  readonly componentFactory = inject(ComponentFactory);
 
   constructor() {
     factory = this.embedded;
     injector = this.own;
+    builders = this.builderFactory;
+    components = this.componentFactory;
   }
 }
 
@@ -43,7 +56,7 @@ function setup() {
 describe("EmbeddedViewFactory", () => {
   test("renders the children just before the anchor, in order", () => {
     const { owner, host, anchor, app } = setup();
-    factory.create(owner, compile("<p>a</p><p>b</p>"), new Scope(owner), anchor, injector);
+    render(owner, compile("<p>a</p><p>b</p>"), new Scope(owner), anchor);
     expect(host.innerHTML)
       .toBe("<p>a</p><p>b</p><!--anchor-->");
     app.destroy();
@@ -51,7 +64,7 @@ describe("EmbeddedViewFactory", () => {
 
   test("updates by its own watch, when a signal it reads changes", async () => {
     const { owner, host, anchor, app } = setup();
-    factory.create(owner, compile("{{ text() }}"), new Scope(owner), anchor, injector);
+    render(owner, compile("{{ text() }}"), new Scope(owner), anchor);
     expect(host.textContent)
       .toBe("first");
     owner.text.set("second");
@@ -65,7 +78,7 @@ describe("EmbeddedViewFactory", () => {
     const { owner, host, anchor, app } = setup();
     const scope = new Scope(owner);
     scope.lets.set("label", computed(() => "from a let"));
-    factory.create(owner, compile("{{ label }}"), scope, anchor, injector);
+    render(owner, compile("{{ label }}"), scope, anchor);
     expect(host.textContent)
       .toBe("from a let");
     app.destroy();
@@ -77,7 +90,7 @@ describe("EmbeddedViewFactory", () => {
       { type: Child, selector: Selector.parse("tk-child")
         .getOrThrow(), isComponent: true },
     ];
-    const view = factory.create(owner, compile("<tk-child></tk-child>", candidates), new Scope(owner), anchor, injector);
+    const view = render(owner, compile("<tk-child></tk-child>", candidates), new Scope(owner), anchor);
     expect(host.innerHTML)
       .toBe("<tk-child><b>x</b></tk-child><!--anchor-->");
     view.destroy();
@@ -88,7 +101,7 @@ describe("EmbeddedViewFactory", () => {
 
   test("destroy removes its nodes, and stops its watch", async () => {
     const { owner, host, anchor, app } = setup();
-    const view = factory.create(owner, compile("{{ text() }}"), new Scope(owner), anchor, injector);
+    const view = render(owner, compile("{{ text() }}"), new Scope(owner), anchor);
     view.destroy();
     expect(host.innerHTML)
       .toBe("<!--anchor-->");
@@ -102,14 +115,14 @@ describe("EmbeddedViewFactory", () => {
 
   test("an anchor that is not in the DOM is an error", () => {
     const { owner, app } = setup();
-    expect(() => factory.create(owner, [], new Scope(owner), document.createComment("loose"), injector))
+    expect(() => render(owner, [], new Scope(owner), document.createComment("loose")))
       .toThrow("The anchor of an embedded view is not in the DOM");
     app.destroy();
   });
 
   test("an error in the first render is thrown, and nothing is left behind", () => {
     const { owner, host, anchor, app } = setup();
-    expect(() => factory.create(owner, compile("{{ missing() }}"), new Scope(owner), anchor, injector))
+    expect(() => render(owner, compile("{{ missing() }}"), new Scope(owner), anchor))
       .toThrow();
     expect(host.innerHTML)
       .toBe("<!--anchor-->");

@@ -16,7 +16,12 @@ import { Maybe } from "../../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
-import type { CompiledElement, CompiledNode, CompiledText } from "../template/compile.ts";
+import type {
+  CompiledElement,
+  CompiledMatch,
+  CompiledNode,
+  CompiledText,
+} from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
 import { Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
@@ -26,6 +31,9 @@ import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import type { View } from "../runtime/view.ts";
+import { MatchBinding } from "../runtime/match-binding.ts";
+import type { EmbeddedView } from "../runtime/embedded-view.ts";
+import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -33,6 +41,7 @@ export class TemplateBuilderFactory {
   private readonly renderer = inject(RENDERER);
   private readonly bindingFactory = inject(BindingFactory);
   private readonly directiveFactory = inject(DirectiveFactory);
+  private readonly embedded = inject(EmbeddedViewFactory);
 
   /**
    * A builder for the template of `component`, creating the components in
@@ -55,6 +64,8 @@ export class TemplateBuilderFactory {
       this.directiveFactory,
       components,
       scope,
+      this,
+      this.embedded,
     );
   }
 }
@@ -80,6 +91,12 @@ export class TemplateBuilder {
   private readonly withDirectives: ElementWithDirectives[] = [];
   /** While building: the enclosing elements with directives (their indexes). */
   private readonly enclosing: number[] = [];
+  /** The matches built: their binding, and the index of their element (undefined: the root). */
+  private readonly matches: {
+    readonly binding: MatchBinding;
+    readonly parent: number | undefined;
+  }[] = [];
+
   /** The content this template's `<slot>`s show, by name; a slot takes its content once. */
   private projected = new Map<string, Node[]>();
 
@@ -100,6 +117,8 @@ export class TemplateBuilder {
     private readonly directiveFactory: DirectiveFactory,
     private readonly components: ComponentFactory,
     scope: Scope,
+    private readonly factory: TemplateBuilderFactory,
+    private readonly embedded: EmbeddedViewFactory,
   ) {
     this.scope = scope;
   }
@@ -131,7 +150,8 @@ export class TemplateBuilder {
    */
   createDirectivesAndComponents(view: View, componentInjector: Injector): void {
     const injectors: Injector[] = [];
-    for (const { element, node, parent, projected } of this.withDirectives) {
+    this.attachMatches(undefined, view, componentInjector);
+    for (const [index, { element, node, parent, projected }] of this.withDirectives.entries()) {
       const parentInjector = parent.match({
         some: (index) => injectors[index]!,
         none: () => componentInjector,
@@ -184,6 +204,7 @@ export class TemplateBuilder {
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
       this.bindEvents(node, element, instances, view);
       injectors.push(injector);
+      this.attachMatches(index, view, injector);
     }
   }
 
@@ -256,7 +277,7 @@ export class TemplateBuilder {
       return nodes;
     }
     if (node.kind === "match") {
-      throw new Error("@if and @match are not rendered yet");
+      return [this.buildMatch(node)];
     }
     if (node.kind === "let") {
       // The value is a computed signal: it sees only the `@let`s declared above
@@ -266,6 +287,43 @@ export class TemplateBuilder {
       return [];
     }
     return [this.buildTextOrElement(node)];
+  }
+
+  /**
+   * A match leaves a comment anchor, where its shown branch goes. Its binding
+   * is attached once the element it is in has its injector.
+   */
+  private buildMatch(node: CompiledMatch): Node {
+    const anchor = this.renderer.createComment("");
+    const binding = new MatchBinding(
+      node,
+      this.scope,
+      new Map(this.scope.lets),
+      (body, scope, injector) => this.renderBranch(body, scope, anchor, injector),
+    );
+    this.bindings.push(binding);
+    this.matches.push({ binding, parent: this.enclosing.at(-1) });
+    return anchor;
+  }
+
+  /** A branch: a template of the component, with the scope given, after `anchor`. */
+  private renderBranch(
+    body: readonly CompiledNode[],
+    scope: Scope,
+    anchor: Node,
+    injector: Injector,
+  ): EmbeddedView {
+    const builder = this.factory.create(this.component, this.components, scope);
+    return this.embedded.create(builder, body, anchor, injector);
+  }
+
+  /** Attach the matches in `parent` (undefined: the template's root), with `injector`. */
+  private attachMatches(parent: number | undefined, view: View, injector: Injector): void {
+    for (const match of this.matches) {
+      if (match.parent === parent) {
+        match.binding.attach(view, injector);
+      }
+    }
   }
 
   /** A text with `{{ }}` starts empty and gets a binding, filled by `update`. */
