@@ -1,15 +1,15 @@
 // What Tinker has put on one DOM element: any number of directive instances,
-// and at most one component (with the View rendering its template).
+// and at most one component (with the ComponentView rendering its template).
 //
-// A View owns the contexts of the elements in its template; the engine maps
+// A ComponentView owns the contexts of the elements in its template; the engine maps
 // each element to its context, so "what is on this element?" is one lookup.
 
 import { Maybe } from "../../../functional/index.ts";
-import type { View } from "./view.ts";
+import type { ComponentView } from "./component-view.ts";
 
 export class ElementContext {
   private readonly directiveInstances: object[] = [];
-  private component = Maybe.none<View<unknown>>();
+  private component = Maybe.none<ComponentView<unknown>>();
 
   /** @param element The element this context describes. */
   constructor(readonly element: Element) {}
@@ -20,7 +20,7 @@ export class ElementContext {
   }
 
   /** The view of the component on the element, if any. */
-  get componentView(): Maybe<View<unknown>> {
+  get componentView(): Maybe<ComponentView<unknown>> {
     return this.component;
   }
 
@@ -42,7 +42,7 @@ export class ElementContext {
   }
 
   /** Put a component on the element. An element can hold only one. */
-  attachComponent(view: View<unknown>): void {
+  attachComponent(view: ComponentView<unknown>): void {
     if (this.component.isSome()) {
       throw new Error("The element already holds a component");
     }

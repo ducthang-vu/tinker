@@ -30,7 +30,7 @@ import { EmbeddedViewFactory } from "./factories/embedded-view-factory.ts";
 import { DomRenderer } from "./renderer.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
-import { type View, ViewFactory } from "./runtime/view.ts";
+import { type ComponentView, ComponentViewFactory } from "./runtime/component-view.ts";
 import { ComponentRef, refOf } from "./component-ref.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
@@ -62,7 +62,7 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   RenderHooks,
   Effects,
   DirectiveFactory,
-  ViewFactory,
+  ComponentViewFactory,
   BindingFactory,
   TemplateBuilderFactory,
   EmbeddedViewFactory,
@@ -83,7 +83,7 @@ export class Engine {
   private readonly containers = inject(ViewContainerRefFactory);
   private readonly injector = inject(Injector);
   /** The root components started by `bootstrap`, destroyed with the engine. */
-  private readonly roots: View<unknown>[] = [];
+  private readonly roots: ComponentView<unknown>[] = [];
   /** Destroys the root injector this engine was created in (set by `create`). */
   private destroyInjector!: () => void;
 

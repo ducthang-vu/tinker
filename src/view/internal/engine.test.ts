@@ -23,7 +23,7 @@ function changeDetection(): ChangeDetection {
   return runInInjectionContext(injector, () => inject(ChangeDetection));
 }
 import { ComponentRef } from "./component-ref.ts";
-import type { View } from "./runtime/view.ts";
+import type { ComponentView } from "./runtime/component-view.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -167,7 +167,7 @@ describe("Engine.bootstrap", () => {
       .toHaveBeenCalledWith("p");
   });
 
-  test("returns a View and remembers it for its host element", () => {
+  test("returns a ComponentView and remembers it for its host element", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
@@ -397,7 +397,7 @@ describe("Engine collaborators", () => {
       override create(
         node: Node,
         parentInjector: Injector,
-        owner?: View<unknown>,
+        owner?: ComponentView<unknown>,
       ): ViewContainerRef {
         anchors.push(node);
         return super.create(node, parentInjector, owner);

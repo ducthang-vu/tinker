@@ -12,7 +12,7 @@ import { ElementContexts } from "../runtime/element-contexts.ts";
 import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
-import { View } from "../runtime/view.ts";
+import { ComponentView } from "../runtime/component-view.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 
@@ -32,7 +32,7 @@ function setup() {
     contexts: inject(ElementContexts),
   }));
   const element = document.createElement("button");
-  const view = new View(document.createElement("div"), {}, [], renderer);
+  const view = new ComponentView(document.createElement("div"), {}, [], renderer);
   return { factory, contexts, element, view };
 }
 
@@ -95,7 +95,7 @@ describe("DirectiveFactory", () => {
     class Other {}
     const { factory, contexts, element, view } = setup();
     const counter = factory.create(Counter, element, view);
-    const otherView = new View(document.createElement("div"), {}, [], new DomRenderer());
+    const otherView = new ComponentView(document.createElement("div"), {}, [], new DomRenderer());
     const other = factory.create(Other, element, otherView);
 
     view.destroy();
@@ -180,7 +180,7 @@ describe("DirectiveFactory injection context", () => {
       factory: inject(DirectiveFactory),
       changeDetection: inject(ChangeDetection),
     }));
-    const view = new View(document.createElement("div"), {}, [], new DomRenderer());
+    const view = new ComponentView(document.createElement("div"), {}, [], new DomRenderer());
 
     const tip = factory.create(Tip, document.createElement("p"), view);
     changeDetection.tick();

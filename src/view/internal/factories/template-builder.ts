@@ -15,7 +15,7 @@ import { inject, Injectable, type Injector } from "../../../di/index.ts";
 import { Maybe } from "../../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
-import type { View } from "../runtime/view.ts";
+import type { ComponentView } from "../runtime/component-view.ts";
 import type { CompiledElement, CompiledNode, CompiledText } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
 import { Scope } from "../template/scope.ts";
@@ -25,7 +25,7 @@ import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
-import type { ViewLike } from "../runtime/view-like.ts";
+import type { View } from "../runtime/view.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -129,7 +129,7 @@ export class TemplateBuilder {
    * and of its ancestors. Then the element's component, if any, is created
    * there, so it can inject them too; `view` owns it.
    */
-  createDirectivesAndComponents(view: ViewLike, componentInjector: Injector): void {
+  createDirectivesAndComponents(view: View, componentInjector: Injector): void {
     const injectors: Injector[] = [];
     for (const { element, node, parent, projected } of this.withDirectives) {
       const parentInjector = parent.match({
@@ -209,7 +209,7 @@ export class TemplateBuilder {
     node: CompiledElement,
     element: Element,
     instances: readonly object[],
-    view: ViewLike,
+    view: View,
   ): void {
     for (const { name, method, passEvent, modifiers } of node.outputBindings) {
       const handler = this.handlerOf(name, method);

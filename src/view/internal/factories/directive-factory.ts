@@ -8,7 +8,7 @@
 // - `applyHost()` applies only the host bindings, for instances created
 //   elsewhere (the component factory creates components itself).
 //
-// Everything is tied to a View: when it is destroyed, the listeners are
+// Everything is tied to a ComponentView: when it is destroyed, the listeners are
 // removed and the directive leaves its element's context.
 //
 // A directive has no watch of its own: the watch of the view it belongs to
@@ -26,11 +26,11 @@ import { ElementRef } from "../runtime/element-ref.ts";
 import { ViewContainerRef, ViewContainerRefFactory } from "../runtime/view-container-ref.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import { Scope } from "../template/scope.ts";
-import type { View } from "../runtime/view.ts";
+import type { ComponentView } from "../runtime/component-view.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
-import type { ViewLike } from "../runtime/view-like.ts";
+import type { View } from "../runtime/view.ts";
 
 @Injectable()
 export class DirectiveFactory {
@@ -67,7 +67,7 @@ export class DirectiveFactory {
   createOnElement(
     types: readonly Class<object>[],
     element: Element,
-    view: ViewLike,
+    view: View,
     parent: Injector,
     attributes: readonly AttributeNode[] = [],
   ): {
@@ -106,7 +106,7 @@ export class DirectiveFactory {
    * Create directive `type` on `element`, as part of `view`, in an element
    * injector of its own (child of the engine's). See `createOnElement`.
    */
-  create<T extends object>(type: Class<T>, element: Element, view: ViewLike): T {
+  create<T extends object>(type: Class<T>, element: Element, view: View): T {
     return this.createOnElement([type], element, view, this.injector).instances[0] as T;
   }
 
@@ -118,7 +118,7 @@ export class DirectiveFactory {
   private containerAt(
     element: Element,
     injector: Injector,
-    owner: ViewLike,
+    owner: View,
   ): ViewContainerRef {
     const anchor = this.renderer.createComment("");
     const parent = element.parentNode;
@@ -139,7 +139,7 @@ export class DirectiveFactory {
     type: Class<T>,
     instance: T,
     element: Element,
-    view: ViewLike,
+    view: View,
   ): Binding[] {
     const context = this.contexts.getOrCreate(element);
     context.addDirective(instance);
@@ -162,7 +162,7 @@ export class DirectiveFactory {
     type: Class<T>,
     instance: T,
     element: Element,
-    view: ViewLike,
+    view: View,
   ): Binding[] {
     const hostBindings = this.hostBindingsOf(type);
     hostBindings.attach(instance, element, this.renderer, view);

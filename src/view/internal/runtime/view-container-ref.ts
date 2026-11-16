@@ -14,8 +14,8 @@ import { ComponentFactory } from "../factories/component-factory.ts";
 import { ComponentRef, refOf } from "../component-ref.ts";
 import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
-import type { ViewLike } from "./view-like.ts";
 import type { View } from "./view.ts";
+import type { ComponentView } from "./component-view.ts";
 
 /** Creates view containers, with the app's component factory and renderer. */
 @Injectable()
@@ -28,7 +28,7 @@ export class ViewContainerRefFactory {
    * created under `parentInjector`. With an `owner`, the container is cleared
    * and its anchor removed when the owner view is destroyed.
    */
-  create(anchor: Node, parentInjector: Injector, owner?: ViewLike): ViewContainerRef {
+  create(anchor: Node, parentInjector: Injector, owner?: View): ViewContainerRef {
     return new ViewContainerRef(anchor, this.components, this.renderer, parentInjector, owner);
   }
 }
@@ -49,7 +49,7 @@ export class ViewContainerRef {
     private readonly components: ComponentFactory,
     private readonly renderer: Renderer,
     private readonly parentInjector: Injector,
-    owner?: ViewLike,
+    owner?: View,
   ) {
     owner?.addDestroyCallback(() => this.dispose());
   }
