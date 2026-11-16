@@ -6,6 +6,7 @@
 // view's watch, it makes the watch depend on that signal.
 
 import type { BinaryOperator, Expression } from "./expression.ts";
+import type { ReadonlySignal } from "../../../signals/index.ts";
 import type { Scope } from "./scope.ts";
 
 /**
@@ -16,11 +17,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
   switch (expression.kind) {
     case "component":
       return scope.component;
-    case "property":
-      if (isLet(expression, scope)) {
-        return scope.lets.get(expression.name);
-      }
-      return read(evaluate(expression.receiver, scope), expression.name);
+    case "property": {
+      const declared = letOf(expression, scope);
+      return declared ? declared() : read(evaluate(expression.receiver, scope), expression.name);
+    }
     case "literal":
       return expression.value;
     case "not":
@@ -29,9 +29,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       return binary(expression, scope);
     case "call": {
       const { callee } = expression;
-      if (callee.kind === "property" && isLet(callee, scope)) {
+      const declared = callee.kind === "property" ? letOf(callee, scope) : undefined;
+      if (declared) {
         // A `@let` holding a function is called without a receiver.
-        return callFunction(scope.lets.get(callee.name), callee);
+        return callFunction(declared(), callee);
       }
       // A method keeps its receiver: evaluate it once, read the method from it.
       const receiver = callee.kind === "property" ? evaluate(callee.receiver, scope) : undefined;
@@ -41,12 +42,15 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
   }
 }
 
-/** A bare name (its receiver is the component) that a `@let` declares. */
-function isLet(
+/**
+ * The computed signal of the `@let` a bare name refers to, if one is declared
+ * with that name. A name with a receiver is a field, never a `@let`.
+ */
+function letOf(
   expression: Extract<Expression, { kind: "property" }>,
   scope: Scope,
-): boolean {
-  return expression.receiver.kind === "component" && scope.lets.has(expression.name);
+): ReadonlySignal<unknown> | undefined {
+  return expression.receiver.kind === "component" ? scope.lets.get(expression.name) : undefined;
 }
 
 function callFunction(fn: unknown, callee: Expression, receiver?: unknown): unknown {

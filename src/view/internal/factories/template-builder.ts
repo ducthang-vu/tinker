@@ -19,7 +19,8 @@ import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode, CompiledText } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
 import { Scope } from "../template/scope.ts";
-import { LetBinding } from "../runtime/let-binding.ts";
+import { evaluate } from "../template/evaluate.ts";
+import { computed } from "../../../signals/index.ts";
 import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
@@ -243,11 +244,10 @@ export class TemplateBuilder {
       return nodes;
     }
     if (node.kind === "let") {
-      // Evaluated now, so the bindings built after it (and the inputs of the
-      // directives in this template) already read its value.
-      const binding = new LetBinding(node.name, node.expression, this.scope);
-      binding.update();
-      this.bindings.push(binding);
+      // The value is a computed signal: it sees only the `@let`s declared above
+      // it (a snapshot), and reading it makes the reader depend on what it reads.
+      const above = new Scope(this.component, new Map(this.scope.lets));
+      this.scope.lets.set(node.name, computed(() => evaluate(node.expression, above)));
       return [];
     }
     return [this.buildTextOrElement(node)];
