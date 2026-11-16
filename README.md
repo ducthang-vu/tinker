@@ -72,8 +72,9 @@ module; each module also lists its own in its `index.ts`.
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language:
   fields and calls (`user().name`), numbers, strings, `true`, `false`, `null`,
-  `undefined`, `+ - * / **` (with parentheses), and `===` and `==`. Calls take
-  no arguments yet. Class bindings
+  `undefined`, `+ - * / **` (with parentheses), comparisons (`=== == !== != < > <= >=`),
+  and logical operators (`&& || !`, with short-circuit). Calls take no arguments
+  yet. Class bindings
   (`[class.done]="todo.done()"`), style and attribute bindings
   (`[style.color]="color()"`, `[attr.title]="label()"`, with kebab-case names
   such as `[style.background-color]` and `[attr.aria-label]`; an empty value

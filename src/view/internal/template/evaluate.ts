@@ -23,12 +23,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       return read(evaluate(expression.receiver, scope), expression.name);
     case "literal":
       return expression.value;
+    case "not":
+      return !evaluate(expression.operand, scope);
     case "binary":
-      return operate(
-        expression.operator,
-        evaluate(expression.left, scope),
-        evaluate(expression.right, scope),
-      );
+      return binary(expression, scope);
     case "call": {
       const { callee } = expression;
       if (callee.kind === "property" && isLet(callee, scope)) {
@@ -59,6 +57,21 @@ function callFunction(fn: unknown, callee: Expression, receiver?: unknown): unkn
 }
 
 /**
+ * `&&` and `||` evaluate the right operand only when the left one does not
+ * decide the result, as in JavaScript. The other operators evaluate both.
+ */
+function binary(expression: Extract<Expression, { kind: "binary" }>, scope: Scope): unknown {
+  const left = evaluate(expression.left, scope);
+  if (expression.operator === "&&") {
+    return left ? evaluate(expression.right, scope) : left;
+  }
+  if (expression.operator === "||") {
+    return left ? left : evaluate(expression.right, scope);
+  }
+  return operate(expression.operator, left, evaluate(expression.right, scope));
+}
+
+/**
  * Apply a binary operator. The operands are whatever the template read, so
  * `+` and the others follow JavaScript's rules for them, as in a template
  * written in plain JavaScript.
@@ -81,6 +94,19 @@ function operate(operator: BinaryOperator, left: unknown, right: unknown): unkno
 
     case "==":
       return left == right;
+    case "!==":
+      return left !== right;
+
+    case "!=":
+      return left != right;
+    case "<":
+      return (left as number) < (right as number);
+    case ">":
+      return (left as number) > (right as number);
+    case "<=":
+      return (left as number) <= (right as number);
+    case ">=":
+      return (left as number) >= (right as number);
   }
 }
 
@@ -97,6 +123,8 @@ export function print(expression: Expression): string {
         : String(expression.value);
     case "binary":
       return `${print(expression.left)} ${expression.operator} ${print(expression.right)}`;
+    case "not":
+      return `!${print(expression.operand)}`;
     case "component":
       return "";
     case "property":

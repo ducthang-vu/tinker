@@ -80,6 +80,9 @@ test("print writes an expression back", () => {
   expect(print(ExpressionParser.parse("count() * 2 + 1")
     .getOrThrow()))
     .toBe("count() * 2 + 1");
+  expect(print(ExpressionParser.parse("!done")
+    .getOrThrow()))
+    .toBe("!done");
   expect(print(ExpressionParser.parse("\"loading\"")
     .getOrThrow()))
     .toBe("\"loading\"");
@@ -143,5 +146,65 @@ describe("literals", () => {
       .toBe(true);
     expect(run("status === \"loading\"", { status: "done" }))
       .toBe(false);
+  });
+});
+
+describe("comparisons and logical operators", () => {
+  test("comparisons bind looser than arithmetic, and tighter than equality", () => {
+    expect(run("1 + 2 < 4", {}))
+      .toBe(true);
+    expect(run("2 * 3 >= 6", {}))
+      .toBe(true);
+    expect(run("1 < 2 === true", {}))
+      .toBe(true);
+    expect(run("3 > 2 > 1", {}))
+      .toBe(false);
+    expect(run("2 <= 2", {}))
+      .toBe(true);
+    expect(run("2 >= 3", {}))
+      .toBe(false);
+  });
+
+  test("!== and != are the negations of === and ==", () => {
+    expect(run("1 !== 2", {}))
+      .toBe(true);
+    expect(run("1 != 1", {}))
+      .toBe(false);
+    expect(run("1 != '1'", {}))
+      .toBe(false);
+  });
+
+  test("! binds tighter than comparisons, as in JavaScript", () => {
+    expect(run("!done === false", { done: true }))
+      .toBe(true);
+    expect(run("!(1 + 1 === 2)", {}))
+      .toBe(false);
+  });
+
+  test("&& binds tighter than ||", () => {
+    expect(run("false || true && false", {}))
+      .toBe(false);
+    expect(run("true || false && false", {}))
+      .toBe(true);
+  });
+
+  test("&& and || return an operand, and evaluate the right one only when needed", () => {
+    let calls = 0;
+    const scope = { check: () => {
+      calls += 1;
+      return "checked";
+    }, name: "Ana" };
+    expect(run("name && check()", scope))
+      .toBe("checked");
+    expect(calls)
+      .toBe(1);
+    expect(run("name || check()", scope))
+      .toBe("Ana");
+    expect(calls)
+      .toBe(1);
+    expect(run("0 && check()", scope))
+      .toBe(0);
+    expect(calls)
+      .toBe(1);
   });
 });

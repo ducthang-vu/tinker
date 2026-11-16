@@ -27,7 +27,7 @@
 import { Either, type EitherError } from "../../../functional/index.ts";
 
 /** A parsed template expression. */
-export type Expression = ComponentReceiver | PropertyRead | Call | Literal | Binary;
+export type Expression = ComponentReceiver | PropertyRead | Call | Literal | Binary | Not;
 
 /** A value written in the expression: a number, a string, or one of the keyword values. */
 export interface Literal {
@@ -36,7 +36,17 @@ export interface Literal {
 }
 
 /** The operators, from `===` to `**`. */
-export type BinaryOperator = "+" | "-" | "*" | "/" | "**" | "===" | "==";
+export type BinaryOperator
+  = | "||" | "&&"
+    | "===" | "==" | "!==" | "!="
+    | "<" | ">" | "<=" | ">="
+    | "+" | "-" | "*" | "/" | "**";
+
+/** Logical not, e.g. `!done`. */
+export interface Not {
+  readonly kind: "not";
+  readonly operand: Expression;
+}
 
 /** Two operands and an operator, e.g. `count() * 2`. */
 export interface Binary {
@@ -103,15 +113,36 @@ export class ExpressionParser {
   }
 
   /** `===` and `==`: the loosest operators. */
+  /** `||`, the loosest operator. */
   private equality(): Expression {
-    let left = this.additive();
+    return this.binaryLevel(["||"], () => this.conjunction());
+  }
+
+  /** `&&`. */
+  private conjunction(): Expression {
+    return this.binaryLevel(["&&"], () => this.comparison());
+  }
+
+  /** `===`, `==`, `!==` and `!=`. */
+  private comparison(): Expression {
+    return this.binaryLevel(["===", "==", "!==", "!="], () => this.relation());
+  }
+
+  /** `<`, `>`, `<=` and `>=`. */
+  private relation(): Expression {
+    return this.binaryLevel(["<=", ">=", "<", ">"], () => this.additive());
+  }
+
+  /** A left-associative level: `operand (operator operand)*`, for the given operators. */
+  private binaryLevel(operators: readonly string[], operand: () => Expression): Expression {
+    let left = operand();
     for (;;) {
       this.skipWhitespace();
-      const operator = this.take(["===", "=="]);
+      const operator = this.take(operators);
       if (!operator) {
         return left;
       }
-      left = { kind: "binary", operator: operator as BinaryOperator, left, right: this.additive() };
+      left = { kind: "binary", operator: operator as BinaryOperator, left, right: operand() };
     }
   }
 
@@ -152,6 +183,9 @@ export class ExpressionParser {
 
   private operand(): Expression {
     this.skipWhitespace();
+    if (this.take(["!"])) {
+      return { kind: "not", operand: this.operand() };
+    }
     if (this.source[this.position] === "(") {
       this.position++;
       const inner = this.equality();
