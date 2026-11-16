@@ -10,6 +10,12 @@ import { ElementContexts } from "../runtime/element-contexts.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
+import { ChangeDetection } from "../runtime/change-detection.ts";
+import { Ticker } from "../runtime/ticker.ts";
+import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
+import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
+import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
+import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 
 /** A TemplateBuilderFactory created the way the engine creates it: through an injector. */
 function builderFactory(renderer = new DomRenderer()): TemplateBuilderFactory {
@@ -20,6 +26,12 @@ function builderFactory(renderer = new DomRenderer()): TemplateBuilderFactory {
       ElementContexts,
       DirectiveFactory,
       TemplateBuilderFactory,
+      EmbeddedViewFactory,
+      ChangeDetection,
+      Ticker,
+      EffectScheduler,
+      ViewScheduler,
+      RenderHookRegistry,
     ],
   });
   return runInInjectionContext(injector, () => inject(TemplateBuilderFactory));

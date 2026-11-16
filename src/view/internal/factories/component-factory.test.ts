@@ -17,6 +17,7 @@ import { ChangeDetection } from "../runtime/change-detection.ts";
 import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
 import { Ticker } from "../runtime/ticker.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
+import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory(overrides: readonly Provider[] = []) {
@@ -35,6 +36,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
       ComponentViewFactory,
       BindingFactory,
       TemplateBuilderFactory,
+      EmbeddedViewFactory,
       ComponentFactory,
     ],
   });
