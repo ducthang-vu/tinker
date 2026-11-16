@@ -144,3 +144,29 @@ separate path, and it is the only one that does not use a container.
 **To do.** Decide whether a root component should be a container anchored at
 its host, with a placement mode that does not insert. If not, document the
 root as the one case that renders into an existing element.
+
+## Developer mode (`src/view/internal/`, `src/view/bootstrap.ts`)
+
+### 1. Warn the author about legitimate but suspicious templates
+
+**Problem.** Some template code is allowed but usually a mistake. A `@let`
+that has the name of a field or method hides it, which is legitimate, but a
+reader can't tell which name is meant. A read of a name that the component
+doesn't have silently gives `undefined`. Neither breaks the app, so neither
+should be an error, and nothing tells the author today.
+
+**To do.** Add a developer mode, off in production:
+
+- **Turned on** by a `dev` option on `bootstrap`, which is the simplest choice
+  without a bundler.
+- **Checks**: shadowing (a `@let`, or later a block's name, over a field or
+  method, or over an outer name), and an unknown name read from the component.
+  They are warnings. Declaring the same name twice in one scope stays an error
+  in both modes.
+- **Where warnings go**: `console.warn` by default, and an `onWarning` callback
+  on `bootstrap`, so tests can check them and apps can send them to their own
+  logging.
+- **Production** skips every check, so developer mode has no cost there.
+
+Shadowing across scopes is allowed, as in most languages: this is a warning for
+the author, not a ban.
