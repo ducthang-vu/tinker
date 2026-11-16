@@ -14,6 +14,7 @@ import { ClassBinding } from "./class-binding.ts";
 import { InputBinder } from "./input-binder.ts";
 import { StyleBinding } from "./style-binding.ts";
 import { RENDERER } from "../tokens.ts";
+import type { Scope } from "../template/scope.ts";
 
 /**
  * Creates the bindings of templates, with the app's renderer. One method
@@ -30,9 +31,9 @@ export interface Binding {
 export class BindingFactory {
   private readonly renderer = inject(RENDERER);
 
-  /** A binding showing `interpolation`, evaluated against `component`, in `node`. */
-  text(node: Text, interpolation: Interpolation, component: object): TextBinding {
-    return new TextBinding(node, interpolation, component, this.renderer);
+  /** A binding showing `interpolation`, evaluated in `scope`, in `node`. */
+  text(node: Text, interpolation: Interpolation, scope: Scope): TextBinding {
+    return new TextBinding(node, interpolation, scope, this.renderer);
   }
 
   /**
@@ -43,7 +44,7 @@ export class BindingFactory {
   inputs(
     name: string,
     expression: Expression,
-    context: object,
+    context: Scope,
     instances: readonly object[],
     elementName: string,
   ): InputBinder {
@@ -64,13 +65,13 @@ export class BindingFactory {
     element: Element,
     name: string,
     expression: Expression,
-    context: object,
+    context: Scope,
   ): ClassBinding {
     return new ClassBinding(element, name, expression, context, this.renderer);
   }
 
   /** A binding setting the inline style property `name` of `element` to `expression`'s value. */
-  style(element: Element, name: string, expression: Expression, context: object): StyleBinding {
+  style(element: Element, name: string, expression: Expression, context: Scope): StyleBinding {
     return new StyleBinding(element, name, expression, context, this.renderer);
   }
 
@@ -79,7 +80,7 @@ export class BindingFactory {
     element: Element,
     name: string,
     expression: Expression,
-    context: object,
+    context: Scope,
   ): AttributeBinding {
     return new AttributeBinding(element, name, expression, context, this.renderer);
   }
@@ -91,7 +92,7 @@ export class TextBinding {
   constructor(
     private readonly node: Text,
     private readonly interpolation: Interpolation,
-    private readonly component: object,
+    private readonly scope: Scope,
     private readonly renderer: Renderer,
   ) {}
 
@@ -100,7 +101,7 @@ export class TextBinding {
     const { strings, expressions } = this.interpolation;
     const text = expressions.reduce(
       (result, expression, i) =>
-        result + toText(evaluate(expression, this.component)) + strings[i + 1],
+        result + toText(evaluate(expression, this.scope)) + strings[i + 1],
       strings[0]!,
     );
     if (this.last.filter((last) => last === text)

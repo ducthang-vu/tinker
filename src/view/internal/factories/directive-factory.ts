@@ -25,6 +25,7 @@ import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { ViewContainerRef, ViewContainerRefFactory } from "../runtime/view-container-ref.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
+import { Scope } from "../template/scope.ts";
 import type { View } from "../runtime/view.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
@@ -166,11 +167,11 @@ export class DirectiveFactory {
     hostBindings.attach(instance, element, this.renderer, view);
     return [
       ...hostBindings.classes.map(({ name, expression }) =>
-        this.bindingFactory.classToggle(element, name, expression, instance)),
+        this.bindingFactory.classToggle(element, name, expression, new Scope(instance))),
       ...hostBindings.styles.map(({ name, expression }) =>
-        this.bindingFactory.style(element, name, expression, instance)),
+        this.bindingFactory.style(element, name, expression, new Scope(instance))),
       ...hostBindings.attributes.map(({ name, expression }) =>
-        this.bindingFactory.attribute(element, name, expression, instance)),
+        this.bindingFactory.attribute(element, name, expression, new Scope(instance))),
     ];
   }
 

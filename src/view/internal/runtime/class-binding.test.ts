@@ -3,6 +3,7 @@ import { signal } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { ClassBinding } from "./class-binding.ts";
+import { Scope } from "../template/scope.ts";
 
 describe("ClassBinding", () => {
   test("turns the class on while the expression is truthy, writing only changes", () => {
@@ -12,7 +13,7 @@ describe("ClassBinding", () => {
     const element = document.createElement("p");
     const open = signal<unknown>(true);
     const binding = new ClassBinding(element, "open", ExpressionParser.parse("open()")
-      .getOrThrow(), { open }, renderer);
+      .getOrThrow(), new Scope({ open }), renderer);
 
     binding.update();
     binding.update();
@@ -32,7 +33,7 @@ describe("ClassBinding", () => {
     const element = document.createElement("p");
     element.className = "keep";
     new ClassBinding(element, "open", ExpressionParser.parse("open")
-      .getOrThrow(), { open: false }, new DomRenderer())
+      .getOrThrow(), new Scope({ open: false }), new DomRenderer())
       .update();
     expect(element.className)
       .toBe("keep");

@@ -3,6 +3,7 @@ import { signal } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { StyleBinding } from "./style-binding.ts";
+import { Scope } from "../template/scope.ts";
 
 const parse = (source: string) => ExpressionParser.parse(source)
   .getOrThrow();
@@ -11,7 +12,7 @@ describe("StyleBinding", () => {
   test("sets the style property to the value, and changes it when the value changes", () => {
     const element = document.createElement("p");
     const color = signal<string | undefined>("red");
-    const binding = new StyleBinding(element, "color", parse("color()"), { color }, new DomRenderer());
+    const binding = new StyleBinding(element, "color", parse("color()"), new Scope({ color }), new DomRenderer());
     binding.update();
     expect(element.style.color)
       .toBe("red");
@@ -26,7 +27,7 @@ describe("StyleBinding", () => {
       const element = document.createElement("p");
       element.style.color = "red";
       const value = signal<unknown>(empty);
-      new StyleBinding(element, "color", parse("value()"), { value }, new DomRenderer())
+      new StyleBinding(element, "color", parse("value()"), new Scope({ value }), new DomRenderer())
         .update();
       expect(element.style.color)
         .toBe("");
@@ -36,7 +37,7 @@ describe("StyleBinding", () => {
   test("numbers are written as text; custom properties work", () => {
     const element = document.createElement("p");
     const size = signal(12);
-    new StyleBinding(element, "--size", parse("size()"), { size }, new DomRenderer())
+    new StyleBinding(element, "--size", parse("size()"), new Scope({ size }), new DomRenderer())
       .update();
     expect(element.style.getPropertyValue("--size"))
       .toBe("12");
@@ -47,7 +48,7 @@ describe("StyleBinding", () => {
     const renderer = new DomRenderer();
     const set = vi.spyOn(renderer, "setStyle");
     const color = signal("red");
-    const binding = new StyleBinding(element, "color", parse("color()"), { color }, renderer);
+    const binding = new StyleBinding(element, "color", parse("color()"), new Scope({ color }), renderer);
     binding.update();
     binding.update();
     expect(set)
@@ -59,7 +60,7 @@ describe("StyleBinding", () => {
   test("an empty first value leaves the property unset, whatever the element had", () => {
     const element = document.createElement("p");
     const value = signal<unknown>(undefined);
-    new StyleBinding(element, "color", parse("value()"), { value }, new DomRenderer())
+    new StyleBinding(element, "color", parse("value()"), new Scope({ value }), new DomRenderer())
       .update();
     expect(element.style.color)
       .toBe("");

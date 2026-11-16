@@ -8,6 +8,7 @@ import { Maybe } from "../../../functional/index.ts";
 import type { InputBinding } from "../authoring/input.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
+import type { Scope } from "../template/scope.ts";
 
 export class InputBinder {
   private last = Maybe.none<unknown>();
@@ -20,7 +21,7 @@ export class InputBinder {
   constructor(
     private readonly targets: readonly InputBinding<unknown>[],
     private readonly expression: Expression,
-    private readonly context: object,
+    private readonly context: Scope,
   ) {}
 
   /** Evaluate the expression, and set the inputs if the value changed. */

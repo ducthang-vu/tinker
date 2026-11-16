@@ -9,6 +9,7 @@ import { Maybe } from "../../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
+import type { Scope } from "../template/scope.ts";
 
 export class AttributeBinding {
   private last = Maybe.none<string | undefined>();
@@ -25,7 +26,7 @@ export class AttributeBinding {
     private readonly element: Element,
     readonly name: string,
     private readonly expression: Expression,
-    private readonly context: object,
+    private readonly context: Scope,
     private readonly renderer: Renderer,
   ) {}
 

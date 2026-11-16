@@ -3,6 +3,7 @@ import { signal } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { AttributeBinding } from "./attribute-binding.ts";
+import { Scope } from "../template/scope.ts";
 
 const parse = (source: string) => ExpressionParser.parse(source)
   .getOrThrow();
@@ -11,7 +12,7 @@ describe("AttributeBinding", () => {
   test("sets the attribute to the value, and changes it when the value changes", () => {
     const element = document.createElement("p");
     const title = signal("first");
-    const binding = new AttributeBinding(element, "title", parse("title()"), { title }, new DomRenderer());
+    const binding = new AttributeBinding(element, "title", parse("title()"), new Scope({ title }), new DomRenderer());
     binding.update();
     expect(element.getAttribute("title"))
       .toBe("first");
@@ -24,7 +25,7 @@ describe("AttributeBinding", () => {
   test("true sets it with an empty value; false, null and undefined remove it", () => {
     const element = document.createElement("button");
     const flag = signal<unknown>(true);
-    const binding = new AttributeBinding(element, "disabled", parse("flag()"), { flag }, new DomRenderer());
+    const binding = new AttributeBinding(element, "disabled", parse("flag()"), new Scope({ flag }), new DomRenderer());
     binding.update();
     expect(element.getAttribute("disabled"))
       .toBe("");
@@ -43,7 +44,7 @@ describe("AttributeBinding", () => {
   test("numbers and other values are written as text", () => {
     const element = document.createElement("div");
     const width = signal(200);
-    new AttributeBinding(element, "data-width", parse("width()"), { width }, new DomRenderer())
+    new AttributeBinding(element, "data-width", parse("width()"), new Scope({ width }), new DomRenderer())
       .update();
     expect(element.getAttribute("data-width"))
       .toBe("200");
@@ -54,7 +55,7 @@ describe("AttributeBinding", () => {
     const renderer = new DomRenderer();
     const set = vi.spyOn(renderer, "setAttribute");
     const title = signal("x");
-    const binding = new AttributeBinding(element, "title", parse("title()"), { title }, renderer);
+    const binding = new AttributeBinding(element, "title", parse("title()"), new Scope({ title }), renderer);
     binding.update();
     binding.update();
     expect(set)
@@ -66,7 +67,7 @@ describe("AttributeBinding", () => {
   test("a null first value leaves the attribute absent", () => {
     const element = document.createElement("p");
     const value = signal<unknown>(null);
-    new AttributeBinding(element, "title", parse("value()"), { value }, new DomRenderer())
+    new AttributeBinding(element, "title", parse("value()"), new Scope({ value }), new DomRenderer())
       .update();
     expect(element.hasAttribute("title"))
       .toBe(false);

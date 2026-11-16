@@ -18,6 +18,8 @@ import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { View } from "../runtime/view.ts";
 import type { CompiledElement, CompiledNode, CompiledText } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
+import { Scope } from "../template/scope.ts";
+import { LetBinding } from "../runtime/let-binding.ts";
 import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
@@ -76,13 +78,18 @@ export class TemplateBuilder {
    * @param directiveFactory Creates the directives of the elements.
    * @param components Creates the components of the elements.
    */
+  /** The names this template's expressions read: its component's fields and its `@let`s. */
+  private readonly scope: Scope;
+
   constructor(
     private readonly component: object,
     private readonly renderer: Renderer,
     private readonly bindingFactory: BindingFactory,
     private readonly directiveFactory: DirectiveFactory,
     private readonly components: ComponentFactory,
-  ) {}
+  ) {
+    this.scope = new Scope(component);
+  }
 
   /**
    * Build the DOM for `nodes` (and their children), collecting their bindings.
@@ -140,7 +147,7 @@ export class TemplateBuilder {
       // render), then this view's watch keeps them up to date.
       const bindInputs = (instances: readonly object[]) => {
         const binders = node.inputBindings.map(({ name, expression }) =>
-          this.bindingFactory.inputs(name, expression, this.component, instances, node.name));
+          this.bindingFactory.inputs(name, expression, this.scope, instances, node.name));
         for (const binder of binders) {
           binder.update();
         }
@@ -235,6 +242,14 @@ export class TemplateBuilder {
       this.projected.delete(node.name);
       return nodes;
     }
+    if (node.kind === "let") {
+      // Evaluated now, so the bindings built after it (and the inputs of the
+      // directives in this template) already read its value.
+      const binding = new LetBinding(node.name, node.expression, this.scope);
+      binding.update();
+      this.bindings.push(binding);
+      return [];
+    }
     return [this.buildTextOrElement(node)];
   }
 
@@ -246,7 +261,7 @@ export class TemplateBuilder {
         return this.renderer.createText(strings[0]!);
       }
       const text = this.renderer.createText("");
-      this.bindings.push(this.bindingFactory.text(text, node.interpolation, this.component));
+      this.bindings.push(this.bindingFactory.text(text, node.interpolation, this.scope));
       return text;
     }
     const element = this.renderer.createElement(node.name);
@@ -255,13 +270,13 @@ export class TemplateBuilder {
     }
     for (const { name, expression } of node.classBindings) {
       this.bindings.push(this.bindingFactory
-        .classToggle(element, name, expression, this.component));
+        .classToggle(element, name, expression, this.scope));
     }
     for (const { name, expression } of node.styleBindings) {
-      this.bindings.push(this.bindingFactory.style(element, name, expression, this.component));
+      this.bindings.push(this.bindingFactory.style(element, name, expression, this.scope));
     }
     for (const { name, expression } of node.attributeBindings) {
-      this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.component));
+      this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.scope));
     }
     const projected = new Map<string, Node[]>();
     const index = this.recordDirectives(element, node, projected);

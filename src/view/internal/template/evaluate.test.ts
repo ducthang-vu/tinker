@@ -2,10 +2,11 @@ import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { evaluate, print } from "./evaluate.ts";
 import { ExpressionParser } from "./expression.ts";
+import { Scope } from "./scope.ts";
 
 const run = (source: string, component: object) =>
   evaluate(ExpressionParser.parse(source)
-    .getOrThrow(), component);
+    .getOrThrow(), new Scope(component));
 
 describe("evaluate", () => {
   test("reads fields of the component, and fields of fields", () => {

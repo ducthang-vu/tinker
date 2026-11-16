@@ -6,25 +6,48 @@
 // view's watch, it makes the watch depend on that signal.
 
 import type { Expression } from "./expression.ts";
+import type { Scope } from "./scope.ts";
 
-/** The value of `expression`, with bare names read from `component`. */
-export function evaluate(expression: Expression, component: object): unknown {
+/**
+ * The value of `expression`: a bare name is a `@let` value if one is declared
+ * with that name, else a field of the scope's component.
+ */
+export function evaluate(expression: Expression, scope: Scope): unknown {
   switch (expression.kind) {
     case "component":
-      return component;
+      return scope.component;
     case "property":
-      return read(evaluate(expression.receiver, component), expression.name);
+      if (isLet(expression, scope)) {
+        return scope.lets.get(expression.name);
+      }
+      return read(evaluate(expression.receiver, scope), expression.name);
     case "call": {
       const { callee } = expression;
-      // A method keeps its receiver: evaluate it once, read the method from it.
-      const receiver = callee.kind === "property" ? evaluate(callee.receiver, component) : undefined;
-      const fn = callee.kind === "property" ? read(receiver, callee.name) : evaluate(callee, component);
-      if (typeof fn !== "function") {
-        throw new TypeError(`${print(callee)} is not a function`);
+      if (callee.kind === "property" && isLet(callee, scope)) {
+        // A `@let` holding a function is called without a receiver.
+        return callFunction(scope.lets.get(callee.name), callee);
       }
-      return fn.call(receiver);
+      // A method keeps its receiver: evaluate it once, read the method from it.
+      const receiver = callee.kind === "property" ? evaluate(callee.receiver, scope) : undefined;
+      const fn = callee.kind === "property" ? read(receiver, callee.name) : evaluate(callee, scope);
+      return callFunction(fn, callee, receiver);
     }
   }
+}
+
+/** A bare name (its receiver is the component) that a `@let` declares. */
+function isLet(
+  expression: Extract<Expression, { kind: "property" }>,
+  scope: Scope,
+): boolean {
+  return expression.receiver.kind === "component" && scope.lets.has(expression.name);
+}
+
+function callFunction(fn: unknown, callee: Expression, receiver?: unknown): unknown {
+  if (typeof fn !== "function") {
+    throw new TypeError(`${print(callee)} is not a function`);
+  }
+  return fn.call(receiver);
 }
 
 function read(receiver: unknown, name: string): unknown {
