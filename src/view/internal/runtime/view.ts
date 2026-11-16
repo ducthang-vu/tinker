@@ -13,6 +13,7 @@ import type { ElementContext } from "./element-context.ts";
 import type { InputBinding, InputName, InputValue } from "../authoring/input.ts";
 import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
+import type { ViewLike } from "./view-like.ts";
 
 /** Creates views, with the app's renderer. */
 @Injectable()
@@ -25,7 +26,7 @@ export class ViewFactory {
   }
 }
 
-export class View<T> {
+export class View<T> implements ViewLike {
   private readonly contexts: ElementContext[] = [];
   private readonly destroyCallbacks: (() => void)[] = [];
   /** The inputs of the directives in this view's template, per directive. */

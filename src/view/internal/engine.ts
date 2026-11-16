@@ -26,6 +26,7 @@ import { ElementContexts } from "./runtime/element-contexts.ts";
 import { ComponentFactory } from "./factories/component-factory.ts";
 import { DirectiveFactory } from "./factories/directive-factory.ts";
 import { TemplateBuilderFactory } from "./factories/template-builder.ts";
+import { EmbeddedViewFactory } from "./factories/embedded-view-factory.ts";
 import { DomRenderer } from "./renderer.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
@@ -64,6 +65,7 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   ViewFactory,
   BindingFactory,
   TemplateBuilderFactory,
+  EmbeddedViewFactory,
   ComponentFactory,
   ViewContainerRefFactory,
 ];
