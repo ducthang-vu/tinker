@@ -64,6 +64,7 @@ import { Selector } from "../template/selector.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
+import type { ViewLike } from "../runtime/view-like.ts";
 
 /**
  * A selector a host element can be created from: an optional tag, then an
@@ -74,7 +75,7 @@ const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 /** Where a component in another component's template is: see ComponentFactory.create. */
 export interface ParentContext {
   readonly parentInjector: Injector;
-  readonly parentView: View<unknown>;
+  readonly parentView: ViewLike;
   readonly attributes: readonly AttributeNode[];
   /**
    * Takes the child's host bindings (its own and its host directives'): its

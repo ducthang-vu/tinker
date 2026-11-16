@@ -25,6 +25,7 @@ import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+import type { ViewLike } from "../runtime/view-like.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -37,13 +38,23 @@ export class TemplateBuilderFactory {
    * A builder for the template of `component`, creating the components in
    * its template with `components` (the ComponentFactory building `component`).
    */
-  create(component: object, components: ComponentFactory): TemplateBuilder {
+  /**
+   * A builder for `component`'s template. `scope` is what its expressions read
+   * names from: by default the component alone, and for an embedded view the
+   * component and the `@let`s above the block.
+   */
+  create(
+    component: object,
+    components: ComponentFactory,
+    scope = new Scope(component),
+  ): TemplateBuilder {
     return new TemplateBuilder(
       component,
       this.renderer,
       this.bindingFactory,
       this.directiveFactory,
       components,
+      scope,
     );
   }
 }
@@ -88,8 +99,9 @@ export class TemplateBuilder {
     private readonly bindingFactory: BindingFactory,
     private readonly directiveFactory: DirectiveFactory,
     private readonly components: ComponentFactory,
+    scope: Scope,
   ) {
-    this.scope = new Scope(component);
+    this.scope = scope;
   }
 
   /**
@@ -117,7 +129,7 @@ export class TemplateBuilder {
    * and of its ancestors. Then the element's component, if any, is created
    * there, so it can inject them too; `view` owns it.
    */
-  createDirectivesAndComponents(view: View<unknown>, componentInjector: Injector): void {
+  createDirectivesAndComponents(view: ViewLike, componentInjector: Injector): void {
     const injectors: Injector[] = [];
     for (const { element, node, parent, projected } of this.withDirectives) {
       const parentInjector = parent.match({
@@ -197,7 +209,7 @@ export class TemplateBuilder {
     node: CompiledElement,
     element: Element,
     instances: readonly object[],
-    view: View<unknown>,
+    view: ViewLike,
   ): void {
     for (const { name, method, passEvent, modifiers } of node.outputBindings) {
       const handler = this.handlerOf(name, method);

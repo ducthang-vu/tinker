@@ -30,6 +30,7 @@ import type { View } from "../runtime/view.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
+import type { ViewLike } from "../runtime/view-like.ts";
 
 @Injectable()
 export class DirectiveFactory {
@@ -66,7 +67,7 @@ export class DirectiveFactory {
   createOnElement(
     types: readonly Class<object>[],
     element: Element,
-    view: View<unknown>,
+    view: ViewLike,
     parent: Injector,
     attributes: readonly AttributeNode[] = [],
   ): {
@@ -105,7 +106,7 @@ export class DirectiveFactory {
    * Create directive `type` on `element`, as part of `view`, in an element
    * injector of its own (child of the engine's). See `createOnElement`.
    */
-  create<T extends object>(type: Class<T>, element: Element, view: View<unknown>): T {
+  create<T extends object>(type: Class<T>, element: Element, view: ViewLike): T {
     return this.createOnElement([type], element, view, this.injector).instances[0] as T;
   }
 
@@ -117,7 +118,7 @@ export class DirectiveFactory {
   private containerAt(
     element: Element,
     injector: Injector,
-    owner: View<unknown>,
+    owner: ViewLike,
   ): ViewContainerRef {
     const anchor = this.renderer.createComment("");
     const parent = element.parentNode;
@@ -138,7 +139,7 @@ export class DirectiveFactory {
     type: Class<T>,
     instance: T,
     element: Element,
-    view: View<unknown>,
+    view: ViewLike,
   ): Binding[] {
     const context = this.contexts.getOrCreate(element);
     context.addDirective(instance);
@@ -161,7 +162,7 @@ export class DirectiveFactory {
     type: Class<T>,
     instance: T,
     element: Element,
-    view: View<unknown>,
+    view: ViewLike,
   ): Binding[] {
     const hostBindings = this.hostBindingsOf(type);
     hostBindings.attach(instance, element, this.renderer, view);
