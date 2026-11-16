@@ -5,13 +5,14 @@ import { parseInterpolation } from "../template/interpolation.ts";
 import { inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
 import { RENDERER } from "../tokens.ts";
 import { BindingFactory, TextBinding } from "./text-binding.ts";
+import { Scope } from "../template/scope.ts";
 
 function bind(text: string, component: object) {
   const renderer = new DomRenderer();
   const setText = vi.spyOn(renderer, "setText");
   const node = document.createTextNode("");
   const binding = new TextBinding(node, parseInterpolation(text)
-    .getOrThrow(), component, renderer);
+    .getOrThrow(), new Scope(component), renderer);
   return { binding, node, setText };
 }
 
@@ -55,7 +56,7 @@ describe("BindingFactory", () => {
     const node = document.createTextNode("");
 
     const binding = factory.text(node, parseInterpolation("{{ a }}")
-      .getOrThrow(), { a: "x" });
+      .getOrThrow(), new Scope({ a: "x" }));
     binding.update();
 
     expect(binding)

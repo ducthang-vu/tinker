@@ -21,7 +21,17 @@ import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 
 /** A node of a compiled template. */
-export type CompiledNode = CompiledElement | CompiledText | CompiledSlot;
+export type CompiledNode = CompiledElement | CompiledText | CompiledSlot | CompiledLet;
+
+/**
+ * A `@let name = expression;` in a template: it declares `name` for the
+ * template's later bindings, and produces no DOM.
+ */
+export interface CompiledLet {
+  readonly kind: "let";
+  readonly name: string;
+  readonly expression: Expression;
+}
 
 /**
  * A `<slot>` in a component's template: the content the component's user put
@@ -113,14 +123,47 @@ export function compileTemplate(
   nodes: readonly TemplateNode[],
   candidates: readonly DirectiveCandidate[] = [],
 ): readonly CompiledNode[] {
-  return nodes.map((node) => compileNode(node, candidates));
+  return nodes.flatMap((node) => (node.kind === "text"
+    ? compileText(node.value)
+    : [compileNode(node, candidates)]));
 }
 
-function compileNode(node: TemplateNode, candidates: readonly DirectiveCandidate[]): CompiledNode {
-  if (node.kind === "text") {
-    return { kind: "text", interpolation: parseInterpolation(node.value)
-      .getOrThrow() };
+/** A `@let` declaration in a text: `@let name = expression;`. */
+const LET_DECLARATION = /@let\s+([A-Za-z_$][\w$]*)\s*=\s*([^;]+);/g;
+
+/**
+ * Compile a text: its `{{ }}` interpolation, and any `@let` declarations in
+ * it, which become their own nodes. Whitespace between declarations is dropped.
+ */
+function compileText(value: string): CompiledNode[] {
+  const declarations = [...value.matchAll(LET_DECLARATION)];
+  if (declarations.length === 0) {
+    return [{ kind: "text", interpolation: parseInterpolation(value)
+      .getOrThrow() }];
   }
+  const nodes: CompiledNode[] = [];
+  let rest = 0;
+  for (const declaration of declarations) {
+    nodes.push(...textBefore(value.slice(rest, declaration.index!)));
+    nodes.push(compileLet(declaration[1]!, declaration[2]!));
+    rest = declaration.index! + declaration[0].length;
+  }
+  nodes.push(...textBefore(value.slice(rest)));
+  return nodes;
+}
+
+function textBefore(text: string): CompiledNode[] {
+  return text.trim() === "" ? [] : compileText(text);
+}
+
+function compileLet(name: string, source: string): CompiledLet {
+  const expression = ExpressionParser.parse(source)
+    .mapLeft((error) => new Error(`${error.message}, in @let ${name}`))
+    .getOrThrow();
+  return { kind: "let", name, expression };
+}
+
+function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[]): CompiledNode {
   if (node.name === "slot") {
     const name = node.attributes.find((attribute) => attribute.name === "name")?.value ?? "";
     return { kind: "slot", name };

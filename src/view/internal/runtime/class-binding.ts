@@ -7,6 +7,7 @@ import { Maybe } from "../../../functional/index.ts";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
+import type { Scope } from "../template/scope.ts";
 
 export class ClassBinding {
   private last = Maybe.none<boolean>();
@@ -23,7 +24,7 @@ export class ClassBinding {
     private readonly element: Element,
     readonly name: string,
     private readonly expression: Expression,
-    private readonly context: object,
+    private readonly context: Scope,
     private readonly renderer: Renderer,
   ) {}
 

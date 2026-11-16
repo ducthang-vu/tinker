@@ -3,6 +3,7 @@ import { signal } from "../../../signals/index.ts";
 import { input, inputsNamed } from "../authoring/input.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { InputBinder } from "./input-binder.ts";
+import { Scope } from "../template/scope.ts";
 
 const parse = (source: string) => ExpressionParser.parse(source)
   .getOrThrow();
@@ -16,7 +17,7 @@ describe("InputBinder", () => {
     const [title] = inputsNamed([card], "title");
     const bind = vi.spyOn(title!, "bind");
     const name = signal("a");
-    const binder = new InputBinder([title!], parse("name()"), { name });
+    const binder = new InputBinder([title!], parse("name()"), new Scope({ name }));
 
     binder.update();
     binder.update();
@@ -34,7 +35,7 @@ describe("InputBinder", () => {
       readonly data = input<unknown>("default");
     }
     const card = new Card();
-    new InputBinder(inputsNamed([card], "data"), parse("missing"), {})
+    new InputBinder(inputsNamed([card], "data"), parse("missing"), new Scope({}))
       .update();
     expect(card.data())
       .toBeUndefined();

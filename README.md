@@ -70,8 +70,9 @@ module; each module also lists its own in its `index.ts`.
 - **Components** have a selector, a template string and their own **injector**
   (child of the engine's), which holds their `providers` and their
   `hostDirectives`.
-- **Templates** support `{{ }}` interpolation with a small expression language
-  (fields and calls: `user().name`), class bindings
+- **Templates** support `{{ }}` interpolation with a small expression language:
+  fields and calls (`user().name`), numbers, `+ - * / **` (with parentheses),
+  and `===` and `==`. Calls take no arguments yet. Class bindings
   (`[class.done]="todo.done()"`), style and attribute bindings
   (`[style.color]="color()"`, `[attr.title]="label()"`, with kebab-case names
   such as `[style.background-color]` and `[attr.aria-label]`; an empty value

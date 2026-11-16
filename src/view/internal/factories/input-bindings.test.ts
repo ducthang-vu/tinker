@@ -158,7 +158,7 @@ describe("input bindings", () => {
     class Item {
       readonly label = input("");
     }
-    @Component({ selector: "tk-list", template: `<tk-item [label]="a + b"></tk-item>`, imports: [Item] })
+    @Component({ selector: "tk-list", template: `<tk-item [label]="a ? b : c"></tk-item>`, imports: [Item] })
     class List {}
     expect(() => Engine.create()
       .createComponent(List))

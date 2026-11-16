@@ -61,8 +61,8 @@ describe("ExpressionParser", () => {
       .toBe(`Empty expression: write a field or a call, e.g. "title" or "count()"`);
     expect(error("   "))
       .toMatch(/^Empty expression/);
-    expect(error("a + b"))
-      .toBe(`Unexpected "+": only fields and calls are supported for now (at column 3 in "a + b")`);
+    expect(error("a ? b"))
+      .toBe(`Unexpected "?" (at column 3 in "a ? b")`);
     expect(error("count(1)"))
       .toBe(`Call arguments are not supported yet (at column 7 in "count(1)")`);
     expect(error("count("))
@@ -71,9 +71,20 @@ describe("ExpressionParser", () => {
       .toBe(`Missing a name at the end (at column 6 in "user.")`);
     expect(error("user.1"))
       .toBe(`Expected a name, found "1" (at column 6 in "user.1")`);
-    expect(error("1"))
-      .toBe(`Expected a name, found "1" (at column 1 in "1")`);
+    expect(error("1 2"))
+      .toBe(`Unexpected "2" (at column 3 in "1 2")`);
     expect(error("'text'"))
       .toMatch(/^Expected a name, found "'"/);
+  });
+
+  test("reports an operator with a missing operand, or an unclosed group", () => {
+    expect(error("1 +"))
+      .toBe(`Missing a name at the end (at column 4 in "1 +")`);
+    expect(error("1 ** "))
+      .toBe(`Missing a name at the end (at column 6 in "1 ** ")`);
+    expect(error("(1 + 2"))
+      .toBe(`Missing ")" (at column 7 in "(1 + 2")`);
+    expect(error("(1 2)"))
+      .toBe(`Expected ")", found "2" (at column 4 in "(1 2)")`);
   });
 });
