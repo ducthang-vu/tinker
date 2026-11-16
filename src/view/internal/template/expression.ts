@@ -22,7 +22,7 @@
 //   count() * 2 + 1    arithmetic, with parentheses for grouping
 //   total === 0        comparisons: === and ==
 //
-// Call arguments, unary minus, strings and pipes come later.
+// Call arguments, unary minus and strings come later.
 
 import { Either, type EitherError } from "../../../functional/index.ts";
 
