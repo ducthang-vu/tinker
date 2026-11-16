@@ -13,7 +13,7 @@ It is a learning project, not a production framework.
 ## Example
 
 ```ts
-import { Component, computed, Directive, Engine, inject, Injectable, input, signal } from "tinker";
+import { bootstrap, Component, computed, Directive, inject, Injectable, input, signal } from "tinker";
 
 @Injectable()
 class CounterStore {
@@ -46,8 +46,7 @@ class Counter {
   readonly store = inject(CounterStore);
 }
 
-Engine.create()
-  .bootstrap(Counter); // renders into <tk-counter> in the page
+bootstrap(Counter); // renders into <tk-counter> in the page
 ```
 
 The full version, with a clock and three directives, is in
@@ -62,7 +61,7 @@ module; each module also lists its own in its `index.ts`.
 |---|---|
 | [`src/signals`](src/signals/index.ts) | `signal`, `computed`, `watch`, `untracked`: push-pull reactivity with versions, lazy and glitch-free computeds, cycle detection |
 | [`src/di`](src/di/index.ts) | `inject()`, `InjectionToken` (and `InjectionToken.multi`), `provide()`, `@Injectable`, hierarchical injectors with `self` / `skipSelf` / `host` / `optional` lookups, `onDestroy` cleanup |
-| [`src/view`](src/view/index.ts) | `Engine`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
+| [`src/view`](src/view/index.ts) | `bootstrap`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
 | [`src/functional`](src/functional/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, and `Stream` / `Emitter` (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
 | [`src/utils`](src/utils) | small shared helpers (context variables, metadata, `runAll`) |
 
@@ -102,7 +101,6 @@ module; each module also lists its own in its `index.ts`.
   attributes bind them.
 - **Change detection**: signals are the only trigger. A tick runs dirty effects,
   then dirty views, then render hooks, until nothing changes.
-  `engine.afterStable()` tells when a tick has ended.
 
 ## Tinker and Angular
 
@@ -154,9 +152,9 @@ it is on purpose.
   through them stops when its owner is destroyed.
 - **Render hooks run only after a tick that rendered**, inside the tick: a
   hook writing a signal re-renders in the same tick, under the same loop guard.
-- **Lookups return `Maybe`, async results are `Task`s.** `engine.getContext()`
-  returns a `Maybe`, not `null`; `engine.afterStable()` returns a lazy,
-  cancellable `Task`, not a `Promise`.
+- **Lookups return `Maybe`, async results are `Task`s.** Where a lookup may
+  find nothing it returns a `Maybe`, not `null`; async results are lazy,
+  cancellable `Task`s, not `Promise`s.
 
 ### What Tinker adds
 
@@ -243,4 +241,4 @@ Run its focused tests with `npm run test:repo-map`.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
 Not there yet: property bindings (`[value]` on a plain element), queries (`viewChild`),
-`@if` / `@for`, recursive components, and `engine.destroy()`.
+`@if` / `@for`, and recursive components.

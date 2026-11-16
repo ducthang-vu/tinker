@@ -15,11 +15,11 @@ import { inject, Injectable } from "../../src/di/index.ts";
 import { computed, signal } from "../../src/signals/index.ts";
 import {
   AfterNextRender,
+  bootstrap,
   Component,
   Directive,
   Effect,
   type EffectContext,
-  Engine,
   input,
   output,
 } from "../../src/view/index.ts";
@@ -134,6 +134,5 @@ class Clock {
   }
 }
 
-const engine = Engine.create();
-engine.bootstrap(Counter);
-engine.bootstrap(Clock);
+bootstrap(Counter); // renders into <tk-counter> in the page
+bootstrap(Clock); // and <tk-clock>, each in its own app

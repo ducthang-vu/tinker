@@ -80,6 +80,10 @@ export class Engine {
   private readonly changeDetection = inject(ChangeDetection);
   private readonly containers = inject(ViewContainerRefFactory);
   private readonly injector = inject(Injector);
+  /** The root components started by `bootstrap`, destroyed with the engine. */
+  private readonly roots: View<unknown>[] = [];
+  /** Destroys the root injector this engine was created in (set by `create`). */
+  private destroyInjector!: () => void;
 
   /**
    * Create an engine: its root injector (your providers, then the defaults),
@@ -88,20 +92,39 @@ export class Engine {
   static create(options: EngineOptions = {}): Engine {
     // The first provider for a token wins: user providers go first. (Engine is
     // listed here, not in DEFAULT_PROVIDERS, which is declared before the class.)
-    const { injector } = Injector.create({
+    const { injector, destroy } = Injector.create({
       providers: [...(options.providers ?? []), ...DEFAULT_PROVIDERS, Engine],
     });
-    return runInInjectionContext(injector, () => inject(Engine));
+    const engine = runInInjectionContext(injector, () => inject(Engine));
+    engine.destroyInjector = destroy;
+    return engine;
   }
 
-  /** Start the app: render the root component `type` into its host element in the page. */
-  bootstrap<T extends object>(type: Class<T>): ComponentRef<T> {
+  /**
+   * Start the app: render the root component `type` into `host`, or, without
+   * a host, into the page element that matches its selector.
+   */
+  bootstrap<T extends object>(type: Class<T>, host?: Element): ComponentRef<T> {
+    const element = host ?? this.lookUp(type);
+    const view = this.components.create(type, element);
+    this.roots.push(view);
+    return refOf(view);
+  }
+
+  /** Destroy the root components, then the engine's injector. Calling it again does nothing. */
+  destroy(): void {
+    for (const view of this.roots.splice(0)) {
+      view.destroy();
+    }
+    this.destroyInjector();
+  }
+
+  private lookUp<T extends object>(type: Class<T>): Element {
     const { selector } = this.components.metadataOf(type);
-    const host = Maybe.fromNullable(this.document.querySelector(selector))
+    return Maybe.fromNullable(this.document.querySelector(selector))
       .getOrThrow(
         () => new Error(`No host element matches "${selector}" for ${type.name}`),
       );
-    return refOf(this.components.create(type, host));
   }
 
   /**

@@ -40,9 +40,8 @@ Each component has its own injector, which provides its own `Effects` and
 methods included) stops when the component is destroyed. Done.
 
 **Problem.** Services provided by the engine (`providedIn: "root"`, or
-`Engine.create({ providers })`) use the engine's `Effects` and
-`RenderHooks`, which stop only when the engine's injector is destroyed, and
-the engine has no `destroy()` yet. A service in a component's `providers`
+`bootstrap(App, { providers })`) use the engine's `Effects` and
+`RenderHooks`, which stop only when the app is destroyed. A service in a component's `providers`
 is fine: it uses the component's.
 
 **To do.** Add `engine.destroy()`: destroy the views, then the engine's
