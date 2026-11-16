@@ -77,4 +77,43 @@ test("print writes an expression back", () => {
   }
   expect(print({ kind: "component" }))
     .toBe("");
+  expect(print(ExpressionParser.parse("count() * 2 + 1")
+    .getOrThrow()))
+    .toBe("count() * 2 + 1");
+});
+
+describe("operators", () => {
+  test("arithmetic follows JavaScript's precedence and grouping", () => {
+    expect(run("1 + 2 * 3", {}))
+      .toBe(7);
+    expect(run("(1 + 2) * 3", {}))
+      .toBe(9);
+    expect(run("10 - 4 - 3", {}))
+      .toBe(3);
+    expect(run("10 / 4", {}))
+      .toBe(2.5);
+    expect(run("2 ** 3 ** 2", {}))
+      .toBe(512);
+    expect(run("2 ** 3 * 2", {}))
+      .toBe(16);
+  });
+
+  test("the equality operators compare; == converts its operands first", () => {
+    expect(run("1 + 1 === 2", {}))
+      .toBe(true);
+    expect(run("1 === 2", {}))
+      .toBe(false);
+    expect(run("2 == 2", {}))
+      .toBe(true);
+    expect(run("1 == 2", {}))
+      .toBe(false);
+  });
+
+  test("operators work on the component's fields and calls", () => {
+    const component = { count: () => 3, total: 0 };
+    expect(run("count() * 2 + 1", component))
+      .toBe(7);
+    expect(run("total === 0", component))
+      .toBe(true);
+  });
 });

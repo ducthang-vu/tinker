@@ -5,21 +5,46 @@
 // that works under a strict Content Security Policy, and errors can say
 // exactly what is not supported.
 //
-// For now only fields and calls without arguments, read from the component:
+// Operators bind as in JavaScript, from the loosest to the tightest:
 //
-//   expression := identifier ( "." identifier | "(" ")" )*
+//   expression := equality
+//   equality   := additive ( ("===" | "==") additive )*
+//   additive   := term ( ("+" | "-") term )*
+//   term       := power ( ("*" | "/") power )*
+//   power      := operand ( "**" power )?          right-associative
+//   operand    := number | "(" expression ")" | access
+//   access     := identifier ( "." identifier | "(" ")" )*
 //
-//   title            a field of the component
-//   count()          a call: e.g. reading a signal, or a method
-//   user().name      a field of what a call returned
+//   title              a field of the component
+//   count()            a call: e.g. reading a signal, or a method
+//   user().name        a field of what a call returned
 //   items().length
+//   count() * 2 + 1    arithmetic, with parentheses for grouping
+//   total === 0        comparisons: === and ==
 //
-// Literals, operators, call arguments and pipes come later.
+// Call arguments, unary minus, strings and pipes come later.
 
 import { Either, type EitherError } from "../../../functional/index.ts";
 
 /** A parsed template expression. */
-export type Expression = ComponentReceiver | PropertyRead | Call;
+export type Expression = ComponentReceiver | PropertyRead | Call | NumberLiteral | Binary;
+
+/** A number, e.g. `2` or `0.5`. */
+export interface NumberLiteral {
+  readonly kind: "number";
+  readonly value: number;
+}
+
+/** The operators, from `===` to `**`. */
+export type BinaryOperator = "+" | "-" | "*" | "/" | "**" | "===" | "==";
+
+/** Two operands and an operator, e.g. `count() * 2`. */
+export interface Binary {
+  readonly kind: "binary";
+  readonly operator: BinaryOperator;
+  readonly left: Expression;
+  readonly right: Expression;
+}
 
 /** Where a bare name is looked up: the component instance (`title` means `component.title`). */
 export interface ComponentReceiver {
@@ -43,6 +68,7 @@ export interface Call {
 
 const COMPONENT: ComponentReceiver = { kind: "component" };
 const IDENTIFIER = /[A-Za-z_$][\w$]*/y;
+const NUMBER = /\d+(\.\d+)?/y;
 const WHITESPACE = /\s*/y;
 
 /** Parses one expression. Create one per source through `ExpressionParser.parse`. */
@@ -62,8 +88,91 @@ export class ExpressionParser {
     if (this.atEnd()) {
       throw new Error(`Empty expression: write a field or a call, e.g. "title" or "count()"`);
     }
+    const expression = this.equality();
+    this.skipWhitespace();
+    if (!this.atEnd()) {
+      throw this.error(`Unexpected "${this.source[this.position]}"`);
+    }
+    return expression;
+  }
+
+  /** `===` and `==`: the loosest operators. */
+  private equality(): Expression {
+    let left = this.additive();
+    for (;;) {
+      this.skipWhitespace();
+      const operator = this.take(["===", "=="]);
+      if (!operator) {
+        return left;
+      }
+      left = { kind: "binary", operator: operator as BinaryOperator, left, right: this.additive() };
+    }
+  }
+
+  private additive(): Expression {
+    let left = this.term();
+    for (;;) {
+      this.skipWhitespace();
+      const operator = this.take(["+", "-"]);
+      if (!operator) {
+        return left;
+      }
+      left = { kind: "binary", operator: operator as BinaryOperator, left, right: this.term() };
+    }
+  }
+
+  private term(): Expression {
+    let left = this.power();
+    for (;;) {
+      this.skipWhitespace();
+      // `**` is read by `power`, so a `*` here is a multiplication.
+      const operator = this.take(["*", "/"]);
+      if (!operator) {
+        return left;
+      }
+      left = { kind: "binary", operator: operator as BinaryOperator, left, right: this.power() };
+    }
+  }
+
+  /** `**` is right-associative: `2 ** 3 ** 2` is `2 ** (3 ** 2)`. */
+  private power(): Expression {
+    const base = this.operand();
+    this.skipWhitespace();
+    if (!this.take(["**"])) {
+      return base;
+    }
+    return { kind: "binary", operator: "**", left: base, right: this.power() };
+  }
+
+  private operand(): Expression {
+    this.skipWhitespace();
+    if (this.source[this.position] === "(") {
+      this.position++;
+      const inner = this.equality();
+      this.skipWhitespace();
+      if (this.source[this.position] !== ")") {
+        throw this.error(this.atEnd() ? `Missing ")"` : `Expected ")", found "${this.source[this.position]}"`);
+      }
+      this.position++;
+      return inner;
+    }
+    NUMBER.lastIndex = this.position;
+    const number = NUMBER.exec(this.source);
+    if (number) {
+      this.position = NUMBER.lastIndex;
+      return { kind: "number", value: Number(number[0]) };
+    }
+    return this.access();
+  }
+
+  /** A name, then any `.name` or `()` after it. */
+  private access(): Expression {
     let expression: Expression = { kind: "property", receiver: COMPONENT, name: this.identifier() };
     for (this.skipWhitespace(); !this.atEnd(); this.skipWhitespace()) {
+      const char = this.source[this.position];
+      if (char !== "." && char !== "(") {
+        break;
+      }
       expression = this.postfix(expression);
     }
     return expression;
@@ -72,9 +181,6 @@ export class ExpressionParser {
   /** `.name` or `()` after an expression. */
   private postfix(receiver: Expression): Expression {
     const char = this.source[this.position];
-    if (char !== "." && char !== "(") {
-      throw this.error(`Unexpected "${char}": only fields and calls are supported for now`);
-    }
     this.position++;
     this.skipWhitespace();
     if (char === ".") {
@@ -95,6 +201,15 @@ export class ExpressionParser {
     }
     this.position = IDENTIFIER.lastIndex;
     return match[0];
+  }
+
+  /** Consume the first of `tokens` found at the position, if any. */
+  private take(tokens: readonly string[]): string | undefined {
+    const token = tokens.find((candidate) => this.source.startsWith(candidate, this.position));
+    if (token !== undefined) {
+      this.position += token.length;
+    }
+    return token;
   }
 
   private skipWhitespace(): void {

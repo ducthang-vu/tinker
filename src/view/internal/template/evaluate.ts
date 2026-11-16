@@ -5,7 +5,7 @@
 // Signals are functions, so reading one is just a call: run inside the
 // view's watch, it makes the watch depend on that signal.
 
-import type { Expression } from "./expression.ts";
+import type { BinaryOperator, Expression } from "./expression.ts";
 import type { Scope } from "./scope.ts";
 
 /**
@@ -21,6 +21,14 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
         return scope.lets.get(expression.name);
       }
       return read(evaluate(expression.receiver, scope), expression.name);
+    case "number":
+      return expression.value;
+    case "binary":
+      return operate(
+        expression.operator,
+        evaluate(expression.left, scope),
+        evaluate(expression.right, scope),
+      );
     case "call": {
       const { callee } = expression;
       if (callee.kind === "property" && isLet(callee, scope)) {
@@ -50,6 +58,32 @@ function callFunction(fn: unknown, callee: Expression, receiver?: unknown): unkn
   return fn.call(receiver);
 }
 
+/**
+ * Apply a binary operator. The operands are whatever the template read, so
+ * `+` and the others follow JavaScript's rules for them, as in a template
+ * written in plain JavaScript.
+ */
+function operate(operator: BinaryOperator, left: unknown, right: unknown): unknown {
+  switch (operator) {
+    case "+":
+      return (left as number) + (right as number);
+    case "-":
+      return (left as number) - (right as number);
+    case "*":
+      return (left as number) * (right as number);
+    case "/":
+      return (left as number) / (right as number);
+    case "**":
+      return (left as number) ** (right as number);
+    case "===":
+      return left === right;
+      // Loose equality, as JavaScript defines it: it converts the operands first.
+
+    case "==":
+      return left == right;
+  }
+}
+
 function read(receiver: unknown, name: string): unknown {
   return (receiver as Record<string, unknown>)[name];
 }
@@ -57,6 +91,10 @@ function read(receiver: unknown, name: string): unknown {
 /** The expression as written (normalized), for error messages. */
 export function print(expression: Expression): string {
   switch (expression.kind) {
+    case "number":
+      return String(expression.value);
+    case "binary":
+      return `${print(expression.left)} ${expression.operator} ${print(expression.right)}`;
     case "component":
       return "";
     case "property":

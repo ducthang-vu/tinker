@@ -291,12 +291,12 @@ describe("ComponentFactory view watch", () => {
   });
 
   test("reports an invalid {{ }} before rendering anything", () => {
-    @Component({ selector: "tk-a", template: "<p>{{ a + b }}</p>" })
+    @Component({ selector: "tk-a", template: "<p>{{ a ? b : c }}</p>" })
     class A {}
     const { factory } = makeFactory();
     const host = document.createElement("div");
     expect(() => factory.create(A, host))
-      .toThrow(`Unexpected "+"`);
+      .toThrow(`Unexpected "?"`);
     expect(host.innerHTML)
       .toBe("");
   });

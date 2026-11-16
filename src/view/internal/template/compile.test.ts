@@ -101,7 +101,7 @@ describe("compileTemplate", () => {
   });
 
   test("reports an invalid style or attribute expression with its key", () => {
-    expect(() => compileTemplate([element("p", { "[style.color]": "a + b" })]))
+    expect(() => compileTemplate([element("p", { "[style.color]": "a ? b : c" })]))
       .toThrow(/in \[style\.color\] on <p>/);
     expect(() => compileTemplate([element("p", { "[attr.title]": "a(1)" })]))
       .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [attr.title] on <p>`);
