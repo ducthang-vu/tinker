@@ -255,6 +255,9 @@ export class TemplateBuilder {
       this.projected.delete(node.name);
       return nodes;
     }
+    if (node.kind === "match") {
+      throw new Error("@if and @match are not rendered yet");
+    }
     if (node.kind === "let") {
       // The value is a computed signal: it sees only the `@let`s declared above
       // it (a snapshot), and reading it makes the reader depend on what it reads.
