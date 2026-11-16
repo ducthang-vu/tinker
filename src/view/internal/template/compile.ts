@@ -35,7 +35,8 @@ export type CompiledNode
  */
 export interface CompiledMatch {
   readonly kind: "match";
-  readonly subject: Expression;
+  /** The value the cases test. Absent for a match of guards (`@match { @case _ when … }`). */
+  readonly subject?: Expression;
   readonly cases: readonly CompiledCase[];
   readonly default?: readonly CompiledNode[];
 }
@@ -43,6 +44,8 @@ export interface CompiledMatch {
 /** A `@case`: its pattern, and what it shows. */
 export interface CompiledCase {
   readonly pattern: Pattern;
+  /** `when` condition: checked only once the pattern matched. */
+  readonly guard?: Expression;
   readonly body: readonly CompiledNode[];
 }
 
@@ -194,7 +197,7 @@ function compileBlock(block: BlockItem, candidates: readonly DirectiveCandidate[
           throw new Error("Only @case and @default blocks can be inside @match");
         }
         if (item.keyword === "case") {
-          cases.push({ pattern: pattern(item), body: compileItems(item.body, candidates) });
+          cases.push({ ...caseHeader(item, block.header === ""), body: compileItems(item.body, candidates) });
         } else if (item.keyword === "default") {
           if (fallback) {
             throw new Error("A @match has one @default");
@@ -204,7 +207,12 @@ function compileBlock(block: BlockItem, candidates: readonly DirectiveCandidate[
           throw new Error("Only @case and @default blocks can be inside @match");
         }
       }
-      return { kind: "match", subject: expressionOf(block), cases, default: fallback };
+      return {
+        kind: "match",
+        subject: block.header === "" ? undefined : expressionOf(block),
+        cases,
+        default: fallback,
+      };
     }
     case "case":
       throw new Error("@case must be inside @match");
@@ -232,9 +240,32 @@ function expressionOf(block: BlockItem): Expression {
     .getOrThrow();
 }
 
+/**
+ * A `@case`'s pattern and its optional `when` guard: `@case 1 when ok()`. A
+ * match without a subject has only `_ when …` cases, since there is no value to test.
+ */
+function caseHeader(
+  block: BlockItem,
+  subjectless: boolean,
+): { pattern: Pattern; guard?: Expression } {
+  const split = /\swhen(\s|$)/.exec(block.header);
+  const patternText = split
+    ? block.header.slice(0, split.index)
+        .trim()
+    : block.header;
+  const guard = split
+    ? expressionOf({ ...block, header: block.header.slice(split.index + split[0].length) })
+    : undefined;
+  const result = pattern(patternText, block);
+  if (subjectless && result.kind !== "any") {
+    throw new Error(`A @match without a subject takes "@case _ when …" cases, not "${patternText}"`);
+  }
+  return guard ? { pattern: result, guard } : { pattern: result };
+}
+
 /** The pattern of a `@case`: `truthy`, `falsy`, `_`, or a literal. */
-function pattern(block: BlockItem): Pattern {
-  switch (block.header) {
+function pattern(text: string, block: BlockItem): Pattern {
+  switch (text) {
     case "":
       throw new Error("@case needs a pattern, e.g. @case \"loading\"");
     case "truthy":
@@ -244,9 +275,9 @@ function pattern(block: BlockItem): Pattern {
     case "_":
       return { kind: "any" };
     default: {
-      const expression = expressionOf({ ...block, keyword: "case" });
+      const expression = expressionOf({ ...block, keyword: "case", header: text });
       if (expression.kind !== "literal") {
-        throw new Error(`Only literals, truthy, falsy and _ are patterns for now: "${block.header}"`);
+        throw new Error(`Only literals, truthy, falsy and _ are patterns for now: "${text}"`);
       }
       return { kind: "value", value: expression.value };
     }

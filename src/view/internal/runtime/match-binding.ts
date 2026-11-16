@@ -51,10 +51,18 @@ export class MatchBinding implements Binding {
     view.addDestroyCallback(() => this.hide());
   }
 
-  /** Evaluate the subject, and show the branch it picks, if that changed. */
+  /**
+   * Evaluate the subject, and show the branch the first matching case picks, if
+   * that changed. A case matches when its pattern does and its guard, if it has
+   * one, is truthy: the guard is not evaluated when the pattern does not match.
+   */
   update(): void {
-    const value = evaluate(this.node.subject, this.scope);
-    const index = this.node.cases.findIndex(({ pattern }) => matches(pattern, value));
+    const subject = this.node.subject;
+    const value = subject === undefined ? undefined : evaluate(subject, this.scope);
+    const index = this.node.cases.findIndex(
+      ({ pattern, guard }) =>
+        matches(pattern, value) && (guard === undefined || Boolean(evaluate(guard, this.scope))),
+    );
     const key = index === -1 ? this.node.cases.length : index;
     if (key === this.shownKey) {
       return;

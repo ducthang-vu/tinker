@@ -71,21 +71,21 @@ access     := identifier ( "." identifier | "(" ")" )*
 
 | Form | Status |
 |---|---|
-| `@match subject { @case pattern { ... } }` | planned |
-| `@default { ... }`, shown when no case matched | planned |
-| `@match { @case _ when condition { ... } }`, with no subject, where each case is a condition | planned |
-| No default, and nothing matched: nothing is shown | planned |
+| `@match subject { @case pattern { ... } }` | done |
+| `@default { ... }`, shown when no case matched | done |
+| `@match { @case _ when condition { ... } }`, with no subject, where each case is a condition | done |
+| No default, and nothing matched: nothing is shown | done |
 
 ### Patterns
 
 | Pattern | Matches | Example | Status |
 |---|---|---|---|
-| Number | `===` that number | `@case 0` | planned |
-| String | `===` that text | `@case "loading"` | planned: the literal is done, the case is not |
-| `true`, `false`, `null`, `undefined` | `===` that value | `@case null` | planned |
-| `truthy` | a truthy value | `@case truthy` | planned |
-| `falsy` | a falsy value: `0`, `""`, `null`, `undefined`, `false`, `NaN` | `@case falsy` | planned |
-| `_` | anything | `@case _ when a()` | planned |
+| Number | `===` that number | `@case 0` | done |
+| String | `===` that text | `@case "loading"` | done |
+| `true`, `false`, `null`, `undefined` | `===` that value | `@case null` | done |
+| `truthy` | a truthy value | `@case truthy` | done |
+| `falsy` | a falsy value: `0`, `""`, `null`, `undefined`, `false`, `NaN` | `@case falsy` | done |
+| `_` | anything | `@case _ when a()` | done |
 | Name | anything, bound to that name in the branch | `@case value` | later |
 | `present` | anything except `null` and `undefined` | `@case present` | later |
 | Object, by tag or shape | an object with those fields | `@case { tag: "ok", value }` | later |
@@ -109,8 +109,8 @@ template's scope. Our own types are matched by their `tag` instead.
 
 | Form | Meaning | Status |
 |---|---|---|
-| `@case pattern when condition` | the pattern matches, and the condition is truthy | planned |
-| `@case _ when condition` | the condition alone decides | planned |
+| `@case pattern when condition` | the pattern matches, and the condition is truthy | done |
+| `@case _ when condition` | the condition alone decides | done |
 
 A guard is only tried after its pattern matched, so a binding it uses already
 exists.
@@ -121,8 +121,8 @@ exists.
 
 | Form | Desugars to | Status |
 |---|---|---|
-| `@if (c) { A } @else { B }` | `@match c { @case truthy { A } @default { B } }` | planned |
-| `@if (a) { A } @else if (b) { B } @else { C }` | `@match { @case _ when a { A } @case _ when b { B } @default { C } }` | planned |
+| `@if (c) { A } @else { B }` | `@match c { @case truthy { A } @default { B } }` | done |
+| `@if (a) { A } @else if (b) { B } @else { C }` | `@match { @case _ when a { A } @case _ when b { B } @default { C } }` | done |
 
 ## `@for`
 
@@ -139,7 +139,7 @@ exists.
 
 | Form | Desugars to | Status |
 |---|---|---|
-| `@match v { @case 1 { A } }` | `@match { @case _ when v === 1 { A } }` | planned |
+| `@match v { @case 1 { A } }` | `@match { @case _ when v === 1 { A } }` | done |
 
 ## What to implement first
 
@@ -153,7 +153,7 @@ working `@if` and `@match`, and it keeps every step testable on its own.
    `@match` and `@for` all need.
 4. **`@match` with a subject, and the patterns `truthy`, `falsy`, literals and
    `_`, with `@default`.** Then `@if` and `@else` as sugar for it.
-5. **Guards with `when`, and the subject-less form.** Then `@else if`.
+5. **Guards with `when`, and the subject-less form.** Done. `@else if` is done too (it nests).
 6. **`@for`**, with `track`, `@empty` and a scope for the item.
 7. **Names and object patterns**, then arrays, then alternatives, `present`,
    ranges and `not`.

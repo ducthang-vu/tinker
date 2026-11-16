@@ -231,4 +231,68 @@ describe("@match", () => {
     expect(el.textContent!.trim())
       .toBe("anything");
   });
+
+  test("a match of guards shows the first guard that is truthy", async () => {
+    @Component({
+      selector: "tk-guards",
+      template: `@match {
+        @case _ when score() >= 90 { A }
+        @case _ when score() >= 50 { B }
+        @default { C }
+      }`,
+    })
+    class Guards {
+      readonly score = signal(10);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Guards, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("C");
+    app.root.instance.score.set(60);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("B");
+    app.root.instance.score.set(95);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("A");
+    app.destroy();
+  });
+
+  test("a guard is not evaluated when its pattern does not match", () => {
+    let calls = 0;
+    @Component({
+      selector: "tk-lazy",
+      template: "@match n() { @case 2 when check() { two } @default { other } }",
+    })
+    class Lazy {
+      readonly n = signal(1);
+
+      check(): boolean {
+        calls += 1;
+        return true;
+      }
+    }
+    const el = document.createElement("section");
+    bootstrap(Lazy, { host: el });
+    expect(calls)
+      .toBe(0);
+    expect(el.textContent!.trim())
+      .toBe("other");
+  });
+
+  test("a case whose guard is false falls through to the next case", () => {
+    @Component({
+      selector: "tk-fall",
+      template: "@match n() { @case 1 when ok() { first } @case 1 { second } }",
+    })
+    class Fall {
+      readonly n = signal(1);
+      readonly ok = signal(false);
+    }
+    const el = document.createElement("section");
+    bootstrap(Fall, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("second");
+  });
 });
