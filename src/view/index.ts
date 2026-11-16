@@ -3,25 +3,25 @@
 // stay internal.
 
 // Starting an app
-export { Engine, type EngineOptions } from "./engine.ts";
+export { Engine, type EngineOptions } from "./internal/engine.ts";
 
 // Writing components and directives
-export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./authoring/decorators.ts";
-export { Effect, type EffectContext, Effects, type EffectFn } from "./authoring/effects.ts";
-export { AfterEachRender, AfterNextRender, RenderHooks } from "./authoring/render-hooks.ts";
-export { output, type Output, type OutputName, type OutputValue } from "./authoring/output.ts";
-export { model, type ModelSignal } from "./authoring/model.ts";
-export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./authoring/input.ts";
+export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./internal/authoring/decorators.ts";
+export { Effect, type EffectContext, Effects, type EffectFn } from "./internal/authoring/effects.ts";
+export { AfterEachRender, AfterNextRender, RenderHooks } from "./internal/authoring/render-hooks.ts";
+export { output, type Output, type OutputName, type OutputValue } from "./internal/authoring/output.ts";
+export { model, type ModelSignal } from "./internal/authoring/model.ts";
+export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./internal/authoring/input.ts";
 
 // What the engine creates and hands back
-export { ComponentRef } from "./component-ref.ts";
-export { ViewContainerRef } from "./runtime/view-container-ref.ts";
-export { ChangeDetectionLoopError } from "./runtime/change-detection.ts";
+export { ComponentRef } from "./internal/component-ref.ts";
+export { ViewContainerRef } from "./internal/runtime/view-container-ref.ts";
+export { ChangeDetectionLoopError } from "./internal/runtime/change-detection.ts";
 
 // What can be replaced through providers
-export { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
-export { ElementRef } from "./runtime/element-ref.ts";
-export { DomRenderer, type Renderer } from "./renderer.ts";
-export type { TemplateParser } from "./template/parser.ts";
-export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./template/ast.ts";
-export { BrowserTemplateParser } from "./template/browser-parser.ts";
+export { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./internal/tokens.ts";
+export { ElementRef } from "./internal/runtime/element-ref.ts";
+export { DomRenderer, type Renderer } from "./internal/renderer.ts";
+export type { TemplateParser } from "./internal/template/parser.ts";
+export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./internal/template/ast.ts";
+export { BrowserTemplateParser } from "./internal/template/browser-parser.ts";
