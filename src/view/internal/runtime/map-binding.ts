@@ -1,7 +1,8 @@
 // A map binding: renders its body once per item of a list, in list order. The
 // rows are matched to the new list by their identity (`track`, or the index),
-// so a row keeps its view while its item stays; its item, index and count are
-// signals, so a row whose item changed updates without being recreated.
+// so a row keeps its view while its item stays. What the item's pattern binds
+// (its name, or the names a destructuring pattern takes) are signals, so a row
+// whose item changed updates without being recreated.
 //
 // Each row is an embedded view placed before its own comment anchor, and the
 // anchors sit in order before the map's anchor. A row is created before it is
@@ -11,9 +12,10 @@ import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { Renderer } from "../renderer.ts";
 import type { CompiledMap, CompiledNode } from "../template/compile.ts";
-import { KeyMap } from "./key-map.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { Scope } from "../template/scope.ts";
+import { match } from "./match-binding.ts";
+import { KeyMap } from "./key-map.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 import type { Binding } from "./text-binding.ts";
 import type { View } from "./view.ts";
@@ -31,7 +33,8 @@ interface Row {
   readonly key: readonly unknown[];
   readonly anchor: Comment;
   readonly view: EmbeddedView;
-  readonly item: Signal<unknown>;
+  /** What the item's pattern binds, by name: a signal each, so the row follows the item. */
+  readonly names: ReadonlyMap<string, Signal<unknown>>;
   readonly index: Signal<number>;
   readonly count: Signal<number>;
 }
@@ -42,7 +45,7 @@ export class MapBinding implements Binding {
   private injector!: Injector;
 
   /**
-   * @param node The map: its list, the name of its items, its track and body.
+   * @param node The map: its list, what each item is matched with, its track and body.
    * @param scope The names the list is read from.
    * @param above The `@let`s declared above the map, which its rows see.
    * @param anchor The map's comment, after which the rows are placed.
@@ -94,7 +97,9 @@ export class MapBinding implements Binding {
         return row;
       }
       previous.delete(keys[index]!);
-      existing.item.set(value);
+      for (const [name, bound] of this.bindingsOf(value)) {
+        existing.names.get(name)!.set(bound);
+      }
       existing.index.set(index);
       existing.count.set(list.length);
       return existing;
@@ -116,6 +121,15 @@ export class MapBinding implements Binding {
     }
   }
 
+  /** What the item's pattern binds, or an error if the item does not match it. */
+  private bindingsOf(value: unknown): ReadonlyMap<string, unknown> {
+    const bound = match(this.node.item, value);
+    if (bound === undefined) {
+      throw new Error("An item of @map does not match its let pattern");
+    }
+    return bound;
+  }
+
   /**
    * The identity of the item at `index`, as the parts it is made of: its index
    * by default, the value of its `track` expression, or its `track { … }` fields.
@@ -128,18 +142,23 @@ export class MapBinding implements Binding {
     if (track.kind === "fields") {
       return track.names.map((name) => fieldOf(value, name));
     }
-    const lets = this.namesOf(computed(() => value), computed(() => index), computed(() => count));
+    const names = new Map(
+      [...this.bindingsOf(value)].map(([name, bound]) => [name, computed(() => bound)]),
+    );
+    const lets = this.namesOf(names, computed(() => index), computed(() => count));
     return [evaluate(track.expression, new Scope(this.scope.component, lets))];
   }
 
-  /** The names a row reads: the `@let`s above the map, its item, and its `$` variables. */
+  /** The names a row reads: the `@let`s above the map, its item's names, and its `$` variables. */
   private namesOf(
-    item: ReadonlySignal<unknown>,
+    names: ReadonlyMap<string, ReadonlySignal<unknown>>,
     index: ReadonlySignal<number>,
     count: ReadonlySignal<number>,
   ): Map<string, ReadonlySignal<unknown>> {
     const lets = new Map(this.above);
-    lets.set(this.node.item, item);
+    for (const [name, signal] of names) {
+      lets.set(name, signal);
+    }
     lets.set("$index", index);
     lets.set("$count", count);
     lets.set("$first", computed(() => index() === 0));
@@ -153,15 +172,17 @@ export class MapBinding implements Binding {
   private create(key: readonly unknown[], value: unknown, index: number, count: number): Row {
     const anchor = this.renderer.createComment("");
     this.renderer.insertBefore(this.parent(), anchor, this.anchor);
-    const item = signal(value);
+    const names = new Map(
+      [...this.bindingsOf(value)].map(([name, bound]) => [name, signal(bound)]),
+    );
     const indexSignal = signal(index);
     const countSignal = signal(count);
     const scope = new Scope(
       this.scope.component,
-      this.namesOf(item, indexSignal, countSignal),
+      this.namesOf(names, indexSignal, countSignal),
     );
     const view = this.render(this.node.body, scope, anchor, this.injector);
-    return { key, anchor, view, item, index: indexSignal, count: countSignal };
+    return { key, anchor, view, names, index: indexSignal, count: countSignal };
   }
 
   /** Put every row's nodes, then its anchor, in order before the map's anchor. */
@@ -198,18 +219,18 @@ export class MapBinding implements Binding {
   }
 }
 
-/** What a value is, for an error: a function is probably a signal that was not called. */
-function describe(value: unknown): string {
-  if (typeof value === "function") {
-    return "a function: a signal is read with (), e.g. todos()";
-  }
-  return value === null ? "null" : typeof value;
-}
-
 /** A field of a track item: it must be an object with that field. */
 function fieldOf(value: unknown, name: string): unknown {
   if (typeof value !== "object" || value === null || !(name in value)) {
     throw new Error(`The track of @map needs the field "${name}" on each item`);
   }
   return (value as Record<string, unknown>)[name];
+}
+
+/** What a value is, for an error: a function is probably a signal that was not called. */
+function describe(value: unknown): string {
+  if (typeof value === "function") {
+    return "a function: a signal is read with (), e.g. todos()";
+  }
+  return value === null ? "null" : typeof value;
 }

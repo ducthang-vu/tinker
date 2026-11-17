@@ -464,3 +464,66 @@ describe("@match", () => {
       .toBe("no");
   });
 });
+
+describe("@match with array patterns", () => {
+  test("@case [] shows its branch only for an empty array, and it follows the list", async () => {
+    @Component({
+      selector: "tk-empty-case",
+      template: "@match items() { @case [] { none } @default { some } }",
+    })
+    class EmptyCase {
+      readonly items = signal<string[]>([]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(EmptyCase, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("none");
+    app.root.instance.items.set(["a"]);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("some");
+    app.destroy();
+  });
+
+  test("[first, ...rest] binds the first item and the others, and needs at least one", async () => {
+    @Component({
+      selector: "tk-rest-case",
+      template: "@match items() { @case [first, ...rest] { {{ first }}+{{ rest.length }} } @default { empty } }",
+    })
+    class RestCase {
+      readonly items = signal<string[]>([]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(RestCase, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("empty");
+    app.root.instance.items.set(["a", "b", "c"]);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("a+2");
+    app.destroy();
+  });
+});
+
+describe("@case with an array literal pattern", () => {
+  test("[1, 2] matches only an array of exactly those items", async () => {
+    @Component({
+      selector: "tk-literal-array",
+      template: "@match value() { @case [1, 2] { yes } @default { no } }",
+    })
+    class LiteralArray {
+      readonly value = signal<unknown>([1, 2]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(LiteralArray, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("yes");
+    for (const value of ["x", [3, 2], [1, 2, 3]]) {
+      app.root.instance.value.set(value);
+      await tick();
+      expect(el.textContent!.trim())
+        .toBe("no");
+    }
+    app.destroy();
+  });
+});

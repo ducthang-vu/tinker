@@ -102,7 +102,7 @@ function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
     while (start < value.length && /\s/.test(value[start]!)) {
       start++;
     }
-    if (value[start] === "{") {
+    if (value[start] === "{" || value[start] === "[") {
       start = matchingBrace(value, start) + 1;
     }
   }
@@ -110,22 +110,36 @@ function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
 }
 
 /**
- * The body of a `@map`: the first `{` that does not open a `track { … }` pattern.
- * A `{` is a pattern when the header before it ends with `; track`.
+ * The body of a `@map`: the first `{` that does not open a pattern. A pattern is
+ * a `{` or `[` right after `let` or `track` (`let { id }`, `track { id }`), and
+ * it is skipped with its contents.
  */
 function mapBodyBrace(value: string, from: number): number {
   let search = from;
   for (;;) {
-    const brace = value.indexOf("{", search);
-    if (brace === -1 || !/;\s*track\s*$/.test(value.slice(from, brace))) {
-      return brace;
+    const open = value.slice(search)
+      .search(/[{[]/);
+    if (open === -1) {
+      return -1;
     }
-    search = matchingBrace(value, brace) + 1;
+    const at = search + open;
+    if (/(?:^|;)\s*(?:let|track)\s*$/.test(value.slice(from, at))) {
+      search = matchingBrace(value, at) + 1;
+    } else if (value[at] === "{") {
+      return at;
+    } else {
+      search = at + 1;
+    }
   }
 }
 
-/** The index of the `}` that closes the `{` at `open`, skipping quoted text. */
+/**
+ * The index of the bracket that closes the `{` or `[` at `open`, skipping quoted
+ * text. Only brackets of the same kind are counted.
+ */
 function matchingBrace(value: string, open: number): number {
+  const opener = value[open]!;
+  const closer = opener === "[" ? "]" : "}";
   let depth = 0;
   let quote: string | undefined;
   for (let i = open; i < value.length; i++) {
@@ -136,16 +150,16 @@ function matchingBrace(value: string, open: number): number {
       }
     } else if (char === "\"" || char === "'") {
       quote = char;
-    } else if (char === "{") {
+    } else if (char === opener) {
       depth++;
-    } else if (char === "}") {
+    } else if (char === closer) {
       depth--;
       if (depth === 0) {
         return i;
       }
     }
   }
-  throw new Error(`Missing "}" in the pattern`);
+  throw new Error(`Missing "${closer}" in the pattern`);
 }
 
 /** Read items until the end of the tokens, or, inside a block, its closing brace. */
