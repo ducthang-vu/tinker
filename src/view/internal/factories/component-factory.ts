@@ -64,6 +64,7 @@ import { Selector } from "../template/selector.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
+import { ViewQueries } from "../runtime/view-queries.ts";
 import type { View } from "../runtime/view.ts";
 
 /**
@@ -172,6 +173,7 @@ export class ComponentFactory {
       providers: [
         ...hostDirectives,
         type,
+        ViewQueries,
         provide(ElementRef, { useValue: new ElementRef(host) }),
         Effects,
         RenderHooks,
@@ -268,7 +270,8 @@ export class ComponentFactory {
         instance: inject(type),
       }));
       // The builder creates the template's child components with this factory.
-      const template = this.builders.create(instance, this);
+      const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
+      const template = this.builders.create(instance, this, queries);
       const rendered = template.build(this.templateOf(type, metadata), projected);
       return { instance, hostInstances, rendered, template };
     } catch (error) {

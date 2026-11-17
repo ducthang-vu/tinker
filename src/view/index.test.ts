@@ -22,6 +22,7 @@ test("the public API exports exactly these values", () => {
         "ChangeDetectionLoopError",
         "input",
         "output",
+        "viewChildren",
         "model",
         "Effects",
         "Effect",

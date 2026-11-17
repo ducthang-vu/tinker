@@ -8,7 +8,7 @@
 
 import { inject, Injectable } from "../../src/di/index.ts";
 import { computed, signal } from "../../src/signals/index.ts";
-import { Component, Directive, input } from "../../src/view/index.ts";
+import { Component, Directive, input, viewChildren } from "../../src/view/index.ts";
 import { Highlight } from "./highlight.ts";
 
 export interface Todo {
@@ -61,7 +61,7 @@ export class Toggle {
   template: `
     <h2>Todos</h2>
     @let total = store.todos().length;
-    <p>{{ store.done() }} of {{ total }} done</p>
+    <p>{{ store.done() }} of {{ total }} done, {{ toggles().length }} toggles on screen</p>
     <ul>
       @match store.todos() {
         @case [] { <li>Nothing to do</li> }
@@ -97,6 +97,8 @@ export class Toggle {
 })
 export class Todos {
   readonly store = inject(TodoStore);
+  /** The toggle directives in the list, in order: a query that follows the rows. */
+  readonly toggles = viewChildren(Toggle);
 
   add(): void {
     this.store.add();

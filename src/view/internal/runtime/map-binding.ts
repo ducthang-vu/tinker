@@ -11,6 +11,7 @@
 import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { Renderer } from "../renderer.ts";
+import type { ViewQueries } from "./view-queries.ts";
 import type { CompiledMap, CompiledNode } from "../template/compile.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { Scope } from "../template/scope.ts";
@@ -51,6 +52,7 @@ export class MapBinding implements Binding {
    * @param anchor The map's comment, after which the rows are placed.
    * @param renderer Creates the anchors and moves the rows.
    * @param render Renders a row.
+   * @param queries The component's view queries, told when the rows move.
    */
   constructor(
     private readonly node: CompiledMap,
@@ -59,6 +61,7 @@ export class MapBinding implements Binding {
     private readonly anchor: Comment,
     private readonly renderer: Renderer,
     private readonly render: RowRenderer,
+    private readonly queries: ViewQueries,
   ) {}
 
   /**
@@ -194,6 +197,7 @@ export class MapBinding implements Binding {
       }
       this.renderer.insertBefore(parent, row.anchor, this.anchor);
     }
+    this.queries.reordered();
   }
 
   private remove(row: Row): void {
