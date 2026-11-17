@@ -39,6 +39,8 @@ export type CompiledNode
 export interface CompiledDeclaration {
   readonly kind: "declaration";
   readonly name: string;
+  /** The `let-` names its context gives: `<template #name let-item>` has `item`. */
+  readonly names: readonly string[];
   readonly body: readonly CompiledNode[];
 }
 
@@ -508,16 +510,20 @@ function checkContainer(
   }
 }
 
-/** A `<template #name>`: its body. Its `let-` names are not supported yet. */
+/** A `<template #name>`: its body, and the `let-` names its context gives. */
 function declarationOf(
   node: ElementNode,
   name: string,
   candidates: readonly DirectiveCandidate[],
 ): CompiledDeclaration {
-  if (node.attributes.some((attribute) => attribute.name.startsWith("let-"))) {
-    throw new Error(`<template #${name}>: its let- names are not supported yet`);
+  const names = node.attributes
+    .filter((attribute) => attribute.name.startsWith("let-"))
+    .map((attribute) => attribute.name.slice("let-".length));
+  const invalid = names.find((letName) => !/^[A-Za-z_$][\w$]*$/.test(letName));
+  if (invalid !== undefined) {
+    throw new Error(`"let-${invalid}" on <template #${name}> is not a name`);
   }
-  return { kind: "declaration", name, body: compileTemplate(node.children, candidates) };
+  return { kind: "declaration", name, names, body: compileTemplate(node.children, candidates) };
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;

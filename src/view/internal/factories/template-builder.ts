@@ -415,6 +415,7 @@ export class TemplateBuilder {
     }
     const template = new TemplateRef(
       node.body,
+      node.names,
       this.scope,
       (body, scope, anchor, injector) => this.renderBranch(body, scope, anchor, injector),
     );

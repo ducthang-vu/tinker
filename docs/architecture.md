@@ -178,7 +178,11 @@ renders that template where its host is: `<tk-container [outlet]="name">`, or an
 element, and each outlet renders its own instance. An instance reads the names
 visible where the template was declared, as a closure does.
 
-Not built yet: the `let-` names and a context for each instance.
+`<template #name let-x>` declares the names its instances take. The outlet's
+`context` input (or `createEmbeddedView`'s second argument) gives each name its value.
+A changed context renders the instances again, rather than updating them in place.
+The framework's `$` variables still come from `@map` directly, not through this
+context.
 
 ## Glossary
 
