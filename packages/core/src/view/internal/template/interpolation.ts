@@ -7,7 +7,7 @@
 // strings[0] + value(expressions[0]) + strings[1] + ... A text without
 // `{{` has one string and no expressions.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either, type EitherError, pipe } from "@tinker/functional";
 import { type Expression, ExpressionParser } from "./expression.ts";
 
 export interface Interpolation {
@@ -31,8 +31,13 @@ export function parseInterpolation(text: string): EitherError<Interpolation> {
   }
   strings.push(rest);
   const parsed = sources.reduce<EitherError<Expression[]>>(
-    (all, source) => Either.flatMap(all, (expressions) =>
-      Either.map(ExpressionParser.parse(source), (e) => [...expressions, e])),
+    (all, source) => pipe(
+      all,
+      Either.flatMap((expressions) => pipe(
+        ExpressionParser.parse(source),
+        Either.map((e) => [...expressions, e]),
+      )),
+    ),
     Either.right([]),
   );
   return Either.map(parsed, (expressions) => ({ strings, expressions }));
