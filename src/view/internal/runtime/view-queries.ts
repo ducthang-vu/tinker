@@ -13,7 +13,8 @@ import { ElementRef } from "./element-ref.ts";
 
 interface Match {
   readonly instance: object;
-  readonly element: Element;
+  /** The element the instance is on, or the anchor of its container. */
+  readonly element: Node;
 }
 
 @Injectable()
@@ -23,7 +24,7 @@ export class ViewQueries {
   private readonly order = signal(0);
 
   /** Record `instance` on `element`. Returns what removes it again. */
-  add(instance: object, element: Element): () => void {
+  add(instance: object, element: Node): () => void {
     const match: Match = { instance, element };
     this.matches.update((matches) => [...matches, match]);
     return () => {
@@ -43,11 +44,15 @@ export class ViewQueries {
       .map((match) => match.instance as T));
   }
 
-  /** The elements of the instances of `type`, in document order, as ElementRefs. */
+  /**
+   * The elements of the instances of `type`, in document order, as ElementRefs.
+   * Instances on a container have no element, so they are not in the list.
+   */
   elementsOf<T extends object>(type: Class<T>): ReadonlySignal<readonly ElementRef[]> {
     const matches = this.matchesOf(type);
     return computed(() => matches()
-      .map((match) => new ElementRef(match.element)));
+      .filter((match) => match.element instanceof Element)
+      .map((match) => new ElementRef(match.element as Element)));
   }
 
   /** The first instance of `type` in document order, if there is one. */

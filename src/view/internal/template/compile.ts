@@ -121,6 +121,11 @@ export interface CompiledElement {
   readonly directives: readonly Class<object>[];
   /** The component matching this element, if any: the element is its host. */
   readonly component: Maybe<Class<object>>;
+  /**
+   * Whether it is a `<tk-container>`: a position with no element. Its directives
+   * and children are as on an element; it has only inputs, not host bindings.
+   */
+  readonly container: boolean;
 }
 
 /** A style or attribute binding: `name` gets the value of `expression`. */
@@ -409,7 +414,12 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     references,
   } = classifyAttributes(node);
   const matched = candidates.filter((candidate) =>
-    candidate.selector.matches({ name: node.name, attributes }));
+    candidate.selector.matches({
+      name: node.name,
+      // An input binding counts as an attribute of its name, as in Angular:
+      // [outlet] matches an [outlet] selector.
+      attributes: [...attributes, ...inputBindings.map(({ name }) => ({ name, value: "" }))],
+    }));
   const components = matched.filter(({ isComponent }) => isComponent);
   if (components.length > 1) {
     const names = components.map(({ type }) => type.name)
@@ -419,6 +429,11 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
   const component = Maybe.fromNullable(components[0]?.type);
   const directives = matched.filter(({ isComponent }) => !isComponent)
     .map(({ type }) => type);
+  const container = node.name === CONTAINER;
+  if (container) {
+    checkContainer(node, { classBindings, styleBindings, attributeBindings, outputBindings,
+      component, references });
+  }
   if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
     throw new Error(
       `[${inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
@@ -439,7 +454,41 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     references,
     directives,
     component,
+    container,
   };
+}
+
+/** The element name of a container: a position with no element, for directives. */
+const CONTAINER = "tk-container";
+
+/** A container has no element, so only inputs and directives can be on it. */
+function checkContainer(
+  node: ElementNode,
+  on: {
+    readonly classBindings: readonly ClassBindingNode[];
+    readonly styleBindings: readonly ValueBindingNode[];
+    readonly attributeBindings: readonly ValueBindingNode[];
+    readonly outputBindings: readonly OutputBindingNode[];
+    readonly component: Maybe<Class<object>>;
+    readonly references: readonly TemplateReference[];
+  },
+): void {
+  const bound = [
+    ...on.classBindings.map(({ name }) => `[class.${name}]`),
+    ...on.styleBindings.map(({ name }) => `[style.${name}]`),
+    ...on.attributeBindings.map(({ name }) => `[attr.${name}]`),
+    ...on.outputBindings.map(({ name }) => `(${name})`),
+  ][0];
+  if (bound !== undefined) {
+    throw new Error(`${bound} on <${node.name}>: a container has no element, so only inputs and directives can be on it`);
+  }
+  if (on.component.isSome()) {
+    throw new Error(`<${node.name}> cannot hold a component: it has no element`);
+  }
+  const named = on.references.find(({ target }) => target.kind === "element");
+  if (named !== undefined) {
+    throw new Error(`#${named.name} on <${node.name}>: a container has no element to name`);
+  }
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;

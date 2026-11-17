@@ -157,6 +157,19 @@ An `exportAs` that no directive on the element has, and `##` on an element with
 no component, are errors. These references are set once the directives on their
 element exist, so they are read in bindings after that, not while the element is built.
 
+## Containers
+
+`<tk-container>` is a position with no element. It renders its content, then a
+comment anchor, and the views its directives render go after that content. Its
+directives can take inputs and inject `ViewContainerRef` on the anchor. They cannot
+have host bindings or `ElementRef`, since there is no element. So the compiler
+rejects, on a container: class, style and attribute bindings, DOM event bindings,
+components, and `#name` references. A directive that needs an element, in its
+metadata, fails with an error when it is put on a container.
+
+A directive is on a `Placement`: an `ElementPlacement` (its element), or a
+`ContainerPlacement` (the container's anchor).
+
 ## Glossary
 
 - **Host**: the element a component is rendered into. Its `ElementRef` is
