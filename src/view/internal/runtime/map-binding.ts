@@ -91,37 +91,47 @@ export class MapBinding implements Binding {
     for (const row of this.rows) {
       previous.set(row.key, row);
     }
-    const created: Row[] = [];
-    const next = list.map((value, index) => {
-      const existing = previous.get(keys[index]!);
-      if (existing === undefined) {
-        const row = this.create(keys[index]!, value, index, list.length);
-        created.push(row);
-        return row;
+    // The row of each item that already has one, updated with its new values.
+    const existing = keys.map((key, index) => {
+      const row = previous.get(key);
+      if (row !== undefined) {
+        for (const [name, bound] of this.bindingsOf(list[index])) {
+          row.names.get(name)!.set(bound);
+        }
+        row.index.set(index);
+        row.count.set(list.length);
       }
-      previous.delete(keys[index]!);
-      for (const [name, bound] of this.bindingsOf(value)) {
-        existing.names.get(name)!.set(bound);
-      }
-      existing.index.set(index);
-      existing.count.set(list.length);
-      return existing;
+      return row;
     });
-    // What is left in `previous` has no item in the new list: its row goes.
-    const stale = new Set(previous.values());
-    for (const row of stale) {
-      this.remove(row);
+    // The rows with no item in the new list go.
+    const kept = new Set(existing.filter((row): row is Row => row !== undefined));
+    for (const row of this.rows) {
+      if (!kept.has(row)) {
+        this.remove(row);
+      }
     }
-    // The rows that stay, in their old order, against their new order: the
-    // rows are moved only when those differ, or when a row was created.
-    const survivors = this.rows.filter((row) => !stale.has(row));
-    const fresh = new Set(created);
-    const reused = next.filter((row) => !fresh.has(row));
-    const moved = reused.some((row, index) => row !== survivors[index]);
-    this.rows = next;
-    if (created.length > 0 || moved) {
+    // The rows that stayed, in their old order, against their new order.
+    const survivors = this.rows.filter((row) => kept.has(row));
+    const reused = existing.filter((row): row is Row => row !== undefined);
+    if (reused.some((row, index) => row !== survivors[index])) {
+      // A row changed place: every row is placed again, in the new order.
+      this.rows = list.map((value, index) =>
+        existing[index] ?? this.create(keys[index]!, value, index, list.length, this.anchor));
       this.placeRows();
+      return;
     }
+    // Only rows came or went: each new row is put just before the row after it,
+    // working from the end, so the rows that stayed are not moved.
+    const rows = new Array<Row>(list.length);
+    let before: Node = this.anchor;
+    for (let index = list.length - 1; index >= 0; index--) {
+      const row = existing[index]
+        ?? this.create(keys[index]!, list[index], index, list.length, before);
+      rows[index] = row;
+      // A row is its nodes, then its anchor: the row before starts where this one starts.
+      before = row.view.nodes[0] ?? row.anchor;
+    }
+    this.rows = rows;
   }
 
   /** What the item's pattern binds, or an error if the item does not match it. */
@@ -172,9 +182,15 @@ export class MapBinding implements Binding {
   }
 
   /** A new row, rendered in the DOM before its place is settled. */
-  private create(key: readonly unknown[], value: unknown, index: number, count: number): Row {
+  private create(
+    key: readonly unknown[],
+    value: unknown,
+    index: number,
+    count: number,
+    before: Node,
+  ): Row {
     const anchor = this.renderer.createComment("");
-    this.renderer.insertBefore(this.parent(), anchor, this.anchor);
+    this.renderer.insertBefore(this.parent(), anchor, before);
     const names = new Map(
       [...this.bindingsOf(value)].map(([name, bound]) => [name, signal(bound)]),
     );
