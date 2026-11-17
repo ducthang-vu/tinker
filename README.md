@@ -188,9 +188,9 @@ it is on purpose.
 npm install
 ```
 ```bash
-npx vite
+npm run dev
 ```
-Vite opens [`/examples/basics/`](examples/basics/).
+It opens the example app, [`examples/basics`](examples/basics/), which is a workspace package of its own that imports `@tinker/core`.
 
 | Script | |
 |---|---|

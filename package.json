@@ -4,12 +4,13 @@
   "description": "A tiny frontend framework, built to learn how frameworks work.",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run dev -w @tinker/example-basics",
     "build": "node node_modules/typescript7/bin/tsc -p packages/core/tsconfig.build.json",
-    "build:example": "vite build examples/basics --config vite.config.ts --base ./ --outDir ../../dist/example --emptyOutDir",
+    "build:example": "npm run build -w @tinker/example-basics",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "lint": "eslint .",
     "format": "eslint --fix .",
