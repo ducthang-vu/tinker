@@ -196,3 +196,48 @@ function element(
     children,
   };
 }
+
+describe("@map", () => {
+  test("a list, the name of its items, and the body", () => {
+    const [map] = compileTemplate([{ kind: "text", value: "@map todos(); let todo { x }" }]);
+    expect(map)
+      .toMatchObject({ kind: "map", item: "todo", track: undefined });
+    expect(map)
+      .toHaveProperty("list");
+    expect(map)
+      .toHaveProperty("body");
+  });
+
+  test("a track key is optional, and is compiled", () => {
+    const [map] = compileTemplate([{ kind: "text", value: "@map todos(); let todo; track todo.id { x }" }]);
+    expect(map)
+      .toMatchObject({ kind: "map", item: "todo" });
+    expect((map as { track?: unknown }).track)
+      .toBeDefined();
+  });
+
+  test("the header needs a list and a name, and the name is not a $ name", () => {
+    expect(() => compileTemplate([{ kind: "text", value: "@map todos() { x }" }]))
+      .toThrow("@map needs a list and a name");
+    expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let $x { x }" }]))
+      .toThrow("@map needs a list and a name");
+  });
+
+  test("the header has at most a track after the name", () => {
+    expect(() => compileTemplate([{ kind: "text", value: "@map a; let b; track c; d { x }" }]))
+      .toThrow("@map needs a list and a name");
+    expect(() => compileTemplate([{ kind: "text", value: "@map a; let b; key c { x }" }]))
+      .toThrow(`@map takes "track key" after the name`);
+  });
+
+  test("the list needs a value", () => {
+    expect(() => compileTemplate([{ kind: "text", value: "@map ; let b { x }" }]))
+      .toThrow("@map needs a value");
+  });
+
+  test("@mapping is text, not a block", () => {
+    const compiled = compileTemplate([{ kind: "text", value: "@mapping" }]);
+    expect(compiled)
+      .toEqual([{ kind: "text", interpolation: { strings: ["@mapping"], expressions: [] } }]);
+  });
+});

@@ -28,7 +28,22 @@ export type CompiledNode
     | CompiledText
     | CompiledSlot
     | CompiledLet
-    | CompiledMatch;
+    | CompiledMatch
+    | CompiledMap;
+
+/**
+ * A `@map`: its body is rendered once per item of `list`, in order. The item is
+ * named `item` in the body; the body also reads `$index`, `$first`, `$last`,
+ * `$even`, `$odd` and `$count`. `track` gives each item its identity (the
+ * index, when there is none).
+ */
+export interface CompiledMap {
+  readonly kind: "map";
+  readonly list: Expression;
+  readonly item: string;
+  readonly track?: Expression;
+  readonly body: readonly CompiledNode[];
+}
 
 /**
  * A `@match`, and so an `@if` (which is a match with one truthy case). The
@@ -171,8 +186,13 @@ function compileItems(
 }
 
 /** `@if` and `@else if` are a match with one truthy case; `@match` is a match with its cases. */
-function compileBlock(block: BlockItem, candidates: readonly DirectiveCandidate[]): CompiledMatch {
+function compileBlock(
+  block: BlockItem,
+  candidates: readonly DirectiveCandidate[],
+): CompiledMatch | CompiledMap {
   switch (block.keyword) {
+    case "map":
+      return compileMap(block, candidates);
     case "elseif":
       throw new Error("@else if must follow an @if");
     case "if":
@@ -217,6 +237,31 @@ function compileBlock(block: BlockItem, candidates: readonly DirectiveCandidate[
     case "else":
       throw new Error("@else must follow an @if");
   }
+}
+
+/**
+ * `@map list; let item` or `@map list; let item; track key`: the list, the name
+ * of its items, and the optional identity of each item.
+ */
+function compileMap(block: BlockItem, candidates: readonly DirectiveCandidate[]): CompiledMap {
+  const parts = block.header.split(";")
+    .map((part) => part.trim());
+  const [source, declaration, tracking] = parts;
+  const declared = /^let\s+([A-Za-z_][\w]*)$/.exec(declaration ?? "");
+  if (parts.length > 3 || source === undefined || !declared) {
+    throw new Error(`@map needs a list and a name, e.g. @map todos; let todo`);
+  }
+  const tracked = tracking === undefined ? undefined : /^track\s+([\s\S]+)$/.exec(tracking);
+  if (tracking !== undefined && !tracked) {
+    throw new Error(`@map takes "track key" after the name, e.g. track todo.id, got "${tracking}"`);
+  }
+  return {
+    kind: "map",
+    list: expressionOf({ ...block, header: source }),
+    item: declared![1]!,
+    track: tracked ? expressionOf({ ...block, header: tracked[1]! }) : undefined,
+    body: compileItems(block.body, candidates),
+  };
 }
 
 /** The condition of an `@if`: an expression in parentheses. */

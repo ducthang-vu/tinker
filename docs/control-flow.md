@@ -124,16 +124,21 @@ exists.
 | `@if (c) { A } @else { B }` | `@match c { @case truthy { A } @default { B } }` | done |
 | `@if (a) { A } @else if (b) { B } @else { C }` | `@match { @case _ when a { A } @case _ when b { B } @default { C } }` | done |
 
-## `@for`
+## `@map` (the list block)
+
+`@map` renders one row per item. It is named `@map` rather than `@for`.
 
 | Form | Meaning | Status |
 |---|---|---|
-| `@for (item of list) { ... }` | one embedded view per item, in order | later |
-| `track item.id` | keeps each item's view when the list changes | later |
-| `@empty { ... }` | shown when the list is empty | later |
-| `@for` with a pattern: `@for ({ id, title } of list)` | destructures each item | later |
+| `@map list(); let item { ... }` | one row per item, in order, the item named `item` | done |
+| `$index`, `$first`, `$last`, `$even`, `$odd`, `$count` | per-row variables, always in scope, reserved | done |
+| `@map list(); let item; track item.id { ... }` | the identity of each row; defaults to the index | done |
+| `track { id }` (a pattern as identity) | identity by some fields | later |
+| `@match list() { @case [] { ... } }` | shown when the list is empty | later, needs array patterns |
+| `let { id, title }` (destructured item) | names the fields of each item | later |
 
-`@for` needs an embedded view per item, and a scope that names the item.
+A row's item is a signal, set on each update, so a row updates in place when its
+item changes, and is recreated only when its identity leaves the list.
 
 ## Equality as sugar
 
@@ -154,7 +159,7 @@ working `@if` and `@match`, and it keeps every step testable on its own.
 4. **`@match` with a subject, and the patterns `truthy`, `falsy`, literals and
    `_`, with `@default`.** Then `@if` and `@else` as sugar for it.
 5. **Guards with `when`, and the subject-less form.** Done. `@else if` is done too (it nests).
-6. **`@for`**, with `track`, `@empty` and a scope for the item.
+6. **`@map`**, with `track`, the `$` variables, and an empty case.
 7. **Names and object patterns**, then arrays, then alternatives, `present`,
    ranges and `not`.
 
