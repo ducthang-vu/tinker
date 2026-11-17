@@ -15,6 +15,8 @@ import { ComponentRef, refOf } from "../component-ref.ts";
 import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import type { View } from "./view.ts";
+import type { EmbeddedView } from "./embedded-view.ts";
+import type { TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
 
 /** Creates view containers, with the app's component factory and renderer. */
@@ -47,6 +49,8 @@ export class ViewContainerRefFactory {
 
 export class ViewContainerRef {
   private readonly refs: ComponentRef<object>[] = [];
+  /** The instances of declared templates (`createEmbeddedView`), in the order they were made. */
+  private readonly embedded: EmbeddedView[] = [];
 
   /**
    * Created by ViewContainerRefFactory (e.g. through `engine.createViewContainer(anchor)`).
@@ -118,8 +122,24 @@ export class ViewContainerRef {
       .ifSome((ref) => ref.destroy());
   }
 
-  /** Destroy all components, last first. */
+  /**
+   * Render an instance of a template declared with `<template #name>`, at the end
+   * of the container: before its anchor, after what is already there.
+   */
+  createEmbeddedView(template: TemplateRef): EmbeddedView {
+    const view = template.instantiate(this.anchor, this.parentInjector);
+    this.embedded.push(view);
+    view.addDestroyCallback(() => {
+      this.embedded.splice(this.embedded.indexOf(view), 1);
+    });
+    return view;
+  }
+
+  /** Destroy all instances and components, last first. */
   clear(): void {
+    for (const view of [...this.embedded].reverse()) {
+      view.destroy();
+    }
     for (const ref of [...this.refs].reverse()) {
       ref.destroy();
     }

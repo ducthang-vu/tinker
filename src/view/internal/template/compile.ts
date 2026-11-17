@@ -29,7 +29,18 @@ export type CompiledNode
     | CompiledSlot
     | CompiledLet
     | CompiledMatch
-    | CompiledMap;
+    | CompiledMap
+    | CompiledDeclaration;
+
+/**
+ * A `<template #name>`: a template declared here, which renders nothing in place.
+ * Its body is rendered by each instance, given by the template reference `name`.
+ */
+export interface CompiledDeclaration {
+  readonly kind: "declaration";
+  readonly name: string;
+  readonly body: readonly CompiledNode[];
+}
 
 /**
  * A `@map`: its body is rendered once per item of `list`, in order. The item is
@@ -413,6 +424,12 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     attributeBindings,
     references,
   } = classifyAttributes(node);
+  const bound = [classBindings, styleBindings, attributeBindings, inputBindings, outputBindings]
+    .some((list) => list.length > 0);
+  if (node.name === "template" && !bound && references.length === 1
+    && references[0]!.target.kind === "element") {
+    return declarationOf(node, references[0]!.name, candidates);
+  }
   const matched = candidates.filter((candidate) =>
     candidate.selector.matches({
       name: node.name,
@@ -489,6 +506,18 @@ function checkContainer(
   if (named !== undefined) {
     throw new Error(`#${named.name} on <${node.name}>: a container has no element to name`);
   }
+}
+
+/** A `<template #name>`: its body. Its `let-` names are not supported yet. */
+function declarationOf(
+  node: ElementNode,
+  name: string,
+  candidates: readonly DirectiveCandidate[],
+): CompiledDeclaration {
+  if (node.attributes.some((attribute) => attribute.name.startsWith("let-"))) {
+    throw new Error(`<template #${name}>: its let- names are not supported yet`);
+  }
+  return { kind: "declaration", name, body: compileTemplate(node.children, candidates) };
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
