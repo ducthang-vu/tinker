@@ -11,6 +11,7 @@ import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { Renderer } from "../renderer.ts";
 import type { CompiledMap, CompiledNode } from "../template/compile.ts";
+import { KeyMap } from "./key-map.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { Scope } from "../template/scope.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
@@ -25,9 +26,9 @@ export type RowRenderer = (
   injector: Injector,
 ) => EmbeddedView;
 
-/** One item of the list, as a row on the page. */
+/** One item of the list, as a row on the page. Its key is the parts of its identity. */
 interface Row {
-  readonly key: unknown;
+  readonly key: readonly unknown[];
   readonly anchor: Comment;
   readonly view: EmbeddedView;
   readonly item: Signal<unknown>;
@@ -73,19 +74,26 @@ export class MapBinding implements Binding {
       throw new Error(`@map needs a list, got ${describe(list)}`);
     }
     const keys = list.map((value, index) => this.keyOf(value, index, list.length));
-    if (new Set(keys).size !== keys.length) {
-      throw new Error("The track of @map gives two items the same key");
+    const seen = new KeyMap<true>();
+    for (const key of keys) {
+      if (seen.has(key)) {
+        throw new Error("The track of @map gives two items the same key");
+      }
+      seen.set(key, true);
     }
-    const previous = new Map(this.rows.map((row) => [row.key, row] as const));
+    const previous = new KeyMap<Row>();
+    for (const row of this.rows) {
+      previous.set(row.key, row);
+    }
     const created: Row[] = [];
     const next = list.map((value, index) => {
-      const existing = previous.get(keys[index]);
+      const existing = previous.get(keys[index]!);
       if (existing === undefined) {
-        const row = this.create(keys[index], value, index, list.length);
+        const row = this.create(keys[index]!, value, index, list.length);
         created.push(row);
         return row;
       }
-      previous.delete(keys[index]);
+      previous.delete(keys[index]!);
       existing.item.set(value);
       existing.index.set(index);
       existing.count.set(list.length);
@@ -108,13 +116,20 @@ export class MapBinding implements Binding {
     }
   }
 
-  /** The identity of the item at `index`: its `track` value, or its index by default. */
-  private keyOf(value: unknown, index: number, count: number): unknown {
-    if (this.node.track === undefined) {
-      return index;
+  /**
+   * The identity of the item at `index`, as the parts it is made of: its index
+   * by default, the value of its `track` expression, or its `track { … }` fields.
+   */
+  private keyOf(value: unknown, index: number, count: number): readonly unknown[] {
+    const track = this.node.track;
+    if (track === undefined) {
+      return [index];
+    }
+    if (track.kind === "fields") {
+      return track.names.map((name) => fieldOf(value, name));
     }
     const lets = this.namesOf(computed(() => value), computed(() => index), computed(() => count));
-    return evaluate(this.node.track, new Scope(this.scope.component, lets));
+    return [evaluate(track.expression, new Scope(this.scope.component, lets))];
   }
 
   /** The names a row reads: the `@let`s above the map, its item, and its `$` variables. */
@@ -135,7 +150,7 @@ export class MapBinding implements Binding {
   }
 
   /** A new row, rendered in the DOM before its place is settled. */
-  private create(key: unknown, value: unknown, index: number, count: number): Row {
+  private create(key: readonly unknown[], value: unknown, index: number, count: number): Row {
     const anchor = this.renderer.createComment("");
     this.renderer.insertBefore(this.parent(), anchor, this.anchor);
     const item = signal(value);
@@ -189,4 +204,12 @@ function describe(value: unknown): string {
     return "a function: a signal is read with (), e.g. todos()";
   }
   return value === null ? "null" : typeof value;
+}
+
+/** A field of a track item: it must be an object with that field. */
+function fieldOf(value: unknown, name: string): unknown {
+  if (typeof value !== "object" || value === null || !(name in value)) {
+    throw new Error(`The track of @map needs the field "${name}" on each item`);
+  }
+  return (value as Record<string, unknown>)[name];
 }

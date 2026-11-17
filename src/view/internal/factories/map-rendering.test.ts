@@ -301,3 +301,100 @@ describe("@map errors", () => {
       .toThrow("a signal is read with ()");
   });
 });
+
+describe("@map with track { fields }", () => {
+  test("a row is identified by the fields together, so it keeps its element when moved", async () => {
+    @Component({
+      selector: "tk-fields",
+      template: "<ul>@map rows(); let row; track { id, kind } { <li>{{ row.id }}{{ row.kind }}</li> }</ul>",
+    })
+    class Fields {
+      readonly rows = signal([{ id: 1, kind: "a" }, { id: 1, kind: "b" }]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Fields, { host: el });
+    const [first, second] = [...el.querySelectorAll("li")];
+    app.root.instance.rows.set([{ id: 1, kind: "b" }, { id: 1, kind: "a" }]);
+    await tick();
+    expect(rows(el))
+      .toEqual(["1b", "1a"]);
+    expect([...el.querySelectorAll("li")])
+      .toEqual([second, first]);
+    app.destroy();
+  });
+
+  test("a row whose field values change is a different row", async () => {
+    @Component({
+      selector: "tk-fields-change",
+      template: "<ul>@map rows(); let row; track { id, kind } { <li>{{ row.kind }}</li> }</ul>",
+    })
+    class FieldsChange {
+      readonly rows = signal([{ id: 1, kind: "a" }]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(FieldsChange, { host: el });
+    const before = el.querySelector("li");
+    app.root.instance.rows.set([{ id: 1, kind: "b" }]);
+    await tick();
+    expect(rows(el))
+      .toEqual(["b"]);
+    expect(el.querySelector("li"))
+      .not.toBe(before);
+    app.destroy();
+  });
+
+  test("an object field is matched by reference, as ===", async () => {
+    const owner = { name: "Ana" };
+    @Component({
+      selector: "tk-object-field",
+      template: "<ul>@map rows(); let row; track { owner } { <li>{{ row.owner.name }}</li> }</ul>",
+    })
+    class ObjectField {
+      readonly rows = signal([{ owner }]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(ObjectField, { host: el });
+    const before = el.querySelector("li");
+    app.root.instance.rows.set([{ owner: { ...owner } }]);
+    await tick();
+    expect(el.querySelector("li"))
+      .not.toBe(before);
+    app.destroy();
+  });
+
+  test("two items with the same fields are an error", () => {
+    @Component({
+      selector: "tk-fields-dup",
+      template: "<ul>@map rows(); let row; track { id, kind } { <li>{{ row.id }}</li> }</ul>",
+    })
+    class FieldsDup {
+      readonly rows = signal([{ id: 1, kind: "a" }, { id: 1, kind: "a" }]);
+    }
+    expect(() => bootstrap(FieldsDup, { host: document.createElement("section") }))
+      .toThrow("two items the same key");
+  });
+
+  test("an item without one of the fields is an error that names it", () => {
+    @Component({
+      selector: "tk-fields-missing",
+      template: "<ul>@map rows(); let row; track { id, kind } { <li>{{ row.id }}</li> }</ul>",
+    })
+    class FieldsMissing {
+      readonly rows = signal<unknown[]>([{ id: 1 }]);
+    }
+    expect(() => bootstrap(FieldsMissing, { host: document.createElement("section") }))
+      .toThrow(`needs the field "kind" on each item`);
+  });
+
+  test("an item that is not an object has no fields", () => {
+    @Component({
+      selector: "tk-fields-primitive",
+      template: "<ul>@map rows(); let row; track { id } { <li>{{ row }}</li> }</ul>",
+    })
+    class FieldsPrimitive {
+      readonly rows = signal<unknown[]>(["a"]);
+    }
+    expect(() => bootstrap(FieldsPrimitive, { host: document.createElement("section") }))
+      .toThrow(`needs the field "id" on each item`);
+  });
+});
