@@ -71,10 +71,8 @@ export class ComponentView<T> implements View {
 
   /** The input `name` of `directive`, if the directive is in this view and has that input. */
   input(directive: object, name: string): Maybe<InputBinding<unknown>> {
-    return Maybe.from(this.directiveInputs.get(directive))
-      .flatMap((inputs) =>
-        Maybe.from(inputs.get(name)),
-      );
+    return Maybe.flatMap(Maybe.from(this.directiveInputs.get(directive)), (inputs) =>
+      Maybe.from(inputs.get(name)));
   }
 
   /**

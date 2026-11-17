@@ -6,6 +6,7 @@ import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -33,8 +34,7 @@ describe("directives in templates", () => {
     expect(seen)
       .toEqual(["p", "b"]);
     const p = view.host.nativeElement.querySelector("p")!;
-    expect(engine.getContext(p)
-      .map((context) => context.directives.length)
+    expect(Maybe.map(engine.getContext(p), (context) => context.directives.length)
       .getOrElse(0))
       .toBe(1);
   });
@@ -72,8 +72,7 @@ describe("directives in templates", () => {
     const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
-    const [counter] = engine.getContext(button)
-      .map((context) => context.directives)
+    const [counter] = Maybe.map(engine.getContext(button), (context) => context.directives)
       .getOrElse([]) as Counter[];
     expect(counter!.count)
       .toBe(2);
@@ -96,8 +95,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [validator, model] = engine.getContext(view.host.nativeElement.querySelector("input")!)
-      .map((context) => context.directives)
+    const [validator, model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
       .getOrElse([]) as [Validator, Model];
     expect(validator.model)
       .toBe(model);
@@ -124,11 +122,9 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [form] = engine.getContext(view.host.nativeElement.querySelector("form")!)
-      .map((context) => context.directives)
+    const [form] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("form")!), (context) => context.directives)
       .getOrElse([]) as [Form];
-    const [model] = engine.getContext(view.host.nativeElement.querySelector("input")!)
-      .map((context) => context.directives)
+    const [model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
       .getOrElse([]) as [Model];
     expect(model.form)
       .toBe(form);
@@ -151,8 +147,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [parent] = engine.getContext(view.host.nativeElement.querySelector("div")!)
-      .map((context) => context.directives)
+    const [parent] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("div")!), (context) => context.directives)
       .getOrElse([]) as [Parent];
     expect(parent.child)
       .toBeNull();
@@ -293,9 +288,9 @@ describe("directive providers", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const directivesOf = (element: Element) => engine.getContext(element)
-      .map((context) => context.directives)
-      .getOrElse([]);
+    const directivesOf = (element: Element) =>
+      Maybe.map(engine.getContext(element), (context) => context.directives)
+        .getOrElse([]);
     const [first, second] = [...view.host.nativeElement.querySelectorAll("div")];
     const [stateful, sibling] = directivesOf(first!) as [Stateful, Sibling];
     const [inner] = directivesOf(view.host.nativeElement.querySelector("p")!) as [Inner];
@@ -355,8 +350,7 @@ describe("directive providers", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     const p = view.host.nativeElement.querySelector("p")!;
-    const [first] = engine.getContext(p)
-      .map((context) => context.directives)
+    const [first] = Maybe.map(engine.getContext(p), (context) => context.directives)
       .getOrElse([]) as [First];
     expect(first.host.nativeElement)
       .toBe(p);
@@ -383,8 +377,7 @@ describe("ElementRef", () => {
     const view = engine.createComponent(A);
     document.body.append(view.host.nativeElement);
     const input = view.host.nativeElement.querySelector("input")!;
-    const [autofocus] = engine.getContext(input)
-      .map((context) => context.directives)
+    const [autofocus] = Maybe.map(engine.getContext(input), (context) => context.directives)
       .getOrElse([]) as [Autofocus];
     expect(autofocus.focus())
       .toBe("hi");
@@ -405,8 +398,7 @@ describe("ElementRef", () => {
     class X {}
     const engine = Engine.create();
     const view = engine.createComponent(X);
-    const [a, b] = engine.getContext(view.host.nativeElement.querySelector("p")!)
-      .map((context) => context.directives)
+    const [a, b] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
       .getOrElse([]) as [A, B];
     expect(a.host)
       .toBe(b.host);

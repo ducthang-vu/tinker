@@ -3,13 +3,14 @@
 //
 // Like Maybe and Task, it is a monad with the same vocabulary:
 //   Either.right(a)  wrap a value (a Right)
-//   either.map(f)     transform the success, if it is one
-//   either.flatMap(f) chain a step that may itself fail
+//   Either.map(e, f)  transform the success, if it is one, or Either.map(f) in a pipe
+//   Either.flatMap(e, f)  chain a step that may itself fail
 //   either.match({ left, right })  get out, handling both cases
 //
-//   Either.tryCatch(() => JSON.parse(text))
-//     .flatMap(validate)
-//     .match({ left: showError, right: render });
+//   pipe(
+//     Either.from(() => JSON.parse(text)),
+//     Either.flatMap(validate),
+//   ).match({ left: showError, right: render });
 
 import { Maybe } from "./maybe.ts";
 import { dual } from "./dual.ts";
@@ -96,7 +97,7 @@ export class Either<E, T> {
   }
 
   /** Transform the success, if it is one. */
-  map<U>(f: (value: T) => U): Either<E, U> {
+  private map<U>(f: (value: T) => U): Either<E, U> {
     return this.isRightSide
       ? Either.right(f(this.payload as T))
       : (this as unknown as Either<E, U>);
@@ -108,7 +109,7 @@ export class Either<E, T> {
   }
 
   /** Chain a step that may itself fail (the monad's bind). The error types add up. */
-  flatMap<F, U>(f: (value: T) => Either<F, U>): Either<E | F, U> {
+  private flatMap<F, U>(f: (value: T) => Either<F, U>): Either<E | F, U> {
     return this.isRightSide ? f(this.payload as T) : (this as unknown as Either<E, U>);
   }
 

@@ -30,12 +30,10 @@ export function parseInterpolation(text: string): EitherError<Interpolation> {
     rest = rest.slice(end + 2);
   }
   strings.push(rest);
-  return sources
-    .reduce<EitherError<Expression[]>>(
-      (parsed, source) =>
-        parsed.flatMap((expressions) => ExpressionParser.parse(source)
-          .map((e) => [...expressions, e])),
-      Either.right([]),
-    )
-    .map((expressions) => ({ strings, expressions }));
+  const parsed = sources.reduce<EitherError<Expression[]>>(
+    (all, source) => Either.flatMap(all, (expressions) =>
+      Either.map(ExpressionParser.parse(source), (e) => [...expressions, e])),
+    Either.right([]),
+  );
+  return Either.map(parsed, (expressions) => ({ strings, expressions }));
 }

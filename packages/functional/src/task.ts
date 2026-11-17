@@ -15,8 +15,8 @@
 //
 // Like Maybe and Either, it is a monad with the same vocabulary:
 //   Task.succeed(a)  a task that succeeds with `a`
-//   task.map(f)     transform the result
-//   task.flatMap(f) chain another task (cancelling cancels the current step)
+//   Task.map(t, f)  transform the result, or Task.map(f) in a pipe
+//   Task.flatMap(t, f)  chain another task (cancelling cancels the current step)
 //
 //   const cancel = Task.fromPromise((signal) => fetch(url, { signal }))
 //     .flatMap((response) => Task.fromPromise(() => response.json()))
@@ -139,13 +139,13 @@ export class Task<T, E = Error> {
   }
 
   /** Transform the result. An exception thrown by `f` fails the task. */
-  map<U>(f: (value: T) => U): Task<U, E | Error> {
-    return new Task(this.stream.map(f));
+  private map<U>(f: (value: T) => U): Task<U, E | Error> {
+    return new Task(Stream.map(this.stream, f));
   }
 
   /** Chain another task (the monad's bind). Cancelling cancels whichever step is running. */
-  flatMap<U, F>(f: (value: T) => Task<U, F>): Task<U, E | F | Error> {
-    return new Task(this.stream.flatMap((value) => f(value).stream));
+  private flatMap<U, F>(f: (value: T) => Task<U, F>): Task<U, E | F | Error> {
+    return new Task(Stream.flatMap(this.stream, (value) => f(value).stream));
   }
 
   /** Fail with a TimeoutError if the task takes longer than `milliseconds` (and cancel it). */

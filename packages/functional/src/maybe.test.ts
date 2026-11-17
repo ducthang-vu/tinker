@@ -40,27 +40,20 @@ describe("Maybe", () => {
   });
 
   test("map transforms a Some and leaves None alone", () => {
-    expect(show(Maybe.some(2)
-      .map((n) => n * 10)))
+    expect(show(Maybe.map(Maybe.some(2), (n) => n * 10)))
       .toEqual(["some", 20]);
-    expect(show(Maybe.none<number>()
-      .map((n) => n * 10)))
+    expect(show(Maybe.map(Maybe.none<number>(), (n) => n * 10)))
       .toEqual(["none"]);
   });
 
   test("flatMap chains, and None short-circuits", () => {
     const half = (n: number) => (n % 2 === 0 ? Maybe.some(n / 2) : Maybe.none<number>());
-    expect(show(Maybe.some(8)
-      .flatMap(half)
-      .flatMap(half)))
+    expect(show(Maybe.flatMap(Maybe.flatMap(Maybe.some(8), half), half)))
       .toEqual(["some", 2]);
-    expect(show(Maybe.some(6)
-      .flatMap(half)
-      .flatMap(half)))
+    expect(show(Maybe.flatMap(Maybe.flatMap(Maybe.some(6), half), half)))
       .toEqual(["none"]);
     let called = false;
-    Maybe.none<number>()
-      .flatMap((n) => ((called = true), Maybe.some(n)));
+    Maybe.flatMap(Maybe.none<number>(), (n) => ((called = true), Maybe.some(n)));
     expect(called)
       .toBe(false);
   });
@@ -152,20 +145,17 @@ describe("Maybe", () => {
     const values = [Maybe.some(3), Maybe.some(-1), Maybe.none<number>()];
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      for (const a of [3, -1]) expect(show(Maybe.some(a)
-        .flatMap(f)))
+      for (const a of [3, -1]) expect(show(Maybe.flatMap(Maybe.some(a), f)))
         .toEqual(show(f(a)));
     });
     test("right identity: m.flatMap(of) = m", () => {
-      for (const m of values) expect(show(m.flatMap(Maybe.some)))
+      for (const m of values) expect(show(Maybe.flatMap(m, Maybe.some)))
         .toEqual(show(m));
     });
     test("associativity", () => {
       for (const m of values) {
-        expect(show(m.flatMap(f)
-          .flatMap(g)))
-          .toEqual(show(m.flatMap((x) => f(x)
-            .flatMap(g))));
+        expect(show(Maybe.flatMap(Maybe.flatMap(m, f), g)))
+          .toEqual(show(Maybe.flatMap(m, (x) => Maybe.flatMap(f(x), g))));
       }
     });
   });

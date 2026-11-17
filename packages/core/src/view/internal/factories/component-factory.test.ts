@@ -18,6 +18,7 @@ import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
 import { Ticker } from "../runtime/ticker.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
+import { Maybe } from "@tinker/functional";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory(overrides: readonly Provider[] = []) {
@@ -73,8 +74,7 @@ describe("ComponentFactory", () => {
       .toBe("<p>a</p>");
     expect(view.component)
       .toBeInstanceOf(A);
-    expect(contexts.get(host)
-      .flatMap((context) => context.componentView)
+    expect(Maybe.flatMap(contexts.get(host), (context) => context.componentView)
       .getOrElse(undefined))
       .toBe(view);
   });

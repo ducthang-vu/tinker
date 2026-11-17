@@ -5,6 +5,7 @@ import { InputNotBoundError, inputsOf } from "./input.ts";
 import { model } from "./model.ts";
 import { outputsOf } from "./output.ts";
 import { Engine } from "../engine.ts";
+import { Maybe } from "@tinker/functional";
 
 /** Subscribe to the `valueChange` output of `owner`, recording the values. */
 function hear(owner: object): unknown[] {
@@ -118,9 +119,10 @@ describe("two-way binding in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(Form);
     const itemHost = view.host.nativeElement.querySelector("tk-item")!;
-    const item = engine.getContext(itemHost)
-      .flatMap((context) => context.componentView)
-      .map((child) => child.component as Item)
+    const item = Maybe.map(
+      Maybe.flatMap(engine.getContext(itemHost), (context) => context.componentView),
+      (child) => child.component as Item,
+    )
       .getOrThrow(() => new Error("no item"));
     return { engine, form: view, item, span: itemHost.querySelector("span")! };
   }
@@ -182,8 +184,7 @@ describe("two-way binding in templates", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [pick] = engine.getContext(view.host.nativeElement.querySelector("button")!)
-      .map((context) => context.directives)
+    const [pick] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives)
       .getOrElse([]) as [Pick];
     expect(pick!.value())
       .toBe("first");

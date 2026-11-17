@@ -6,6 +6,7 @@ import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import type { Class } from "../../../utils/types.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -13,9 +14,10 @@ afterEach(() => {
 
 /** The component on `element`, through the engine's context. */
 function componentOn<T>(engine: Engine, element: Element): T {
-  return engine.getContext(element)
-    .flatMap((context) => context.componentView)
-    .map((view) => view.component as T)
+  return Maybe.map(
+    Maybe.flatMap(engine.getContext(element), (context) => context.componentView),
+    (view) => view.component as T,
+  )
     .getOrThrow(() => new Error("no component on the element"));
 }
 

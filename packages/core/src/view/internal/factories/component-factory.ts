@@ -157,8 +157,7 @@ export class ComponentFactory {
   ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
-    if (this.contexts.get(host)
-      .flatMap((existing) => existing.componentView)
+    if (Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
       .isSome()) {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }

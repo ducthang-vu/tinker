@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ComponentRef } from "../component-ref.ts";
+import { Maybe } from "@tinker/functional";
 
 let tracked = 0;
 const order: number[] = [];
@@ -49,9 +50,10 @@ describe("ViewContainerRef", () => {
       .toEqual(["header", "item0", "item1", "#anchor", "footer"]);
     expect(a.host.nativeElement.innerHTML)
       .toBe("<span>item</span>");
-    expect(engine.getContext(a.host.nativeElement)
-      .flatMap((context) => context.componentView)
-      .map((componentView) => componentView.host)
+    expect(Maybe.map(
+      Maybe.flatMap(engine.getContext(a.host.nativeElement), (context) => context.componentView),
+      (componentView) => componentView.host,
+    )
       .getOrElse(undefined))
       .toBe(a.host.nativeElement);
   });

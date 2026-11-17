@@ -2,8 +2,8 @@
 //
 // Like Either and Task, it is a monad with the same vocabulary:
 //   Maybe.some(a)    wrap a value (a Some)
-//   maybe.map(f)     transform the value, if there is one
-//   maybe.flatMap(f) chain a step that may itself produce nothing
+//   Maybe.map(m, f)  transform the value, if there is one, or Maybe.map(f) in a pipe
+//   Maybe.flatMap(m, f)  chain a step that may itself produce nothing
 //   maybe.match({ some, none })  get out, handling both cases
 //
 //   Maybe.from(user.address)
@@ -69,12 +69,12 @@ export class Maybe<T> {
   }
 
   /** Transform the value, if there is one. */
-  map<U>(f: (value: T) => U): Maybe<U> {
+  private map<U>(f: (value: T) => U): Maybe<U> {
     return this.present ? Maybe.some(f(this.value)) : Maybe.none();
   }
 
   /** Chain a step that may itself produce nothing (the monad's bind). */
-  flatMap<U>(f: (value: T) => Maybe<U>): Maybe<U> {
+  private flatMap<U>(f: (value: T) => Maybe<U>): Maybe<U> {
     return this.present ? f(this.value) : Maybe.none();
   }
 

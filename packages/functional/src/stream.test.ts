@@ -246,8 +246,7 @@ describe("Stream", () => {
 
   describe("map", () => {
     test("transforms what the stream ends with; items pass through", () => {
-      expect(record(counting()
-        .map((r) => r.toUpperCase())).log)
+      expect(record(Stream.map(counting(), (r) => r.toUpperCase())).log)
         .toEqual([
           ["item", "right", 1],
           ["item", "right", 2],
@@ -258,8 +257,7 @@ describe("Stream", () => {
 
     test("a failure passes through, and f does not run", () => {
       let ran = false;
-      const mapped = Stream.fail("bad")
-        .map(() => (ran = true));
+      const mapped = Stream.map(Stream.fail("bad"), () => (ran = true));
       expect(record(mapped).log)
         .toEqual([["end", "left", "bad"]]);
       expect(ran)
@@ -267,10 +265,9 @@ describe("Stream", () => {
     });
 
     test("an exception thrown by f ends the stream with a failure", () => {
-      const mapped = Stream.end(1)
-        .map(() => {
-          throw new Error("f failed");
-        });
+      const mapped = Stream.map(Stream.end(1), () => {
+        throw new Error("f failed");
+      });
       expect((record(mapped).log[0] as [string, string, Error])[2].message)
         .toBe("f failed");
     });
@@ -291,8 +288,8 @@ describe("Stream", () => {
 
   describe("flatMap", () => {
     test("runs the second stream when the first ends, delivering both streams' items in order", () => {
-      const chained = counting()
-        .flatMap((r) => Stream.from<string, number, never>((sink) => {
+      const chained = Stream.flatMap(counting(), (r) =>
+        Stream.from<string, number, never>((sink) => {
           sink.next(Either.right(`after ${r}`));
           sink.end(Either.right(42));
         }));
@@ -308,11 +305,10 @@ describe("Stream", () => {
 
     test("a failed end short-circuits: f never runs", () => {
       let ran = false;
-      const chained = Stream.fail("bad")
-        .flatMap(() => {
-          ran = true;
-          return Stream.end(1);
-        });
+      const chained = Stream.flatMap(Stream.fail("bad"), () => {
+        ran = true;
+        return Stream.end(1);
+      });
       expect(record(chained).log)
         .toEqual([["end", "left", "bad"]]);
       expect(ran)
@@ -324,15 +320,14 @@ describe("Stream", () => {
         sink.next(Either.left("item failed"));
         sink.end(Either.right("go on"));
       });
-      expect(record(first.flatMap((r) => Stream.end(r.length))).log)
+      expect(record(Stream.flatMap(first, (r) => Stream.end(r.length))).log)
         .toEqual([["item", "left", "item failed"], ["end", "right", 5]]);
     });
 
     test("an exception thrown by f ends the stream with a failure", () => {
-      const chained = Stream.end(1)
-        .flatMap(() => {
-          throw new Error("f failed");
-        });
+      const chained = Stream.flatMap(Stream.end(1), () => {
+        throw new Error("f failed");
+      });
       expect((record(chained).log[0] as [string, string, Error])[2].message)
         .toBe("f failed");
     });
@@ -340,7 +335,7 @@ describe("Stream", () => {
     test("cancelling cancels whichever stream is running", () => {
       const first = manual<number, string, never>();
       const second = manual<number, string, never>();
-      const chained = first.stream.flatMap(() => second.stream);
+      const chained = Stream.flatMap(first.stream, () => second.stream);
 
       const early = record(chained);
       early.cancel();
@@ -373,38 +368,28 @@ describe("Stream", () => {
     });
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      expect(record(Stream.end("abc")
-        .flatMap(f)).log)
+      expect(record(Stream.flatMap(Stream.end("abc"), f)).log)
         .toEqual(record(f("abc")).log);
     });
 
     test("right identity: m.flatMap(of) = m, a failed end included", () => {
-      expect(record(counting()
-        .flatMap(Stream.end)).log)
+      expect(record(Stream.flatMap(counting(), Stream.end)).log)
         .toEqual(record(counting()).log);
-      expect(record(failing.flatMap(Stream.end)).log)
+      expect(record(Stream.flatMap(failing, Stream.end)).log)
         .toEqual(record(failing).log);
     });
 
     test("associativity: m.flatMap(f).flatMap(g) = m.flatMap(x => f(x).flatMap(g))", () => {
-      expect(record(counting()
-        .flatMap(f)
-        .flatMap(g)).log)
-        .toEqual(record(counting()
-          .flatMap((x) => f(x)
-            .flatMap(g))).log);
-      expect(record(failing.flatMap(f)
-        .flatMap(g)).log)
-        .toEqual(record(failing.flatMap((x) => f(x)
-          .flatMap(g))).log);
+      expect(record(Stream.flatMap(Stream.flatMap(counting(), f), g)).log)
+        .toEqual(record(Stream.flatMap(counting(), (x) => Stream.flatMap(f(x), g))).log);
+      expect(record(Stream.flatMap(Stream.flatMap(failing, f), g)).log)
+        .toEqual(record(Stream.flatMap(failing, (x) => Stream.flatMap(f(x), g))).log);
     });
 
     test("map is flatMap with of: m.map(h) = m.flatMap(x => of(h(x)))", () => {
       const h = (r: string) => r.length;
-      expect(record(counting()
-        .map(h)).log)
-        .toEqual(record(counting()
-          .flatMap((r) => Stream.end(h(r)))).log);
+      expect(record(Stream.map(counting(), h)).log)
+        .toEqual(record(Stream.flatMap(counting(), (r) => Stream.end(h(r)))).log);
     });
   });
 });

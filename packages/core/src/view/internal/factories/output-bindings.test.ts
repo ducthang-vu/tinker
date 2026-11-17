@@ -3,6 +3,7 @@ import { inject } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { output, type Output } from "../authoring/output.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -94,8 +95,7 @@ describe("output bindings in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     const button = view.host.nativeElement.querySelector("button")!;
-    const [pick] = engine.getContext(button)
-      .map((context) => context.directives)
+    const [pick] = Maybe.map(engine.getContext(button), (context) => context.directives)
       .getOrElse([]) as [Pick];
     button.click();
     view.destroy();
@@ -256,8 +256,7 @@ describe("output bindings in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [pick, relay] = engine.getContext(view.host.nativeElement.querySelector("button")!)
-      .map((context) => context.directives)
+    const [pick, relay] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives)
       .getOrElse([]) as [Pick, Relay];
     expect(relay.pick)
       .toBe(pick);

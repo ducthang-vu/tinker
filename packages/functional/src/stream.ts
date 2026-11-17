@@ -15,8 +15,8 @@
 // Like Maybe, Either and Task it is a monad with the same vocabulary, and
 // the monad is on the END, not on the items (as in Haskell's `streaming`):
 //   Stream.end(r)       no items, ends with `r`
-//   stream.map(f)       transform what it ends with
-//   stream.flatMap(f)   run this stream, then the one `f` makes from its end
+//   Stream.map(s, f)    transform what it ends with, or Stream.map(f) in a pipe
+//   Stream.flatMap(s, f)  run this stream, then the one `f` makes from its end
 //
 // So a Task is the special case of a stream with no items: it only ends, with
 // its outcome. Failures short-circuit, as in Either: if this stream ends
@@ -230,12 +230,12 @@ export class Stream<T, R = void, E = Error> {
    * Transform what the stream ends with; items, and a failure, pass through.
    * An exception thrown by `f` ends the stream with a failure.
    */
-  map<R2>(f: (result: R) => R2): Stream<T, R2, E | Error> {
+  private map<R2>(f: (result: R) => R2): Stream<T, R2, E | Error> {
     return Stream.make<T, R2, E | Error>((sink) =>
       this.subscribe({
         next: (item) => sink.next(item),
         end: (result) =>
-          sink.end(result.flatMap((value) => Either.from(() => f(value)))),
+          sink.end(Either.flatMap(result, (value) => Either.from(() => f(value)))),
       }));
   }
 
@@ -255,7 +255,7 @@ export class Stream<T, R = void, E = Error> {
    * runs. An exception thrown by `f` ends the stream with a failure.
    * Cancelling cancels whichever stream is running.
    */
-  flatMap<T2, R2, F>(
+  private flatMap<T2, R2, F>(
     f: (result: R) => Stream<T2, R2, F>,
   ): Stream<T | T2, R2, E | F | Error> {
     return Stream.make<T | T2, R2, E | F | Error>((sink) => {

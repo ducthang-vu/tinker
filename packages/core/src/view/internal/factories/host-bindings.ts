@@ -109,9 +109,8 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
     ));
   }
   const kind = match[1] === "attr" ? "attribute" : (match[1] as "class" | "style");
-  return ExpressionParser.parse(value)
-    .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`))
-    .map((expression) => ({ kind, name: match[2]!, expression }));
+  return Either.map(ExpressionParser.parse(value)
+    .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`)), (expression) => ({ kind, name: match[2]!, expression }));
 }
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
@@ -123,10 +122,6 @@ function parseListener(key: string, handler: string): EitherError<HostListener> 
         + "\"[style.name]\" and \"[attr.name]\" bindings are supported for now",
       ),
     );
-  return source
-    .flatMap((name) => parseEventName(name, `host listener "${key}"`))
-    .flatMap((listener) =>
-      parseHandler(handler, "host handler")
-        .map((parsed) => ({ ...listener, handler: parsed })),
-    );
+  return Either.flatMap(Either.flatMap(source, (name) => parseEventName(name, `host listener "${key}"`)), (listener) =>
+    Either.map(parseHandler(handler, "host handler"), (parsed) => ({ ...listener, handler: parsed })));
 }

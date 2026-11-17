@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Either } from "./either.ts";
-import type { Stream } from "./stream.ts";
+import { Stream } from "./stream.ts";
 import { Task, TimeoutError } from "./task.ts";
 
 /** Run a task and record what happens (synchronously, or after timers/promises). */
@@ -77,29 +77,26 @@ describe("Task", () => {
   });
 
   test("map transforms the result; an error in f fails the task", () => {
-    expect(record(Task.succeed(2)
-      .map((n) => n * 10)).log)
+    expect(record(Task.map(Task.succeed(2), (n) => n * 10)).log)
       .toEqual([["ok", 20]]);
-    expect(record(Task.fail("e")
-      .map((n) => n * 10)).log)
+    expect(record(Task.map(Task.fail("e"), (n) => n * 10)).log)
       .toEqual([["error", "e"]]);
-    expect(failure(record(Task.succeed(2)
-      .map(() => { throw "in f"; })).log))
+    expect(failure(record(Task.map(Task.succeed(2), () => {
+      throw "in f";
+    })).log))
       .toEqual({ message: "in f", cause: "in f" });
   });
 
   test("flatMap chains tasks; errors anywhere fail the whole", () => {
-    expect(record(Task.succeed(2)
-      .flatMap((n) => Task.succeed(n + 1))).log)
+    expect(record(Task.flatMap(Task.succeed(2), (n) => Task.succeed(n + 1))).log)
       .toEqual([["ok", 3]]);
-    expect(record(Task.fail("first")
-      .flatMap((n) => Task.succeed(n))).log)
+    expect(record(Task.flatMap(Task.fail("first"), (n) => Task.succeed(n))).log)
       .toEqual([["error", "first"]]);
-    expect(record(Task.succeed(2)
-      .flatMap(() => Task.fail("second"))).log)
+    expect(record(Task.flatMap(Task.succeed(2), () => Task.fail("second"))).log)
       .toEqual([["error", "second"]]);
-    expect(failure(record(Task.succeed(2)
-      .flatMap(() => { throw "in f"; })).log))
+    expect(failure(record(Task.flatMap(Task.succeed(2), () => {
+      throw "in f";
+    })).log))
       .toEqual({ message: "in f", cause: "in f" });
   });
 
@@ -125,20 +122,17 @@ describe("Task", () => {
     const outcome = <T, E>(t: Task<T, E>) => record(t).log;
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      for (const a of [3, -1]) expect(outcome(Task.succeed(a)
-        .flatMap(f)))
+      for (const a of [3, -1]) expect(outcome(Task.flatMap(Task.succeed(a), f)))
         .toEqual(outcome(f(a)));
     });
     test("right identity: m.flatMap(of) = m", () => {
-      for (const m of tasks) expect(outcome(m.flatMap(Task.succeed)))
+      for (const m of tasks) expect(outcome(Task.flatMap(m, Task.succeed)))
         .toEqual(outcome(m));
     });
     test("associativity", () => {
       for (const m of tasks) {
-        expect(outcome(m.flatMap(f)
-          .flatMap(g)))
-          .toEqual(outcome(m.flatMap((x) => f(x)
-            .flatMap(g))));
+        expect(outcome(Task.flatMap(Task.flatMap(m, f), g)))
+          .toEqual(outcome(Task.flatMap(m, (x) => Task.flatMap(f(x), g))));
       }
     });
   });
@@ -175,13 +169,11 @@ describe("Task as a stream", () => {
   test("flatMap is the stream's: a task's flatMap and its stream's flatMap agree", () => {
     const viaTask: unknown[] = [];
     const viaStream: unknown[] = [];
-    Task.succeed(2)
-      .flatMap((n) => Task.succeed(n * 10))
+    Task.flatMap(Task.succeed(2), (n) => Task.succeed(n * 10))
       .run({ ok: (n) => viaTask.push(n) });
-    Task.succeed(2)
-      .toStream()
-      .flatMap((n) => Task.succeed(n * 10)
-        .toStream())
+    Stream.flatMap(Task.succeed(2)
+      .toStream(), (n) => Task.succeed(n * 10)
+      .toStream())
       .run({ ok: (n) => viaStream.push(n) });
     expect(viaTask)
       .toEqual([20]);
@@ -195,8 +187,7 @@ describe("Task with time", () => {
   afterEach(() => vi.useRealTimers());
 
   test("delay succeeds after the time; cancelling clears the timer", () => {
-    const { log } = record(Task.delay(100)
-      .map(() => "done"));
+    const { log } = record(Task.map(Task.delay(100), () => "done"));
     vi.advanceTimersByTime(99);
     expect(log)
       .toEqual([]);
@@ -215,10 +206,7 @@ describe("Task with time", () => {
 
   test("cancelling a flatMap cancels whichever step is running", () => {
     const steps: string[] = [];
-    const task = Task.delay(100)
-      .map(() => steps.push("first done"))
-      .flatMap(() => Task.delay(100)
-        .map(() => steps.push("second done")));
+    const task = Task.flatMap(Task.map(Task.delay(100), () => steps.push("first done")), () => Task.map(Task.delay(100), () => steps.push("second done")));
 
     const early = record(task);
     early.cancel(); // during the first step
@@ -245,8 +233,7 @@ describe("Task with time", () => {
 
   test("timeout: fails with a TimeoutError and cancels a slow task", () => {
     let finished = false;
-    const slow = Task.delay(1000)
-      .map(() => (finished = true));
+    const slow = Task.map(Task.delay(1000), () => (finished = true));
     const { log } = record(slow.timeout(100));
     vi.advanceTimersByTime(100);
     expect(log)
@@ -266,8 +253,7 @@ describe("Task with time", () => {
   });
 
   test("timeout: a fast task wins, and its errors pass through", () => {
-    const fast = record(Task.delay(50)
-      .map(() => "fast")
+    const fast = record(Task.map(Task.delay(50), () => "fast")
       .timeout(100));
     vi.advanceTimersByTime(50);
     expect(fast.log)

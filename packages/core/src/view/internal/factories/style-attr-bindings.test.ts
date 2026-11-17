@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -69,8 +70,7 @@ describe("style and attribute bindings in host bindings", () => {
     const p = view.host.nativeElement.querySelector("p")!;
     expect([p.style.opacity, p.getAttribute("role")])
       .toEqual(["0.25", "status"]);
-    const [fade] = engine.getContext(p)
-      .map((context) => context.directives)
+    const [fade] = Maybe.map(engine.getContext(p), (context) => context.directives)
       .getOrElse([]) as [Fade];
     fade!.opacity.set("1");
     fade!.role.set(undefined);
