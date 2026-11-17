@@ -15,7 +15,12 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "rewriteRelativeImportExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@tinker/*": [
+        "./packages/*/src/index.ts"
+      ]
+    }
   },
   "include": [
     "src",

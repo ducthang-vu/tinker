@@ -35,6 +35,10 @@ function standardDecorators(): Plugin {
 
 export default defineConfig({
   plugins: [standardDecorators()],
+  // A workspace package (`@tinker/<name>`) is read from its source, not from an install.
+  resolve: {
+    alias: [{ find: /^@tinker\/(.+)$/, replacement: new URL("./packages/$1/src/index.ts", import.meta.url).pathname }],
+  },
   server: {
     open: "/examples/basics/",
   },
