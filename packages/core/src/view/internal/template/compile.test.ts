@@ -373,4 +373,14 @@ describe("template references", () => {
     expect(() => element([{ name: "##item", value: "x" }]))
       .toThrow("takes no value");
   });
+
+  test("a let- name cannot start with $, which the framework reserves", () => {
+    expect(() => compileTemplate([{
+      kind: "element",
+      name: "template",
+      attributes: [{ name: "#row", value: "" }, { name: "let-$index", value: "" }],
+      children: [],
+    }]))
+      .toThrow("names starting with $ are the framework's");
+  });
 });

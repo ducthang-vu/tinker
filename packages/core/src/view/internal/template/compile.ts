@@ -519,7 +519,11 @@ function declarationOf(
   const names = node.attributes
     .filter((attribute) => attribute.name.startsWith("let-"))
     .map((attribute) => attribute.name.slice("let-".length));
-  const invalid = names.find((letName) => !/^[A-Za-z_$][\w$]*$/.test(letName));
+  const reserved = names.find((letName) => letName.startsWith("$"));
+  if (reserved !== undefined) {
+    throw new Error(`"let-${reserved}" on <template #${name}>: names starting with $ are the framework's`);
+  }
+  const invalid = names.find((letName) => !/^[A-Za-z_][\w$]*$/.test(letName));
   if (invalid !== undefined) {
     throw new Error(`"let-${invalid}" on <template #${name}> is not a name`);
   }

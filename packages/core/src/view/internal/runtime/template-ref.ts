@@ -5,9 +5,10 @@
 // closure does.
 
 import type { Injector } from "../../../di/index.ts";
-import { signal } from "../../../signals/index.ts";
+import type { ReadonlySignal } from "../../../signals/index.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";
+import { type Context, scopeWith } from "./context.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 
 /** Renders an instance: its body, its scope, the anchor it goes before, and the injector. */
@@ -18,7 +19,7 @@ export type InstanceRenderer = (
   injector: Injector,
 ) => EmbeddedView;
 
-/** The values an instance is given, by the `let-` names the template declared. */
+/** The plain values a caller gives an instance, by the `let-` names it declares. */
 export type TemplateContext = Readonly<Record<string, unknown>>;
 
 export class TemplateRef {
@@ -35,16 +36,20 @@ export class TemplateRef {
     private readonly render: InstanceRenderer,
   ) {}
 
-  /** Render an instance before `anchor`, under `injector`, with `context` for its `let-` names. */
-  instantiate(anchor: Node, injector: Injector, context: TemplateContext): EmbeddedView {
-    const missing = this.names.find((name) => !(name in context));
-    if (missing !== undefined) {
-      throw new Error(`The context has no "${missing}", which the template declares with let-${missing}`);
-    }
-    const lets = new Map(this.declared.lets);
+  /**
+   * Render an instance before `anchor`, under `injector`. Each `let-` name it declares
+   * is read from `context`; the rest of the context is not visible to it.
+   */
+  instantiate(anchor: Node, injector: Injector, context: Context): EmbeddedView {
+    const given = new Map<string, ReadonlySignal<unknown>>();
     for (const name of this.names) {
-      lets.set(name, signal(context[name]));
+      const entry = context.get(name);
+      if (entry === undefined) {
+        throw new Error(`The context has no "${name}", which the template declares with let-${name}`);
+      }
+      given.set(name, entry);
     }
-    return this.render(this.body, new Scope(this.declared.component, lets), anchor, injector);
+    const scope = scopeWith(this.declared.component, this.declared.lets, given);
+    return this.render(this.body, scope, anchor, injector);
   }
 }

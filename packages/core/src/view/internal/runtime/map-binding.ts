@@ -15,6 +15,7 @@ import type { ViewQueries } from "./view-queries.ts";
 import type { CompiledMap, CompiledNode } from "../template/compile.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { Scope } from "../template/scope.ts";
+import { type Context, scopeWith } from "./context.ts";
 import { match } from "./match-binding.ts";
 import { KeyMap } from "./key-map.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
@@ -158,27 +159,31 @@ export class MapBinding implements Binding {
     const names = new Map(
       [...this.bindingsOf(value)].map(([name, bound]) => [name, computed(() => bound)]),
     );
-    const lets = this.namesOf(names, computed(() => index), computed(() => count));
-    return [evaluate(track.expression, new Scope(this.scope.component, lets))];
+    const scope = scopeWith(
+      this.scope.component,
+      this.above,
+      this.rowContext(names, computed(() => index), computed(() => count)),
+    );
+    return [evaluate(track.expression, scope)];
   }
 
-  /** The names a row reads: the `@let`s above the map, its item's names, and its `$` variables. */
-  private namesOf(
+  /**
+   * The context of a row: its item's names, and the `$` variables the framework gives
+   * every row (`$index`, `$count`, `$first`, `$last`, `$even`, `$odd`).
+   */
+  private rowContext(
     names: ReadonlyMap<string, ReadonlySignal<unknown>>,
     index: ReadonlySignal<number>,
     count: ReadonlySignal<number>,
-  ): Map<string, ReadonlySignal<unknown>> {
-    const lets = new Map(this.above);
-    for (const [name, signal] of names) {
-      lets.set(name, signal);
-    }
-    lets.set("$index", index);
-    lets.set("$count", count);
-    lets.set("$first", computed(() => index() === 0));
-    lets.set("$last", computed(() => index() === count() - 1));
-    lets.set("$even", computed(() => index() % 2 === 0));
-    lets.set("$odd", computed(() => index() % 2 === 1));
-    return lets;
+  ): Context {
+    const context = new Map(names);
+    context.set("$index", index);
+    context.set("$count", count);
+    context.set("$first", computed(() => index() === 0));
+    context.set("$last", computed(() => index() === count() - 1));
+    context.set("$even", computed(() => index() % 2 === 0));
+    context.set("$odd", computed(() => index() % 2 === 1));
+    return context;
   }
 
   /** A new row, rendered in the DOM before its place is settled. */
@@ -196,9 +201,10 @@ export class MapBinding implements Binding {
     );
     const indexSignal = signal(index);
     const countSignal = signal(count);
-    const scope = new Scope(
+    const scope = scopeWith(
       this.scope.component,
-      this.namesOf(names, indexSignal, countSignal),
+      this.above,
+      this.rowContext(names, indexSignal, countSignal),
     );
     const view = this.render(this.node.body, scope, anchor, this.injector);
     return { key, anchor, view, names, index: indexSignal, count: countSignal };
