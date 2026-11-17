@@ -110,18 +110,18 @@ describe("instances and cleanup", () => {
       .toBe(fromParent);
   });
 
-  test("destroying a parent cleans up its values and its child, in reverse order of creation", () => {
+  test("destroying a parent cleans up its child before its own values, even when the value was created later", () => {
     const events: string[] = [];
     const CHILD = new InjectionToken<Connection>("CHILD");
     const parent = Injector.create({
       providers: [provide(CONNECTION, { useFactory: () => new Connection(events, "parent") })],
     });
-    resolve(parent.injector, CONNECTION);
     const child = Injector.create({
       parent: parent.injector,
       providers: [provide(CHILD, { useFactory: () => new Connection(events, "child") })],
     });
     resolve(child.injector, CHILD);
+    resolve(parent.injector, CONNECTION);
     expect(events)
       .toEqual([]);
     parent.destroy();
