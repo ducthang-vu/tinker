@@ -78,6 +78,15 @@ export class ViewQueries {
 }
 
 /**
+ * The content queries of a component: the instances its parent's template declares as
+ * direct children of its element, recorded by the parent. The component reads them with
+ * `query(…, { from: "content" })`. It is the same registry as ViewQueries, a separate
+ * token, so the two sources cannot be mixed up.
+ */
+@Injectable()
+export class ContentQueries extends ViewQueries {}
+
+/**
  * Negative when `left` comes first in the document, positive when `right` does,
  * and zero for the same node.
  */

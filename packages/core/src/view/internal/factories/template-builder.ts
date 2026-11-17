@@ -46,7 +46,7 @@ import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
-import type { ViewQueries } from "../runtime/view-queries.ts";
+import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -96,6 +96,10 @@ interface ElementWithDirectives {
   readonly projected: ReadonlyMap<string, Node[]>;
   /** The nearest enclosing element with directives (its index), if any. */
   readonly parent: Maybe<number>;
+  /** The content registry of the component this element is a direct child of, if any. */
+  readonly sink?: ViewQueries;
+  /** The content registry of this element's component, handed to the component. */
+  readonly content?: ContentQueries;
 }
 
 /** A reference to a directive or to the component on an element, set when they are created. */
@@ -124,6 +128,8 @@ export class TemplateBuilder {
 
   /** The content this template's `<slot>`s show, by name; a slot takes its content once. */
   private projected = new Map<string, Node[]>();
+  /** Set while a component's element children are built: the registry their elements go to. */
+  private contentSink: ViewQueries | undefined;
 
   /**
    * @param component The instance whose fields the template's expressions read.
@@ -178,7 +184,7 @@ export class TemplateBuilder {
     const injectors: Injector[] = [];
     this.attachMatches(undefined, view, componentInjector);
     for (const [index, entry] of this.withDirectives.entries()) {
-      const { placement, node, parent, projected, references } = entry;
+      const { placement, node, parent, projected, references, sink, content } = entry;
       // A component is only on an element; the node the instances are view queries of.
       const element = placement.kind === "element" ? placement.element : undefined;
       const queried: Node = element ?? (placement as ContainerPlacement).anchor;
@@ -231,6 +237,7 @@ export class TemplateBuilder {
             parentView: view,
             attributes: node.attributes,
             projected,
+            contentQueries: content,
             adoptHostBindings: hostBindings,
             bindInputs: (component) => bindInputs([
               ...this.ownedOf(node.directives, directives),
@@ -258,9 +265,13 @@ export class TemplateBuilder {
           ...(owner === undefined ? [] : this.ownedOf([owner.type], [owner.instance])),
         ], view);
       }
-      // The instances are view queries of this component: removed with their view.
+      // The instances are view queries of this component, and of the component they
+      // are projected into: removed with their view.
       for (const instance of instances) {
         view.addDestroyCallback(this.queries.add(instance, queried));
+        if (sink !== undefined) {
+          view.addDestroyCallback(sink.add(instance, queried));
+        }
       }
       injectors.push(injector);
       this.attachMatches(index, view, injector);
@@ -321,11 +332,18 @@ export class TemplateBuilder {
    * Build the children of a component's element, grouped by their `slot`
    * attribute (the default slot, "", for the others), for the component to show.
    */
-  private projectChildren(children: readonly CompiledNode[], groups: Map<string, Node[]>): void {
+  private projectChildren(
+    children: readonly CompiledNode[],
+    groups: Map<string, Node[]>,
+    content: ContentQueries,
+  ): void {
     for (const child of children) {
       const name = slotOf(child);
+      // A direct element child is content of the component: its directives are recorded there.
+      this.contentSink = child.kind === "element" ? content : undefined;
       groups.set(name, [...(groups.get(name) ?? []), ...this.buildNode(child)]);
     }
+    this.contentSink = undefined;
   }
 
   /**
@@ -389,6 +407,8 @@ export class TemplateBuilder {
 
   /** A `<slot>` shows the content its name has, once; a text or an element is one node. */
   private buildNode(node: CompiledNode): Node[] {
+    const sink = this.contentSink;
+    this.contentSink = undefined;
     if (node.kind === "slot") {
       const nodes = this.projected.get(node.name) ?? [];
       this.projected.delete(node.name);
@@ -414,7 +434,7 @@ export class TemplateBuilder {
     if (node.kind === "element" && node.container) {
       return this.buildContainer(node);
     }
-    return [this.buildTextOrElement(node)];
+    return [this.buildTextOrElement(node, sink)];
   }
 
   /**
@@ -489,7 +509,7 @@ export class TemplateBuilder {
   }
 
   /** A text with `{{ }}` starts empty and gets a binding, filled by `update`. */
-  private buildTextOrElement(node: CompiledText | CompiledElement): Node {
+  private buildTextOrElement(node: CompiledText | CompiledElement, sink?: ViewQueries): Node {
     if (node.kind === "text") {
       const { strings, expressions } = node.interpolation;
       if (expressions.length === 0) {
@@ -518,9 +538,13 @@ export class TemplateBuilder {
       this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.scope));
     }
     const projected = new Map<string, Node[]>();
-    const index = this.recordDirectives(new ElementPlacement(element), node, projected, pending);
-    if (node.component.isSome()) {
-      this.projectChildren(node.children, projected);
+    const content = node.component.isSome() ? new ContentQueries() : undefined;
+    const index = this.recordDirectives(new ElementPlacement(element), node, projected, pending, {
+      sink,
+      content,
+    });
+    if (content !== undefined) {
+      this.projectChildren(node.children, projected, content);
     } else {
       for (const child of this.buildAll(node.children)) {
         this.renderer.appendChild(element, child);
@@ -537,7 +561,13 @@ export class TemplateBuilder {
   private buildContainer(node: CompiledElement): Node[] {
     const anchor = this.renderer.createComment("");
     const pending = this.declareReferences(node, anchor);
-    const index = this.recordDirectives(new ContainerPlacement(anchor), node, new Map(), pending);
+    const index = this.recordDirectives(
+      new ContainerPlacement(anchor),
+      node,
+      new Map(),
+      pending,
+      {},
+    );
     const children = this.buildAll(node.children);
     index.ifSome(() => this.enclosing.pop());
     return [...children, anchor];
@@ -552,6 +582,7 @@ export class TemplateBuilder {
     node: CompiledElement,
     projected: Map<string, Node[]>,
     references: readonly PendingReference[],
+    links: { readonly sink?: ViewQueries; readonly content?: ContentQueries },
   ): Maybe<number> {
     const hasEvents = node.outputBindings.length > 0;
     if (node.directives.length === 0 && node.component.isNone() && !hasEvents
@@ -559,7 +590,14 @@ export class TemplateBuilder {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));
-    const index = this.withDirectives.push({ placement, node, parent, projected, references }) - 1;
+    const index = this.withDirectives.push({
+      placement,
+      node,
+      parent,
+      projected,
+      references,
+      ...links,
+    }) - 1;
     this.enclosing.push(index);
     return Maybe.some(index);
   }

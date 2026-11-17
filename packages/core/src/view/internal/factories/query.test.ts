@@ -94,7 +94,7 @@ describe("query", () => {
     }
     const app = bootstrap(RequiredMessage, { host: document.createElement("section") });
     expect(() => app.root.instance.item())
-      .toThrow("The template has no FirstItem, which query.required(FirstItem) needs");
+      .toThrow("No FirstItem found, which query.required(FirstItem) needs");
     app.destroy();
   });
 
