@@ -142,11 +142,11 @@ describe("@match", () => {
 
   test("a pattern must be a literal, truthy, falsy or _", () => {
     expect(() => compile("@match a() { @case b() { x } }"))
-      .toThrow("Only literals, truthy, falsy and _ are patterns for now");
+      .toThrow("Only literals, types, truthy, falsy, _ and names are patterns");
   });
 
   test("a case needs a pattern", () => {
-    expect(() => compile("@match a() { @case { x } }"))
+    expect(() => compile("@match a() { @case when ok() { x } }"))
       .toThrow("@case needs a pattern");
   });
 
@@ -200,5 +200,74 @@ describe("more block cases", () => {
   test("an invalid expression in a block header is an error, naming the block", () => {
     expect(() => compile("@if (a +) { x }"))
       .toThrow("in @if");
+  });
+});
+
+describe("relations and object patterns", () => {
+  test("relations compare with a literal, and the five operators are read", () => {
+    const match = onlyMatch("@match n() { @case >= 90 { a } @case !== 0 { b } @case < 5 { c } }");
+    expect(match.cases.map((c) => c.pattern))
+      .toEqual([
+        { kind: "compare", operator: ">=", value: 90 },
+        { kind: "compare", operator: "!==", value: 0 },
+        { kind: "compare", operator: "<", value: 5 },
+      ]);
+  });
+
+  test("a relation takes a literal, not a field or a call", () => {
+    expect(() => compile("@match n() { @case >= score() { x } }"))
+      .toThrow("A relation takes a literal");
+  });
+
+  test("an object pattern: keys with their patterns, or names alone", () => {
+    const match = onlyMatch("@match r() { @case { status, index: number, kind: \"paid\" } { x } }");
+    expect(match.cases[0]!.pattern)
+      .toEqual({
+        kind: "object",
+        fields: [
+          { key: "status", pattern: { kind: "bind", name: "status" } },
+          { key: "index", pattern: { kind: "type", type: "number" } },
+          { key: "kind", pattern: { kind: "value", value: "paid" } },
+        ],
+      });
+  });
+
+  test("an object pattern can contain an object pattern", () => {
+    const match = onlyMatch("@match r() { @case { user: { role: \"admin\" } } { x } }");
+    expect(match.cases[0]!.pattern)
+      .toEqual({
+        kind: "object",
+        fields: [{
+          key: "user",
+          pattern: { kind: "object", fields: [{ key: "role", pattern: { kind: "value", value: "admin" } }] },
+        }],
+      });
+  });
+
+  test("an object pattern with a when guard", () => {
+    const match = onlyMatch("@match r() { @case { status } when ok() { x } }");
+    expect(match.cases[0]!.guard)
+      .toEqual(expression("ok()"));
+  });
+
+  test("an object pattern: a missing brace, a bad key, or a key twice is an error", () => {
+    expect(() => compile("@match r() { @case { a: 1 { x } }"))
+      .toThrow("Missing \"{\" after \"@case\"");
+    expect(() => compile("@match r() { @case { a: 1 "))
+      .toThrow("Missing \"}\" in the pattern");
+    expect(() => compile("@match r() { @case { a: 1, a: 2 } { x } }"))
+      .toThrow("The key \"a\" is in the pattern twice");
+    expect(() => compile("@match r() { @case { 1x } { x } }"))
+      .toThrow("Expected a key in the pattern");
+  });
+
+  test("an object pattern: an empty value, a missing brace, and a trailing comma", () => {
+    expect(() => compile("@match r() { @case { a: } { x } }"))
+      .toThrow("A pattern is needed");
+    expect(() => compile("@match r() { @case { a } x { y } }"))
+      .toThrow("Missing \"}\" in the pattern");
+    const match = onlyMatch("@match r() { @case { a, } { x } }");
+    expect(match.cases[0]!.pattern)
+      .toEqual({ kind: "object", fields: [{ key: "a", pattern: { kind: "bind", name: "a" } }] });
   });
 });
