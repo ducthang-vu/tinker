@@ -133,7 +133,7 @@ export function registerInput<T>(key: object, binding: InputBinding<T>): void {
 export function inputsOf(directive: object): ReadonlyMap<string, InputBinding<unknown>> {
   const inputs = new Map<string, InputBinding<unknown>>();
   for (const [name, value] of Object.entries(directive)) {
-    Maybe.fromNullable(bindings.get(Object(value)))
+    Maybe.from(bindings.get(Object(value)))
       .ifSome((binding) => {
         binding.describe(`"${name}" of ${directive.constructor.name}`);
         inputs.set(name, binding);
@@ -153,7 +153,7 @@ export function bindInputsToAttributes(
 ): void {
   const inputs = [...inputsOf(instance)];
   for (const attribute of attributes) {
-    Maybe.fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
+    Maybe.from(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
       .ifSome(([, input]) => input.bind(attribute.value));
   }
 }

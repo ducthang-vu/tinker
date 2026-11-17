@@ -58,7 +58,7 @@ export class ComponentRef<T extends object> {
   }
 
   private emitterOf(name: string) {
-    return Maybe.fromNullable(outputsOf(this.view.component)
+    return Maybe.from(outputsOf(this.view.component)
       .get(name))
       .getOrThrow(() => new Error(`${this.view.component.constructor.name} has no output "${name}"`));
   }

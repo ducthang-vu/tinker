@@ -460,7 +460,7 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
       .join(", ");
     throw new Error(`<${node.name}> matches several components: ${names}`);
   }
-  const component = Maybe.fromNullable(components[0]?.type);
+  const component = Maybe.from(components[0]?.type);
   const directives = matched.filter(({ isComponent }) => !isComponent)
     .map(({ type }) => type);
   const container = node.name === CONTAINER;

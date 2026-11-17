@@ -17,7 +17,7 @@ describe("Either", () => {
     expect(Either.left("e")
       .isRight())
       .toBe(false);
-    expect(show(Either.of(2)))
+    expect(show(Either.right(2)))
       .toEqual(["right", 2]);
   });
 
@@ -49,18 +49,18 @@ describe("Either", () => {
   test("flatMap chains, a Left short-circuits, and error types add up", () => {
     const positive = (n: number): Either<"negative", number> => (n >= 0 ? Either.right(n) : Either.left("negative"));
     const even = (n: number): Either<"odd", number> => (n % 2 === 0 ? Either.right(n) : Either.left("odd"));
-    const checked = Either.of<number, never>(4)
+    const checked = Either.right<number, never>(4)
       .flatMap(positive)
       .flatMap(even);
     expectTypeOf(checked)
       .toEqualTypeOf<Either<"negative" | "odd", number>>();
     expect(show(checked))
       .toEqual(["right", 4]);
-    expect(show(Either.of(-2)
+    expect(show(Either.right(-2)
       .flatMap(positive)
       .flatMap(even)))
       .toEqual(["left", "negative"]);
-    expect(show(Either.of(3)
+    expect(show(Either.right(3)
       .flatMap(positive)
       .flatMap(even)))
       .toEqual(["left", "odd"]);
@@ -89,12 +89,12 @@ describe("Either", () => {
     const values: Either<string, number>[] = [Either.right(3), Either.right(-1), Either.left("e")];
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      for (const a of [3, -1]) expect(show(Either.of(a)
+      for (const a of [3, -1]) expect(show(Either.right(a)
         .flatMap(f)))
         .toEqual(show(f(a)));
     });
     test("right identity: m.flatMap(of) = m", () => {
-      for (const m of values) expect(show(m.flatMap((x) => Either.of(x))))
+      for (const m of values) expect(show(m.flatMap((x) => Either.right(x))))
         .toEqual(show(m));
     });
     test("associativity", () => {

@@ -26,7 +26,7 @@ function failure(log: unknown[]) {
 describe("Task", () => {
   test("is lazy: nothing happens until run", () => {
     let started = 0;
-    const task = Task.create<number>((ok) => (started++, ok(1)));
+    const task = Task.from<number>((ok) => (started++, ok(1)));
     expect(started)
       .toBe(0);
     expect(record(task).log)
@@ -38,11 +38,11 @@ describe("Task", () => {
   });
 
   test("of succeeds, fail fails, and a throwing computation fails", () => {
-    expect(record(Task.of(1)).log)
+    expect(record(Task.succeed(1)).log)
       .toEqual([["ok", 1]]);
     expect(record(Task.fail("bad")).log)
       .toEqual([["error", "bad"]]);
-    const throwing = Task.create(() => {
+    const throwing = Task.from(() => {
       throw "thrown";
     });
     expect(failure(record(throwing).log))
@@ -50,7 +50,7 @@ describe("Task", () => {
   });
 
   test("calls one handler, once", () => {
-    const task = Task.create<number>((ok, error) => {
+    const task = Task.from<number>((ok, error) => {
       ok(1);
       ok(2);
       error(new Error("late"));
@@ -60,7 +60,7 @@ describe("Task", () => {
   });
 
   test("an error thrown by an ok handler is not swallowed either", () => {
-    expect(() => Task.of(1)
+    expect(() => Task.succeed(1)
       .run({ ok: () => { throw new Error("in handler"); } }))
       .toThrow("in handler");
   });
@@ -72,38 +72,38 @@ describe("Task", () => {
     expect(() => Task.fail(new Error("bad"))
       .run({ ok: () => {} }))
       .toThrow("bad");
-    expect(() => Task.of(1)
+    expect(() => Task.succeed(1)
       .run()).not.toThrow();
   });
 
   test("map transforms the result; an error in f fails the task", () => {
-    expect(record(Task.of(2)
+    expect(record(Task.succeed(2)
       .map((n) => n * 10)).log)
       .toEqual([["ok", 20]]);
     expect(record(Task.fail("e")
       .map((n) => n * 10)).log)
       .toEqual([["error", "e"]]);
-    expect(failure(record(Task.of(2)
+    expect(failure(record(Task.succeed(2)
       .map(() => { throw "in f"; })).log))
       .toEqual({ message: "in f", cause: "in f" });
   });
 
   test("flatMap chains tasks; errors anywhere fail the whole", () => {
-    expect(record(Task.of(2)
-      .flatMap((n) => Task.of(n + 1))).log)
+    expect(record(Task.succeed(2)
+      .flatMap((n) => Task.succeed(n + 1))).log)
       .toEqual([["ok", 3]]);
     expect(record(Task.fail("first")
-      .flatMap((n) => Task.of(n))).log)
+      .flatMap((n) => Task.succeed(n))).log)
       .toEqual([["error", "first"]]);
-    expect(record(Task.of(2)
+    expect(record(Task.succeed(2)
       .flatMap(() => Task.fail("second"))).log)
       .toEqual([["error", "second"]]);
-    expect(failure(record(Task.of(2)
+    expect(failure(record(Task.succeed(2)
       .flatMap(() => { throw "in f"; })).log))
       .toEqual({ message: "in f", cause: "in f" });
   });
 
-  test("fromEither: a Right succeeds, a Left fails", () => {
+  test("from: a Right succeeds, a Left fails", () => {
     expect(record(Task.fromEither(Either.right(1))).log)
       .toEqual([["ok", 1]]);
     expect(record(Task.fromEither(Either.left("e"))).log)
@@ -111,7 +111,7 @@ describe("Task", () => {
   });
 
   test("toPromise resolves or rejects", async () => {
-    await expect(Task.of(1)
+    await expect(Task.succeed(1)
       .toPromise()).resolves.toBe(1);
     await expect(Task.fail("e")
       .toPromise()).rejects.toBe("e");
@@ -119,18 +119,18 @@ describe("Task", () => {
 
   describe("monad laws", () => {
     const f = (n: number): Task<number, string> =>
-      n > 0 ? Task.of(n * 2) : Task.fail("not positive");
-    const g = (n: number) => Task.of(`#${n}`);
-    const tasks: Task<number, string>[] = [Task.of(3), Task.of(-1), Task.fail("e")];
+      n > 0 ? Task.succeed(n * 2) : Task.fail("not positive");
+    const g = (n: number) => Task.succeed(`#${n}`);
+    const tasks: Task<number, string>[] = [Task.succeed(3), Task.succeed(-1), Task.fail("e")];
     const outcome = <T, E>(t: Task<T, E>) => record(t).log;
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      for (const a of [3, -1]) expect(outcome(Task.of(a)
+      for (const a of [3, -1]) expect(outcome(Task.succeed(a)
         .flatMap(f)))
         .toEqual(outcome(f(a)));
     });
     test("right identity: m.flatMap(of) = m", () => {
-      for (const m of tasks) expect(outcome(m.flatMap(Task.of)))
+      for (const m of tasks) expect(outcome(m.flatMap(Task.succeed)))
         .toEqual(outcome(m));
     });
     test("associativity", () => {
@@ -151,7 +151,7 @@ describe("Task as a stream", () => {
       next: () => events.push("item"),
       end: (result) => events.push(result.match({ left: (e) => ["left", e], right: (v) => ["right", v] })),
     });
-    observe(Task.of(1)
+    observe(Task.succeed(1)
       .toStream());
     observe(Task.fail("bad")
       .toStream());
@@ -161,7 +161,7 @@ describe("Task as a stream", () => {
 
   test("is lazy as a stream too: converting does not run it, and each subscription runs it again", () => {
     let runs = 0;
-    const stream = Task.create<number>((ok) => (runs++, ok(runs)))
+    const stream = Task.from<number>((ok) => (runs++, ok(runs)))
       .toStream();
     expect(runs)
       .toBe(0);
@@ -175,12 +175,12 @@ describe("Task as a stream", () => {
   test("flatMap is the stream's: a task's flatMap and its stream's flatMap agree", () => {
     const viaTask: unknown[] = [];
     const viaStream: unknown[] = [];
-    Task.of(2)
-      .flatMap((n) => Task.of(n * 10))
+    Task.succeed(2)
+      .flatMap((n) => Task.succeed(n * 10))
       .run({ ok: (n) => viaTask.push(n) });
-    Task.of(2)
+    Task.succeed(2)
       .toStream()
-      .flatMap((n) => Task.of(n * 10)
+      .flatMap((n) => Task.succeed(n * 10)
         .toStream())
       .run({ ok: (n) => viaStream.push(n) });
     expect(viaTask)
@@ -237,7 +237,7 @@ describe("Task with time", () => {
   });
 
   test("cancelling after the task finished does nothing", () => {
-    const { log, cancel } = record(Task.of(1));
+    const { log, cancel } = record(Task.succeed(1));
     cancel();
     expect(log)
       .toEqual([["ok", 1]]);

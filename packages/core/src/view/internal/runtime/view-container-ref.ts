@@ -79,7 +79,7 @@ export class ViewContainerRef {
 
   /** The component at `index`, if there is one. */
   get(index: number): Maybe<ComponentRef<object>> {
-    return Maybe.fromNullable(this.refs[index]);
+    return Maybe.from(this.refs[index]);
   }
 
   /** The position of `ref` in the container, or -1. */

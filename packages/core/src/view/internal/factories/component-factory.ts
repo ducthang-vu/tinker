@@ -285,7 +285,7 @@ export class ComponentFactory {
 
   /** Create a host element for a selector: an optional tag, then an optional `[attribute]`. */
   private createHost(selector: string, type: Class<unknown>): Element {
-    const [, tag = "div", attribute] = Maybe.fromNullable(HOST_SELECTOR.exec(selector))
+    const [, tag = "div", attribute] = Maybe.from(HOST_SELECTOR.exec(selector))
       .filter(([, tagName, attributeName]) => tagName !== undefined || attributeName !== undefined)
       .getOrThrow(() => new Error(`Cannot create a host element for ${type.name} from selector "${selector}"`));
     const host = this.renderer.createElement(tag);

@@ -600,7 +600,7 @@ export class TemplateBuilder {
       && references.length === 0) {
       return Maybe.none();
     }
-    const parent = Maybe.fromNullable(this.enclosing.at(-1));
+    const parent = Maybe.from(this.enclosing.at(-1));
     const index = this.withDirectives.push({
       placement,
       node,

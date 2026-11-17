@@ -18,24 +18,24 @@ describe("Maybe", () => {
     expect(Maybe.some(1)
       .isNone())
       .toBe(false);
-    expect(show(Maybe.of(2)))
+    expect(show(Maybe.some(2)))
       .toEqual(["some", 2]);
     expect(Maybe.none())
       .toBe(Maybe.none()); // one shared None
   });
 
-  test("fromNullable: null and undefined are None, everything else is Some", () => {
-    expect(Maybe.fromNullable(null)
+  test("from: null and undefined are None, everything else is Some", () => {
+    expect(Maybe.from(null)
       .isNone())
       .toBe(true);
-    expect(Maybe.fromNullable(undefined)
+    expect(Maybe.from(undefined)
       .isNone())
       .toBe(true);
-    expect(show(Maybe.fromNullable(0)))
+    expect(show(Maybe.from(0)))
       .toEqual(["some", 0]);
-    expect(show(Maybe.fromNullable("")))
+    expect(show(Maybe.from("")))
       .toEqual(["some", ""]);
-    expectTypeOf(Maybe.fromNullable("x" as string | null))
+    expectTypeOf(Maybe.from("x" as string | null))
       .toEqualTypeOf<Maybe<string>>();
   });
 
@@ -152,12 +152,12 @@ describe("Maybe", () => {
     const values = [Maybe.some(3), Maybe.some(-1), Maybe.none<number>()];
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      for (const a of [3, -1]) expect(show(Maybe.of(a)
+      for (const a of [3, -1]) expect(show(Maybe.some(a)
         .flatMap(f)))
         .toEqual(show(f(a)));
     });
     test("right identity: m.flatMap(of) = m", () => {
-      for (const m of values) expect(show(m.flatMap(Maybe.of)))
+      for (const m of values) expect(show(m.flatMap(Maybe.some)))
         .toEqual(show(m));
     });
     test("associativity", () => {

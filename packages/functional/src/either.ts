@@ -2,7 +2,7 @@
 // an E). By convention "right" is the correct result.
 //
 // Like Maybe and Task, it is a monad with the same vocabulary:
-//   Either.of(a)      unit: wrap a value (a Right)
+//   Either.right(a)  wrap a value (a Right)
 //   either.map(f)     transform the success, if it is one
 //   either.flatMap(f) chain a step that may itself fail
 //   either.match({ left, right })  get out, handling both cases
@@ -42,11 +42,6 @@ export class Either<E, T> {
   /** A failure. */
   static left<E, T = never>(error: E): Either<E, T> {
     return new Either<E, T>(false, error);
-  }
-
-  /** Unit (the monad's `return`): the same as `right`. */
-  static of<T, E = never>(value: T): Either<E, T> {
-    return Either.right(value);
   }
 
   /** Run `fn`: its result as a Right, or what it throws as a Left. */

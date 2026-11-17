@@ -13,7 +13,7 @@ export class ElementContexts {
 
   /** What is on `element`, if anything. */
   get(element: Element): Maybe<ElementContext> {
-    return Maybe.fromNullable(this.contexts.get(element));
+    return Maybe.from(this.contexts.get(element));
   }
 
   /** The context of `element`, created (and remembered) if it has none yet. */

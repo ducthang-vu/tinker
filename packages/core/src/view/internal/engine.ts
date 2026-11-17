@@ -123,7 +123,7 @@ export class Engine {
 
   private lookUp<T extends object>(type: Class<T>): Element {
     const { selector } = this.components.metadataOf(type);
-    return Maybe.fromNullable(this.document.querySelector(selector))
+    return Maybe.from(this.document.querySelector(selector))
       .getOrThrow(
         () => new Error(`No host element matches "${selector}" for ${type.name}`),
       );

@@ -22,5 +22,5 @@ export function registerRootProvider<T>(provider: Provider<T>): void {
 
 /** The root provider for `token`, if it has one. */
 export function findRootProvider<T>(token: Token<T>): Maybe<Provider<T>> {
-  return Maybe.fromNullable(rootProviders.get(token) as Provider<T> | undefined);
+  return Maybe.from(rootProviders.get(token) as Provider<T> | undefined);
 }
