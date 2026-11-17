@@ -8,12 +8,20 @@ on:
 permissions:
   contents: read
 
+# A newer run of the same branch (or a newer merge into main) cancels the one still running.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The affected packages are found by diffing against the base branch.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -28,11 +36,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Tests with coverage (must be 100%)
+      - name: Tests with coverage, affected packages (pull request, must be 100%)
+        if: github.event_name == 'pull_request'
+        run: npm run coverage:affected -- --base origin/${{ github.base_ref }}
+
+      - name: Tests with coverage, all packages (main, must be 100%)
+        if: github.event_name == 'push'
         run: npm run coverage
 
-      - name: Repo map tests
-        run: npm run test:repo-map
+      - name: Script tests (repo map, affected packages)
+        run: npm run test:scripts
 
       - name: Repo map is up to date
         run: npm run repo-map:check
