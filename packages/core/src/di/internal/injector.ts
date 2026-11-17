@@ -97,9 +97,9 @@ export class Injector {
   }
 
   /**
-   * Destroy this injector: its children first (they registered themselves
-   * on it), then the cleanups of the values it created and of `addDestroyCallback`
-   * callbacks, newest first. Every cleanup runs even if one throws; the
+   * Destroy this injector: its children and the cleanups of the values it
+   * created and of `addDestroyCallback` callbacks, all newest first. A child
+   * registers itself on its parent, so it is cleaned up in creation order. Every cleanup runs even if one throws; the
    * first error is re-thrown at the end. Calling it again does nothing.
    */
   destroy(): void {

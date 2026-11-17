@@ -32,8 +32,8 @@ export interface InjectorRef {
   /** The created injector. */
   readonly injector: Injector;
   /**
-   * Destroy the injector: its children first, then `onDestroy()` of the values
-   * it created. Calling it again does nothing.
+   * Destroy the injector: its children and `onDestroy()` of the values it created,
+   * newest first. Calling it again does nothing.
    */
   destroy(): void;
 }
