@@ -16,6 +16,7 @@ Client code sees a few objects. Everything else is internal.
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
 | `viewChildren` | A signal of the instances of a type in the component's template, in document order. `{ read: ElementRef }` gives their elements instead. |
 | `viewChild` | A signal of the first of those, as a `Maybe` (none when there is none). `{ read: ElementRef }` works here too. |
+| `viewChild.required` | The same, as the instance itself. Reading it when the template has none throws `ViewChildMissingError`. |
 
 | Internal | What it is for |
 |---|---|
