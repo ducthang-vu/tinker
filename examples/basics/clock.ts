@@ -2,13 +2,13 @@
 // which clears its interval when the clock is destroyed, and logs its first
 // render with @AfterNextRender.
 
-import { computed, signal } from "../../src/signals/index.ts";
+import { computed, signal } from "@tinker/core";
 import {
   AfterNextRender,
   Component,
   Effect,
   type EffectContext,
-} from "../../src/view/index.ts";
+} from "@tinker/core";
 import { Highlight, Tooltip } from "./highlight.ts";
 
 @Component({

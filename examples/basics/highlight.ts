@@ -2,8 +2,8 @@
 // binding, and [tooltip] sets the native title with a host attribute binding,
 // from an input set by a plain attribute.
 
-import { signal } from "../../src/signals/index.ts";
-import { Directive, input } from "../../src/view/index.ts";
+import { signal } from "@tinker/core";
+import { Directive, input } from "@tinker/core";
 
 /**
  * Marks its element as highlighted while the pointer is over it: a host

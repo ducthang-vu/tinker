@@ -2,8 +2,8 @@
 // relations, `not`, `present`, an object with an absent key, bound names, and
 // array patterns. Each button moves the value to the next one in its list.
 
-import { signal } from "../../src/signals/index.ts";
-import { Component } from "../../src/view/index.ts";
+import { signal } from "@tinker/core";
+import { Component } from "@tinker/core";
 
 type Status = "idle" | "loading" | "saving" | "failed";
 type Outcome = { readonly value: number } | { readonly error: string };

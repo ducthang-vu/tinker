@@ -3,9 +3,9 @@
 // and changes it on click, and emits what it did through its `stepped` output.
 // The template handles that with (stepped), and shows the store's signals.
 
-import { inject, Injectable } from "../../src/di/index.ts";
-import { computed, signal } from "../../src/signals/index.ts";
-import { Component, Directive, input, output } from "../../src/view/index.ts";
+import { inject, Injectable } from "@tinker/core";
+import { computed, signal } from "@tinker/core";
+import { Component, Directive, input, output } from "@tinker/core";
 import { Highlight, Tooltip } from "./highlight.ts";
 
 /** The state of one counter: provided by each <tk-counter>. */

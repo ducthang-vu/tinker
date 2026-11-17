@@ -55,16 +55,16 @@ browser at **[ducthang-vu.github.io/tinker](https://ducthang-vu.github.io/tinker
 
 ## Modules
 
-`tinker` ([`src/index.ts`](src/index.ts)) exports the public API of every
+`tinker` ([`packages/core/src/index.ts`](packages/core/src/index.ts)) exports the public API of every
 module; each module also lists its own in its `index.ts`.
 
 | Module | What it does |
 |---|---|
-| [`src/signals`](src/signals/index.ts) | `signal`, `computed`, `watch`, `untracked`: push-pull reactivity with versions, lazy and glitch-free computeds, cycle detection |
-| [`src/di`](src/di/index.ts) | `inject()`, `InjectionToken` (and `InjectionToken.multi`), `provide()`, `@Injectable`, hierarchical injectors with `self` / `skipSelf` / `host` / `optional` lookups, `onDestroy` cleanup |
-| [`src/view`](src/view/index.ts) | `bootstrap`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
-| [`src/functional`](src/functional/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, and `Stream` / `Emitter` (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
-| [`src/utils`](src/utils) | small shared helpers (context variables, metadata, `runAll`) |
+| [`packages/core/src/signals`](packages/core/src/signals/index.ts) | `signal`, `computed`, `watch`, `untracked`: push-pull reactivity with versions, lazy and glitch-free computeds, cycle detection |
+| [`packages/core/src/di`](packages/core/src/di/index.ts) | `inject()`, `InjectionToken` (and `InjectionToken.multi`), `provide()`, `@Injectable`, hierarchical injectors with `self` / `skipSelf` / `host` / `optional` lookups, `onDestroy` cleanup |
+| [`packages/core/src/view`](packages/core/src/view/index.ts) | `bootstrap`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
+| [`packages/functional/src`](packages/functional/src/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, and `Stream` / `Emitter` (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
+| [`packages/core/src/utils`](packages/core/src/utils) | small shared helpers (context variables, metadata, `runAll`) |
 
 ### The view, in short
 
@@ -198,7 +198,7 @@ Vite opens [`/examples/basics/`](examples/basics/).
 | `npm run coverage` | tests with coverage: 100% lines and branches is required |
 | `npm run typecheck` | check types with TypeScript 7 |
 | `npm run lint` | check style with ESLint (`npm run format` fixes it) |
-| `npm run build` | compile `src/` to `dist/` |
+| `npm run build` | compile `packages/core/src/` to `packages/core/dist/` |
 
 TypeScript runs side by side: the `typescript` package is TypeScript 6, used
 only by the ESLint parser; the compiler is `typescript7`, run by the

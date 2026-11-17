@@ -36,7 +36,7 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 - Each module (`signals`, `di`, `view`, `functional`) has an `index.ts`
   listing its public API explicitly, with a test pinning the exported values.
 - Files under a module's `internal/` do not import from outside that module
-  (shared `src/utils` and `src/functional` are fine).
+  (shared `packages/core/src/utils` and `packages/functional/src` are fine).
 - `view` uses only the public APIs of `di` and `signals`.
 - Tests live next to the file they test: `view.ts` → `view.test.ts`.
 
@@ -45,7 +45,7 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 - Standard TC39 decorators (not TypeScript's experimental ones).
 - Classes with static factories; private constructors where possible.
 - Composition over inheritance. A class that must not be subclassed (its
-  guarantees depend on it) is marked `@final` (`src/utils/final.ts`): a
+  guarantees depend on it) is marked `@final` (`packages/core/src/utils/final.ts`): a
   subclass throws at creation.
 - Dependencies with `inject()` only: no constructor injection, and no
   Service Locator in the public API.

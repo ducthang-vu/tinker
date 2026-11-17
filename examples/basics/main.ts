@@ -12,7 +12,7 @@
 // This file starts one app per component. Each renders into the element of its
 // selector in index.html, and each is its own engine.
 
-import { bootstrap } from "../../src/view/index.ts";
+import { bootstrap } from "@tinker/core";
 import { Clock } from "./clock.ts";
 import { Counter } from "./counter.ts";
 import { Patterns } from "./patterns.ts";
