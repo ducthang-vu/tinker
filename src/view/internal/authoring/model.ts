@@ -23,7 +23,7 @@
 // The owner keeps the model private. Anyone else that needs to read the value
 // uses `asReadonly()`, which has no way to set it or to emit.
 
-import { Emitter, Maybe } from "../../../functional/index.ts";
+import { Emitter, Maybe } from "@tinker/functional";
 import type { ReadonlySignal } from "../../../signals/index.ts";
 import { InputBinding, type InputSignal, registerInput } from "./input.ts";
 import { registerChangeOutput } from "./output.ts";

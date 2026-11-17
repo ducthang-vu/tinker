@@ -14,7 +14,7 @@
 // can be added here later. Class names keep their case: unlike templates,
 // host bindings are not read by the browser's HTML parser.
 
-import { type EitherError, Maybe } from "../../../functional/index.ts";
+import { type EitherError, Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { parseHandler } from "../template/handler.ts";
 import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";

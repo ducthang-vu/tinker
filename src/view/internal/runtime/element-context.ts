@@ -4,7 +4,7 @@
 // A ComponentView owns the contexts of the elements in its template; the engine maps
 // each element to its context, so "what is on this element?" is one lookup.
 
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { ComponentView } from "./component-view.ts";
 
 export class ElementContext {

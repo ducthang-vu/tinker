@@ -44,7 +44,7 @@ import {
   provide,
   runInInjectionContext,
 } from "../../../di/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";

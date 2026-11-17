@@ -3,7 +3,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -13,5 +17,10 @@
     "rewriteRelativeImportExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "examples", "vite.config.ts"]
+  "include": [
+    "src",
+    "packages",
+    "examples",
+    "vite.config.ts"
+  ]
 }

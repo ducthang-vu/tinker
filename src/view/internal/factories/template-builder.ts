@@ -12,7 +12,7 @@
 // will be collected and updated here too.
 
 import { inject, Injectable, type Injector } from "../../../di/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";

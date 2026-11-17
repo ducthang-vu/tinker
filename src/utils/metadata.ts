@@ -6,7 +6,7 @@
 // and only a class's *own* property counts: static properties are
 // inherited, but a subclass has metadata only if it is decorated itself.
 
-import { Maybe } from "../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { AbstractClass } from "./types.ts";
 
 /** Store `value` as a hidden, read-only static property of `target`. */

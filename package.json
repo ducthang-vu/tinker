@@ -14,6 +14,9 @@
   "files": [
     "dist"
   ],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "node node_modules/typescript7/bin/tsc -p tsconfig.build.json",
@@ -43,5 +46,8 @@
     "typescript7": "npm:typescript@^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@tinker/functional": "*"
   }
 }

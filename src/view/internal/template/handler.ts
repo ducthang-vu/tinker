@@ -7,7 +7,7 @@
 // listeners `"(click)": "method()"`. Arguments, expressions and paths are not
 // supported: the handler names one method of the component.
 
-import { Either, type EitherError } from "../../../functional/index.ts";
+import { Either, type EitherError } from "@tinker/functional";
 
 /** A parsed handler: the method to call, and whether it receives the value. */
 export interface Handler {

@@ -6,7 +6,7 @@
 // template of a child component records its own.
 
 import { Injectable } from "../../../di/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "./element-ref.ts";

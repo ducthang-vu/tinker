@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import * as api from "./index.ts";
+import * as api from "./public-api.ts";
 
 test("exports exactly the public runtime symbols", () => {
   expect(Object.keys(api)
@@ -8,7 +8,7 @@ test("exports exactly the public runtime symbols", () => {
 });
 
 test("exports the EitherError type", () => {
-  const value: import("./index.ts").EitherError<number> = api.Either.right(1);
+  const value: import("./public-api.ts").EitherError<number> = api.Either.right(1);
   expect(value.getOrThrow())
     .toBe(1);
 });

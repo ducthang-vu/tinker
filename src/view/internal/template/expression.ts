@@ -24,7 +24,7 @@
 //
 // Call arguments, unary minus and strings come later.
 
-import { Either, type EitherError } from "../../../functional/index.ts";
+import { Either, type EitherError } from "@tinker/functional";
 
 /** A parsed template expression. */
 export type Expression = ComponentReceiver | PropertyRead | Call | Literal | Binary | Not;

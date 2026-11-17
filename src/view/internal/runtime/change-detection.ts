@@ -27,7 +27,7 @@
 // of the next tick (run it again to follow every tick).
 
 import { inject, Injectable } from "../../../di/index.ts";
-import { Task } from "../../../functional/index.ts";
+import { Task } from "@tinker/functional";
 import { runAll, runBatches } from "../../../utils/run-all.ts";
 import { EffectScheduler } from "./schedulers/effect-scheduler.ts";
 import { RenderHookRegistry } from "./render-hook-registry.ts";

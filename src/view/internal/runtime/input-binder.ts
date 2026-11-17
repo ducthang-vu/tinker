@@ -4,7 +4,7 @@
 // element (the children). The view's watch calls `update()`; the inputs
 // are set only when the value changed.
 
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { InputBinding } from "../authoring/input.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";

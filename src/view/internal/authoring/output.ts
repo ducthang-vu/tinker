@@ -18,8 +18,8 @@
 // Output names match case-insensitively, since the browser's parser lowercases
 // attribute names. Outputs of components are not supported yet.
 
-import { Emitter } from "../../../functional/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Emitter } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
 
 /** What a directive emits through: it can emit, and nothing else. */
 export interface Output<T> {

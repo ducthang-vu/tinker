@@ -7,7 +7,7 @@
 // A view destroyed from anywhere (through the container or directly) leaves
 // the container, and its host element is removed from the DOM.
 
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
 import { inject, Injectable, type Injector } from "../../../di/index.ts";
 import { ComponentFactory } from "../factories/component-factory.ts";

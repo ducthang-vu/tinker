@@ -11,7 +11,7 @@
 // Names are compared case-insensitively: the browser's parser lowercases
 // tag and attribute names. Lists (`"[a], [b]"`) are not supported yet.
 
-import { Either, type EitherError } from "../../../functional/index.ts";
+import { Either, type EitherError } from "@tinker/functional";
 import type { AttributeNode } from "./ast.ts";
 
 /** What a selector is matched against: an element of a parsed template. */
