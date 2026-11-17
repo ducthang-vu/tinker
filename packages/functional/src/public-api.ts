@@ -13,7 +13,7 @@ export { Either } from "./either.ts";
 export type { EitherError } from "./either.ts";
 export { Emitter } from "./emitter.ts";
 export { pipe } from "./pipe.ts";
-export { flip, partial } from "./function.ts";
+export { partial } from "./function.ts";
 export { Maybe } from "./maybe.ts";
 export { Stream } from "./stream.ts";
 export type {

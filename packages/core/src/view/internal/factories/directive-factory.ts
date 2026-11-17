@@ -19,6 +19,7 @@ import type { Class } from "../../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
 import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
+import { partial } from "@tinker/functional";
 import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
@@ -134,7 +135,7 @@ export class DirectiveFactory {
     if (Object.keys(this.metadataOf(type).host ?? {}).length > 0) {
       throw new Error(`${type.name} has host bindings, so it needs an element: it cannot be on <tk-container>`);
     }
-    view.addDestroyCallback(() => endOutputs(instance));
+    view.addDestroyCallback(partial(endOutputs, instance));
     view.addInputs(instance, inputsOf(instance));
     return [];
   }
@@ -177,7 +178,7 @@ export class DirectiveFactory {
       this.contexts.forgetIfEmpty(context);
     });
     // Its outputs are over when it is: the templates subscribed to them are told.
-    view.addDestroyCallback(() => endOutputs(instance));
+    view.addDestroyCallback(partial(endOutputs, instance));
     view.addInputs(instance, inputsOf(instance));
     return this.applyHost(type, instance, element, view);
   }
