@@ -406,7 +406,12 @@ describe("qualified bindings", () => {
     expect(button!.outputBindings)
       .toMatchObject([
         { name: "fired", owner: "abc" },
-        { name: "click", owner: undefined, modifiers: ["prevent"] },
+        // `click.prevent` is the output `prevent` of `click`, or the DOM event with `.prevent`.
+        {
+          name: "prevent",
+          owner: "click",
+          domFallback: { event: "click", modifiers: ["prevent"] },
+        },
       ]);
   });
 

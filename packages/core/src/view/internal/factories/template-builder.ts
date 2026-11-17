@@ -19,6 +19,7 @@ import type { ComponentView } from "../runtime/component-view.ts";
 import type {
   CompiledDeclaration,
   CompiledElement,
+  DomFallback,
   TemplateReference,
   CompiledMap,
   CompiledMatch,
@@ -340,17 +341,28 @@ export class TemplateBuilder {
     owned: readonly Owned[],
     view: View,
   ): void {
-    for (const { name, owner, handler, modifiers } of node.outputBindings) {
+    for (const { name, owner, handler, modifiers, domFallback } of node.outputBindings) {
       requireMethod(this.component, handler.method, `event "(${name})"`);
       const call = (value: unknown) => runHandler(handler, this.component, value);
-      for (const emitter of outputsNamed(reached(owned, "output", name, owner, node.name), name)) {
-        view.addDestroyCallback(emitter.stream.run({ next: call }));
+      // `(owner.enter)` with a fallback is the output when `owner` has one, else the DOM event.
+      const hasOutput = (item: Owned) =>
+        item.owner === owner && outputsNamed([item.instance], name).length > 0;
+      const qualified = domFallback === undefined || owned.some(hasOutput);
+      if (qualified) {
+        const emitters = outputsNamed(reached(owned, "output", name, owner, node.name), name);
+        for (const emitter of emitters) {
+          view.addDestroyCallback(emitter.stream.run({ next: call }));
+        }
       }
       // A qualified output is the directive's alone: the DOM event of that name is not bound.
+      let dom: DomFallback | undefined;
       if (owner === undefined) {
-        view.addDestroyCallback(
-          listenWithModifiers(this.renderer, element, { event: name, modifiers }, call),
-        );
+        dom = { event: name, modifiers };
+      } else if (!qualified) {
+        dom = domFallback;
+      }
+      if (dom !== undefined) {
+        view.addDestroyCallback(listenWithModifiers(this.renderer, element, dom, call));
       }
     }
   }
