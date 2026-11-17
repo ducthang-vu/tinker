@@ -8,6 +8,16 @@ const tick = () => new Promise((resolve) => setTimeout(resolve));
 @Directive({ selector: "[mark]" })
 class Mark {}
 
+@Directive({ selector: "[marker]", exportAs: "marker" })
+class Marker {
+  readonly label = "marked";
+}
+
+@Component({ selector: "tk-named", template: "<i>named</i>", exportAs: "named" })
+class Named {
+  readonly hello = () => "hello";
+}
+
 @Component({
   selector: "tk-tagged",
   template: "<span>{{ label() }}</span>",
@@ -96,5 +106,67 @@ describe("template references", () => {
     class RefTwice {}
     expect(() => bootstrap(RefTwice, { host: document.createElement("section") }))
       .toThrow("#box is already declared in this template");
+  });
+
+  test("#name=\"exportAs\" is the instance of the directive with that exportAs", () => {
+    @Component({
+      selector: "tk-export",
+      template: "<p #m=\"marker\" marker>{{ m.label }}</p>",
+      imports: [Marker],
+    })
+    class ExportRef {}
+    const el = document.createElement("section");
+    const app = bootstrap(ExportRef, { host: el });
+    expect(el.querySelector("p")!.textContent)
+      .toBe("marked");
+    app.destroy();
+  });
+
+  test("##name is the component on the element, while #name is still the element", () => {
+    @Component({
+      selector: "tk-both",
+      template: "<tk-tagged #el ##item label=\"hi\"></tk-tagged><p>{{ el.tagName }} {{ item.label() }}</p>",
+      imports: [Tagged],
+    })
+    class Both {}
+    const el = document.createElement("section");
+    const app = bootstrap(Both, { host: el });
+    expect(el.querySelector("p")!.textContent)
+      .toBe("TK-TAGGED hi");
+    app.destroy();
+  });
+
+  test("#name=\"exportAs\" also finds a component by its exportAs", () => {
+    @Component({
+      selector: "tk-named-ref",
+      template: "<tk-named #n=\"named\"></tk-named><p>{{ n.hello() }}</p>",
+      imports: [Named],
+    })
+    class NamedRef {}
+    const el = document.createElement("section");
+    const app = bootstrap(NamedRef, { host: el });
+    expect(el.querySelector("p")!.textContent)
+      .toBe("hello");
+    app.destroy();
+  });
+
+  test("an exportAs that no directive on the element has is an error", () => {
+    @Component({
+      selector: "tk-missing-export",
+      template: "<p #m=\"nope\"></p>",
+    })
+    class MissingExport {}
+    expect(() => bootstrap(MissingExport, { host: document.createElement("section") }))
+      .toThrow("no directive on <p> is exported as \"nope\"");
+  });
+
+  test("##name on an element with no component is an error", () => {
+    @Component({
+      selector: "tk-no-component",
+      template: "<p ##item></p>",
+    })
+    class NoComponent {}
+    expect(() => bootstrap(NoComponent, { host: document.createElement("section") }))
+      .toThrow("has no component");
   });
 });

@@ -115,11 +115,8 @@ export interface CompiledElement {
   /** Its output bindings, e.g. `(selected)="choose($event)"`, in template order. */
   readonly outputBindings: readonly OutputBindingNode[];
   readonly children: readonly CompiledNode[];
-  /**
-   * The template references on it, `#name`: each names the element itself, even
-   * when a directive or component is on it too.
-   */
-  readonly references: readonly string[];
+  /** The template references on it: `#name`, `#name="exportAs"` and `##name`. */
+  readonly references: readonly TemplateReference[];
   /** The directives matching this element (not its component), in import order. */
   readonly directives: readonly Class<object>[];
   /** The component matching this element, if any: the element is its host. */
@@ -457,7 +454,7 @@ const ATTRIBUTE_BINDING = /^\[attr\.([^\]\s]+)\]$/;
  * syntax, or an invalid expression.
  */
 function classifyAttributes(node: ElementNode): {
-  references: string[];
+  references: TemplateReference[];
   attributes: AttributeNode[];
   classBindings: ClassBindingNode[];
   inputBindings: InputBindingNode[];
@@ -466,7 +463,7 @@ function classifyAttributes(node: ElementNode): {
   attributeBindings: ValueBindingNode[];
 } {
   const attributes: AttributeNode[] = [];
-  const references: string[] = [];
+  const references: TemplateReference[] = [];
   const classBindings: ClassBindingNode[] = [];
   const inputBindings: InputBindingNode[] = [];
   const outputBindings: OutputBindingNode[] = [];
@@ -519,26 +516,49 @@ function classifyAttributes(node: ElementNode): {
   };
 }
 
+/** A template reference: a name for the element, for a directive on it, or for its component. */
+export interface TemplateReference {
+  readonly name: string;
+  /**
+   * `element` for `#name`, `export` for `#name="exportAs"` (the directive, or the
+   * component, with that exportAs), `component` for `##name` (its component).
+   */
+  readonly target:
+    | { readonly kind: "element" }
+    | { readonly kind: "export"; readonly exportAs: string }
+    | { readonly kind: "component" };
+}
+
+const REFERENCE_NAME = /^[A-Za-z_$][\w$]*$/;
+
 /**
- * The name of a template reference, `#name`, which must be a plain name and
- * declared once on its element. `#name="…"` (naming a directive) is not supported yet.
+ * The template reference an attribute `#name`, `#name="exportAs"` or `##name`
+ * declares. The name must be a plain name, declared once on its element.
  */
 function referenceOf(
   attribute: AttributeNode,
   node: ElementNode,
-  declared: readonly string[],
-): string {
-  const name = attribute.name.slice(1);
-  if (!/^[A-Za-z_$][\w$]*$/.test(name)) {
+  declared: readonly TemplateReference[],
+): TemplateReference {
+  const component = attribute.name.startsWith("##");
+  const name = attribute.name.slice(component ? 2 : 1);
+  if (!REFERENCE_NAME.test(name)) {
     throw new Error(`"${attribute.name}" is not a template reference on <${node.name}>`);
   }
-  if (attribute.value !== "") {
-    throw new Error(
-      `"${attribute.name}" on <${node.name}>: naming a directive is not supported yet`,
-    );
-  }
-  if (declared.includes(name)) {
+  if (declared.some((reference) => reference.name === name)) {
     throw new Error(`#${name} is declared twice on <${node.name}>`);
   }
-  return name;
+  if (component) {
+    if (attribute.value !== "") {
+      throw new Error(`"${attribute.name}" on <${node.name}> takes no value`);
+    }
+    return { name, target: { kind: "component" } };
+  }
+  if (attribute.value === "") {
+    return { name, target: { kind: "element" } };
+  }
+  if (!REFERENCE_NAME.test(attribute.value)) {
+    throw new Error(`"${attribute.value}" is not an exportAs name on <${node.name}>`);
+  }
+  return { name, target: { kind: "export", exportAs: attribute.value } };
 }

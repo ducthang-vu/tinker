@@ -21,6 +21,11 @@ export interface DirectiveMetadata {
   /** Where the directive applies, e.g. `"[highlight]"`. */
   readonly selector: string;
   /**
+   * The name a template uses to get this instance: `#name="exportAs"` on the
+   * element it is on. Without it, the directive can only be read by its type.
+   */
+  readonly exportAs?: string;
+  /**
    * Bindings on the host element. For now only event listeners, calling a
    * method with or without the event: `{ "(click)": "toggle($event)" }`.
    */
@@ -65,6 +70,7 @@ const COMPONENT_METADATA: unique symbol = Symbol("component metadata");
 export function Directive(options: DirectiveMetadata) {
   const recorded: DirectiveMetadata = Object.freeze({
     selector: options.selector,
+    ...(options.exportAs && { exportAs: options.exportAs }),
     ...(options.host && { host: Object.freeze({ ...options.host }) }),
     ...(options.providers && { providers: Object.freeze([...options.providers]) }),
   });
@@ -78,12 +84,17 @@ export function Component(options: ComponentMetadata) {
   const recorded: ComponentMetadata = Object.freeze({
     selector: options.selector,
     template: options.template,
+    ...(options.exportAs && { exportAs: options.exportAs }),
     ...(options.host && { host: Object.freeze({ ...options.host }) }),
     ...(options.providers && { providers: Object.freeze([...options.providers]) }),
     ...(options.imports && { imports: Object.freeze([...options.imports]) }),
     ...(options.hostDirectives && { hostDirectives: Object.freeze([...options.hostDirectives]) }),
   });
-  const asDirective = Directive({ selector: options.selector, host: options.host });
+  const asDirective = Directive({
+    selector: options.selector,
+    host: options.host,
+    exportAs: options.exportAs,
+  });
   return function <C extends AbstractClass>(target: C, context: ClassDecoratorContext<C>): void {
     asDirective(target, context);
     defineMetadata(target, COMPONENT_METADATA, recorded);
