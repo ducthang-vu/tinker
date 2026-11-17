@@ -17,6 +17,7 @@ import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type {
+  CompiledDeclaration,
   CompiledElement,
   TemplateReference,
   CompiledMap,
@@ -39,6 +40,7 @@ import { ContainerPlacement, ElementPlacement, type Placement } from "../runtime
 import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
+import { TemplateRef } from "../runtime/template-ref.ts";
 import type { ViewQueries } from "../runtime/view-queries.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
@@ -372,6 +374,10 @@ export class TemplateBuilder {
     if (node.kind === "map") {
       return [this.buildMap(node)];
     }
+    if (node.kind === "declaration") {
+      this.declareTemplate(node);
+      return [];
+    }
     if (node.kind === "let") {
       // The value is a computed signal: it sees only the `@let`s declared above
       // it (a snapshot), and reading it makes the reader depend on what it reads.
@@ -400,6 +406,19 @@ export class TemplateBuilder {
     this.bindings.push(binding);
     this.matches.push({ binding, parent: this.enclosing.at(-1) });
     return anchor;
+  }
+
+  /** A template declared here: a value under its name, rendering nothing in place. */
+  private declareTemplate(node: CompiledDeclaration): void {
+    if (this.scope.lets.has(node.name)) {
+      throw new Error(`#${node.name} is already declared in this template`);
+    }
+    const template = new TemplateRef(
+      node.body,
+      this.scope,
+      (body, scope, anchor, injector) => this.renderBranch(body, scope, anchor, injector),
+    );
+    this.scope.lets.set(node.name, signal(template));
   }
 
   /**

@@ -13,6 +13,8 @@ export { output, type Output, type OutputName, type OutputValue } from "./intern
 export { model, type ModelSignal } from "./internal/authoring/model.ts";
 export { viewChildren, type ViewChildrenOptions } from "./internal/authoring/view-children.ts";
 export { viewChild, ViewChildMissingError } from "./internal/authoring/view-child.ts";
+export { Outlet } from "./internal/authoring/outlet.ts";
+export type { TemplateRef } from "./internal/runtime/template-ref.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./internal/authoring/input.ts";
 
 // What the engine creates and hands back

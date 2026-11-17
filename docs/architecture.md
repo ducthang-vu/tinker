@@ -170,6 +170,16 @@ metadata, fails with an error when it is put on a container.
 A directive is on a `Placement`: an `ElementPlacement` (its element), or a
 `ContainerPlacement` (the container's anchor).
 
+## Declared templates and the outlet
+
+`<template #name>body</template>` declares a template. It renders nothing where it
+is, and `#name` is a value holding it, a `TemplateRef`. The `Outlet` directive
+renders that template where its host is: `<tk-container [outlet]="name">`, or any
+element, and each outlet renders its own instance. An instance reads the names
+visible where the template was declared, as a closure does.
+
+Not built yet: the `let-` names and a context for each instance.
+
 ## Glossary
 
 - **Host**: the element a component is rendered into. Its `ElementRef` is
