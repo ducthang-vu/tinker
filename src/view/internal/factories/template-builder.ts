@@ -35,7 +35,7 @@ import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import type { View } from "../runtime/view.ts";
 import { MatchBinding } from "../runtime/match-binding.ts";
-import { Placement } from "../runtime/placement.ts";
+import { ContainerPlacement, ElementPlacement, type Placement } from "../runtime/placement.ts";
 import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
@@ -80,7 +80,8 @@ export class TemplateBuilderFactory {
 
 /** An element built with directives or a component, waiting for its view. */
 interface ElementWithDirectives {
-  readonly element: Element;
+  /** Where its directives sit: its element, or its container's anchor. */
+  readonly placement: Placement;
   readonly node: CompiledElement;
   /** Its references to a directive or component: set once those exist. */
   readonly references: readonly PendingReference[];
@@ -170,7 +171,10 @@ export class TemplateBuilder {
     const injectors: Injector[] = [];
     this.attachMatches(undefined, view, componentInjector);
     for (const [index, entry] of this.withDirectives.entries()) {
-      const { element, node, parent, projected, references } = entry;
+      const { placement, node, parent, projected, references } = entry;
+      // A component is only on an element; the node the instances are view queries of.
+      const element = placement.kind === "element" ? placement.element : undefined;
+      const queried: Node = element ?? (placement as ContainerPlacement).anchor;
       const parentInjector = parent.match({
         some: (index) => injectors[index]!,
         none: () => componentInjector,
@@ -189,13 +193,7 @@ export class TemplateBuilder {
       let directives: readonly object[] = [];
       if (node.directives.length > 0) {
         const created = this.directiveFactory
-          .createOnPlacement(
-            node.directives,
-            new Placement(element),
-            view,
-            parentInjector,
-            node.attributes,
-          );
+          .createOnPlacement(node.directives, placement, view, parentInjector, node.attributes);
         injector = created.injector;
         directives = created.instances;
         hostBindings(created.bindings);
@@ -238,10 +236,12 @@ export class TemplateBuilder {
         owner?.instance,
       );
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
-      this.bindEvents(node, element, instances, view);
+      if (element !== undefined) {
+        this.bindEvents(node, element, instances, view);
+      }
       // The instances are view queries of this component: removed with their view.
       for (const instance of instances) {
-        view.addDestroyCallback(this.queries.add(instance, element));
+        view.addDestroyCallback(this.queries.add(instance, queried));
       }
       injectors.push(injector);
       this.attachMatches(index, view, injector);
@@ -252,7 +252,7 @@ export class TemplateBuilder {
    * The references an element declares: `#name` is the element, set now; the others
    * are returned, to be set once the directives and component on the element exist.
    */
-  private declareReferences(node: CompiledElement, element: Element): PendingReference[] {
+  private declareReferences(node: CompiledElement, element: Node): PendingReference[] {
     const pending: PendingReference[] = [];
     for (const { name, target } of node.references) {
       if (this.scope.lets.has(name)) {
@@ -379,6 +379,9 @@ export class TemplateBuilder {
       this.scope.lets.set(node.name, computed(() => evaluate(node.expression, above)));
       return [];
     }
+    if (node.kind === "element" && node.container) {
+      return this.buildContainer(node);
+    }
     return [this.buildTextOrElement(node)];
   }
 
@@ -466,7 +469,7 @@ export class TemplateBuilder {
       this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.scope));
     }
     const projected = new Map<string, Node[]>();
-    const index = this.recordDirectives(element, node, projected, pending);
+    const index = this.recordDirectives(new ElementPlacement(element), node, projected, pending);
     if (node.component.isSome()) {
       this.projectChildren(node.children, projected);
     } else {
@@ -479,11 +482,24 @@ export class TemplateBuilder {
   }
 
   /**
+   * A `<tk-container>`: its own content, then its anchor, so the instances its
+   * directives render go after that content. Its directives are created with the others.
+   */
+  private buildContainer(node: CompiledElement): Node[] {
+    const anchor = this.renderer.createComment("");
+    const pending = this.declareReferences(node, anchor);
+    const index = this.recordDirectives(new ContainerPlacement(anchor), node, new Map(), pending);
+    const children = this.buildAll(node.children);
+    index.ifSome(() => this.enclosing.pop());
+    return [...children, anchor];
+  }
+
+  /**
    * If `node` has directives, a component or event bindings, remember its
    * element (and enter it, for its children).
    */
   private recordDirectives(
-    element: Element,
+    placement: Placement,
     node: CompiledElement,
     projected: Map<string, Node[]>,
     references: readonly PendingReference[],
@@ -494,7 +510,7 @@ export class TemplateBuilder {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));
-    const index = this.withDirectives.push({ element, node, parent, projected, references }) - 1;
+    const index = this.withDirectives.push({ placement, node, parent, projected, references }) - 1;
     this.enclosing.push(index);
     return Maybe.some(index);
   }

@@ -24,7 +24,7 @@ import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { ViewContainerRef, ViewContainerRefFactory } from "../runtime/view-container-ref.ts";
-import { Placement } from "../runtime/placement.ts";
+import { ElementPlacement, type Placement } from "../runtime/placement.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import { Scope } from "../template/scope.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
@@ -77,15 +77,16 @@ export class DirectiveFactory {
     /** The directives' host bindings, for the view's watch to update. */
     readonly bindings: readonly Binding[];
   } {
-    const { element } = placement;
     const elementInjector = Injector.create({
       providers: [
         ...types,
-        provide(ElementRef, { useValue: new ElementRef(element) }),
+        ...(placement.kind === "element"
+          ? [provide(ElementRef, { useValue: new ElementRef(placement.element) })]
+          : []),
         // Made when a directive first injects it: its anchor is added then, so an
         // element without such a directive gets no extra node.
         provide(ViewContainerRef, {
-          useFactory: () => this.containerAt(element, elementInjector.injector, view),
+          useFactory: () => this.containerFor(placement, elementInjector.injector, view),
         }),
         Effects,
         RenderHooks,
@@ -97,7 +98,9 @@ export class DirectiveFactory {
     const bindings: Binding[] = [];
     const instances = types.map((type) => {
       const instance = runInInjectionContext(elementInjector.injector, () => inject(type));
-      bindings.push(...this.attach(type, instance, element, view));
+      bindings.push(...(placement.kind === "element"
+        ? this.attach(type, instance, placement.element, view)
+        : this.attachToAnchor(type, instance, view)));
       bindInputsToAttributes(instance, attributes);
       return instance;
     });
@@ -109,8 +112,31 @@ export class DirectiveFactory {
    * injector of its own (child of the engine's). See `createOnPlacement`.
    */
   create<T extends object>(type: Class<T>, element: Element, view: View): T {
-    return this.createOnPlacement([type], new Placement(element), view, this.injector)
+    return this.createOnPlacement([type], new ElementPlacement(element), view, this.injector)
       .instances[0] as T;
+  }
+
+  /** The view container of a placement: at the container's anchor, or after the element. */
+  private containerFor(placement: Placement, injector: Injector, owner: View): ViewContainerRef {
+    if (placement.kind === "container") {
+      // The anchor is one of the owner's nodes, so the owner removes it.
+      return inject(ViewContainerRefFactory)
+        .create(placement.anchor, injector, owner, false);
+    }
+    return this.containerAt(placement.element, injector, owner);
+  }
+
+  /**
+   * A directive on a `<tk-container>`: it has no element, so it cannot have host
+   * bindings. Its outputs are over with it, and its inputs are its own.
+   */
+  private attachToAnchor<T extends object>(type: Class<T>, instance: T, view: View): Binding[] {
+    if (Object.keys(this.metadataOf(type).host ?? {}).length > 0) {
+      throw new Error(`${type.name} has host bindings, so it needs an element: it cannot be on <tk-container>`);
+    }
+    view.addDestroyCallback(() => endOutputs(instance));
+    view.addInputs(instance, inputsOf(instance));
+    return [];
   }
 
   /**

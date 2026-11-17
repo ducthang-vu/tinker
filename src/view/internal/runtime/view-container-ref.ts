@@ -28,8 +28,20 @@ export class ViewContainerRefFactory {
    * created under `parentInjector`. With an `owner`, the container is cleared
    * and its anchor removed when the owner view is destroyed.
    */
-  create(anchor: Node, parentInjector: Injector, owner?: View): ViewContainerRef {
-    return new ViewContainerRef(anchor, this.components, this.renderer, parentInjector, owner);
+  create(
+    anchor: Node,
+    parentInjector: Injector,
+    owner?: View,
+    ownsAnchor = true,
+  ): ViewContainerRef {
+    return new ViewContainerRef(
+      anchor,
+      this.components,
+      this.renderer,
+      parentInjector,
+      owner,
+      ownsAnchor,
+    );
   }
 }
 
@@ -50,6 +62,7 @@ export class ViewContainerRef {
     private readonly renderer: Renderer,
     private readonly parentInjector: Injector,
     owner?: View,
+    private readonly ownsAnchor = true,
   ) {
     owner?.addDestroyCallback(() => this.dispose());
   }
@@ -115,8 +128,9 @@ export class ViewContainerRef {
   /** Destroy the views, then remove the anchor: the owner view is being destroyed. */
   private dispose(): void {
     this.clear();
+    // An anchor the view's own nodes hold (a `<tk-container>`'s) is removed with them.
     const parent = this.anchor.parentNode;
-    if (parent) {
+    if (this.ownsAnchor && parent) {
       this.renderer.removeChild(parent, this.anchor);
     }
   }

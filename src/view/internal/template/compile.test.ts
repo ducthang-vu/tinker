@@ -32,6 +32,7 @@ describe("compileTemplate", () => {
           references: [],
           directives: [],
           component: Maybe.none(),
+          container: false,
           classBindings: [],
           inputBindings: [],
           styleBindings: [],
