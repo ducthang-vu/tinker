@@ -11,7 +11,8 @@ export { Effect, type EffectContext, Effects, type EffectFn } from "./internal/a
 export { AfterEachRender, AfterNextRender, RenderHooks } from "./internal/authoring/render-hooks.ts";
 export { output, type Output, type OutputName, type OutputValue } from "./internal/authoring/output.ts";
 export { model, type ModelSignal } from "./internal/authoring/model.ts";
-export { viewChildren } from "./internal/authoring/view-children.ts";
+export { viewChildren, type ViewChildrenOptions } from "./internal/authoring/view-children.ts";
+export { viewChild } from "./internal/authoring/view-child.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./internal/authoring/input.ts";
 
 // What the engine creates and hands back

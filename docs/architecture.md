@@ -15,6 +15,7 @@ Client code sees a few objects. Everything else is internal.
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
 | `viewChildren` | A signal of the instances of a type in the component's template, in document order. `{ read: ElementRef }` gives their elements instead. |
+| `viewChild` | A signal of the first of those, as a `Maybe` (none when there is none). `{ read: ElementRef }` works here too. |
 
 | Internal | What it is for |
 |---|---|

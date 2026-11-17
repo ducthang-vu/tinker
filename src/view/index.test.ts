@@ -23,6 +23,7 @@ test("the public API exports exactly these values", () => {
         "input",
         "output",
         "viewChildren",
+        "viewChild",
         "model",
         "Effects",
         "Effect",
