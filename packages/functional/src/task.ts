@@ -27,6 +27,19 @@
 
 import { Either, toError } from "./either.ts";
 import { type Cancel, Stream } from "./stream.ts";
+import { dual } from "./dual.ts";
+
+/** `Task.map`: data-first `map(t, f)`, or data-last `map(f)` for `pipe`. */
+export interface TaskMap {
+  <T, E, U>(self: Task<T, E>, f: (value: T) => U): Task<U, E | Error>;
+  <T, U>(f: (value: T) => U): <E>(self: Task<T, E>) => Task<U, E | Error>;
+}
+
+/** `Task.flatMap`: data-first `flatMap(t, f)`, or data-last `flatMap(f)` for `pipe`. */
+export interface TaskFlatMap {
+  <T, E, U, F>(self: Task<T, E>, f: (value: T) => Task<U, F>): Task<U, E | F | Error>;
+  <T, U, F>(f: (value: T) => Task<U, F>): <E>(self: Task<T, E>) => Task<U, E | F | Error>;
+}
 
 /** What to do with a task's outcome. */
 export interface TaskHandlers<T, E = Error> {
@@ -50,6 +63,17 @@ export class TimeoutError extends Error {
 }
 
 export class Task<T, E = Error> {
+  static readonly map: TaskMap = dual<TaskMap>(
+    2,
+    (self: Task<unknown, unknown>, f: (value: unknown) => unknown) => self.map(f),
+  );
+
+  static readonly flatMap: TaskFlatMap = dual<TaskFlatMap>(
+    2,
+    (self: Task<unknown, unknown>, f: (value: unknown) => Task<unknown, unknown>) =>
+      self.flatMap(f),
+  );
+
   private constructor(private readonly stream: Stream<never, T, E>) {}
 
   /**

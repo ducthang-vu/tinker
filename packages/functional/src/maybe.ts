@@ -11,8 +11,31 @@
 //     .getOrElse("unknown");
 
 import { Either } from "./either.ts";
+import { dual } from "./dual.ts";
+
+/** `Maybe.map`: data-first `map(m, f)`, or data-last `map(f)` for `pipe`. */
+export interface MaybeMap {
+  <T, U>(self: Maybe<T>, f: (value: T) => U): Maybe<U>;
+  <T, U>(f: (value: T) => U): (self: Maybe<T>) => Maybe<U>;
+}
+
+/** `Maybe.flatMap`: data-first `flatMap(m, f)`, or data-last `flatMap(f)` for `pipe`. */
+export interface MaybeFlatMap {
+  <T, U>(self: Maybe<T>, f: (value: T) => Maybe<U>): Maybe<U>;
+  <T, U>(f: (value: T) => Maybe<U>): (self: Maybe<T>) => Maybe<U>;
+}
 
 export class Maybe<T> {
+  static readonly map: MaybeMap = dual<MaybeMap>(
+    2,
+    (self: Maybe<unknown>, f: (value: unknown) => unknown) => self.map(f),
+  );
+
+  static readonly flatMap: MaybeFlatMap = dual<MaybeFlatMap>(
+    2,
+    (self: Maybe<unknown>, f: (value: unknown) => Maybe<unknown>) => self.flatMap(f),
+  );
+
   private static readonly NONE = new Maybe<never>(false, undefined as never);
 
   private constructor(

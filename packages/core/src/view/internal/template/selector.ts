@@ -41,7 +41,7 @@ export class Selector {
 
   /** Parse `source`, or the error explaining what is not supported. */
   static parse(source: string): EitherError<Selector> {
-    return Either.tryCatchError(() => Selector.parseOrThrow(source));
+    return Either.from(() => Selector.parseOrThrow(source));
   }
 
   /** Whether `element` matches: its tag, and every attribute and class required. */

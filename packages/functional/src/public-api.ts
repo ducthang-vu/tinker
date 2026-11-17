@@ -1,5 +1,6 @@
 // The public entry point for functional utilities: monads sharing one
-// vocabulary (of, map, flatMap, match).
+// vocabulary (some, right, succeed, end, map, flatMap, match). `map` and `flatMap` also
+// work as functions for `pipe`: `Maybe.map(f)(m)` and `Maybe.map(m, f)`.
 //   Maybe<T>         a value that may be absent
 //   Either<E, T>     a success or a failure
 //   Task<T, E>       one value later: a lazy, cancellable Promise (and timers)
@@ -11,6 +12,7 @@
 export { Either } from "./either.ts";
 export type { EitherError } from "./either.ts";
 export { Emitter } from "./emitter.ts";
+export { flow, pipe } from "./pipe.ts";
 export { Maybe } from "./maybe.ts";
 export { Stream } from "./stream.ts";
 export type {

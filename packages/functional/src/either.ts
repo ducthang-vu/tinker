@@ -12,10 +12,23 @@
 //     .match({ left: showError, right: render });
 
 import { Maybe } from "./maybe.ts";
+import { dual } from "./dual.ts";
+
+/** `Either.map`: data-first `map(e, f)`, or data-last `map(f)` for `pipe`. */
+export interface EitherMap {
+  <E, T, U>(self: Either<E, T>, f: (value: T) => U): Either<E, U>;
+  <T, U>(f: (value: T) => U): <E>(self: Either<E, T>) => Either<E, U>;
+}
+
+/** `Either.flatMap`: data-first `flatMap(e, f)`, or data-last `flatMap(f)` for `pipe`. */
+export interface EitherFlatMap {
+  <E, T, F, U>(self: Either<E, T>, f: (value: T) => Either<F, U>): Either<E | F, U>;
+  <T, F, U>(f: (value: T) => Either<F, U>): <E>(self: Either<E, T>) => Either<E | F, U>;
+}
 
 /**
  * An Either whose failure is an Error: the common case, e.g. the result of
- * code that can throw. `Either.tryCatchError` and `Either.lift` create them,
+ * code that can throw. `Either.from` creates them,
  * and `getOrThrow()` turns one back into a value or a thrown error.
  */
 export type EitherError<T> = Either<Error, T>;
@@ -29,6 +42,17 @@ export function toError(value: unknown): Error {
 }
 
 export class Either<E, T> {
+  static readonly map: EitherMap = dual<EitherMap>(
+    2,
+    (self: Either<unknown, unknown>, f: (value: unknown) => unknown) => self.map(f),
+  );
+
+  static readonly flatMap: EitherFlatMap = dual<EitherFlatMap>(
+    2,
+    (self: Either<unknown, unknown>, f: (value: unknown) => Either<unknown, unknown>) =>
+      self.flatMap(f),
+  );
+
   private constructor(
     private readonly isRightSide: boolean,
     private readonly payload: E | T,
@@ -58,17 +82,9 @@ export class Either<E, T> {
    * as is, anything else (e.g. `throw "oops"`) wrapped, keeping the original
    * value as the Error's `cause`.
    */
-  static tryCatchError<T>(fn: () => T): EitherError<T> {
+  static from<T>(fn: () => T): EitherError<T> {
     return Either.tryCatch(fn)
       .mapLeft(toError);
-  }
-
-  /**
-   * Turn a function that may throw into one that returns an EitherError,
-   * e.g. `.flatMap(Either.lift(validate))`.
-   */
-  static lift<A extends unknown[], T>(fn: (...args: A) => T): (...args: A) => EitherError<T> {
-    return (...args) => Either.tryCatchError(() => fn(...args));
   }
 
   isRight(): boolean {

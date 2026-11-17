@@ -30,6 +30,24 @@
 //   upload.run({ next: showProgress, ok: showResult, error: showError });
 
 import { Either, toError } from "./either.ts";
+import { dual } from "./dual.ts";
+
+/** `Stream.map`: data-first `map(s, f)`, or data-last `map(f)` for `pipe`. */
+export interface StreamMap {
+  <T, R, E, R2>(self: Stream<T, R, E>, f: (result: R) => R2): Stream<T, R2, E | Error>;
+  <R, R2>(f: (result: R) => R2): <T, E>(self: Stream<T, R, E>) => Stream<T, R2, E | Error>;
+}
+
+/** `Stream.flatMap`: data-first `flatMap(s, f)`, or data-last `flatMap(f)` for `pipe`. */
+export interface StreamFlatMap {
+  <T, R, E, T2, R2, F>(
+    self: Stream<T, R, E>,
+    f: (result: R) => Stream<T2, R2, F>,
+  ): Stream<T | T2, R2, E | F | Error>;
+  <R, T2, R2, F>(
+    f: (result: R) => Stream<T2, R2, F>,
+  ): <T, E>(self: Stream<T, R, E>) => Stream<T | T2, R2, E | F | Error>;
+}
 
 /** Stops a running stream or task. Calling it after the end does nothing. */
 export type Cancel = () => void;
@@ -68,6 +86,19 @@ export interface StreamHandlers<T, R, E> {
 }
 
 export class Stream<T, R = void, E = Error> {
+  static readonly map: StreamMap = dual<StreamMap>(
+    2,
+    (self: Stream<unknown, unknown, unknown>, f: (result: unknown) => unknown) => self.map(f),
+  );
+
+  static readonly flatMap: StreamFlatMap = dual<StreamFlatMap>(
+    2,
+    (
+      self: Stream<unknown, unknown, unknown>,
+      f: (result: unknown) => Stream<unknown, unknown, unknown>,
+    ) => self.flatMap(f),
+  );
+
   private constructor(private readonly start: (observer: StreamObserver<T, R, E>) => Cancel) {}
 
   /**
@@ -204,7 +235,7 @@ export class Stream<T, R = void, E = Error> {
       this.subscribe({
         next: (item) => sink.next(item),
         end: (result) =>
-          sink.end(result.flatMap((value) => Either.tryCatchError(() => f(value)))),
+          sink.end(result.flatMap((value) => Either.from(() => f(value)))),
       }));
   }
 
@@ -234,7 +265,7 @@ export class Stream<T, R = void, E = Error> {
         next: (item) => sink.next(item),
         end: (result) => result.match({
           left: (error) => sink.end(Either.left(error)),
-          right: (value) => Either.tryCatchError(() => f(value))
+          right: (value) => Either.from(() => f(value))
             .match({
               left: (error) => sink.end(Either.left(error)),
               right: (next) => {
