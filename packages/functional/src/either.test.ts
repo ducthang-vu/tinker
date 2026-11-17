@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { Either, type EitherError } from "./either.ts";
+import { pipe } from "./pipe.ts";
 
 const show = <E, T>(e: Either<E, T>): unknown[] => e.match<unknown[]>({ left: (l) => ["left", l], right: (r) => ["right", r] });
 
@@ -32,11 +33,9 @@ describe("Either", () => {
   });
 
   test("map transforms a Right, mapLeft a Left", () => {
-    expect(show(Either.right<number, string>(2)
-      .map((n) => n * 10)))
+    expect(show(Either.map(Either.right<number, string>(2), (n) => n * 10)))
       .toEqual(["right", 20]);
-    expect(show(Either.left<string, number>("e")
-      .map((n) => n * 10)))
+    expect(show(Either.map(Either.left<string, number>("e"), (n) => n * 10)))
       .toEqual(["left", "e"]);
     expect(show(Either.left<string, number>("e")
       .mapLeft((e) => e.toUpperCase())))
@@ -49,20 +48,14 @@ describe("Either", () => {
   test("flatMap chains, a Left short-circuits, and error types add up", () => {
     const positive = (n: number): Either<"negative", number> => (n >= 0 ? Either.right(n) : Either.left("negative"));
     const even = (n: number): Either<"odd", number> => (n % 2 === 0 ? Either.right(n) : Either.left("odd"));
-    const checked = Either.right<number, never>(4)
-      .flatMap(positive)
-      .flatMap(even);
+    const checked = Either.flatMap(Either.flatMap(Either.right<number, never>(4), positive), even);
     expectTypeOf(checked)
       .toEqualTypeOf<Either<"negative" | "odd", number>>();
     expect(show(checked))
       .toEqual(["right", 4]);
-    expect(show(Either.right(-2)
-      .flatMap(positive)
-      .flatMap(even)))
+    expect(show(Either.flatMap(Either.flatMap(Either.right(-2), positive), even)))
       .toEqual(["left", "negative"]);
-    expect(show(Either.right(3)
-      .flatMap(positive)
-      .flatMap(even)))
+    expect(show(Either.flatMap(Either.flatMap(Either.right(3), positive), even)))
       .toEqual(["left", "odd"]);
   });
 
@@ -89,29 +82,26 @@ describe("Either", () => {
     const values: Either<string, number>[] = [Either.right(3), Either.right(-1), Either.left("e")];
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      for (const a of [3, -1]) expect(show(Either.right(a)
-        .flatMap(f)))
+      for (const a of [3, -1]) expect(show(Either.flatMap(Either.right(a), f)))
         .toEqual(show(f(a)));
     });
     test("right identity: m.flatMap(of) = m", () => {
-      for (const m of values) expect(show(m.flatMap((x) => Either.right(x))))
+      for (const m of values) expect(show(Either.flatMap(m, (x) => Either.right(x))))
         .toEqual(show(m));
     });
     test("associativity", () => {
       for (const m of values) {
-        expect(show(m.flatMap(f)
-          .flatMap(g)))
-          .toEqual(show(m.flatMap((x) => f(x)
-            .flatMap(g))));
+        expect(show(Either.flatMap(Either.flatMap(m, f), g)))
+          .toEqual(show(Either.flatMap(m, (x) => Either.flatMap(f(x), g))));
       }
     });
   });
 });
 
 describe("EitherError", () => {
-  test("tryCatchError keeps a thrown Error as is", () => {
+  test("from keeps a thrown Error as is", () => {
     const error = new TypeError("bad");
-    const result = Either.tryCatchError(() => {
+    const result = Either.from(() => {
       throw error;
     });
     expectTypeOf(result)
@@ -120,8 +110,8 @@ describe("EitherError", () => {
       .toBe(error);
   });
 
-  test("tryCatchError wraps anything else in an Error, keeping it as the cause", () => {
-    const result = Either.tryCatchError(() => {
+  test("from wraps anything else in an Error, keeping it as the cause", () => {
+    const result = Either.from(() => {
       throw "oops";
     });
     const error = result.match({ left: (e) => e, right: () => null })!;
@@ -133,48 +123,39 @@ describe("EitherError", () => {
       .toBe("oops");
   });
 
-  test("tryCatchError gives a Right when nothing is thrown", () => {
-    expect(Either.tryCatchError(() => 42)
+  test("from gives a Right when nothing is thrown", () => {
+    expect(Either.from(() => 42)
       .getOrThrow())
       .toBe(42);
   });
 
-  test("lift turns a throwing function into one returning an EitherError", () => {
-    const parse = Either.lift((text: string) => JSON.parse(text) as unknown);
-    expectTypeOf(parse)
-      .toEqualTypeOf<(text: string) => EitherError<unknown>>();
-    expect(parse("{\"a\":1}")
-      .getOrThrow())
+  test("from runs a throwing call into an EitherError", () => {
+    const parsed = Either.from(() => JSON.parse("{\"a\":1}") as unknown);
+    expectTypeOf(parsed)
+      .toEqualTypeOf<EitherError<unknown>>();
+    expect(parsed.getOrThrow())
       .toEqual({ a: 1 });
-    expect(parse("{")
+    expect(Either.from(() => JSON.parse("{") as unknown)
       .isLeft())
       .toBe(true);
   });
 
-  test("lift chains steps without nested try/catch", () => {
-    const parse = Either.lift((text: string) => JSON.parse(text) as { port?: unknown });
-    const port = Either.lift((config: { port?: unknown }) => {
+  test("flatMap chains steps, each a from, without nested try/catch", () => {
+    const read = (text: string) => Either.from(() => JSON.parse(text) as { port?: unknown });
+    const port = (config: { port?: unknown }) => Either.from(() => {
       if (typeof config.port !== "number") throw new Error("port must be a number");
       return config.port;
     });
-    expect(Either.right<string, Error>("{\"port\":8080}")
-      .flatMap(parse)
-      .flatMap(port)
+    expect(pipe(Either.right<string, Error>("{\"port\":8080}"), Either.flatMap(read), Either.flatMap(port))
       .getOrThrow())
       .toBe(8080);
-    expect(() => Either.right<string, Error>("{\"port\":\"x\"}")
-      .flatMap(parse)
-      .flatMap(port)
+    expect(() => pipe(Either.right<string, Error>("{\"port\":\"x\"}"), Either.flatMap(read), Either.flatMap(port))
       .getOrThrow())
-      .toThrow(
-        "port must be a number",
-      );
+      .toThrow("port must be a number");
   });
 
   test("map and flatMap keep it an EitherError", () => {
-    const result = Either.tryCatchError(() => 2)
-      .map((n) => n * 10)
-      .flatMap((n) => Either.tryCatchError(() => `${n}`));
+    const result = Either.flatMap(Either.map(Either.from(() => 2), (n) => n * 10), (n) => Either.from(() => `${n}`));
     expectTypeOf(result)
       .toEqualTypeOf<EitherError<string>>();
     expect(result.getOrThrow())

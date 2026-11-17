@@ -8,7 +8,7 @@
 // watches of its bindings, directive hooks), and finally its nodes.
 
 import { inject, Injectable } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
+import { Maybe, pipe } from "@tinker/functional";
 import type { ElementContext } from "./element-context.ts";
 import type { InputBinding, InputName, InputValue } from "../authoring/input.ts";
 import type { Renderer } from "../renderer.ts";
@@ -71,10 +71,10 @@ export class ComponentView<T> implements View {
 
   /** The input `name` of `directive`, if the directive is in this view and has that input. */
   input(directive: object, name: string): Maybe<InputBinding<unknown>> {
-    return Maybe.from(this.directiveInputs.get(directive))
-      .flatMap((inputs) =>
-        Maybe.from(inputs.get(name)),
-      );
+    return pipe(
+      Maybe.from(this.directiveInputs.get(directive)),
+      Maybe.flatMap((inputs) => Maybe.from(inputs.get(name))),
+    );
   }
 
   /**

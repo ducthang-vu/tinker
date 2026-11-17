@@ -3,6 +3,7 @@ import { computed, signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -10,12 +11,11 @@ afterEach(() => {
 
 /** The instances on `element`: its directives, then its component if any. */
 function instancesOn(engine: Engine, element: Element): object[] {
-  return engine.getContext(element)
-    .map((context) => [
-      ...context.directives,
-      ...context.componentView.map((view) => [view.component as object])
-        .getOrElse([]),
-    ])
+  return Maybe.map(engine.getContext(element), (context) => [
+    ...context.directives,
+    ...Maybe.map(context.componentView, (view) => [view.component as object])
+      .getOrElse([]),
+  ])
     .getOrElse([]);
 }
 

@@ -15,6 +15,7 @@ import { RENDERER } from "../tokens.ts";
 import { ComponentView } from "../runtime/component-view.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+import { Maybe } from "@tinker/functional";
 
 /** A DirectiveFactory created the way the engine creates it: through an injector. */
 function setup() {
@@ -46,8 +47,7 @@ describe("DirectiveFactory", () => {
 
     expect(tooltip)
       .toBeInstanceOf(Tooltip);
-    expect(contexts.get(element)
-      .map((context) => context.directives)
+    expect(Maybe.map(contexts.get(element), (context) => context.directives)
       .getOrElse(undefined))
       .toEqual([tooltip]);
   });
@@ -103,8 +103,7 @@ describe("DirectiveFactory", () => {
 
     expect(counter.count)
       .toBe(0);
-    expect(contexts.get(element)
-      .map((context) => context.directives)
+    expect(Maybe.map(contexts.get(element), (context) => context.directives)
       .getOrElse(undefined))
       .toEqual([other]);
     otherView.destroy();
@@ -121,8 +120,7 @@ describe("DirectiveFactory", () => {
     const { factory, contexts, element, view } = setup();
     const a = factory.create(A, element, view);
     const b = factory.create(B, element, view);
-    expect(contexts.get(element)
-      .map((context) => context.directives)
+    expect(Maybe.map(contexts.get(element), (context) => context.directives)
       .getOrElse(undefined))
       .toEqual([a, b]);
   });

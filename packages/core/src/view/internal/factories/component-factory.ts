@@ -44,7 +44,7 @@ import {
   provide,
   runInInjectionContext,
 } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
+import { Maybe, partial } from "@tinker/functional";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
@@ -157,8 +157,7 @@ export class ComponentFactory {
   ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
-    if (this.contexts.get(host)
-      .flatMap((existing) => existing.componentView)
+    if (Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
       .isSome()) {
       throw new Error(`The host element of ${type.name} already holds a component`);
     }
@@ -200,7 +199,7 @@ export class ComponentFactory {
     const view = this.views.create(host, instance, rendered);
     view.addDestroyCallback(() => ownInjector.destroy());
     // Its outputs are over when it is: the templates subscribed to them are told.
-    view.addDestroyCallback(() => endOutputs(instance));
+    view.addDestroyCallback(partial(endOutputs, instance));
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
     // In a template: its element's plain attributes set its inputs, before it renders.

@@ -3,19 +3,33 @@
 //
 // Like Maybe and Task, it is a monad with the same vocabulary:
 //   Either.right(a)  wrap a value (a Right)
-//   either.map(f)     transform the success, if it is one
-//   either.flatMap(f) chain a step that may itself fail
+//   Either.map(e, f)  transform the success, if it is one, or Either.map(f) in a pipe
+//   Either.flatMap(e, f)  chain a step that may itself fail
 //   either.match({ left, right })  get out, handling both cases
 //
-//   Either.tryCatch(() => JSON.parse(text))
-//     .flatMap(validate)
-//     .match({ left: showError, right: render });
+//   pipe(
+//     Either.from(() => JSON.parse(text)),
+//     Either.flatMap(validate),
+//   ).match({ left: showError, right: render });
 
 import { Maybe } from "./maybe.ts";
+import { dual } from "./dual.ts";
+
+/** `Either.map`: data-first `map(e, f)`, or data-last `map(f)` for `pipe`. */
+export interface EitherMap {
+  <E, T, U>(self: Either<E, T>, f: (value: T) => U): Either<E, U>;
+  <T, U>(f: (value: T) => U): <E>(self: Either<E, T>) => Either<E, U>;
+}
+
+/** `Either.flatMap`: data-first `flatMap(e, f)`, or data-last `flatMap(f)` for `pipe`. */
+export interface EitherFlatMap {
+  <E, T, F, U>(self: Either<E, T>, f: (value: T) => Either<F, U>): Either<E | F, U>;
+  <T, F, U>(f: (value: T) => Either<F, U>): <E>(self: Either<E, T>) => Either<E | F, U>;
+}
 
 /**
  * An Either whose failure is an Error: the common case, e.g. the result of
- * code that can throw. `Either.tryCatchError` and `Either.lift` create them,
+ * code that can throw. `Either.from` creates them,
  * and `getOrThrow()` turns one back into a value or a thrown error.
  */
 export type EitherError<T> = Either<Error, T>;
@@ -29,6 +43,17 @@ export function toError(value: unknown): Error {
 }
 
 export class Either<E, T> {
+  static readonly map: EitherMap = dual<EitherMap>(
+    2,
+    (self: Either<unknown, unknown>, f: (value: unknown) => unknown) => self.map(f),
+  );
+
+  static readonly flatMap: EitherFlatMap = dual<EitherFlatMap>(
+    2,
+    (self: Either<unknown, unknown>, f: (value: unknown) => Either<unknown, unknown>) =>
+      self.flatMap(f),
+  );
+
   private constructor(
     private readonly isRightSide: boolean,
     private readonly payload: E | T,
@@ -58,17 +83,9 @@ export class Either<E, T> {
    * as is, anything else (e.g. `throw "oops"`) wrapped, keeping the original
    * value as the Error's `cause`.
    */
-  static tryCatchError<T>(fn: () => T): EitherError<T> {
+  static from<T>(fn: () => T): EitherError<T> {
     return Either.tryCatch(fn)
       .mapLeft(toError);
-  }
-
-  /**
-   * Turn a function that may throw into one that returns an EitherError,
-   * e.g. `.flatMap(Either.lift(validate))`.
-   */
-  static lift<A extends unknown[], T>(fn: (...args: A) => T): (...args: A) => EitherError<T> {
-    return (...args) => Either.tryCatchError(() => fn(...args));
   }
 
   isRight(): boolean {
@@ -80,7 +97,7 @@ export class Either<E, T> {
   }
 
   /** Transform the success, if it is one. */
-  map<U>(f: (value: T) => U): Either<E, U> {
+  private map<U>(f: (value: T) => U): Either<E, U> {
     return this.isRightSide
       ? Either.right(f(this.payload as T))
       : (this as unknown as Either<E, U>);
@@ -92,7 +109,7 @@ export class Either<E, T> {
   }
 
   /** Chain a step that may itself fail (the monad's bind). The error types add up. */
-  flatMap<F, U>(f: (value: T) => Either<F, U>): Either<E | F, U> {
+  private flatMap<F, U>(f: (value: T) => Either<F, U>): Either<E | F, U> {
     return this.isRightSide ? f(this.payload as T) : (this as unknown as Either<E, U>);
   }
 

@@ -5,6 +5,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Effect, Effects } from "../authoring/effects.ts";
 import { AfterEachRender, RenderHooks } from "../authoring/render-hooks.ts";
 import { Engine } from "../engine.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -229,8 +230,7 @@ describe("the component in its own injector", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
-    const [part] = engine.getContext(view.host.nativeElement.querySelector("p")!)
-      .map((context) => context.directives)
+    const [part] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
       .getOrElse([]) as [Part];
     expect(part.owner)
       .toBe(view.instance);

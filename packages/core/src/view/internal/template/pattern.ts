@@ -73,7 +73,7 @@ export function splitGuard(header: string): { readonly pattern: string; readonly
 
 /** The pattern written as `text`, or the error explaining what is not supported. */
 export function parsePattern(text: string): EitherError<Pattern> {
-  return Either.tryCatchError(() => patternOf(text.trim()));
+  return Either.from(() => patternOf(text.trim()));
 }
 
 function patternOf(text: string): Pattern {

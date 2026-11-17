@@ -3,6 +3,7 @@ import { inject, Injectable, provide } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -36,8 +37,7 @@ describe("host directives", () => {
 
     expect(order)
       .toEqual(["focusable", "draggable", "menu"]);
-    expect(engine.getContext(view.host.nativeElement)
-      .map((context) => context.directives)
+    expect(Maybe.map(engine.getContext(view.host.nativeElement), (context) => context.directives)
       .getOrElse([]))
       .toEqual([view.instance.focusable, view.instance.draggable]);
   });
@@ -113,8 +113,7 @@ describe("host directives", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(Menu);
-    const [item] = engine.getContext(view.host.nativeElement.querySelector("li")!)
-      .map((context) => context.directives)
+    const [item] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("li")!), (context) => context.directives)
       .getOrElse([]) as [Item];
     expect(item.focusable)
       .toBe(view.instance.focusable);

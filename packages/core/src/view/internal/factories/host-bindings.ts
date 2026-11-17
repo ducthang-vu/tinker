@@ -14,7 +14,7 @@
 // Class names keep their case: unlike templates, host bindings are not read
 // by the browser's HTML parser.
 
-import { Either, type EitherError, Maybe } from "@tinker/functional";
+import { Either, type EitherError, Maybe, pipe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
 import { isEventAttribute } from "../runtime/url-safety.ts";
@@ -109,9 +109,11 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
     ));
   }
   const kind = match[1] === "attr" ? "attribute" : (match[1] as "class" | "style");
-  return ExpressionParser.parse(value)
-    .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`))
-    .map((expression) => ({ kind, name: match[2]!, expression }));
+  return pipe(
+    ExpressionParser.parse(value)
+      .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`)),
+    Either.map((expression) => ({ kind, name: match[2]!, expression })),
+  );
 }
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
@@ -123,10 +125,12 @@ function parseListener(key: string, handler: string): EitherError<HostListener> 
         + "\"[style.name]\" and \"[attr.name]\" bindings are supported for now",
       ),
     );
-  return source
-    .flatMap((name) => parseEventName(name, `host listener "${key}"`))
-    .flatMap((listener) =>
-      parseHandler(handler, "host handler")
-        .map((parsed) => ({ ...listener, handler: parsed })),
-    );
+  return pipe(
+    source,
+    Either.flatMap((name) => parseEventName(name, `host listener "${key}"`)),
+    Either.flatMap((listener) => pipe(
+      parseHandler(handler, "host handler"),
+      Either.map((parsed) => ({ ...listener, handler: parsed })),
+    )),
+  );
 }

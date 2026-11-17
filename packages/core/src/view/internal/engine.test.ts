@@ -24,6 +24,7 @@ function changeDetection(): ChangeDetection {
 }
 import { ComponentRef } from "./component-ref.ts";
 import type { ComponentView } from "./runtime/component-view.ts";
+import { Maybe } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -183,7 +184,7 @@ describe("Engine.bootstrap", () => {
       .getOrElse(undefined)!;
     expect(context)
       .toBeInstanceOf(ElementContext);
-    expect(context.componentView.map((componentView) => componentView.host)
+    expect(Maybe.map(context.componentView, (componentView) => componentView.host)
       .getOrElse(undefined))
       .toBe(view.host.nativeElement);
     expect(context.directives)
@@ -225,9 +226,13 @@ describe("Engine.bootstrap", () => {
       .toBe(true);
 
     const second = engine.bootstrap(App);
-    expect(engine.getContext(second.host.nativeElement)
-      .flatMap((context) => context.componentView)
-      .map((componentView) => componentView.host)
+    expect(Maybe.map(
+      Maybe.flatMap(
+        engine.getContext(second.host.nativeElement),
+        (context) => context.componentView,
+      ),
+      (componentView) => componentView.host,
+    )
       .getOrElse(undefined))
       .toBe(second.host.nativeElement);
   });
@@ -272,9 +277,10 @@ describe("Engine.bootstrap", () => {
       .toBe(host);
     expect(host.innerHTML)
       .toBe("<p>x</p>");
-    expect(engine.getContext(host)
-      .flatMap((context) => context.componentView)
-      .map((componentView) => componentView.host)
+    expect(Maybe.map(
+      Maybe.flatMap(engine.getContext(host), (context) => context.componentView),
+      (componentView) => componentView.host,
+    )
       .getOrElse(undefined))
       .toBe(view.host.nativeElement);
   });

@@ -2,8 +2,8 @@
 //
 // Like Either and Task, it is a monad with the same vocabulary:
 //   Maybe.some(a)    wrap a value (a Some)
-//   maybe.map(f)     transform the value, if there is one
-//   maybe.flatMap(f) chain a step that may itself produce nothing
+//   Maybe.map(m, f)  transform the value, if there is one, or Maybe.map(f) in a pipe
+//   Maybe.flatMap(m, f)  chain a step that may itself produce nothing
 //   maybe.match({ some, none })  get out, handling both cases
 //
 //   Maybe.from(user.address)
@@ -11,8 +11,31 @@
 //     .getOrElse("unknown");
 
 import { Either } from "./either.ts";
+import { dual } from "./dual.ts";
+
+/** `Maybe.map`: data-first `map(m, f)`, or data-last `map(f)` for `pipe`. */
+export interface MaybeMap {
+  <T, U>(self: Maybe<T>, f: (value: T) => U): Maybe<U>;
+  <T, U>(f: (value: T) => U): (self: Maybe<T>) => Maybe<U>;
+}
+
+/** `Maybe.flatMap`: data-first `flatMap(m, f)`, or data-last `flatMap(f)` for `pipe`. */
+export interface MaybeFlatMap {
+  <T, U>(self: Maybe<T>, f: (value: T) => Maybe<U>): Maybe<U>;
+  <T, U>(f: (value: T) => Maybe<U>): (self: Maybe<T>) => Maybe<U>;
+}
 
 export class Maybe<T> {
+  static readonly map: MaybeMap = dual<MaybeMap>(
+    2,
+    (self: Maybe<unknown>, f: (value: unknown) => unknown) => self.map(f),
+  );
+
+  static readonly flatMap: MaybeFlatMap = dual<MaybeFlatMap>(
+    2,
+    (self: Maybe<unknown>, f: (value: unknown) => Maybe<unknown>) => self.flatMap(f),
+  );
+
   private static readonly NONE = new Maybe<never>(false, undefined as never);
 
   private constructor(
@@ -46,12 +69,12 @@ export class Maybe<T> {
   }
 
   /** Transform the value, if there is one. */
-  map<U>(f: (value: T) => U): Maybe<U> {
+  private map<U>(f: (value: T) => U): Maybe<U> {
     return this.present ? Maybe.some(f(this.value)) : Maybe.none();
   }
 
   /** Chain a step that may itself produce nothing (the monad's bind). */
-  flatMap<U>(f: (value: T) => Maybe<U>): Maybe<U> {
+  private flatMap<U>(f: (value: T) => Maybe<U>): Maybe<U> {
     return this.present ? f(this.value) : Maybe.none();
   }
 

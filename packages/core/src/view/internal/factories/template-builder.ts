@@ -12,7 +12,7 @@
 // will be collected and updated here too.
 
 import { inject, Injectable, type Injector } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
+import { Maybe, partial } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
@@ -433,7 +433,7 @@ export class TemplateBuilder {
       // The value is a computed signal: it sees only the `@let`s declared above
       // it (a snapshot), and reading it makes the reader depend on what it reads.
       const above = new Scope(this.component, new Map(this.scope.lets));
-      this.scope.lets.set(node.name, computed(() => evaluate(node.expression, above)));
+      this.scope.lets.set(node.name, computed(partial(evaluate, node.expression, above)));
       return [];
     }
     if (node.kind === "element" && node.container) {
