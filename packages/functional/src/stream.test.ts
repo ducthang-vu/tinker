@@ -106,7 +106,7 @@ describe("Stream", () => {
   });
 
   test("cancelling after the end, or a source with nothing to cancel, does nothing", () => {
-    const finished = record(Stream.of(1));
+    const finished = record(Stream.end(1));
     expect(() => finished.cancel())
       .not.toThrow();
     const plain = record(Stream.create<number, void, never>(() => {}));
@@ -188,7 +188,7 @@ describe("Stream", () => {
 
   describe("constructors", () => {
     test("of ends with its value, fail with its failure, fromEither with either", () => {
-      expect(record(Stream.of(1)).log)
+      expect(record(Stream.end(1)).log)
         .toEqual([["end", "right", 1]]);
       expect(record(Stream.fail("bad")).log)
         .toEqual([["end", "left", "bad"]]);
@@ -267,7 +267,7 @@ describe("Stream", () => {
     });
 
     test("an exception thrown by f ends the stream with a failure", () => {
-      const mapped = Stream.of(1)
+      const mapped = Stream.end(1)
         .map(() => {
           throw new Error("f failed");
         });
@@ -284,7 +284,7 @@ describe("Stream", () => {
     });
     expect(record(stream.mapLeft((error) => String(error).length)).log)
       .toEqual([["item", "right", 1], ["item", "left", 4], ["end", "left", 3]]);
-    expect(record(Stream.of(2)
+    expect(record(Stream.end(2)
       .mapLeft(String)).log)
       .toEqual([["end", "right", 2]]);
   });
@@ -311,7 +311,7 @@ describe("Stream", () => {
       const chained = Stream.fail("bad")
         .flatMap(() => {
           ran = true;
-          return Stream.of(1);
+          return Stream.end(1);
         });
       expect(record(chained).log)
         .toEqual([["end", "left", "bad"]]);
@@ -324,12 +324,12 @@ describe("Stream", () => {
         sink.next(Either.left("item failed"));
         sink.end(Either.right("go on"));
       });
-      expect(record(first.flatMap((r) => Stream.of(r.length))).log)
+      expect(record(first.flatMap((r) => Stream.end(r.length))).log)
         .toEqual([["item", "left", "item failed"], ["end", "right", 5]]);
     });
 
     test("an exception thrown by f ends the stream with a failure", () => {
-      const chained = Stream.of(1)
+      const chained = Stream.end(1)
         .flatMap(() => {
           throw new Error("f failed");
         });
@@ -373,16 +373,16 @@ describe("Stream", () => {
     });
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
-      expect(record(Stream.of("abc")
+      expect(record(Stream.end("abc")
         .flatMap(f)).log)
         .toEqual(record(f("abc")).log);
     });
 
     test("right identity: m.flatMap(of) = m, a failed end included", () => {
       expect(record(counting()
-        .flatMap(Stream.of)).log)
+        .flatMap(Stream.end)).log)
         .toEqual(record(counting()).log);
-      expect(record(failing.flatMap(Stream.of)).log)
+      expect(record(failing.flatMap(Stream.end)).log)
         .toEqual(record(failing).log);
     });
 
@@ -404,7 +404,7 @@ describe("Stream", () => {
       expect(record(counting()
         .map(h)).log)
         .toEqual(record(counting()
-          .flatMap((r) => Stream.of(h(r)))).log);
+          .flatMap((r) => Stream.end(h(r)))).log);
     });
   });
 });

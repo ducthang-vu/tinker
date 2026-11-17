@@ -1,7 +1,7 @@
 // Maybe<T>: a value that may be absent (Some) or not (None).
 //
 // Like Either and Task, it is a monad with the same vocabulary:
-//   Maybe.of(a)      unit: wrap a value (a Some)
+//   Maybe.some(a)    wrap a value (a Some)
 //   maybe.map(f)     transform the value, if there is one
 //   maybe.flatMap(f) chain a step that may itself produce nothing
 //   maybe.match({ some, none })  get out, handling both cases
@@ -28,11 +28,6 @@ export class Maybe<T> {
   /** No value. */
   static none<T = never>(): Maybe<T> {
     return Maybe.NONE;
-  }
-
-  /** Unit (the monad's `return`): the same as `some`. */
-  static of<T>(value: T): Maybe<T> {
-    return Maybe.some(value);
   }
 
   /** `None` for `null` or `undefined`, otherwise `Some(value)`. */

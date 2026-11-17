@@ -14,7 +14,7 @@
 //   `cause`, if it was not one), so any task may fail with an `Error`.
 //
 // Like Maybe and Either, it is a monad with the same vocabulary:
-//   Task.of(a)      unit: a task that succeeds with `a`
+//   Task.succeed(a)  a task that succeeds with `a`
 //   task.map(f)     transform the result
 //   task.flatMap(f) chain another task (cancelling cancels the current step)
 //
@@ -64,9 +64,9 @@ export class Task<T, E = Error> {
       )));
   }
 
-  /** Unit (the monad's `return`): a task that succeeds with `value`. */
-  static of<T>(value: T): Task<T, never> {
-    return new Task(Stream.of(value));
+  /** A task that succeeds with `value`. */
+  static succeed<T>(value: T): Task<T, never> {
+    return new Task(Stream.end(value));
   }
 
   /** A task that fails with `error`. */

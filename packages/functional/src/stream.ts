@@ -14,7 +14,7 @@
 //
 // Like Maybe, Either and Task it is a monad with the same vocabulary, and
 // the monad is on the END, not on the items (as in Haskell's `streaming`):
-//   Stream.of(r)        unit: no items, ends with `r`
+//   Stream.end(r)       no items, ends with `r`
 //   stream.map(f)       transform what it ends with
 //   stream.flatMap(f)   run this stream, then the one `f` makes from its end
 //
@@ -92,8 +92,8 @@ export class Stream<T, R = void, E = Error> {
     return new Stream(subscribe);
   }
 
-  /** Unit (the monad's `return`): no items, ends with `result`. */
-  static of<R>(result: R): Stream<never, R, never> {
+  /** No items, ends with `result`. */
+  static end<R>(result: R): Stream<never, R, never> {
     return Stream.fromEither(Either.right(result));
   }
 
