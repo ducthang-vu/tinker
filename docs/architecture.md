@@ -15,7 +15,7 @@ Client code sees a few objects. Everything else is internal.
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
 | `queryAll` | A signal of the instances of a type, in document order. `{ from: "content" }` reads the children the parent passes in instead of the component's own template; `{ read: ElementRef }` gives their elements. |
-| `query` | A signal of the first of those, as a `Maybe` (none when there is none). The same options apply. |
+| `query` | A signal of the first of those, as a `Maybe` (none when there is none). The same options apply. A string target (`query<Tab>("tab")`) reads the top-level template variable `#tab`, `#tab="exportAs"` or `##tab`: the element or instance it names. |
 | `query.required` | The same, as the instance itself. Reading it when there is no match throws `QueryMissingError`. |
 
 | Internal | What it is for |
@@ -131,6 +131,10 @@ views (`@if` branches, `@map` rows) record into the same registry, since they
 belong to the component's template. A child component's template records into its
 own registry, so `queryAll` never lists the items inside a child.
 
+Top-level template variables are also in the registry, by name, so `query("name")`
+finds them. A variable inside an `@if` branch or a `@map` row is not, since one name
+can appear many times; query those by a class instead.
+
 Content is a second registry per component. A parent that builds a component's
 element records its direct element children into it, as well as into its own
 registry, so `queryAll(Type, { from: "content" })` in the component lists the
@@ -140,7 +144,7 @@ element or in a block is not in it).
 `queryAll(type)` reads the registry in document order. A `@map` that moves
 its rows tells the registry, which then sorts again.
 
-Not built yet: a template reference variable (`#name`) as the target of a query.
+Not built yet: a template variable as the target of `queryAll` (only `query` takes one).
 
 ## Template references
 

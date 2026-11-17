@@ -7,7 +7,7 @@
 
 import { Injectable } from "../../../di/index.ts";
 import { Maybe } from "@tinker/functional";
-import { computed, type ReadonlySignal, signal } from "../../../signals/index.ts";
+import { computed, type ReadonlySignal, type Signal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "./element-ref.ts";
 
@@ -22,6 +22,21 @@ export class ViewQueries {
   private readonly matches = signal<readonly Match[]>([]);
   /** Bumped when the DOM is reordered, since the order of the matches may have changed. */
   private readonly order = signal(0);
+  private readonly references = new Map<string, Signal<unknown>>();
+
+  /**
+   * The value of the template variable `name` declared at the top level of this
+   * component's template (`#name`, `#name="exportAs"`, `##name`): set by the builder,
+   * read by a query whose target is the name. Created on first use.
+   */
+  reference(name: string): Signal<unknown> {
+    let value = this.references.get(name);
+    if (value === undefined) {
+      value = signal<unknown>(undefined);
+      this.references.set(name, value);
+    }
+    return value;
+  }
 
   /** Record `instance` on `element`. Returns what removes it again. */
   add(instance: object, element: Node): () => void {

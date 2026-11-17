@@ -70,6 +70,7 @@ export class TemplateBuilderFactory {
     components: ComponentFactory,
     queries: ViewQueries,
     scope = new Scope(component),
+    root = true,
   ): TemplateBuilder {
     return new TemplateBuilder(
       component,
@@ -81,6 +82,7 @@ export class TemplateBuilderFactory {
       this,
       this.embedded,
       queries,
+      root,
     );
   }
 }
@@ -151,6 +153,8 @@ export class TemplateBuilder {
     private readonly factory: TemplateBuilderFactory,
     private readonly embedded: EmbeddedViewFactory,
     private readonly queries: ViewQueries,
+    /** Whether this is the component's own template, not an embedded view of it. */
+    private readonly root: boolean,
   ) {
     this.scope = scope;
   }
@@ -288,11 +292,12 @@ export class TemplateBuilder {
       if (this.scope.lets.has(name)) {
         throw new Error(`#${name} is already declared in this template`);
       }
+      // A top-level name is also in the component's registry, so a query can name it.
+      const value = this.root ? this.queries.reference(name) : signal<unknown>(undefined);
+      this.scope.lets.set(name, value);
       if (target.kind === "element") {
-        this.scope.lets.set(name, signal(element));
+        value.set(element);
       } else {
-        const value = signal<unknown>(undefined);
-        this.scope.lets.set(name, value);
         pending.push({ name, target, value });
       }
     }
@@ -495,7 +500,13 @@ export class TemplateBuilder {
     anchor: Node,
     injector: Injector,
   ): EmbeddedView {
-    const builder = this.factory.create(this.component, this.components, this.queries, scope);
+    const builder = this.factory.create(
+      this.component,
+      this.components,
+      this.queries,
+      scope,
+      false,
+    );
     return this.embedded.create(builder, body, anchor, injector);
   }
 
