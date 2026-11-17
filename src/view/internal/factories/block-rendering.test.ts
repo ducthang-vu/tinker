@@ -295,4 +295,172 @@ describe("@match", () => {
     expect(el.textContent!.trim())
       .toBe("second");
   });
+
+  test("relations: the subject is compared with a literal", async () => {
+    @Component({
+      selector: "tk-rel",
+      template: "@match n() { @case >= 90 { A } @case >= 50 { B } @default { C } }",
+    })
+    class Rel {
+      readonly n = signal(10);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Rel, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("C");
+    app.root.instance.n.set(60);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("B");
+    app.root.instance.n.set(95);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("A");
+    app.destroy();
+  });
+
+  test("an object pattern shows its names, and they follow their values", async () => {
+    @Component({
+      selector: "tk-object",
+      template: "@match res() { @case { status, index: number } { {{ status }} } @default { none } }",
+    })
+    class ObjectMatch {
+      readonly res = signal<{ status: string; index: number }>({ status: "paid", index: 1 });
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(ObjectMatch, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("paid");
+    app.root.instance.res.set({ status: "late", index: 2 });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("late");
+    app.destroy();
+  });
+
+  test("an object pattern fails on a missing key, a wrong type, or a non-object", async () => {
+    @Component({
+      selector: "tk-shape",
+      template: "@match res() { @case { index: number } { number } @default { other } }",
+    })
+    class Shape {
+      readonly res = signal<unknown>({ index: "one" });
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Shape, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("other");
+    app.root.instance.res.set(null);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("other");
+    app.root.instance.res.set({ index: 3 });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("number");
+    app.destroy();
+  });
+
+  test("a nested object pattern matches inside a field", () => {
+    @Component({
+      selector: "tk-nested",
+      template: "@match order() { @case { customer: { country: \"FR\" } } { free } @default { paid } }",
+    })
+    class Nested {
+      readonly order = signal({ customer: { country: "FR" } });
+    }
+    const el = document.createElement("section");
+    bootstrap(Nested, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("free");
+  });
+
+  test("a guard can read the names its pattern bound", () => {
+    @Component({
+      selector: "tk-bound-guard",
+      template: "@match res() { @case { status } when status === \"ok\" { ok } @default { no } }",
+    })
+    class BoundGuard {
+      readonly res = signal({ status: "ok" });
+    }
+    const el = document.createElement("section");
+    bootstrap(BoundGuard, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("ok");
+  });
+
+  test("every relation operator compares the subject with its literal", async () => {
+    @Component({
+      selector: "tk-ops",
+      template: "@match n() { @case < 5 { lt } @case <= 3 { le } @case > 10 { gt } @case !== 7 { ne } @default { eq } }",
+    })
+    class Ops {
+      readonly n = signal(7);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Ops, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("eq");
+    app.root.instance.n.set(2);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("lt");
+    app.destroy();
+  });
+
+  test("a bare name binds the whole value", () => {
+    @Component({
+      selector: "tk-name",
+      template: "@match n() { @case m { value {{ m }} } }",
+    })
+    class NameBinding {
+      readonly n = signal(4);
+    }
+    const el = document.createElement("section");
+    bootstrap(NameBinding, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("value 4");
+  });
+
+  test("an object pattern fails on a number, which is not an object", () => {
+    @Component({
+      selector: "tk-number-shape",
+      template: "@match n() { @case { a } { yes } @default { no } }",
+    })
+    class NumberShape {
+      readonly n = signal<unknown>(5);
+    }
+    const el = document.createElement("section");
+    bootstrap(NumberShape, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("no");
+  });
+
+  test("an object pattern fails when a key is missing, even if its value would be undefined", () => {
+    @Component({
+      selector: "tk-missing",
+      template: "@match r() { @case { status } { yes } @default { no } }",
+    })
+    class Missing {
+      readonly r = signal<object>({});
+    }
+    const el = document.createElement("section");
+    bootstrap(Missing, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("no");
+  });
+
+  test("the object type does not match null, but matches an object", () => {
+    @Component({
+      selector: "tk-object-type",
+      template: "@match r() { @case { v: object } { yes } @default { no } }",
+    })
+    class ObjectType {
+      readonly r = signal<object>({ v: null });
+    }
+    const el = document.createElement("section");
+    bootstrap(ObjectType, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("no");
+  });
 });

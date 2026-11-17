@@ -20,6 +20,7 @@ import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
+import { type Pattern, parsePattern, splitGuard } from "./pattern.ts";
 
 /** A node of a compiled template. */
 export type CompiledNode
@@ -53,11 +54,6 @@ export interface CompiledCase {
  * What a case tests the subject against: `truthy` and `falsy` (JavaScript's
  * rules), `_` (anything), or a literal (compared with `===`).
  */
-export type Pattern
-  = | { readonly kind: "truthy" }
-    | { readonly kind: "falsy" }
-    | { readonly kind: "any" }
-    | { readonly kind: "value"; readonly value: string | number | boolean | null | undefined };
 
 /**
  * A `@let name = expression;` in a template: it declares `name` for the
@@ -248,40 +244,20 @@ function caseHeader(
   block: BlockItem,
   subjectless: boolean,
 ): { pattern: Pattern; guard?: Expression } {
-  const split = /\swhen(\s|$)/.exec(block.header);
-  const patternText = split
-    ? block.header.slice(0, split.index)
-        .trim()
-    : block.header;
-  const guard = split
-    ? expressionOf({ ...block, header: block.header.slice(split.index + split[0].length) })
-    : undefined;
-  const result = pattern(patternText, block);
+  const split = splitGuard(block.header);
+  if (split.pattern === "") {
+    throw new Error("@case needs a pattern, e.g. @case \"loading\"");
+  }
+  const result = parsePattern(split.pattern)
+    .mapLeft((error) => new Error(`${error.message}, in @case`))
+    .getOrThrow();
   if (subjectless && result.kind !== "any") {
-    throw new Error(`A @match without a subject takes "@case _ when …" cases, not "${patternText}"`);
+    throw new Error(`A @match without a subject takes "@case _ when …" cases, not "${split.pattern}"`);
   }
+  const guard = split.guard === undefined
+    ? undefined
+    : expressionOf({ ...block, header: split.guard });
   return guard ? { pattern: result, guard } : { pattern: result };
-}
-
-/** The pattern of a `@case`: `truthy`, `falsy`, `_`, or a literal. */
-function pattern(text: string, block: BlockItem): Pattern {
-  switch (text) {
-    case "":
-      throw new Error("@case needs a pattern, e.g. @case \"loading\"");
-    case "truthy":
-      return { kind: "truthy" };
-    case "falsy":
-      return { kind: "falsy" };
-    case "_":
-      return { kind: "any" };
-    default: {
-      const expression = expressionOf({ ...block, keyword: "case", header: text });
-      if (expression.kind !== "literal") {
-        throw new Error(`Only literals, truthy, falsy and _ are patterns for now: "${text}"`);
-      }
-      return { kind: "value", value: expression.value };
-    }
-  }
 }
 
 /** A `@let` declaration in a text: `@let name = expression;`. */

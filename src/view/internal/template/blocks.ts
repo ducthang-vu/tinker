@@ -67,11 +67,11 @@ function tokenize(node: TemplateNode): Token[] {
     const start = BLOCK_START.exec(node.value);
     if (start) {
       flush();
-      const brace = node.value.indexOf("{", BLOCK_START.lastIndex);
+      const keyword = start[1]!.replace(/\s+/, "") as BlockKeyword;
+      const brace = bodyBrace(node.value, BLOCK_START.lastIndex, keyword);
       if (brace === -1) {
         throw new Error(`Missing "{" after "${start[0]}"`);
       }
-      const keyword = start[1]!.replace(/\s+/, "") as BlockKeyword;
       tokens.push({ kind: "open", keyword, header: node.value.slice(BLOCK_START.lastIndex, brace)
         .trim() });
       i = brace + 1;
@@ -87,6 +87,47 @@ function tokenize(node: TemplateNode): Token[] {
   }
   flush();
   return tokens;
+}
+
+/**
+ * The `{` that opens a block's body. A `@case` may start with an object pattern,
+ * which has braces of its own: the body is the first `{` after that pattern.
+ */
+function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
+  let start = from;
+  if (keyword === "case") {
+    while (start < value.length && /\s/.test(value[start]!)) {
+      start++;
+    }
+    if (value[start] === "{") {
+      start = matchingBrace(value, start) + 1;
+    }
+  }
+  return value.indexOf("{", start);
+}
+
+/** The index of the `}` that closes the `{` at `open`, skipping quoted text. */
+function matchingBrace(value: string, open: number): number {
+  let depth = 0;
+  let quote: string | undefined;
+  for (let i = open; i < value.length; i++) {
+    const char = value[i]!;
+    if (quote) {
+      if (char === quote) {
+        quote = undefined;
+      }
+    } else if (char === "\"" || char === "'") {
+      quote = char;
+    } else if (char === "{") {
+      depth++;
+    } else if (char === "}") {
+      depth--;
+      if (depth === 0) {
+        return i;
+      }
+    }
+  }
+  throw new Error(`Missing "}" in the pattern`);
 }
 
 /** Read items until the end of the tokens, or, inside a block, its closing brace. */

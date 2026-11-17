@@ -86,14 +86,14 @@ access     := identifier ( "." identifier | "(" ")" )*
 | `truthy` | a truthy value | `@case truthy` | done |
 | `falsy` | a falsy value: `0`, `""`, `null`, `undefined`, `false`, `NaN` | `@case falsy` | done |
 | `_` | anything | `@case _ when a()` | done |
-| Name | anything, bound to that name in the branch | `@case value` | later |
+| Name | anything, bound to that name in the branch | `@case value` | done |
 | `present` | anything except `null` and `undefined` | `@case present` | later |
-| Object, by tag or shape | an object with those fields | `@case { tag: "ok", value }` | later |
+| Object, by tag or shape | an object with those fields | `@case { tag: "ok", value }` | done |
 | Object key absent | an object without that key | `@case { error: absent }` | later |
-| Type check in an object | a field of a runtime type | `@case { id: number, name: string }` | later |
+| Type check in an object | a field of a runtime type | `@case { id: number, name: string }` | done |
 | Empty array | an empty list | `@case []` | later |
 | Array, fixed length or with rest | a list of that shape | `@case [first, ...rest]` | later |
-| Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | later |
+| Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | done |
 | Alternatives | any of several patterns | `@case "loading" \| "saving"` | later |
 | Range | a number between two bounds | `@case 0..12` | later |
 | `not` | anything the inner pattern does not match | `@case not "guest"` | later |
@@ -160,3 +160,16 @@ working `@if` and `@match`, and it keeps every step testable on its own.
 
 Steps 1 and 2 are small and can each be a pull request. Step 3 is the largest
 change, and steps 4 to 7 build on it.
+
+## Relations and object patterns (as built)
+
+| Pattern | Matches | Example | Status |
+|---|---|---|---|
+| Relation | the subject compared with a literal: `<`, `<=`, `>`, `>=`, `!==` | `@case >= 90` | done |
+| Object | an object (not `null`) with each key, its value matching the key's pattern | `@case { status, index: number }` | done |
+| Bound name | anything, bound to that name in the branch and in the case's guard | `status`, `m` | done |
+| Type | a value of that `typeof` (`object` excludes `null`) | `number`, `string` | done |
+| Nested object | an object pattern inside a field | `@case { user: { role: "admin" } }` | done |
+
+A key must exist for its pattern to match, so `{ status }` fails on `{}`, and
+passes on `{ status: undefined }`. `undefined` is a value, not a type.
