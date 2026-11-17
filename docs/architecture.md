@@ -137,6 +137,16 @@ its rows tells the registry, which then sorts again.
 Not built yet: template reference variables (`#name`), `viewChild` (a single
 match), and content queries (`contentChildren`).
 
+## Template references
+
+`#name` on an element declares a value for the template: the native element.
+It is read like an `@let`, as `name.tagName` (not `name()`), and it is the same
+element whether or not a directive or component is on it. In the component's own
+template a reference can be read before its element, since bindings read it when
+they update. A branch of `@if`, `@match` or `@map` copies the references declared
+above it when it is built, so it cannot read one declared after the branch.
+`#name="…"` (naming a directive) is not supported yet.
+
 ## Glossary
 
 - **Host**: the element a component is rendered into. Its `ElementRef` is

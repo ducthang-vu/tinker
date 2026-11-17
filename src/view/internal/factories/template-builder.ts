@@ -26,7 +26,7 @@ import type {
 import { outputsNamed } from "../authoring/output.ts";
 import { Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
-import { computed } from "../../../signals/index.ts";
+import { computed, signal } from "../../../signals/index.ts";
 import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
@@ -373,6 +373,13 @@ export class TemplateBuilder {
     const element = this.renderer.createElement(node.name);
     for (const attribute of node.attributes) {
       this.renderer.setAttribute(element, attribute.name, attribute.value);
+    }
+    // A template reference names the native element, whatever directives are on it.
+    for (const name of node.references) {
+      if (this.scope.lets.has(name)) {
+        throw new Error(`#${name} is already declared in this template`);
+      }
+      this.scope.lets.set(name, signal(element));
     }
     for (const { name, expression } of node.classBindings) {
       this.bindings.push(this.bindingFactory

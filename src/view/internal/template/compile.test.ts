@@ -29,6 +29,7 @@ describe("compileTemplate", () => {
                 .getOrThrow()] },
             },
           ],
+          references: [],
           directives: [],
           component: Maybe.none(),
           classBindings: [],
@@ -332,5 +333,29 @@ describe("@case bodies after the remaining patterns", () => {
   test("a [ that does not start a pattern is not skipped as one", () => {
     expect(() => compileTemplate([{ kind: "text", value: "@match x { @case a[0] { one } }" }]))
       .toThrow("in @case");
+  });
+});
+
+describe("template references", () => {
+  test("#name on an element is a reference, not an attribute", () => {
+    const [p] = compileTemplate([{
+      kind: "element",
+      name: "p",
+      attributes: [{ name: "#box", value: "" }, { name: "class", value: "x" }],
+      children: [],
+    }]) as CompiledElement[];
+    expect(p)
+      .toMatchObject({ references: ["box"], attributes: [{ name: "class", value: "x" }] });
+  });
+
+  test("a reference must be a plain name, declared once, and not name a directive", () => {
+    const element = (attributes: { name: string; value: string }[]) =>
+      compileTemplate([{ kind: "element", name: "p", attributes, children: [] }]);
+    expect(() => element([{ name: "#1x", value: "" }]))
+      .toThrow("is not a template reference");
+    expect(() => element([{ name: "#box", value: "" }, { name: "#box", value: "" }]))
+      .toThrow("#box is declared twice");
+    expect(() => element([{ name: "#box", value: "NgModel" }]))
+      .toThrow("naming a directive is not supported yet");
   });
 });

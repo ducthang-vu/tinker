@@ -115,6 +115,11 @@ export interface CompiledElement {
   /** Its output bindings, e.g. `(selected)="choose($event)"`, in template order. */
   readonly outputBindings: readonly OutputBindingNode[];
   readonly children: readonly CompiledNode[];
+  /**
+   * The template references on it, `#name`: each names the element itself, even
+   * when a directive or component is on it too.
+   */
+  readonly references: readonly string[];
   /** The directives matching this element (not its component), in import order. */
   readonly directives: readonly Class<object>[];
   /** The component matching this element, if any: the element is its host. */
@@ -404,6 +409,7 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     outputBindings,
     styleBindings,
     attributeBindings,
+    references,
   } = classifyAttributes(node);
   const matched = candidates.filter((candidate) =>
     candidate.selector.matches({ name: node.name, attributes }));
@@ -433,6 +439,7 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     attributeBindings,
     // A component's element has content too: the component shows it in its `<slot>`s.
     children: compileTemplate(node.children, candidates),
+    references,
     directives,
     component,
   };
@@ -450,6 +457,7 @@ const ATTRIBUTE_BINDING = /^\[attr\.([^\]\s]+)\]$/;
  * syntax, or an invalid expression.
  */
 function classifyAttributes(node: ElementNode): {
+  references: string[];
   attributes: AttributeNode[];
   classBindings: ClassBindingNode[];
   inputBindings: InputBindingNode[];
@@ -458,6 +466,7 @@ function classifyAttributes(node: ElementNode): {
   attributeBindings: ValueBindingNode[];
 } {
   const attributes: AttributeNode[] = [];
+  const references: string[] = [];
   const classBindings: ClassBindingNode[] = [];
   const inputBindings: InputBindingNode[] = [];
   const outputBindings: OutputBindingNode[] = [];
@@ -467,6 +476,10 @@ function classifyAttributes(node: ElementNode): {
     .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
     .getOrThrow();
   for (const attribute of node.attributes) {
+    if (attribute.name.startsWith("#")) {
+      references.push(referenceOf(attribute, node, references));
+      continue;
+    }
     const className = CLASS_BINDING.exec(attribute.name)?.[1];
     const inputName = INPUT_BINDING.exec(attribute.name)?.[1];
     const eventName = OUTPUT_BINDING.exec(attribute.name)?.[1];
@@ -496,6 +509,7 @@ function classifyAttributes(node: ElementNode): {
     }
   }
   return {
+    references,
     attributes,
     classBindings,
     inputBindings,
@@ -503,4 +517,28 @@ function classifyAttributes(node: ElementNode): {
     styleBindings,
     attributeBindings,
   };
+}
+
+/**
+ * The name of a template reference, `#name`, which must be a plain name and
+ * declared once on its element. `#name="…"` (naming a directive) is not supported yet.
+ */
+function referenceOf(
+  attribute: AttributeNode,
+  node: ElementNode,
+  declared: readonly string[],
+): string {
+  const name = attribute.name.slice(1);
+  if (!/^[A-Za-z_$][\w$]*$/.test(name)) {
+    throw new Error(`"${attribute.name}" is not a template reference on <${node.name}>`);
+  }
+  if (attribute.value !== "") {
+    throw new Error(
+      `"${attribute.name}" on <${node.name}>: naming a directive is not supported yet`,
+    );
+  }
+  if (declared.includes(name)) {
+    throw new Error(`#${name} is declared twice on <${node.name}>`);
+  }
+  return name;
 }
