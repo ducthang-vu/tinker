@@ -1,5 +1,5 @@
-// Blocks in templates: `@if`, `@else`, `@else if`, `@match`, `@case` and
-// `@default`, written in text that the browser's parser keeps as text.
+// Blocks in templates: `@if`, `@else`, `@else if`, `@match`, `@case`, `@default`
+// and `@map`, written in text that the browser's parser keeps as text.
 //
 //   @if (user()) { <p>Hi</p> } @else if (guest()) { <p>Guest</p> } @else { ... }
 //   @match state { @case "loading" { ... } @default { ... } }
@@ -13,7 +13,7 @@
 
 import type { TemplateNode } from "./ast.ts";
 
-export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default";
+export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
 /** Anything in a template: a node, or a block with its body. */
 export type Item = TemplateNode | BlockItem;
@@ -33,7 +33,7 @@ type Token
     | { readonly kind: "open"; readonly keyword: BlockKeyword; readonly header: string }
     | { readonly kind: "close" };
 
-const BLOCK_START = /@(else\s+if|if|else|match|case|default)(?![\w$])/y;
+const BLOCK_START = /@(else\s+if|if|else|match|case|default|map)(?![\w$])/y;
 
 /** The items of a list of nodes: blocks nested by braces, `@else`s attached to their `@if`. */
 export function itemsOf(nodes: readonly TemplateNode[]): readonly Item[] {

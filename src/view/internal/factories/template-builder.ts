@@ -18,6 +18,7 @@ import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type {
   CompiledElement,
+  CompiledMap,
   CompiledMatch,
   CompiledNode,
   CompiledText,
@@ -32,6 +33,7 @@ import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import type { View } from "../runtime/view.ts";
 import { MatchBinding } from "../runtime/match-binding.ts";
+import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 
@@ -93,7 +95,7 @@ export class TemplateBuilder {
   private readonly enclosing: number[] = [];
   /** The matches built: their binding, and the index of their element (undefined: the root). */
   private readonly matches: {
-    readonly binding: MatchBinding;
+    readonly binding: MatchBinding | MapBinding;
     readonly parent: number | undefined;
   }[] = [];
 
@@ -279,6 +281,9 @@ export class TemplateBuilder {
     if (node.kind === "match") {
       return [this.buildMatch(node)];
     }
+    if (node.kind === "map") {
+      return [this.buildMap(node)];
+    }
     if (node.kind === "let") {
       // The value is a computed signal: it sees only the `@let`s declared above
       // it (a snapshot), and reading it makes the reader depend on what it reads.
@@ -300,6 +305,25 @@ export class TemplateBuilder {
       this.scope,
       new Map(this.scope.lets),
       (body, scope, injector) => this.renderBranch(body, scope, anchor, injector),
+    );
+    this.bindings.push(binding);
+    this.matches.push({ binding, parent: this.enclosing.at(-1) });
+    return anchor;
+  }
+
+  /**
+   * A map leaves a comment anchor, after which its rows are placed. Its binding
+   * is attached like a match's, once its element has its injector.
+   */
+  private buildMap(node: CompiledMap): Node {
+    const anchor = this.renderer.createComment("");
+    const binding = new MapBinding(
+      node,
+      this.scope,
+      new Map(this.scope.lets),
+      anchor,
+      this.renderer,
+      (body, scope, rowAnchor, injector) => this.renderBranch(body, scope, rowAnchor, injector),
     );
     this.bindings.push(binding);
     this.matches.push({ binding, parent: this.enclosing.at(-1) });
