@@ -24,7 +24,7 @@ import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { ViewContainerRef, ViewContainerRefFactory } from "../runtime/view-container-ref.ts";
-import { ElementHost } from "../runtime/element-host.ts";
+import { Placement } from "../runtime/placement.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import { Scope } from "../template/scope.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
@@ -65,9 +65,9 @@ export class DirectiveFactory {
    *
    * Returns the element's injector: the parent for its descendants'.
    */
-  createOnHost(
+  createOnPlacement(
     types: readonly Class<object>[],
-    host: ElementHost,
+    placement: Placement,
     view: View,
     parent: Injector,
     attributes: readonly AttributeNode[] = [],
@@ -77,7 +77,7 @@ export class DirectiveFactory {
     /** The directives' host bindings, for the view's watch to update. */
     readonly bindings: readonly Binding[];
   } {
-    const { element } = host;
+    const { element } = placement;
     const elementInjector = Injector.create({
       providers: [
         ...types,
@@ -106,10 +106,10 @@ export class DirectiveFactory {
 
   /**
    * Create directive `type` on `element`, as part of `view`, in an element
-   * injector of its own (child of the engine's). See `createOnHost`.
+   * injector of its own (child of the engine's). See `createOnPlacement`.
    */
   create<T extends object>(type: Class<T>, element: Element, view: View): T {
-    return this.createOnHost([type], new ElementHost(element), view, this.injector)
+    return this.createOnPlacement([type], new Placement(element), view, this.injector)
       .instances[0] as T;
   }
 
