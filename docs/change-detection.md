@@ -12,7 +12,7 @@ one place when we know more about its costs.
    changed. Nothing else causes an update: no zone, no re-run after an event
    listener, no manual check.
 2. **Each view has its own watch.** A view is a component's template, or an
-   embedded view such as a branch of `@if` or an item of `@for`. Its watch runs
+   embedded view such as a branch of `@if` or a row of `@map`. Its watch runs
    that view's bindings, and tracks the signals they read, so it is the only
    thing that decides when the view is dirty.
 3. **Only the watch of the view that reads a signal is scheduled.** A signal's
@@ -22,7 +22,7 @@ one place when we know more about its costs.
    signals behind it, so it is scheduled when those change, without the parent
    passing anything down.
 5. **Structure goes through the container.** Adding, moving and removing views
-   (`@if` branches, `@for` items, components created at runtime) is done by the
+   (`@if` branches, `@map` rows, components created at runtime) is done by the
    container of the anchor that owns them. A view is removed when its owner is
    destroyed.
 6. **Values are written only when they change.** A binding writes the DOM only
@@ -66,7 +66,7 @@ doesn't.
 - **The dependency is what the reader reads.** A child that reads `count` depends
   on whatever `count` depends on. Nothing has to be passed down, so the child's
   correctness doesn't depend on the parent's refresh.
-- **One rule for every view.** Components, `@if` branches and `@for` items all
+- **One rule for every view.** Components, `@if` branches and `@map` rows all
   run the same way, so there's one path to test and one to change.
 
 ## What it costs
@@ -77,7 +77,8 @@ doesn't.
 - **A `@let` is evaluated once per change, and shared.** Its computed value is
   cached, so several readers in one run don't recompute it.
 - **Watches are per view.** A large list means many watches, one for each item.
-  Keyed `@for` (planned) keeps views, and so watches, between updates.
+  `@map` with `track` keeps a row's view, and so its watch, while its identity is
+  in the list.
 
 ## Known gaps
 
