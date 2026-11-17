@@ -252,5 +252,5 @@ Run its focused tests with `npm run test:repo-map`.
   native nodes, `View`s and `ViewContainerRef`s relate, with diagrams.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: property bindings (`[value]` on a plain element), queries (`query`, `queryAll`) from a template variable,
+Not there yet: property bindings (`[value]` on a plain element), queries from a template variable in `@if` or `@map` (`query` takes a top-level one),
 `@if` / `@for`, and recursive components.
