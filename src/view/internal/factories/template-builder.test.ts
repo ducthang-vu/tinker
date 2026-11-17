@@ -1,3 +1,4 @@
+import { ViewQueries } from "../runtime/view-queries.ts";
 import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
@@ -47,7 +48,7 @@ const noComponents = {
 /** Build `source` for `component`, inside a <div> to read the result. */
 function build(source: string, component: object) {
   const template = builderFactory()
-    .create(component, noComponents);
+    .create(component, noComponents, new ViewQueries());
   const root = document.createElement("div");
   root.append(...template.build(compileTemplate(new BrowserTemplateParser()
     .parse(source))));
@@ -99,7 +100,7 @@ describe("TemplateBuilderFactory", () => {
     const renderer = new DomRenderer();
     const createText = vi.spyOn(renderer, "createText");
     const builder = builderFactory(renderer)
-      .create({ name: "Ada" }, noComponents);
+      .create({ name: "Ada" }, noComponents, new ViewQueries());
 
     expect(builder)
       .toBeInstanceOf(TemplateBuilder);

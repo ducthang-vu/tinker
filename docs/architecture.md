@@ -14,6 +14,9 @@ Client code sees a few objects. Everything else is internal.
 | `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
+| `viewChildren` | A signal of the instances of a type in the component's template, in document order. `{ read: ElementRef }` gives their elements instead. |
+| `viewChild` | A signal of the first of those, as a `Maybe` (none when there is none). `{ read: ElementRef }` works here too. |
+| `viewChild.required` | The same, as the instance itself. Reading it when the template has none throws `ViewChildMissingError`. |
 
 | Internal | What it is for |
 |---|---|
@@ -118,6 +121,21 @@ flowchart TB
   K -->|owns| R["components added at runtime"]
   P -->|destroy, then| N["its nodes are removed from the page"]
 ```
+
+## View queries
+
+Each component has a `ViewQueries` registry, provided in its own injector. The
+template builder records each directive and component instance it creates, with
+the element it sits on, and removes it when its owning view is destroyed. Embedded
+views (`@if` branches, `@map` rows) record into the same registry, since they
+belong to the component's template. A child component's template records into its
+own registry, so `viewChildren` never lists the items inside a child.
+
+`viewChildren(type)` reads the registry in document order. A `@map` that moves
+its rows tells the registry, which then sorts again.
+
+Not built yet: template reference variables (`#name`), `viewChild` (a single
+match), and content queries (`contentChildren`).
 
 ## Glossary
 

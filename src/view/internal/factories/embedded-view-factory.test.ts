@@ -1,3 +1,4 @@
+import { ViewQueries } from "../runtime/view-queries.ts";
 import { describe, expect, test } from "vitest";
 import { Injector, inject } from "../../../di/index.ts";
 import { computed, signal } from "../../../signals/index.ts";
@@ -18,7 +19,9 @@ let builders!: TemplateBuilderFactory;
 let components!: ComponentFactory;
 
 function render(owner: object, children: readonly CompiledNode[], scope: Scope, anchor: Node) {
-  return factory.create(builders.create(owner, components, scope), children, anchor, injector);
+  const queries = new ViewQueries();
+  const builder = builders.create(owner, components, queries, scope);
+  return factory.create(builder, children, anchor, injector);
 }
 
 @Component({ selector: "tk-owner", template: "" })

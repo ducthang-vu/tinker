@@ -36,6 +36,7 @@ import { MatchBinding } from "../runtime/match-binding.ts";
 import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
+import type { ViewQueries } from "../runtime/view-queries.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -57,6 +58,7 @@ export class TemplateBuilderFactory {
   create(
     component: object,
     components: ComponentFactory,
+    queries: ViewQueries,
     scope = new Scope(component),
   ): TemplateBuilder {
     return new TemplateBuilder(
@@ -68,6 +70,7 @@ export class TemplateBuilderFactory {
       scope,
       this,
       this.embedded,
+      queries,
     );
   }
 }
@@ -121,6 +124,7 @@ export class TemplateBuilder {
     scope: Scope,
     private readonly factory: TemplateBuilderFactory,
     private readonly embedded: EmbeddedViewFactory,
+    private readonly queries: ViewQueries,
   ) {
     this.scope = scope;
   }
@@ -205,6 +209,10 @@ export class TemplateBuilder {
       });
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
       this.bindEvents(node, element, instances, view);
+      // The instances are view queries of this component: removed with their view.
+      for (const instance of instances) {
+        view.addDestroyCallback(this.queries.add(instance, element));
+      }
       injectors.push(injector);
       this.attachMatches(index, view, injector);
     }
@@ -324,6 +332,7 @@ export class TemplateBuilder {
       anchor,
       this.renderer,
       (body, scope, rowAnchor, injector) => this.renderBranch(body, scope, rowAnchor, injector),
+      this.queries,
     );
     this.bindings.push(binding);
     this.matches.push({ binding, parent: this.enclosing.at(-1) });
@@ -337,7 +346,7 @@ export class TemplateBuilder {
     anchor: Node,
     injector: Injector,
   ): EmbeddedView {
-    const builder = this.factory.create(this.component, this.components, scope);
+    const builder = this.factory.create(this.component, this.components, this.queries, scope);
     return this.embedded.create(builder, body, anchor, injector);
   }
 

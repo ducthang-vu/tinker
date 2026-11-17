@@ -5,6 +5,7 @@ import type { CompiledMap } from "../template/compile.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { Scope } from "../template/scope.ts";
 import { MapBinding } from "./map-binding.ts";
+import { ViewQueries } from "./view-queries.ts";
 import type { View } from "./view.ts";
 
 describe("MapBinding", () => {
@@ -27,6 +28,7 @@ describe("MapBinding", () => {
       () => {
         throw new Error("a row is not rendered before its place exists");
       },
+      new ViewQueries(),
     );
     binding.attach({ addDestroyCallback: () => {} } as unknown as View, {} as Injector);
     expect(() => binding.update())
