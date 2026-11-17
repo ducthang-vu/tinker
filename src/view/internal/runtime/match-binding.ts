@@ -142,6 +142,21 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
       return matchObject(pattern.fields, value);
     case "array":
       return matchArray(pattern.items, pattern.rest, value);
+    case "present":
+      return value === null || value === undefined ? undefined : new Map();
+    case "alt":
+      return pattern.options.some((option) => match(option, value) !== undefined)
+        ? new Map()
+        : undefined;
+    case "not":
+      return match(pattern.pattern, value) === undefined ? new Map() : undefined;
+    case "range":
+      return typeof value === "number" && value >= pattern.min && value <= pattern.max
+        ? new Map()
+        : undefined;
+    case "absent":
+      // matchObject checks a key's absence, since it sees the key. Alone, nothing is absent.
+      return undefined;
   }
 }
 
@@ -185,6 +200,12 @@ function matchObject(
   }
   const bindings = new Map<string, unknown>();
   for (const { key, pattern } of fields) {
+    if (pattern.kind === "absent") {
+      if (key in value) {
+        return undefined;
+      }
+      continue;
+    }
     if (!(key in value)) {
       return undefined;
     }

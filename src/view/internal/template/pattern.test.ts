@@ -43,3 +43,59 @@ describe("namesOf", () => {
       .toEqual([]);
   });
 });
+
+describe("parsePattern: the remaining patterns", () => {
+  test("alternatives are the options, each a pattern, and bind no names", () => {
+    expect(parsePattern(`"a" | "b"`)
+      .getOrThrow())
+      .toEqual({ kind: "alt", options: [{ kind: "value", value: "a" }, { kind: "value", value: "b" }] });
+    expect(parsePattern(`"a|b"`)
+      .getOrThrow())
+      .toEqual({ kind: "value", value: "a|b" });
+    expect(parsePattern("name | 1")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("a range takes two numbers, the smaller first", () => {
+    expect(parsePattern("0..12")
+      .getOrThrow())
+      .toEqual({ kind: "range", min: 0, max: 12 });
+    expect(parsePattern("-1.5..2")
+      .getOrThrow())
+      .toEqual({ kind: "range", min: -1.5, max: 2 });
+    expect(parsePattern("5..1")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("not takes a pattern, which binds no names", () => {
+    expect(parsePattern(`not "guest"`)
+      .getOrThrow())
+      .toEqual({ kind: "not", pattern: { kind: "value", value: "guest" } });
+    expect(parsePattern("not name")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("present and absent are words; absent only names a key's pattern", () => {
+    expect(parsePattern("present")
+      .getOrThrow())
+      .toEqual({ kind: "present" });
+    expect(parsePattern("absent")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("{ error: absent }")
+      .getOrThrow())
+      .toEqual({ kind: "object", fields: [{ key: "error", pattern: { kind: "absent" } }] });
+  });
+
+  test("not on its own is still a name, and a name inside a word is not not", () => {
+    expect(parsePattern("not")
+      .getOrThrow())
+      .toEqual({ kind: "bind", name: "not" });
+    expect(parsePattern("knot")
+      .getOrThrow())
+      .toEqual({ kind: "bind", name: "knot" });
+  });
+});

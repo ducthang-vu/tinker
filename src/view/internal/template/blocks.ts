@@ -97,16 +97,36 @@ function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
   if (keyword === "map") {
     return mapBodyBrace(value, from);
   }
-  let start = from;
   if (keyword === "case") {
-    while (start < value.length && /\s/.test(value[start]!)) {
-      start++;
+    return caseBodyBrace(value, from);
+  }
+  return value.indexOf("{", from);
+}
+
+/**
+ * The body of a `@case`: the first `{` that does not open a pattern. A pattern
+ * brace comes first in the header, or after `|` (an alternative) or `not`; a
+ * body brace comes after the pattern's last part.
+ */
+function caseBodyBrace(value: string, from: number): number {
+  let search = from;
+  for (;;) {
+    const open = value.slice(search)
+      .search(/[{[]/);
+    if (open === -1) {
+      return -1;
     }
-    if (value[start] === "{" || value[start] === "[") {
-      start = matchingBrace(value, start) + 1;
+    const at = search + open;
+    const before = value.slice(from, at)
+      .trimEnd();
+    if (before === "" || /(\||\bnot)$/.test(before)) {
+      search = matchingBrace(value, at) + 1;
+    } else if (value[at] === "{") {
+      return at;
+    } else {
+      search = at + 1;
     }
   }
-  return value.indexOf("{", start);
 }
 
 /**
