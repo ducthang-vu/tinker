@@ -14,7 +14,7 @@
 import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { parseHandler } from "./handler.ts";
-import { type EventModifier, parseEventName } from "./event-modifiers.ts";
+import { type EventModifier, isModifier, parseEventName } from "./event-modifiers.ts";
 import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
@@ -159,6 +159,8 @@ export interface ClassBindingNode {
  */
 export interface InputBindingNode {
   readonly name: string;
+  /** The selector of the directive or component it sets, for `[owner.name]`; none otherwise. */
+  readonly owner?: string;
   readonly expression: Expression;
 }
 
@@ -170,6 +172,8 @@ export interface InputBindingNode {
 export interface OutputBindingNode {
   /** The event (directive output and DOM event) name, without modifiers. */
   readonly name: string;
+  /** The selector of the directive or component whose output it is, for `(owner.name)`. */
+  readonly owner?: string;
   /** The modifiers of the DOM event, e.g. `.prevent`. */
   readonly modifiers: readonly EventModifier[];
   readonly method: string;
@@ -530,8 +534,23 @@ function declarationOf(
   return { kind: "declaration", name, names, body: compileTemplate(node.children, candidates) };
 }
 
+/**
+ * An event name may start with the selector that owns the output: `(abc.fired)`.
+ * A leading name is an owner unless it is a modifier, as in `(click.prevent)`.
+ */
+function splitOwner(text: string | undefined): { owner?: string; rest?: string } {
+  if (text === undefined) {
+    return {};
+  }
+  const [first, ...more] = text.split(".");
+  if (more.length > 0 && !isModifier(more[0]!)) {
+    return { owner: first, rest: more.join(".") };
+  }
+  return { rest: text };
+}
+
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
-const INPUT_BINDING = /^\[([^\].\s]+)\]$/;
+const INPUT_BINDING = /^\[(?:([^\].\s]+)\.)?([^\].\s]+)\]$/;
 const OUTPUT_BINDING = /^\(([^)\s]+)\)$/;
 const STYLE_BINDING = /^\[style\.([^\]\s]+)\]$/;
 const ATTRIBUTE_BINDING = /^\[attr\.([^\]\s]+)\]$/;
@@ -566,8 +585,11 @@ function classifyAttributes(node: ElementNode): {
       continue;
     }
     const className = CLASS_BINDING.exec(attribute.name)?.[1];
-    const inputName = INPUT_BINDING.exec(attribute.name)?.[1];
-    const eventName = OUTPUT_BINDING.exec(attribute.name)?.[1];
+    const input = INPUT_BINDING.exec(attribute.name);
+    const inputName = input?.[2];
+    const inputOwner = input?.[1];
+    const output = OUTPUT_BINDING.exec(attribute.name)?.[1];
+    const { owner: outputOwner, rest: eventName } = splitOwner(output);
     const styleName = STYLE_BINDING.exec(attribute.name)?.[1];
     const attrName = ATTRIBUTE_BINDING.exec(attribute.name)?.[1];
     if (styleName !== undefined) {
@@ -577,7 +599,7 @@ function classifyAttributes(node: ElementNode): {
     } else if (className !== undefined) {
       classBindings.push({ name: className, expression: parse(attribute) });
     } else if (inputName !== undefined) {
-      inputBindings.push({ name: inputName, expression: parse(attribute) });
+      inputBindings.push({ name: inputName, owner: inputOwner, expression: parse(attribute) });
     } else if (eventName !== undefined) {
       const { event, modifiers } = parseEventName(eventName, "event binding")
         .mapLeft((error) => new Error(`${error.message}, on <${node.name}>`))
@@ -586,7 +608,7 @@ function classifyAttributes(node: ElementNode): {
         .mapLeft((error) =>
           new Error(`${error.message}, on <${node.name}>`))
         .getOrThrow();
-      outputBindings.push({ name: event, modifiers, ...handler });
+      outputBindings.push({ name: event, owner: outputOwner, modifiers, ...handler });
     } else if (/^[[(]/.test(attribute.name)) {
       throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
     } else {
