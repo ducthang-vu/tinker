@@ -18,6 +18,7 @@ import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type {
   CompiledElement,
+  TemplateReference,
   CompiledMap,
   CompiledMatch,
   CompiledNode,
@@ -26,7 +27,8 @@ import type {
 import { outputsNamed } from "../authoring/output.ts";
 import { Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
-import { computed } from "../../../signals/index.ts";
+import { computed, type Signal, signal } from "../../../signals/index.ts";
+import type { Class } from "../../../utils/types.ts";
 import { RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
@@ -79,10 +81,19 @@ export class TemplateBuilderFactory {
 interface ElementWithDirectives {
   readonly element: Element;
   readonly node: CompiledElement;
+  /** Its references to a directive or component: set once those exist. */
+  readonly references: readonly PendingReference[];
   /** A component's element: the content of its children, by slot name, for the component. */
   readonly projected: ReadonlyMap<string, Node[]>;
   /** The nearest enclosing element with directives (its index), if any. */
   readonly parent: Maybe<number>;
+}
+
+/** A reference to a directive or to the component on an element, set when they are created. */
+interface PendingReference {
+  readonly name: string;
+  readonly target: Exclude<TemplateReference["target"], { readonly kind: "element" }>;
+  readonly value: Signal<unknown>;
 }
 
 export class TemplateBuilder {
@@ -157,7 +168,8 @@ export class TemplateBuilder {
   createDirectivesAndComponents(view: View, componentInjector: Injector): void {
     const injectors: Injector[] = [];
     this.attachMatches(undefined, view, componentInjector);
-    for (const [index, { element, node, parent, projected }] of this.withDirectives.entries()) {
+    for (const [index, entry] of this.withDirectives.entries()) {
+      const { element, node, parent, projected, references } = entry;
       const parentInjector = parent.match({
         some: (index) => injectors[index]!,
         none: () => componentInjector,
@@ -193,6 +205,7 @@ export class TemplateBuilder {
         this.addBindings(binders);
       };
       let instances = directives;
+      let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
       node.component.match({
         some: (type) => {
           const child = this.components.create(type, element, {
@@ -204,9 +217,19 @@ export class TemplateBuilder {
             bindInputs: (component) => bindInputs([...directives, component]),
           });
           instances = [...directives, child.component];
+          owner = { type, instance: child.component };
         },
         none: () => bindInputs(directives),
       });
+      this.resolveReferences(
+        node,
+        references,
+        [
+          ...node.directives.map((type, i) => ({ type, instance: directives[i]! })),
+          ...(owner ? [owner] : []),
+        ],
+        owner?.instance,
+      );
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
       this.bindEvents(node, element, instances, view);
       // The instances are view queries of this component: removed with their view.
@@ -215,6 +238,56 @@ export class TemplateBuilder {
       }
       injectors.push(injector);
       this.attachMatches(index, view, injector);
+    }
+  }
+
+  /**
+   * The references an element declares: `#name` is the element, set now; the others
+   * are returned, to be set once the directives and component on the element exist.
+   */
+  private declareReferences(node: CompiledElement, element: Element): PendingReference[] {
+    const pending: PendingReference[] = [];
+    for (const { name, target } of node.references) {
+      if (this.scope.lets.has(name)) {
+        throw new Error(`#${name} is already declared in this template`);
+      }
+      if (target.kind === "element") {
+        this.scope.lets.set(name, signal(element));
+      } else {
+        const value = signal<unknown>(undefined);
+        this.scope.lets.set(name, value);
+        pending.push({ name, target, value });
+      }
+    }
+    return pending;
+  }
+
+  /**
+   * Set the references to directives and components on an element, once those are
+   * created: `#name="exportAs"` is the one with that exportAs, `##name` the component.
+   */
+  private resolveReferences(
+    node: CompiledElement,
+    references: readonly PendingReference[],
+    directives: readonly { readonly type: Class<object>; readonly instance: object }[],
+    component: object | undefined,
+  ): void {
+    for (const { name, target, value } of references) {
+      if (target.kind === "component") {
+        if (component === undefined) {
+          throw new Error(`##${name}: <${node.name}> has no component`);
+        }
+        value.set(component);
+        continue;
+      }
+      const match = directives.find(({ type }) =>
+        this.directiveFactory.metadataOf(type).exportAs === target.exportAs);
+      if (match === undefined) {
+        throw new Error(
+          `#${name}="${target.exportAs}": no directive on <${node.name}> is exported as "${target.exportAs}"`,
+        );
+      }
+      value.set(match.instance);
     }
   }
 
@@ -374,6 +447,7 @@ export class TemplateBuilder {
     for (const attribute of node.attributes) {
       this.renderer.setAttribute(element, attribute.name, attribute.value);
     }
+    const pending = this.declareReferences(node, element);
     for (const { name, expression } of node.classBindings) {
       this.bindings.push(this.bindingFactory
         .classToggle(element, name, expression, this.scope));
@@ -385,7 +459,7 @@ export class TemplateBuilder {
       this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.scope));
     }
     const projected = new Map<string, Node[]>();
-    const index = this.recordDirectives(element, node, projected);
+    const index = this.recordDirectives(element, node, projected, pending);
     if (node.component.isSome()) {
       this.projectChildren(node.children, projected);
     } else {
@@ -405,13 +479,15 @@ export class TemplateBuilder {
     element: Element,
     node: CompiledElement,
     projected: Map<string, Node[]>,
+    references: readonly PendingReference[],
   ): Maybe<number> {
     const hasEvents = node.outputBindings.length > 0;
-    if (node.directives.length === 0 && node.component.isNone() && !hasEvents) {
+    if (node.directives.length === 0 && node.component.isNone() && !hasEvents
+      && references.length === 0) {
       return Maybe.none();
     }
     const parent = Maybe.fromNullable(this.enclosing.at(-1));
-    const index = this.withDirectives.push({ element, node, parent, projected }) - 1;
+    const index = this.withDirectives.push({ element, node, parent, projected, references }) - 1;
     this.enclosing.push(index);
     return Maybe.some(index);
   }

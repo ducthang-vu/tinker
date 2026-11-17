@@ -137,6 +137,26 @@ its rows tells the registry, which then sorts again.
 Not built yet: template reference variables (`#name`), `viewChild` (a single
 match), and content queries (`contentChildren`).
 
+## Template references
+
+`#name` on an element declares a value for the template: the native element.
+It is read like an `@let`, as `name.tagName` (not `name()`), and it is the same
+element whether or not a directive or component is on it. In the component's own
+template a reference can be read before its element, since bindings read it when
+they update. A branch of `@if`, `@match` or `@map` copies the references declared
+above it when it is built, so it cannot read one declared after the branch.
+Two more forms reach the directives and component on the element:
+
+- `#name="exportAs"`: the instance of the directive, or the component, whose
+  `exportAs` metadata is that name. Each directive and component declares its
+  own `exportAs`, so a template names what it wants.
+- `##name`: the component on the element, as sugar for that. The element itself
+  is still `#name`.
+
+An `exportAs` that no directive on the element has, and `##` on an element with
+no component, are errors. These references are set once the directives on their
+element exist, so they are read in bindings after that, not while the element is built.
+
 ## Glossary
 
 - **Host**: the element a component is rendered into. Its `ElementRef` is

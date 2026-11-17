@@ -29,6 +29,7 @@ describe("compileTemplate", () => {
                 .getOrThrow()] },
             },
           ],
+          references: [],
           directives: [],
           component: Maybe.none(),
           classBindings: [],
@@ -332,5 +333,43 @@ describe("@case bodies after the remaining patterns", () => {
   test("a [ that does not start a pattern is not skipped as one", () => {
     expect(() => compileTemplate([{ kind: "text", value: "@match x { @case a[0] { one } }" }]))
       .toThrow("in @case");
+  });
+});
+
+describe("template references", () => {
+  test("#name on an element is a reference, not an attribute", () => {
+    const [p] = compileTemplate([{
+      kind: "element",
+      name: "p",
+      attributes: [{ name: "#box", value: "" }, { name: "class", value: "x" }],
+      children: [],
+    }]) as CompiledElement[];
+    expect(p)
+      .toMatchObject({
+        references: [{ name: "box", target: { kind: "element" } }],
+        attributes: [{ name: "class", value: "x" }],
+      });
+  });
+
+  test("the three reference forms: the element, an exportAs, and the component", () => {
+    const element = (attributes: { name: string; value: string }[]) =>
+      compileTemplate([{ kind: "element", name: "p", attributes, children: [] }]) as CompiledElement[];
+    expect(element([{ name: "#box", value: "Tip" }])[0]!.references)
+      .toEqual([{ name: "box", target: { kind: "export", exportAs: "Tip" } }]);
+    expect(element([{ name: "##item", value: "" }])[0]!.references)
+      .toEqual([{ name: "item", target: { kind: "component" } }]);
+  });
+
+  test("a reference must be a plain name, declared once, with valid values", () => {
+    const element = (attributes: { name: string; value: string }[]) =>
+      compileTemplate([{ kind: "element", name: "p", attributes, children: [] }]);
+    expect(() => element([{ name: "#1x", value: "" }]))
+      .toThrow("is not a template reference");
+    expect(() => element([{ name: "#box", value: "" }, { name: "#box", value: "" }]))
+      .toThrow("#box is declared twice");
+    expect(() => element([{ name: "#box", value: "1x" }]))
+      .toThrow("is not an exportAs name");
+    expect(() => element([{ name: "##item", value: "x" }]))
+      .toThrow("takes no value");
   });
 });
