@@ -27,7 +27,22 @@
 import { Either, type EitherError } from "@tinker/functional";
 
 /** A parsed template expression. */
-export type Expression = ComponentReceiver | PropertyRead | Call | Literal | Binary | Not;
+export type Expression
+  = | ComponentReceiver
+    | PropertyRead
+    | Call
+    | Literal
+    | Binary
+    | Not
+    | Conditional;
+
+/** `test ? then : otherwise`: the value of `then` when `test` is truthy, else `otherwise`. */
+export interface Conditional {
+  readonly kind: "conditional";
+  readonly test: Expression;
+  readonly then: Expression;
+  readonly otherwise: Expression;
+}
 
 /** A value written in the expression: a number, a string, or one of the keyword values. */
 export interface Literal {
@@ -104,7 +119,7 @@ export class ExpressionParser {
     if (this.atEnd()) {
       throw new Error(`Empty expression: write a field or a call, e.g. "title" or "count()"`);
     }
-    const expression = this.equality();
+    const expression = this.conditional();
     this.skipWhitespace();
     if (!this.atEnd()) {
       throw this.error(`Unexpected "${this.source[this.position]}"`);
@@ -114,6 +129,23 @@ export class ExpressionParser {
 
   /** `===` and `==`: the loosest operators. */
   /** `||`, the loosest operator. */
+  /** `test ? then : otherwise`, right-associative: `a ? b : c ? d : e` nests in the otherwise. */
+  private conditional(): Expression {
+    const test = this.equality();
+    this.skipWhitespace();
+    if (!this.take(["?"])) {
+      return test;
+    }
+    const then = this.conditional();
+    this.skipWhitespace();
+    if (!this.take([":"])) {
+      throw this.error(
+        this.atEnd() ? `Missing ":" in the conditional` : `Expected ":", found "${this.source[this.position]}"`,
+      );
+    }
+    return { kind: "conditional", test, then, otherwise: this.conditional() };
+  }
+
   private equality(): Expression {
     return this.binaryLevel(["||"], () => this.conjunction());
   }
@@ -188,7 +220,7 @@ export class ExpressionParser {
     }
     if (this.source[this.position] === "(") {
       this.position++;
-      const inner = this.equality();
+      const inner = this.conditional();
       this.skipWhitespace();
       if (this.source[this.position] !== ")") {
         throw this.error(this.atEnd() ? `Missing ")"` : `Expected ")", found "${this.source[this.position]}"`);

@@ -293,12 +293,12 @@ describe("ComponentFactory view watch", () => {
   });
 
   test("reports an invalid {{ }} before rendering anything", () => {
-    @Component({ selector: "tk-a", template: "<p>{{ a ? b : c }}</p>" })
+    @Component({ selector: "tk-a", template: "<p>{{ a(1) }}</p>" })
     class A {}
     const { factory } = makeFactory();
     const host = document.createElement("div");
     expect(() => factory.create(A, host))
-      .toThrow(`Unexpected "?"`);
+      .toThrow(`Call arguments are not supported yet`);
     expect(host.innerHTML)
       .toBe("");
   });

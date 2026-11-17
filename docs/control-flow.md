@@ -26,7 +26,8 @@ Expressions are what a case or a `when` reads. Their grammar, from the loosest
 operator to the tightest:
 
 ```
-expression := equality
+expression := conditional
+conditional := equality ( "?" conditional ":" conditional )?   -- right-associative
 equality   := ... (see below)
 additive   := term ( ("+" | "-") term )*
 term       := power ( ("*" | "/") power )*
@@ -47,6 +48,7 @@ access     := identifier ( "." identifier | "(" ")" )*
 | `>`, `<`, `>=`, `<=` | done | |
 | `!==`, `!=` | done | |
 | `&&`, `\|\|`, `!` | done | short-circuit, as in JavaScript |
+| `test ? then : otherwise`, nested | done | only the chosen branch is evaluated |
 | Call arguments: `format(x)` | later | |
 | Arrow functions: `t => t.done` | later | needed for `filter` and `map` in templates |
 | Unary minus: `-1` | later | |

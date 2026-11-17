@@ -67,7 +67,7 @@ describe("ExpressionParser", () => {
     expect(error("   "))
       .toMatch(/^Empty expression/);
     expect(error("a ? b"))
-      .toBe(`Unexpected "?" (at column 3 in "a ? b")`);
+      .toBe(`Missing ":" in the conditional (at column 6 in "a ? b")`);
     expect(error("count(1)"))
       .toBe(`Call arguments are not supported yet (at column 7 in "count(1)")`);
     expect(error("count("))
@@ -129,5 +129,21 @@ describe("ExpressionParser", () => {
       .toBe(`Missing a name at the end (at column 5 in "a &&")`);
     expect(error("!"))
       .toBe(`Missing a name at the end (at column 2 in "!")`);
+  });
+});
+
+describe("the conditional operator: parsing", () => {
+  test("a conditional has a test, a then and an otherwise", () => {
+    expect(parse("a ? b : c"))
+      .toMatchObject({ kind: "conditional", test: { kind: "property" }, then: { kind: "property" } });
+  });
+
+  test("a missing ':' is an error that says so", () => {
+    expect(ExpressionParser.parse("a ? b")
+      .isLeft())
+      .toBe(true);
+    expect(ExpressionParser.parse("a ? b c")
+      .isLeft())
+      .toBe(true);
   });
 });

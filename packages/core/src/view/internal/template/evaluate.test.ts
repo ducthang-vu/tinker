@@ -208,3 +208,35 @@ describe("comparisons and logical operators", () => {
       .toBe(1);
   });
 });
+
+describe("the conditional operator", () => {
+  test("picks the then or the otherwise value by the test", () => {
+    const component = { on: true, count: 3 };
+    expect(run("on ? 'yes' : 'no'", component))
+      .toBe("yes");
+    expect(run("count > 5 ? 'big' : 'small'", component))
+      .toBe("small");
+  });
+
+  test("nests to the right, and parentheses group it", () => {
+    const grade = (score: number) => run(
+      "score >= 90 ? 'A' : score >= 60 ? 'B' : 'C'",
+      { score },
+    );
+    expect([grade(95), grade(70), grade(10)])
+      .toEqual(["A", "B", "C"]);
+    expect(run("(on ? 'a' : 'b') === 'a'", { on: false }))
+      .toBe(false);
+  });
+
+  test("only the chosen branch is evaluated", () => {
+    expect(run("missing ? 1 : 2", {}))
+      .toBe(2);
+  });
+
+  test("print writes it back", () => {
+    expect(print(ExpressionParser.parse("a ? b : c")
+      .getOrThrow()))
+      .toBe("a ? b : c");
+  });
+});

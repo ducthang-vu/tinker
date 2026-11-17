@@ -25,6 +25,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       return expression.value;
     case "not":
       return !evaluate(expression.operand, scope);
+    case "conditional":
+      return evaluate(expression.test, scope)
+        ? evaluate(expression.then, scope)
+        : evaluate(expression.otherwise, scope);
     case "binary":
       return binary(expression, scope);
     case "call": {
@@ -129,6 +133,8 @@ export function print(expression: Expression): string {
       return `${print(expression.left)} ${expression.operator} ${print(expression.right)}`;
     case "not":
       return `!${print(expression.operand)}`;
+    case "conditional":
+      return `${print(expression.test)} ? ${print(expression.then)} : ${print(expression.otherwise)}`;
     case "component":
       return "";
     case "property":
