@@ -4,7 +4,7 @@ import * as api from "./public-api.ts";
 test("exports exactly the public runtime symbols", () => {
   expect(Object.keys(api)
     .sort())
-    .toEqual(["Either", "Emitter", "Maybe", "Stream", "Task", "TimeoutError", "flow", "pipe"]);
+    .toEqual(["Either", "Emitter", "Maybe", "Stream", "Task", "TimeoutError", "flip", "partial", "pipe"]);
 });
 
 test("exports the EitherError type", () => {

@@ -12,7 +12,8 @@
 export { Either } from "./either.ts";
 export type { EitherError } from "./either.ts";
 export { Emitter } from "./emitter.ts";
-export { flow, pipe } from "./pipe.ts";
+export { pipe } from "./pipe.ts";
+export { flip, partial } from "./function.ts";
 export { Maybe } from "./maybe.ts";
 export { Stream } from "./stream.ts";
 export type {
