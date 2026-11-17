@@ -17,6 +17,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node node_modules/typescript7/bin/tsc -p tsconfig.build.json",
+    "build:example": "vite build examples/basics --config vite.config.ts --base ./ --outDir ../../dist/example --emptyOutDir",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "lint": "eslint .",
     "format": "eslint --fix .",
