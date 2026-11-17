@@ -46,9 +46,9 @@ describe("compileTemplate", () => {
 
   test("throws for an invalid {{ }}, however deep", () => {
     expect(() =>
-      compileTemplate([{ kind: "element", name: "div", attributes: [], children: [{ kind: "text", value: "{{ a(1) }}" }] }]),
+      compileTemplate([{ kind: "element", name: "div", attributes: [], children: [{ kind: "text", value: "{{ a(1 2) }}" }] }]),
     )
-      .toThrow("Call arguments are not supported yet");
+      .toThrow(`Expected "," or ")", found "2"`);
   });
 
   test("lists the directives each element matches, in import order", () => {
@@ -104,10 +104,10 @@ describe("compileTemplate", () => {
   });
 
   test("reports an invalid style or attribute expression with its key", () => {
-    expect(() => compileTemplate([element("p", { "[style.color]": "a(1)" })]))
+    expect(() => compileTemplate([element("p", { "[style.color]": "a(1 2)" })]))
       .toThrow(/in \[style\.color\] on <p>/);
-    expect(() => compileTemplate([element("p", { "[attr.title]": "a(1)" })]))
-      .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [attr.title] on <p>`);
+    expect(() => compileTemplate([element("p", { "[attr.title]": "a(1 2)" })]))
+      .toThrow(`Expected "," or ")", found "2" (at column 5 in "a(1 2)"), in [attr.title] on <p>`);
   });
 
   test("sorts input bindings apart, with their expression", () => {
@@ -132,8 +132,8 @@ describe("compileTemplate", () => {
       .toThrow(
         "[title] on <p>: only inputs can be bound, and no imported directive or component matches this element",
       );
-    expect(() => compileTemplate([element("p", { "[class.on]": "a(1)" })]))
-      .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [class.on] on <p>`);
+    expect(() => compileTemplate([element("p", { "[class.on]": "a(1 2)" })]))
+      .toThrow(`Expected "," or ")", found "2" (at column 5 in "a(1 2)"), in [class.on] on <p>`);
   });
 
   test("an element matching a component is its host, and keeps its directives", () => {

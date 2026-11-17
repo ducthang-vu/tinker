@@ -1,22 +1,22 @@
 // Host bindings: what a directive (or component) does on its host element,
 // from the `host` option of its decorator.
 //
-// For now, event listeners calling a method of the instance (with or
-// without the event), and class bindings turning a class of the host
-// element on while an expression of the instance is truthy:
+// For now, event listeners calling a method of the instance, with the same
+// handlers as templates (see handler.ts), and class bindings turning a class
+// of the host element on while an expression of the instance is truthy:
 //
 //   host: { "(click)": "toggle()" }
-//   host: { "(click)": "toggle($event)" }
+//   host: { "(click)": "select(item.id, $event)" }
 //   host: { "[class.open]": "isOpen()" }
 //
 // Anything else is rejected with a clear error. Property and attribute
-// bindings (`[prop]`, `[attr.x]`), `[style.x]` and full handler expressions
-// can be added here later. Class names keep their case: unlike templates,
-// host bindings are not read by the browser's HTML parser.
+// bindings (`[prop]`, `[attr.x]`) and `[style.x]` can be added here later.
+// Class names keep their case: unlike templates, host bindings are not read
+// by the browser's HTML parser.
 
 import { type EitherError, Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
-import { parseHandler } from "../template/handler.ts";
+import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
 import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
@@ -29,10 +29,8 @@ export interface HostListener {
   readonly event: string;
   /** Its modifiers, e.g. `.prevent`, in the order written. */
   readonly modifiers: readonly EventModifier[];
-  /** The method of the instance to call, e.g. `"toggle"`. */
-  readonly method: string;
-  /** Whether the method receives the event (`"toggle($event)"`). */
-  readonly passEvent: boolean;
+  /** What the listener does: a call of a method of the instance. */
+  readonly handler: Handler;
 }
 
 /**
@@ -85,14 +83,10 @@ export class HostBindings {
    * Throws if the instance has no such method.
    */
   attach(instance: object, element: Element, renderer: Renderer, view: View): void {
-    for (const { event, method, passEvent, modifiers } of this.listeners) {
-      const handler = Maybe.of((instance as Record<string, unknown>)[method])
-        .filter((value) => typeof value === "function")
-        .getOrThrow(
-          () => new Error(`${instance.constructor.name} has no method "${method}" for host listener "(${event})"`),
-        );
+    for (const { event, handler, modifiers } of this.listeners) {
+      requireMethod(instance, handler.method, `host listener "(${event})"`);
       const stop = listenWithModifiers(renderer, element, { event, modifiers }, (e) =>
-        passEvent ? handler.call(instance, e) : handler.call(instance),
+        runHandler(handler, instance, e),
       );
       view.addDestroyCallback(stop);
     }
@@ -127,6 +121,6 @@ function parseListener(key: string, handler: string): EitherError<HostListener> 
     .flatMap((name) => parseEventName(name, `host listener "${key}"`))
     .flatMap((listener) =>
       parseHandler(handler, "host handler")
-        .map((call) => ({ ...listener, ...call })),
+        .map((parsed) => ({ ...listener, handler: parsed })),
     );
 }

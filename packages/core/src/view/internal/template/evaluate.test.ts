@@ -291,3 +291,9 @@ test("print writes an array literal back", () => {
     .getOrThrow()))
     .toBe("[a, 1]");
 });
+
+test("print writes call arguments back", () => {
+  expect(print(ExpressionParser.parse("pick(item.id, $event.key)")
+    .getOrThrow()))
+    .toBe("pick(item.id, $event.key)");
+});

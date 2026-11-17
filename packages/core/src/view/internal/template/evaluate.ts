@@ -42,10 +42,11 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       return binary(expression, scope);
     case "call": {
       const { callee } = expression;
+      const args = expression.args.map((arg) => evaluate(arg, scope));
       const declared = callee.kind === "property" ? letOf(callee, scope) : undefined;
       if (declared) {
         // A `@let` holding a function is called without a receiver.
-        return callFunction(declared(), callee);
+        return callFunction(declared(), callee, args);
       }
       // A method keeps its receiver: evaluate it once, read the method from it.
       const receiver = callee.kind === "property" ? evaluate(callee.receiver, scope) : undefined;
@@ -53,7 +54,7 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
         return undefined;
       }
       const fn = callee.kind === "property" ? read(receiver, callee.name) : evaluate(callee, scope);
-      return callFunction(fn, callee, receiver);
+      return callFunction(fn, callee, args, receiver);
     }
   }
 }
@@ -69,11 +70,16 @@ function letOf(
   return expression.receiver.kind === "component" ? scope.lets.get(expression.name) : undefined;
 }
 
-function callFunction(fn: unknown, callee: Expression, receiver?: unknown): unknown {
+function callFunction(
+  fn: unknown,
+  callee: Expression,
+  args: unknown[],
+  receiver?: unknown,
+): unknown {
   if (typeof fn !== "function") {
     throw new TypeError(`${print(callee)} is not a function`);
   }
-  return fn.call(receiver);
+  return fn.apply(receiver, args);
 }
 
 /**
@@ -163,6 +169,7 @@ export function print(expression: Expression): string {
         ? expression.name
         : `${print(expression.receiver)}${expression.optional ? "?." : "."}${expression.name}`;
     case "call":
-      return `${print(expression.callee)}()`;
+      return `${print(expression.callee)}(${expression.args.map((arg) => print(arg))
+        .join(", ")})`;
   }
 }

@@ -30,6 +30,7 @@ import { inputsNamed } from "../authoring/input.ts";
 import { type Owned, ownerName } from "../runtime/owner.ts";
 import { Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
+import { requireMethod, runHandler } from "../template/handler.ts";
 import { computed, type Signal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { RENDERER } from "../tokens.ts";
@@ -339,11 +340,9 @@ export class TemplateBuilder {
     owned: readonly Owned[],
     view: View,
   ): void {
-    for (const { name, owner, method, passEvent, modifiers } of node.outputBindings) {
-      const handler = this.handlerOf(name, method);
-      const call = (value: unknown) => (passEvent
-        ? handler.call(this.component, value)
-        : handler.call(this.component));
+    for (const { name, owner, handler, modifiers } of node.outputBindings) {
+      requireMethod(this.component, handler.method, `event "(${name})"`);
+      const call = (value: unknown) => runHandler(handler, this.component, value);
       for (const emitter of outputsNamed(reached(owned, "output", name, owner, node.name), name)) {
         view.addDestroyCallback(emitter.stream.run({ next: call }));
       }
@@ -362,17 +361,6 @@ export class TemplateBuilder {
       owner: ownerName(this.directiveFactory.metadataOf(type).selector),
       instance: instances[index]!,
     }));
-  }
-
-  /** The method `method` of the component, for the event `name`. Throws if there is none. */
-  private handlerOf(name: string, method: string): (...args: unknown[]) => unknown {
-    const handler = (this.component as Record<string, unknown>)[method];
-    if (typeof handler !== "function") {
-      throw new Error(
-        `${this.component.constructor.name} has no method "${method}" for event "(${name})"`,
-      );
-    }
-    return handler as (...args: unknown[]) => unknown;
   }
 
   /** Add bindings for the view's watch to update too (e.g. host bindings). */

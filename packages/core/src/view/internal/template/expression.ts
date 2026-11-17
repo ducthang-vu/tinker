@@ -100,11 +100,13 @@ export interface PropertyRead {
   readonly optional?: boolean;
 }
 
-/** Calling something without arguments, e.g. `count()`. */
+/** A call, e.g. `count()` or `select(item.id, $event)`. */
 export interface Call {
   readonly kind: "call";
   /** What is called; a method keeps its receiver as `this`. */
   readonly callee: Expression;
+  /** The arguments, in order, each an expression of its own. */
+  readonly args: readonly Expression[];
 }
 
 const COMPONENT: ComponentReceiver = { kind: "component" };
@@ -383,11 +385,24 @@ export class ExpressionParser {
     if (char === ".") {
       return { kind: "property", receiver, name: this.identifier() };
     }
-    if (this.source[this.position] !== ")") {
-      throw this.error(this.atEnd() ? `Missing ")"` : "Call arguments are not supported yet");
+    return { kind: "call", callee: receiver, args: this.arguments() };
+  }
+
+  /** `a, b)`: the arguments, after the `(`. Reads through the `)`. */
+  private arguments(): Expression[] {
+    const args: Expression[] = [];
+    for (this.skipWhitespace(); this.source[this.position] !== ")"; this.skipWhitespace()) {
+      if (this.atEnd()) {
+        throw this.error(`Missing ")"`);
+      }
+      args.push(this.conditional());
+      this.skipWhitespace();
+      if (this.take([","]) === undefined && this.source[this.position] !== ")") {
+        throw this.error(`Expected "," or ")", found "${this.source[this.position] ?? "the end"}"`);
+      }
     }
     this.position++;
-    return { kind: "call", callee: receiver };
+    return args;
   }
 
   private identifier(): string {
