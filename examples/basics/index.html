@@ -4,8 +4,10 @@
     <meta charset="utf-8" />
     <title>Tinker basics</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 2rem; display: flex; gap: 2rem; }
-      tk-counter, tk-clock { display: block; padding: 1rem 1.5rem; border: 1px solid #ccc; border-radius: 8px; }
+      body { font-family: system-ui, sans-serif; margin: 2rem; display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start; }
+      tk-counter, tk-clock, tk-todos, tk-patterns { display: block; padding: 1rem 1.5rem; border: 1px solid #ccc; border-radius: 8px; }
+      tk-todos, tk-patterns { max-width: 22rem; }
+      h3 { font-size: 1rem; margin: 1rem 0 0.3rem; }
       button { font-size: 1rem; margin-right: 0.5rem; padding: 0.3rem 0.8rem; }
       p { transition: background-color 0.2s, color 0.2s; padding: 0.2rem 0.4rem; }
       .highlighted { background-color: var(--highlight, gold); }
@@ -15,6 +17,8 @@
   <body>
     <tk-counter></tk-counter>
     <tk-clock></tk-clock>
+    <tk-todos></tk-todos>
+    <tk-patterns></tk-patterns>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
