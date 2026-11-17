@@ -210,7 +210,7 @@ describe("output bindings in templates", () => {
     class A {}
     expect(() => Engine.create()
       .createComponent(A))
-      .toThrow(`Unsupported event handler "a + b": write "method()" or "method($event)", on <button>`);
+      .toThrow(`Unsupported event handler "a + b": write a call of a method, as in "method()" or "method($event)", on <button>`);
   });
 
   test("a directive can emit from its own host listener, and the template receives the value", () => {

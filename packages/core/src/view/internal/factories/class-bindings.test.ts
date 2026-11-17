@@ -116,7 +116,7 @@ describe("host class bindings", () => {
   });
 
   test("an invalid expression is reported when the directive is used", () => {
-    @Directive({ selector: "[bad]", host: { "[class.on]": "a(1)" } })
+    @Directive({ selector: "[bad]", host: { "[class.on]": "a(1 2)" } })
     class Bad {}
     @Component({ selector: "tk-a", template: `<p bad></p>`, imports: [Bad] })
     class A {}

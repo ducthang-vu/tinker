@@ -1,24 +1,86 @@
-import { describe, expect, test } from "vitest";
-import { parseHandler } from "./handler.ts";
+import { describe, expect, test, vi } from "vitest";
+import { parseHandler, requireMethod, runHandler } from "./handler.ts";
 
 describe("parseHandler", () => {
-  test("accepts method() and method($event), with spaces", () => {
+  test("accepts a call of a method, with or without arguments, and spaces", () => {
     expect(parseHandler("pick()", "event handler")
-      .getOrThrow())
-      .toEqual({ method: "pick", passEvent: false });
+      .getOrThrow()
+      .method)
+      .toBe("pick");
     expect(parseHandler(" pick( $event ) ", "event handler")
-      .getOrThrow())
-      .toEqual({ method: "pick", passEvent: true });
+      .getOrThrow()
+      .method)
+      .toBe("pick");
+    expect(parseHandler("select(item.id, $event.key)", "event handler")
+      .getOrThrow()
+      .method)
+      .toBe("select");
   });
 
-  test("rejects anything else, naming what it was", () => {
-    for (const source of ["pick", "pick(1)", "a.b()", "pick($event, 1)", "x = 1"]) {
+  test("rejects anything that is not a call of a method, naming what it was", () => {
+    for (const source of ["pick", "a.b()", "open = !open"]) {
       expect(parseHandler(source, "event handler")
         .match({
           left: (error) => error.message,
           right: () => "accepted",
         }))
-        .toBe(`Unsupported event handler "${source}": write "method()" or "method($event)"`);
+        .toMatch(new RegExp(`^Unsupported event handler "${source.replace(/[.()=!]/g, "\\$&")}": `));
     }
+  });
+
+  test("reports a syntax error inside the handler", () => {
+    expect(parseHandler("pick(1 2)", "event handler")
+      .match({
+        left: (error) => error.message,
+        right: () => "accepted",
+      }))
+      .toContain(`Expected "," or ")"`);
+  });
+});
+
+describe("runHandler", () => {
+  test("calls the method with $event as the event", () => {
+    const pick = vi.fn();
+    const component = { pick };
+    const event = { key: "Enter" };
+    runHandler(parseHandler("pick($event)", "event handler")
+      .getOrThrow(), component, event);
+    expect(pick)
+      .toHaveBeenCalledWith(event);
+  });
+
+  test("evaluates the arguments: $event fields and the component's fields", () => {
+    const select = vi.fn();
+    const component = { select, id: 7 };
+    runHandler(parseHandler("select(id, $event.key)", "event handler")
+      .getOrThrow(), component, { key: "a" });
+    expect(select)
+      .toHaveBeenCalledWith(7, "a");
+  });
+
+  test("calls the method with the component as this", () => {
+    const seen: unknown[] = [];
+    const component = {
+      name: "tinker",
+      go(this: { name: string }) {
+        seen.push(this.name);
+      },
+    };
+    runHandler(parseHandler("go()", "event handler")
+      .getOrThrow(), component, undefined);
+    expect(seen)
+      .toEqual(["tinker"]);
+  });
+});
+
+describe("requireMethod", () => {
+  test("passes for a method and throws for anything else, naming the event", () => {
+    class Owner {
+      pick() {}
+    }
+    expect(() => requireMethod(new Owner(), "pick", `event "(click)"`))
+      .not.toThrow();
+    expect(() => requireMethod(new Owner(), "missing", `event "(click)"`))
+      .toThrow(`Owner has no method "missing" for event "(click)"`);
   });
 });

@@ -13,7 +13,7 @@
 
 import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
-import { parseHandler } from "./handler.ts";
+import { type Handler, parseHandler } from "./handler.ts";
 import { type EventModifier, isModifier, parseEventName } from "./event-modifiers.ts";
 import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
@@ -181,9 +181,8 @@ export interface OutputBindingNode {
   readonly owner?: string;
   /** The modifiers of the DOM event, e.g. `.prevent`. */
   readonly modifiers: readonly EventModifier[];
-  readonly method: string;
-  /** Whether the handler receives the value (`$event`) or nothing. */
-  readonly passEvent: boolean;
+  /** What the event does: a call of a component method, with `$event` available. */
+  readonly handler: Handler;
 }
 
 /** A directive the template may use, and where it applies. */
@@ -631,7 +630,7 @@ function classifyAttributes(node: ElementNode): {
         .mapLeft((error) =>
           new Error(`${error.message}, on <${node.name}>`))
         .getOrThrow();
-      outputBindings.push({ name: event, owner: outputOwner, modifiers, ...handler });
+      outputBindings.push({ name: event, owner: outputOwner, modifiers, handler });
     } else if (/^[[(]/.test(attribute.name)) {
       throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
     } else {

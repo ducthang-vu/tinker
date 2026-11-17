@@ -31,6 +31,7 @@ describe("ExpressionParser", () => {
       .toEqual({
         kind: "call",
         callee: { kind: "property", receiver: component, name: "count" },
+        args: [],
       });
   });
 
@@ -38,7 +39,11 @@ describe("ExpressionParser", () => {
     expect(parse("user().name"))
       .toEqual({
         kind: "property",
-        receiver: { kind: "call", callee: { kind: "property", receiver: component, name: "user" } },
+        receiver: {
+          kind: "call",
+          callee: { kind: "property", receiver: component, name: "user" },
+          args: [],
+        },
         name: "name",
       });
     expect(parse("a.b()()"))
@@ -47,7 +52,9 @@ describe("ExpressionParser", () => {
         callee: {
           kind: "call",
           callee: { kind: "property", receiver: { kind: "property", receiver: component, name: "a" }, name: "b" },
+          args: [],
         },
+        args: [],
       });
   });
 
@@ -68,8 +75,8 @@ describe("ExpressionParser", () => {
       .toMatch(/^Empty expression/);
     expect(error("a ? b"))
       .toBe(`Missing ":" in the conditional (at column 6 in "a ? b")`);
-    expect(error("count(1)"))
-      .toBe(`Call arguments are not supported yet (at column 7 in "count(1)")`);
+    expect(error("count(1 2)"))
+      .toBe(`Expected "," or ")", found "2" (at column 9 in "count(1 2)")`);
     expect(error("count("))
       .toBe(`Missing ")" (at column 7 in "count(")`);
     expect(error("user."))
@@ -186,4 +193,9 @@ test("a ?. at the end of the input is an error, not a link", () => {
   expect(ExpressionParser.parse("a?.")
     .isLeft())
     .toBe(true);
+});
+
+test("an argument list that ends early is an error that says so", () => {
+  expect(error("count(1"))
+    .toBe(`Expected "," or ")", found "the end" (at column 8 in "count(1")`);
 });
