@@ -201,7 +201,7 @@ describe("@map", () => {
   test("a list, the name of its items, and the body", () => {
     const [map] = compileTemplate([{ kind: "text", value: "@map todos(); let todo { x }" }]);
     expect(map)
-      .toMatchObject({ kind: "map", item: "todo", track: undefined });
+      .toMatchObject({ kind: "map", item: { kind: "bind", name: "todo" }, track: undefined });
     expect(map)
       .toHaveProperty("list");
     expect(map)
@@ -211,7 +211,7 @@ describe("@map", () => {
   test("a track key is optional, and is compiled", () => {
     const [map] = compileTemplate([{ kind: "text", value: "@map todos(); let todo; track todo.id { x }" }]);
     expect(map)
-      .toMatchObject({ kind: "map", item: "todo" });
+      .toMatchObject({ kind: "map", item: { kind: "bind", name: "todo" } });
     expect((map as { track?: unknown }).track)
       .toBeDefined();
   });
@@ -220,7 +220,11 @@ describe("@map", () => {
     expect(() => compileTemplate([{ kind: "text", value: "@map todos() { x }" }]))
       .toThrow("@map needs a list and a name");
     expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let $x { x }" }]))
-      .toThrow("@map needs a list and a name");
+      .toThrow(`"$x" is reserved`);
+    expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let { id: $x } { x }" }]))
+      .toThrow(`"$x" is reserved`);
+    expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let 1 { x }" }]))
+      .toThrow("takes a name or a pattern");
   });
 
   test("the header has at most a track after the name", () => {
@@ -263,5 +267,54 @@ describe("@map track { fields }", () => {
       .toThrow("takes field names");
     expect(() => compileTemplate([{ kind: "text", value: "@map a; let b; track { id { x }" }]))
       .toThrow(`Missing "}" in the pattern`);
+  });
+});
+
+describe("@map let patterns and @case array patterns", () => {
+  test("let takes an object or array pattern, which binds the names it destructures", () => {
+    const [map] = compileTemplate([{ kind: "text", value: "@map rows(); let { id, title } { x }" }]);
+    expect(map)
+      .toMatchObject({ kind: "map", item: { kind: "object" } });
+    const [array] = compileTemplate([{ kind: "text", value: "@map rows(); let [first, ...rest] { x }" }]);
+    expect(array)
+      .toMatchObject({ kind: "map", item: { kind: "array", rest: "rest" } });
+  });
+
+  test("a @case can be an array pattern, empty or with a rest", () => {
+    const [match] = compileTemplate([{ kind: "text", value: "@match list() { @case [] { none } @case [first, ...rest] { some } }" }]);
+    expect(match)
+      .toMatchObject({
+        kind: "match",
+        cases: [
+          { pattern: { kind: "array", items: [] } },
+          { pattern: { kind: "array", items: [{ kind: "bind", name: "first" }], rest: "rest" } },
+        ],
+      });
+  });
+
+  test("a case can hold an object inside an array, and its braces do not end the header", () => {
+    const [match] = compileTemplate([{ kind: "text", value: "@match list() { @case [{ id }] { one } @default { other } }" }]);
+    expect(match)
+      .toMatchObject({ kind: "match", cases: [{ pattern: { kind: "array" } }], default: [expect.anything()] });
+  });
+
+  test("the array pattern needs its ] and its rest comes last, with a name", () => {
+    expect(() => compileTemplate([{ kind: "text", value: "@match x { @case [a { x } }" }]))
+      .toThrow(`Missing "]"`);
+    expect(() => compileTemplate([{ kind: "text", value: "@match x { @case [...a, b] { x } }" }]))
+      .toThrow("comes last");
+    expect(() => compileTemplate([{ kind: "text", value: "@match x { @case [...] { x } }" }]))
+      .toThrow("needs a name");
+  });
+});
+
+describe("@map header errors", () => {
+  test("a @map needs its body, and a let that is not a pattern is reported", () => {
+    expect(() => compileTemplate([{ kind: "text", value: "@map a; let b" }]))
+      .toThrow(`Missing "{" after`);
+    expect(() => compileTemplate([{ kind: "text", value: "@map a; let 1x { x }" }]))
+      .toThrow("in @map");
+    expect(() => compileTemplate([{ kind: "text", value: "@map items[0]; let x { x }" }]))
+      .toThrow("in @map");
   });
 });

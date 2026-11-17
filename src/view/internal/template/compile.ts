@@ -20,7 +20,7 @@ import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
-import { type Pattern, parsePattern, splitGuard } from "./pattern.ts";
+import { namesOf, type Pattern, parsePattern, splitGuard } from "./pattern.ts";
 
 /** A node of a compiled template. */
 export type CompiledNode
@@ -40,7 +40,8 @@ export type CompiledNode
 export interface CompiledMap {
   readonly kind: "map";
   readonly list: Expression;
-  readonly item: string;
+  /** What each item is matched with: a name, or a pattern that destructures it. */
+  readonly item: Pattern;
   readonly track?: CompiledTrack;
   readonly body: readonly CompiledNode[];
 }
@@ -256,17 +257,33 @@ function compileMap(block: BlockItem, candidates: readonly DirectiveCandidate[])
   const parts = block.header.split(";")
     .map((part) => part.trim());
   const [source, declaration, tracking] = parts;
-  const declared = /^let\s+([A-Za-z_][\w]*)$/.exec(declaration ?? "");
+  const declared = /^let\s+([\s\S]+)$/.exec(declaration ?? "");
   if (parts.length > 3 || source === undefined || !declared) {
     throw new Error(`@map needs a list and a name, e.g. @map todos; let todo`);
   }
   return {
     kind: "map",
     list: expressionOf({ ...block, header: source }),
-    item: declared![1]!,
+    item: itemOf(declared![1]!.trim()),
     track: trackOf(block, tracking),
     body: compileItems(block.body, candidates),
   };
+}
+
+/** The `let` of a `@map`: a name, or a pattern that destructures each item. */
+function itemOf(text: string): Pattern {
+  const pattern = parsePattern(text)
+    .mapLeft((error) => new Error(`${error.message}, in @map`))
+    .getOrThrow();
+  if (pattern.kind !== "bind" && pattern.kind !== "object" && pattern.kind !== "array") {
+    throw new Error(`@map's let takes a name or a pattern, e.g. let todo or let { id }, got "${text}"`);
+  }
+  const reserved = namesOf(pattern)
+    .find((name) => name.startsWith("$"));
+  if (reserved !== undefined) {
+    throw new Error(`"${reserved}" is reserved: names starting with $ are the row's variables`);
+  }
+  return pattern;
 }
 
 /** The `track` after a `@map`'s name: an expression, or `{ field, … }` naming fields. */

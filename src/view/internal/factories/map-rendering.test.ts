@@ -398,3 +398,52 @@ describe("@map with track { fields }", () => {
       .toThrow(`needs the field "id" on each item`);
   });
 });
+
+describe("@map with a let pattern", () => {
+  test("an object pattern destructures each item, and the names follow the item", async () => {
+    @Component({
+      selector: "tk-destructure",
+      template: "<ul>@map rows(); let { id, title }; track id { <li>{{ title }}</li> }</ul>",
+    })
+    class Destructure {
+      readonly rows = signal([{ id: 1, title: "a" }]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Destructure, { host: el });
+    const before = el.querySelector("li");
+    app.root.instance.rows.set([{ id: 1, title: "renamed" }]);
+    await tick();
+    expect(rows(el))
+      .toEqual(["renamed"]);
+    expect(el.querySelector("li"))
+      .toBe(before);
+    app.destroy();
+  });
+
+  test("an array pattern destructures each item into a first and a rest", () => {
+    @Component({
+      selector: "tk-destructure-array",
+      template: "<ul>@map pairs(); let [first, ...rest] { <li>{{ first }}:{{ rest.length }}</li> }</ul>",
+    })
+    class DestructureArray {
+      readonly pairs = signal([["a", "b", "c"], ["x"]]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(DestructureArray, { host: el });
+    expect(rows(el))
+      .toEqual(["a:2", "x:0"]);
+    app.destroy();
+  });
+
+  test("an item that does not match the pattern is an error", () => {
+    @Component({
+      selector: "tk-destructure-miss",
+      template: "<ul>@map rows(); let { id, title } { <li>{{ title }}</li> }</ul>",
+    })
+    class DestructureMiss {
+      readonly rows = signal<unknown[]>([{ id: 1 }]);
+    }
+    expect(() => bootstrap(DestructureMiss, { host: document.createElement("section") }))
+      .toThrow("does not match its let pattern");
+  });
+});

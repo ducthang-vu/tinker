@@ -31,7 +31,8 @@ export type Pattern
     | { readonly kind: "compare"; readonly operator: RelationOperator; readonly value: Literal }
     | { readonly kind: "type"; readonly type: TypeName }
     | { readonly kind: "bind"; readonly name: string }
-    | { readonly kind: "object"; readonly fields: readonly { readonly key: string; readonly pattern: Pattern }[] };
+    | { readonly kind: "object"; readonly fields: readonly { readonly key: string; readonly pattern: Pattern }[] }
+    | { readonly kind: "array"; readonly items: readonly Pattern[]; readonly rest?: string };
 
 export type RelationOperator = "<" | "<=" | ">" | ">=" | "!==";
 
@@ -50,9 +51,9 @@ export function splitGuard(header: string): { readonly pattern: string; readonly
       }
     } else if (char === "\"" || char === "'") {
       quote = char;
-    } else if (char === "{" || char === "(") {
+    } else if (char === "{" || char === "(" || char === "[") {
       depth++;
-    } else if (char === "}" || char === ")") {
+    } else if (char === "}" || char === ")" || char === "]") {
       depth--;
     } else if (depth === 0 && /^when(\s|$)/.test(header.slice(i)) && /\s/.test(header[i - 1] ?? " ")) {
       return { pattern: header.slice(0, i)
@@ -74,6 +75,9 @@ function patternOf(text: string): Pattern {
   }
   if (text.startsWith("{")) {
     return objectPattern(text);
+  }
+  if (text.startsWith("[")) {
+    return arrayPattern(text);
   }
   switch (text) {
     case "truthy":
@@ -132,6 +136,56 @@ function objectPattern(text: string): Pattern {
     fields.push({ key, pattern });
   }
   return { kind: "object", fields };
+}
+
+/**
+ * `[]`, `[pattern, …]`, or `[pattern, ...rest]`: the array has exactly those
+ * items, or, with a rest, at least those items, and the rest binds the others.
+ */
+function arrayPattern(text: string): Pattern {
+  if (!text.endsWith("]")) {
+    throw new Error(`Missing "]" in the pattern "${text}"`);
+  }
+  const entries = splitTopLevel(text.slice(1, -1))
+    .map((entry) => entry.trim());
+  if (entries.at(-1) === "") {
+    entries.pop();
+  }
+  const items: Pattern[] = [];
+  let rest: string | undefined;
+  entries.forEach((entry, index) => {
+    if (!entry.startsWith("...")) {
+      items.push(patternOf(entry));
+      return;
+    }
+    const name = entry.slice(3)
+      .trim();
+    if (index !== entries.length - 1) {
+      throw new Error(`The rest of an array pattern comes last: "${text}"`);
+    }
+    if (!IDENTIFIER.test(name) || LITERAL_WORDS.includes(name)) {
+      throw new Error(`The rest of an array pattern needs a name: "${entry}"`);
+    }
+    rest = name;
+  });
+  return rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+}
+
+/** The names a pattern binds, in order. */
+export function namesOf(pattern: Pattern): string[] {
+  switch (pattern.kind) {
+    case "bind":
+      return [pattern.name];
+    case "object":
+      return pattern.fields.flatMap((field) => namesOf(field.pattern));
+    case "array":
+      return [
+        ...pattern.items.flatMap(namesOf),
+        ...(pattern.rest === undefined ? [] : [pattern.rest]),
+      ];
+    default:
+      return [];
+  }
 }
 
 /** Split at the commas that are not inside braces, brackets, parentheses or quotes. */

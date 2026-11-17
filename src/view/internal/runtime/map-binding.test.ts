@@ -13,7 +13,7 @@ describe("MapBinding", () => {
       kind: "map",
       list: ExpressionParser.parse("items")
         .getOrThrow(),
-      item: "item",
+      item: { kind: "bind", name: "item" },
       body: [],
     };
     const renderer = new DomRenderer(document);

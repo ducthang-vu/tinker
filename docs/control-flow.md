@@ -91,8 +91,8 @@ access     := identifier ( "." identifier | "(" ")" )*
 | Object, by tag or shape | an object with those fields | `@case { tag: "ok", value }` | done |
 | Object key absent | an object without that key | `@case { error: absent }` | later |
 | Type check in an object | a field of a runtime type | `@case { id: number, name: string }` | done |
-| Empty array | an empty list | `@case []` | later |
-| Array, fixed length or with rest | a list of that shape | `@case [first, ...rest]` | later |
+| Empty array | an empty list | `@case []` | done |
+| Array, fixed length or with rest | a list of that shape | `@case [first, ...rest]` | done |
 | Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | done |
 | Alternatives | any of several patterns | `@case "loading" \| "saving"` | later |
 | Range | a number between two bounds | `@case 0..12` | later |
@@ -134,11 +134,12 @@ exists.
 | `$index`, `$first`, `$last`, `$even`, `$odd`, `$count` | per-row variables, always in scope, reserved | done |
 | `@map list(); let item; track item.id { ... }` | the identity of each row; defaults to the index | done |
 | `track { id, kind }` | identity by some fields, each compared with `===` | done |
-| `@match list() { @case [] { ... } }` | shown when the list is empty | later, needs array patterns |
-| `let { id, title }` (destructured item) | names the fields of each item | later |
+| `@match list() { @case [] { ... } }` | shown when the list is empty | done |
+| `let { id, title }` or `let [first, ...rest]` | destructures each item into names | done |
 
-A row's item is a signal, set on each update, so a row updates in place when its
-item changes, and is recreated only when its identity leaves the list.
+What the item binds (its name, or the names its pattern destructures) is a signal
+per name, set on each update, so a row updates in place when its item changes, and
+is recreated only when its identity leaves the list.
 
 ## Equality as sugar
 
@@ -159,7 +160,7 @@ working `@if` and `@match`, and it keeps every step testable on its own.
 4. **`@match` with a subject, and the patterns `truthy`, `falsy`, literals and
    `_`, with `@default`.** Then `@if` and `@else` as sugar for it.
 5. **Guards with `when`, and the subject-less form.** Done. `@else if` is done too (it nests).
-6. **`@map`**, with `track`, the `$` variables, and an empty case.
+6. **`@map`**, with `track`, the `$` variables, destructuring, and the empty case. Done.
 7. **Names and object patterns**, then arrays, then alternatives, `present`,
    ranges and `not`.
 
@@ -178,3 +179,38 @@ change, and steps 4 to 7 build on it.
 
 A key must exist for its pattern to match, so `{ status }` fails on `{}`, and
 passes on `{ status: undefined }`. `undefined` is a value, not a type.
+
+## Lists in templates (rules for `@map`)
+
+These rules hold for any list a template reads, and the `@map` block above follows them.
+
+1. **A list is a value and is never mutated.** A change is a new list, set on
+   its signal (`todos.set([...todos(), next])`). Changing a list in place
+   (`push`, `splice`, `sort`) does not notify anything, because the signal still
+   holds the same array, so the author gets stale rows. The framework cannot
+   stop mutation in JavaScript. Mutating an item in place and setting the list
+   again is the same bug: the item is the same reference, so its row is not
+   updated. A dev-mode check for both is planned, not built.
+2. **Equality is `===`.** A row's item changed when it is a different reference.
+   Objects are not compared by content. An author who rebuilds equal objects
+   causes their rows to update, which costs binding work but not wrong output.
+3. **`track` decides identity, and defaults to the index.** `track` names what
+   makes a row the same row across two lists. The default is the index. The
+   author can write a value (`track item.id`), or the names of fields
+   (`track { id, kind }`), which match when each named field is `===`. Because
+   the list is immutable, a row at a position shows the current item at that
+   position, so the default is safe for rows that hold no state of their own.
+4. **Rows with state name their identity.** When a row holds state (a component
+   with its own signals, a text field), or the list is reordered, the author
+   writes `track`, so the view follows the item rather than its position.
+5. **Identity decides which rows exist; content decides what changes.** The diff
+   is a function of the previous and new identities: it says which rows to keep,
+   move, create and remove. It does not decide content. The names an item binds
+   are signals updated for every kept row, and a row's bindings notify only when
+   the value is a different reference (rule 2). So a same-length list with
+   different content updates the rows that changed.
+6. **Implicit variables start with `$`.** Each row has these, without declaring
+   them: `$index`, `$first`, `$last`, `$even`, `$odd`, and `$count`, the length
+   of the list. The `$` keeps them apart from the author's own names, so a field
+   called `index` is never shadowed. The author cannot declare a `$`-prefixed
+   name with `let`, including inside a destructuring pattern.

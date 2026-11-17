@@ -122,7 +122,7 @@ export class MatchBinding implements Binding {
  * The names a pattern binds to the value, if the value matches it; undefined if it
  * does not. A match of several parts (an object) binds the names of all its parts.
  */
-function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unknown> | undefined {
+export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unknown> | undefined {
   switch (pattern.kind) {
     case "truthy":
       return Boolean(value) ? new Map() : undefined;
@@ -140,7 +140,40 @@ function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unknown> |
       return new Map([[pattern.name, value]]);
     case "object":
       return matchObject(pattern.fields, value);
+    case "array":
+      return matchArray(pattern.items, pattern.rest, value);
   }
+}
+
+/**
+ * An array of the length the pattern asks for, with each item matching: at
+ * least its items when there is a rest, otherwise exactly them.
+ */
+function matchArray(
+  items: readonly Pattern[],
+  rest: string | undefined,
+  value: unknown,
+): ReadonlyMap<string, unknown> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  if (rest === undefined ? value.length !== items.length : value.length < items.length) {
+    return undefined;
+  }
+  const bindings = new Map<string, unknown>();
+  for (const [index, pattern] of items.entries()) {
+    const bound = match(pattern, value[index]);
+    if (!bound) {
+      return undefined;
+    }
+    for (const [name, part] of bound) {
+      bindings.set(name, part);
+    }
+  }
+  if (rest !== undefined) {
+    bindings.set(rest, value.slice(items.length));
+  }
+  return bindings;
 }
 
 function matchObject(
