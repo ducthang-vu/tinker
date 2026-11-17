@@ -23,7 +23,7 @@ describe("parseEventName", () => {
   test("an unknown modifier is an error naming it and the supported ones", () => {
     const message = messageOf(parseEventName("click.prevnt", "event binding"));
     expect(message)
-      .toBe(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once`);
+      .toBe(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once, .enter, .esc, .escape, .space, .tab, .up, .down, .left, .right`);
   });
 
   test("a missing event name is an error", () => {

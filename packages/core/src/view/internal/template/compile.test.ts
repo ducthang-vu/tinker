@@ -33,6 +33,7 @@ describe("compileTemplate", () => {
           directives: [],
           component: Maybe.none(),
           container: false,
+          classObjects: [],
           classBindings: [],
           inputBindings: [],
           styleBindings: [],
@@ -419,5 +420,17 @@ describe("qualified bindings", () => {
       children: [],
     }], candidates))
       .toThrow("Unknown modifier");
+  });
+});
+
+describe("[class] object on a container", () => {
+  test("is an error, since a container has no element to take the classes", () => {
+    expect(() => compileTemplate([{
+      kind: "element",
+      name: "tk-container",
+      attributes: [{ name: "[class]", value: "{ a: b }" }],
+      children: [],
+    }]))
+      .toThrow("a container has no element");
   });
 });

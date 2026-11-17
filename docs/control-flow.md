@@ -27,14 +27,26 @@ operator to the tightest:
 
 ```
 expression := conditional
-conditional := equality ( "?" conditional ":" conditional )?   -- right-associative
+conditional := coalesce ( "?" conditional ":" conditional )?   -- right-associative
+coalesce   := equality ( "??" equality )*                      -- right side only for null or undefined
 equality   := ... (see below)
 additive   := term ( ("+" | "-") term )*
 term       := power ( ("*" | "/") power )*
 power      := operand ( "**" power )?                                   -- right-associative
-operand    := number | string | boolean | null | "(" expression ")" | access
-access     := identifier ( "." identifier | "(" ")" )*
+operand    := number | string | boolean | null | "!" operand
+            | "(" expression ")" | object | array | access
+object     := "{" ( key ( ":" conditional )? ) ( "," ... )* "}"          -- { k } reads field k
+array      := "[" ( conditional ( "," conditional )* )? "]"
+access     := identifier ( ( "." | "?." ) identifier | "(" ")" )*        -- "?." yields undefined on null
 ```
+
+`?.` is lenient: once a chain has a `?.` link, every later link in that chain
+also reads `undefined` instead of throwing when its receiver is nullish. So
+`user?.address.city` is `undefined` when `user.address` is missing. JavaScript
+throws in that case, so this differs on purpose for templates, where a missing
+field should not break rendering. Key modifiers (`(keydown.enter)`, `.esc`,
+`.space`, ...) compare `KeyboardEvent.key`, so the names are `Enter`, `Escape`
+and `" "` (a space).
 
 | Item | Status | Notes |
 |---|---|---|

@@ -119,6 +119,11 @@ export interface CompiledElement {
   readonly attributes: readonly AttributeNode[];
   /** Its class bindings, e.g. `[class.done]="todo.done()"`, in template order. */
   readonly classBindings: readonly ClassBindingNode[];
+  /**
+   * Its `[class]="{ name: condition }"` bindings: each name is a class, on while its
+   * value is truthy. The expression is an object literal, or any object.
+   */
+  readonly classObjects: readonly ValueBindingNode[];
   /** Its style bindings, e.g. `[style.color]="item().color"`, in template order. */
   readonly styleBindings: readonly ValueBindingNode[];
   /** Its attribute bindings, e.g. `[attr.title]="item().label"`, in template order. */
@@ -424,13 +429,15 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
   const {
     attributes,
     classBindings,
+    classObjects,
     inputBindings,
     outputBindings,
     styleBindings,
     attributeBindings,
     references,
   } = classifyAttributes(node);
-  const bound = [classBindings, styleBindings, attributeBindings, inputBindings, outputBindings]
+  const bound = [classBindings, classObjects, styleBindings, attributeBindings, inputBindings,
+    outputBindings]
     .some((list) => list.length > 0);
   if (node.name === "template" && !bound && references.length === 1
     && references[0]!.target.kind === "element") {
@@ -454,8 +461,15 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     .map(({ type }) => type);
   const container = node.name === CONTAINER;
   if (container) {
-    checkContainer(node, { classBindings, styleBindings, attributeBindings, outputBindings,
-      component, references });
+    checkContainer(node, {
+      classBindings,
+      classObjects,
+      styleBindings,
+      attributeBindings,
+      outputBindings,
+      component,
+      references,
+    });
   }
   if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
     throw new Error(
@@ -468,6 +482,7 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     name: node.name,
     attributes,
     classBindings,
+    classObjects,
     inputBindings,
     outputBindings,
     styleBindings,
@@ -489,6 +504,7 @@ function checkContainer(
   node: ElementNode,
   on: {
     readonly classBindings: readonly ClassBindingNode[];
+    readonly classObjects: readonly ValueBindingNode[];
     readonly styleBindings: readonly ValueBindingNode[];
     readonly attributeBindings: readonly ValueBindingNode[];
     readonly outputBindings: readonly OutputBindingNode[];
@@ -498,6 +514,7 @@ function checkContainer(
 ): void {
   const bound = [
     ...on.classBindings.map(({ name }) => `[class.${name}]`),
+    ...on.classObjects.map(() => "[class]"),
     ...on.styleBindings.map(({ name }) => `[style.${name}]`),
     ...on.attributeBindings.map(({ name }) => `[attr.${name}]`),
     ...on.outputBindings.map(({ name }) => `(${name})`),
@@ -564,6 +581,7 @@ function classifyAttributes(node: ElementNode): {
   references: TemplateReference[];
   attributes: AttributeNode[];
   classBindings: ClassBindingNode[];
+  classObjects: ValueBindingNode[];
   inputBindings: InputBindingNode[];
   outputBindings: OutputBindingNode[];
   styleBindings: ValueBindingNode[];
@@ -572,6 +590,7 @@ function classifyAttributes(node: ElementNode): {
   const attributes: AttributeNode[] = [];
   const references: TemplateReference[] = [];
   const classBindings: ClassBindingNode[] = [];
+  const classObjects: ValueBindingNode[] = [];
   const inputBindings: InputBindingNode[] = [];
   const outputBindings: OutputBindingNode[] = [];
   const styleBindings: ValueBindingNode[] = [];
@@ -580,6 +599,10 @@ function classifyAttributes(node: ElementNode): {
     .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
     .getOrThrow();
   for (const attribute of node.attributes) {
+    if (attribute.name === "[class]") {
+      classObjects.push({ name: "", expression: parse(attribute) });
+      continue;
+    }
     if (attribute.name.startsWith("#")) {
       references.push(referenceOf(attribute, node, references));
       continue;
@@ -619,6 +642,7 @@ function classifyAttributes(node: ElementNode): {
     references,
     attributes,
     classBindings,
+    classObjects,
     inputBindings,
     outputBindings,
     styleBindings,
