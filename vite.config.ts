@@ -35,17 +35,21 @@ function standardDecorators(): Plugin {
 
 export default defineConfig({
   plugins: [standardDecorators()],
+  // A workspace package (`@tinker/<name>`) is read from its source, not from an install.
+  resolve: {
+    alias: [{ find: /^@tinker\/(.+)$/, replacement: new URL("./packages/$1/src/index.ts", import.meta.url).pathname }],
+  },
   server: {
     open: "/examples/basics/",
   },
   test: {
     environment: "jsdom",
     // Tests live next to the files they test.
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts"],
+      include: ["src/**/*.ts", "packages/*/src/**/*.ts"],
+      exclude: ["src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
       reporter: ["text", "html"],
       thresholds: {
         lines: 100,

@@ -8,7 +8,7 @@
 // watches of its bindings, directive hooks), and finally its nodes.
 
 import { inject, Injectable } from "../../../di/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { ElementContext } from "./element-context.ts";
 import type { InputBinding, InputName, InputValue } from "../authoring/input.ts";
 import type { Renderer } from "../renderer.ts";

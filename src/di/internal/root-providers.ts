@@ -6,7 +6,7 @@
 // each root injector creates (and destroys) its own instance, and explicit
 // providers always win.
 
-import { Maybe } from "../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { Token } from "./inject.ts";
 import type { Provider } from "./provider-records.ts";
 

@@ -7,7 +7,7 @@
 // strings[0] + value(expressions[0]) + strings[1] + ... A text without
 // `{{` has one string and no expressions.
 
-import { Either, type EitherError } from "../../../functional/index.ts";
+import { Either, type EitherError } from "@tinker/functional";
 import { type Expression, ExpressionParser } from "./expression.ts";
 
 export interface Interpolation {

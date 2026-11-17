@@ -3,7 +3,7 @@
 // the instance itself, and throws when the template has none.
 
 import { inject } from "../../../di/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "../runtime/element-ref.ts";

@@ -8,7 +8,7 @@
 // come in any order). `once` counts only events that passed the guards, and
 // ends the listener after the first of them.
 
-import { Either, type EitherError } from "../../../functional/index.ts";
+import { Either, type EitherError } from "@tinker/functional";
 
 /** The modifiers Tinker supports. */
 export type EventModifier = "prevent" | "stop" | "self" | "once";

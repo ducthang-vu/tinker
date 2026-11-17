@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { Emitter } from "../../../functional/index.ts";
+import type { Emitter } from "@tinker/functional";
 import { endOutputs, output, outputsNamed, outputsOf } from "./output.ts";
 
 /** What an output's subscribers hear, as plain data. */

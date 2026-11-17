@@ -4,7 +4,7 @@
 // (null, undefined, "" or false) removes the property. The view's watch
 // calls `update()`; the DOM is written only when the value changed.
 
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";

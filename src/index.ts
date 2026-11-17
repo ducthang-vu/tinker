@@ -4,4 +4,4 @@
 export * from "./signals/index.ts";
 export * from "./di/index.ts";
 export * from "./view/index.ts";
-export * from "./functional/index.ts";
+export * from "@tinker/functional";

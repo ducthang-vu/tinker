@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
 import { type CompiledElement, compileTemplate } from "./compile.ts";
 import { Selector } from "./selector.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import { ExpressionParser } from "./expression.ts";
 
 describe("compileTemplate", () => {

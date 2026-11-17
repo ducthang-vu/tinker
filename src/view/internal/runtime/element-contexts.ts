@@ -3,7 +3,7 @@
 // engine (which answers "what is on this element?").
 
 import { Injectable } from "../../../di/index.ts";
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import { ElementContext } from "./element-context.ts";
 
 @Injectable()

@@ -14,7 +14,7 @@
 //   const viewWatch = watch(() => template.update(), firstRun);
 //   firstRun.failure.ifSome((error) => { cleanUp(); throw error; });
 
-import { Either, Maybe } from "../../../functional/index.ts";
+import { Either, Maybe } from "@tinker/functional";
 import type { Runnable, WatchScheduler } from "../../../signals/index.ts";
 
 export class RunFirstNow implements WatchScheduler {

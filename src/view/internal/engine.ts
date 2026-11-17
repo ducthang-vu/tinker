@@ -19,7 +19,7 @@
 // - `afterStable()`, to know when the next tick has ended.
 
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../../di/index.ts";
-import { Maybe, type Task } from "../../functional/index.ts";
+import { Maybe, type Task } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { ElementContext } from "./runtime/element-context.ts";
 import { ElementContexts } from "./runtime/element-contexts.ts";

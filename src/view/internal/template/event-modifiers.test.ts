@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type EitherError } from "../../../functional/index.ts";
+import { type EitherError } from "@tinker/functional";
 import { parseEventName } from "./event-modifiers.ts";
 
 const messageOf = (result: EitherError<unknown>) => result.match({

@@ -10,7 +10,7 @@
 // - There are no source positions for error messages.
 // Comments are dropped.
 
-import { Maybe } from "../../../functional/index.ts";
+import { Maybe } from "@tinker/functional";
 import type { AttributeNode, TemplateNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
 

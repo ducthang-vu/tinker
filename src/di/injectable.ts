@@ -8,7 +8,7 @@
 //
 // The metadata is stored as a static property of the class, like @Component.
 
-import type { Maybe } from "../functional/index.ts";
+import type { Maybe } from "@tinker/functional";
 import { defineMetadata, ownMetadata } from "../utils/metadata.ts";
 import type { AbstractClass, Class } from "../utils/types.ts";
 import { adaptProvider } from "./adapter.ts";
