@@ -27,7 +27,7 @@ function manual<T = number, R = void, E = Error>() {
     started: 0,
     cancelled: 0,
   };
-  const stream = Stream.create<T, R, E>((sink) => {
+  const stream = Stream.from<T, R, E>((sink) => {
     control.sink = sink;
     control.started++;
     return () => {
@@ -38,7 +38,7 @@ function manual<T = number, R = void, E = Error>() {
 }
 
 /** Items 1, 2, 3, then ends with "done": a stream with both items and a result. */
-const counting = () => Stream.create<number, string, never>((sink) => {
+const counting = () => Stream.from<number, string, never>((sink) => {
   for (const n of [1, 2, 3]) {
     sink.next(Either.right(n));
   }
@@ -48,7 +48,7 @@ const counting = () => Stream.create<number, string, never>((sink) => {
 describe("Stream", () => {
   test("is cold: nothing happens until subscribed, and each subscriber starts its own run", () => {
     let started = 0;
-    const stream = Stream.create<number, void, never>((sink) => {
+    const stream = Stream.from<number, void, never>((sink) => {
       started++;
       sink.next(Either.right(started));
       sink.end(Either.right(undefined));
@@ -62,7 +62,7 @@ describe("Stream", () => {
   });
 
   test("delivers items in order, then the end; nothing after the end", () => {
-    const stream = Stream.create<number, string, never>((sink) => {
+    const stream = Stream.from<number, string, never>((sink) => {
       sink.next(Either.right(1));
       sink.end(Either.right("done"));
       sink.next(Either.right(2));
@@ -73,7 +73,7 @@ describe("Stream", () => {
   });
 
   test("a failed item does not end the stream; a failed end does", () => {
-    const stream = Stream.create<number, void, string>((sink) => {
+    const stream = Stream.from<number, void, string>((sink) => {
       sink.next(Either.right(1));
       sink.next(Either.left("item failed"));
       sink.next(Either.right(2));
@@ -109,20 +109,20 @@ describe("Stream", () => {
     const finished = record(Stream.end(1));
     expect(() => finished.cancel())
       .not.toThrow();
-    const plain = record(Stream.create<number, void, never>(() => {}));
+    const plain = record(Stream.from<number, void, never>(() => {}));
     expect(() => plain.cancel())
       .not.toThrow();
   });
 
   test("an exception thrown by the source ends the stream with a failure: an Error, or a wrapped value", () => {
-    const failing = Stream.create(() => {
+    const failing = Stream.from(() => {
       throw new Error("source broke");
     });
     const [kind, side, error] = record(failing).log[0] as [string, string, Error];
     expect([kind, side, error.message])
       .toEqual(["end", "left", "source broke"]);
 
-    const throwingString = Stream.create(() => {
+    const throwingString = Stream.from(() => {
       throw "oops";
     });
     const [, , wrapped] = record(throwingString).log[0] as [string, string, Error];
@@ -133,7 +133,7 @@ describe("Stream", () => {
   });
 
   test("an exception thrown after items were delivered still ends the stream with a failure", () => {
-    const stream = Stream.create<number>((sink) => {
+    const stream = Stream.from<number>((sink) => {
       sink.next(Either.right(1));
       throw new Error("then it broke");
     });
@@ -145,7 +145,7 @@ describe("Stream", () => {
   });
 
   test("an exception thrown by an observer is the observer's: it is not turned into a failure", () => {
-    const stream = Stream.create<number, void, never>((sink) => {
+    const stream = Stream.from<number, void, never>((sink) => {
       sink.next(Either.right(1));
       sink.end(Either.right(undefined));
     });
@@ -168,7 +168,7 @@ describe("Stream", () => {
   });
 
   test("a different exception thrown by the source while handling the observer's is the source's failure", () => {
-    const stream = Stream.create<number, void, never>((sink) => {
+    const stream = Stream.from<number, void, never>((sink) => {
       try {
         sink.next(Either.right(1));
       } catch {
@@ -192,9 +192,9 @@ describe("Stream", () => {
         .toEqual([["end", "right", 1]]);
       expect(record(Stream.fail("bad")).log)
         .toEqual([["end", "left", "bad"]]);
-      expect(record(Stream.from(Either.right("ok"))).log)
+      expect(record(Stream.fromEither(Either.right("ok"))).log)
         .toEqual([["end", "right", "ok"]]);
-      expect(record(Stream.from(Either.left("no"))).log)
+      expect(record(Stream.fromEither(Either.left("no"))).log)
         .toEqual([["end", "left", "no"]]);
     });
 
@@ -216,7 +216,7 @@ describe("Stream", () => {
     });
 
     test("sends every failure, of items and of the end, to error", () => {
-      const stream = Stream.create<number, void, string>((sink) => {
+      const stream = Stream.from<number, void, string>((sink) => {
         sink.next(Either.left("item"));
         sink.end(Either.left("end"));
       });
@@ -230,7 +230,7 @@ describe("Stream", () => {
       expect(() => Stream.fail(new Error("end failed"))
         .run())
         .toThrow("end failed");
-      const itemFails = Stream.create<number, void, Error>((sink) => {
+      const itemFails = Stream.from<number, void, Error>((sink) => {
         sink.next(Either.left(new Error("item failed")));
       });
       expect(() => itemFails.run({ next: () => {} }))
@@ -277,7 +277,7 @@ describe("Stream", () => {
   });
 
   test("mapLeft transforms the errors of items and of the end, not the successes", () => {
-    const stream = Stream.create<number, number, string>((sink) => {
+    const stream = Stream.from<number, number, string>((sink) => {
       sink.next(Either.right(1));
       sink.next(Either.left("item"));
       sink.end(Either.left("end"));
@@ -292,7 +292,7 @@ describe("Stream", () => {
   describe("flatMap", () => {
     test("runs the second stream when the first ends, delivering both streams' items in order", () => {
       const chained = counting()
-        .flatMap((r) => Stream.create<string, number, never>((sink) => {
+        .flatMap((r) => Stream.from<string, number, never>((sink) => {
           sink.next(Either.right(`after ${r}`));
           sink.end(Either.right(42));
         }));
@@ -320,7 +320,7 @@ describe("Stream", () => {
     });
 
     test("a failed item does not stop the chain", () => {
-      const first = Stream.create<number, string, string>((sink) => {
+      const first = Stream.from<number, string, string>((sink) => {
         sink.next(Either.left("item failed"));
         sink.end(Either.right("go on"));
       });
@@ -359,15 +359,15 @@ describe("Stream", () => {
 
   describe("monad laws", () => {
     /** Streams with items and an end, to check the laws against. */
-    const f = (r: string) => Stream.create<string, number, never>((sink) => {
+    const f = (r: string) => Stream.from<string, number, never>((sink) => {
       sink.next(Either.right(`${r}!`));
       sink.end(Either.right(r.length));
     });
-    const g = (n: number) => Stream.create<string, boolean, never>((sink) => {
+    const g = (n: number) => Stream.from<string, boolean, never>((sink) => {
       sink.next(Either.right(`n=${n}`));
       sink.end(Either.right(n > 3));
     });
-    const failing = Stream.create<number, string, string>((sink) => {
+    const failing = Stream.from<number, string, string>((sink) => {
       sink.next(Either.right(0));
       sink.end(Either.left("bad"));
     });

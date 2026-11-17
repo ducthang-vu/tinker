@@ -56,8 +56,8 @@ export class Task<T, E = Error> {
    * A task doing `computation` when it is run. What it throws becomes a
    * failure, an Error: hence `E | Error`.
    */
-  static create<T, E = Error>(computation: Computation<T, E>): Task<T, E | Error> {
-    return new Task(Stream.create<never, T, E>((sink) =>
+  static from<T, E = Error>(computation: Computation<T, E>): Task<T, E | Error> {
+    return new Task(Stream.from<never, T, E>((sink) =>
       computation(
         (value) => sink.end(Either.right(value)),
         (error) => sink.end(Either.left(error)),
@@ -80,7 +80,7 @@ export class Task<T, E = Error> {
    * A rejection becomes a failure, an Error.
    */
   static fromPromise<T>(start: (signal: AbortSignal) => PromiseLike<T>): Task<T, Error> {
-    return Task.create<T, Error>((ok, error) => {
+    return Task.from<T, Error>((ok, error) => {
       const controller = new AbortController();
       Promise.resolve(start(controller.signal))
         .then(ok, (reason) => error(toError(reason)));
@@ -89,13 +89,13 @@ export class Task<T, E = Error> {
   }
 
   /** A task with the Either's outcome: a Right succeeds, a Left fails. */
-  static from<E, T>(either: Either<E, T>): Task<T, E> {
-    return new Task(Stream.from(either));
+  static fromEither<E, T>(either: Either<E, T>): Task<T, E> {
+    return new Task(Stream.fromEither(either));
   }
 
   /** A task that succeeds after `milliseconds`. Cancelling clears the timer. */
   static delay(milliseconds: number): Task<void, Error> {
-    return Task.create<void, never>((ok) => {
+    return Task.from<void, never>((ok) => {
       const timer = setTimeout(() => ok(undefined), milliseconds);
       return () => clearTimeout(timer);
     });
@@ -126,7 +126,7 @@ export class Task<T, E = Error> {
 
   /** Fail with a TimeoutError if the task takes longer than `milliseconds` (and cancel it). */
   timeout(milliseconds: number): Task<T, E | Error> {
-    return Task.create<T, E | Error>((ok, error) => {
+    return Task.from<T, E | Error>((ok, error) => {
       const timer = setTimeout(() => {
         cancel();
         error(new TimeoutError(milliseconds));

@@ -26,7 +26,7 @@
 // starts its own run. A hot source (values happen whether or not anyone
 // listens) is an Emitter, which hands out a Stream to subscribe to.
 //
-//   const upload = Stream.create<number, Response>((sink) => { ... });
+//   const upload = Stream.from<number, Response>((sink) => { ... });
 //   upload.run({ next: showProgress, ok: showResult, error: showError });
 
 import { Either, toError } from "./either.ts";
@@ -75,7 +75,7 @@ export class Stream<T, R = void, E = Error> {
    * exception the computation throws becomes a failure: the stream ends
    * with a `Left` holding an Error (so `E | Error`: any effect can fail).
    */
-  static create<T, R = void, E = Error>(
+  static from<T, R = void, E = Error>(
     computation: StreamComputation<T, R, E>,
   ): Stream<T, R, E | Error> {
     return Stream.make(computation) as Stream<T, R, E | Error>;
@@ -94,16 +94,16 @@ export class Stream<T, R = void, E = Error> {
 
   /** No items, ends with `result`. */
   static end<R>(result: R): Stream<never, R, never> {
-    return Stream.from(Either.right(result));
+    return Stream.fromEither(Either.right(result));
   }
 
   /** No items, ends with the failure `error`. */
   static fail<E>(error: E): Stream<never, never, E> {
-    return Stream.from(Either.left(error));
+    return Stream.fromEither(Either.left(error));
   }
 
   /** No items, ends with `end`: a Right succeeds, a Left fails. */
-  static from<E, R>(end: Either<E, R>): Stream<never, R, E> {
+  static fromEither<E, R>(end: Either<E, R>): Stream<never, R, E> {
     return Stream.make((sink) => sink.end(end));
   }
 
@@ -119,7 +119,7 @@ export class Stream<T, R = void, E = Error> {
 
   /**
    * A cold stream from a computation that cannot fail by itself (internal:
-   * what throws is turned into a failure only by `create`, `map` and `flatMap`,
+   * what throws is turned into a failure only by `from`, `map` and `flatMap`,
    * whose types include Error). Enforces the grammar: nothing after the end,
    * nothing after a cancel, one end.
    */

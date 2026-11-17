@@ -26,7 +26,7 @@ function failure(log: unknown[]) {
 describe("Task", () => {
   test("is lazy: nothing happens until run", () => {
     let started = 0;
-    const task = Task.create<number>((ok) => (started++, ok(1)));
+    const task = Task.from<number>((ok) => (started++, ok(1)));
     expect(started)
       .toBe(0);
     expect(record(task).log)
@@ -42,7 +42,7 @@ describe("Task", () => {
       .toEqual([["ok", 1]]);
     expect(record(Task.fail("bad")).log)
       .toEqual([["error", "bad"]]);
-    const throwing = Task.create(() => {
+    const throwing = Task.from(() => {
       throw "thrown";
     });
     expect(failure(record(throwing).log))
@@ -50,7 +50,7 @@ describe("Task", () => {
   });
 
   test("calls one handler, once", () => {
-    const task = Task.create<number>((ok, error) => {
+    const task = Task.from<number>((ok, error) => {
       ok(1);
       ok(2);
       error(new Error("late"));
@@ -104,9 +104,9 @@ describe("Task", () => {
   });
 
   test("from: a Right succeeds, a Left fails", () => {
-    expect(record(Task.from(Either.right(1))).log)
+    expect(record(Task.fromEither(Either.right(1))).log)
       .toEqual([["ok", 1]]);
-    expect(record(Task.from(Either.left("e"))).log)
+    expect(record(Task.fromEither(Either.left("e"))).log)
       .toEqual([["error", "e"]]);
   });
 
@@ -161,7 +161,7 @@ describe("Task as a stream", () => {
 
   test("is lazy as a stream too: converting does not run it, and each subscription runs it again", () => {
     let runs = 0;
-    const stream = Task.create<number>((ok) => (runs++, ok(runs)))
+    const stream = Task.from<number>((ok) => (runs++, ok(runs)))
       .toStream();
     expect(runs)
       .toBe(0);

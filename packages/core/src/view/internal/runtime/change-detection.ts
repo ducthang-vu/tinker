@@ -80,7 +80,7 @@ export class ChangeDetection {
    *   await changeDetection.afterStable().toPromise();   // e.g. in a test
    */
   afterStable(): Task<void> {
-    return Task.create((ok) => {
+    return Task.from((ok) => {
       const waiter = () => ok();
       this.waiting.add(waiter);
       this.ticker.requestTick();
