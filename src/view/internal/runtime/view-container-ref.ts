@@ -16,7 +16,7 @@ import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import type { View } from "./view.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
-import type { TemplateRef } from "./template-ref.ts";
+import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
 
 /** Creates view containers, with the app's component factory and renderer. */
@@ -126,8 +126,8 @@ export class ViewContainerRef {
    * Render an instance of a template declared with `<template #name>`, at the end
    * of the container: before its anchor, after what is already there.
    */
-  createEmbeddedView(template: TemplateRef): EmbeddedView {
-    const view = template.instantiate(this.anchor, this.parentInjector);
+  createEmbeddedView(template: TemplateRef, context: TemplateContext): EmbeddedView {
+    const view = template.instantiate(this.anchor, this.parentInjector, context);
     this.embedded.push(view);
     view.addDestroyCallback(() => {
       this.embedded.splice(this.embedded.indexOf(view), 1);
