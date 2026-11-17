@@ -527,3 +527,58 @@ describe("@case with an array literal pattern", () => {
     app.destroy();
   });
 });
+
+describe("@match with the remaining patterns", () => {
+  test("alternatives, a range, not and present pick their branches", async () => {
+    @Component({
+      selector: "tk-remaining",
+      template: `@match value() {
+        @case "loading" | "saving" { busy }
+        @case 0..12 { small }
+        @case not "guest" { user }
+        @case present { other }
+        @default { none }
+      }`,
+    })
+    class Remaining {
+      readonly value = signal<unknown>("saving");
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Remaining, { host: el });
+    const shown = async (value: unknown) => {
+      app.root.instance.value.set(value);
+      await tick();
+      return el.textContent!.trim();
+    };
+    expect(await shown("saving"))
+      .toBe("busy");
+    expect(await shown(7))
+      .toBe("small");
+    expect(await shown("ana"))
+      .toBe("user");
+    expect(await shown("guest"))
+      .toBe("other");
+    expect(await shown(null))
+      .toBe("user");
+    app.destroy();
+  });
+
+  test("an absent key picks the branch for an object without it", async () => {
+    @Component({
+      selector: "tk-absent",
+      template: "@match result() { @case { error: absent } { ok } @default { failed } }",
+    })
+    class Absent {
+      readonly result = signal<object>({ value: 1 });
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Absent, { host: el });
+    expect(el.textContent!.trim())
+      .toBe("ok");
+    app.root.instance.result.set({ error: "boom" });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("failed");
+    app.destroy();
+  });
+});

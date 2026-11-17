@@ -19,6 +19,8 @@ export type TypeName = "string" | "number" | "boolean" | "object" | "function";
 const TYPES: readonly string[] = ["string", "number", "boolean", "object", "function"];
 const LITERAL_WORDS: readonly string[] = ["true", "false", "null", "undefined"];
 const RELATION = /^(!==|<=|>=|<|>)\s*([\s\S]+)$/;
+const RANGE = /^(-?\d+(?:\.\d+)?)\.\.(-?\d+(?:\.\d+)?)$/;
+const NOT = /^not\s+([\s\S]+)$/;
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const FIELD = /^([A-Za-z_$][\w$]*)\s*(?::([\s\S]*))?$/;
 
@@ -32,7 +34,12 @@ export type Pattern
     | { readonly kind: "type"; readonly type: TypeName }
     | { readonly kind: "bind"; readonly name: string }
     | { readonly kind: "object"; readonly fields: readonly { readonly key: string; readonly pattern: Pattern }[] }
-    | { readonly kind: "array"; readonly items: readonly Pattern[]; readonly rest?: string };
+    | { readonly kind: "array"; readonly items: readonly Pattern[]; readonly rest?: string }
+    | { readonly kind: "present" }
+    | { readonly kind: "alt"; readonly options: readonly Pattern[] }
+    | { readonly kind: "not"; readonly pattern: Pattern }
+    | { readonly kind: "range"; readonly min: number; readonly max: number }
+    | { readonly kind: "absent" };
 
 export type RelationOperator = "<" | "<=" | ">" | ">=" | "!==";
 
@@ -73,11 +80,33 @@ function patternOf(text: string): Pattern {
   if (text === "") {
     throw new Error("A pattern is needed");
   }
+  // Alternatives first: a leading `{` or `[` may open the first option only.
+  const options = splitTopLevel(text, "|");
+  if (options.length > 1) {
+    return alternatives(options.map((option) => option.trim()), text);
+  }
   if (text.startsWith("{")) {
     return objectPattern(text);
   }
   if (text.startsWith("[")) {
     return arrayPattern(text);
+  }
+  const negated = NOT.exec(text);
+  if (negated) {
+    const pattern = patternOf(negated[1]!.trim());
+    if (namesOf(pattern).length > 0) {
+      throw new Error(`"not" cannot bind names: "${text}"`);
+    }
+    return { kind: "not", pattern };
+  }
+  const range = RANGE.exec(text);
+  if (range) {
+    const min = Number(range[1]);
+    const max = Number(range[2]);
+    if (min > max) {
+      throw new Error(`A range goes from the smaller number to the larger: "${text}"`);
+    }
+    return { kind: "range", min, max };
   }
   switch (text) {
     case "truthy":
@@ -86,6 +115,10 @@ function patternOf(text: string): Pattern {
       return { kind: "falsy" };
     case "_":
       return { kind: "any" };
+    case "present":
+      return { kind: "present" };
+    case "absent":
+      throw new Error(`"absent" is the pattern of a key, as in { error: absent }`);
     default:
       break;
   }
@@ -114,6 +147,15 @@ function literalOf(text: string, message: string): Literal {
   return expression.value;
 }
 
+/** Alternatives match when one of them does; they bind no names, since only one can. */
+function alternatives(options: readonly string[], text: string): Pattern {
+  const patterns = options.map((option) => patternOf(option));
+  if (patterns.some((pattern) => namesOf(pattern).length > 0)) {
+    throw new Error(`Alternatives cannot bind names: "${text}"`);
+  }
+  return { kind: "alt", options: patterns };
+}
+
 /** `{ key, key: pattern, … }`: each key must exist, and its value must match its pattern. */
 function objectPattern(text: string): Pattern {
   if (!text.endsWith("}")) {
@@ -132,7 +174,7 @@ function objectPattern(text: string): Pattern {
     if (fields.some((field) => field.key === key)) {
       throw new Error(`The key "${key}" is in the pattern twice`);
     }
-    const pattern = match[2] === undefined ? { kind: "bind" as const, name: key } : patternOf(match[2].trim());
+    const pattern = fieldPattern(key, match[2]);
     fields.push({ key, pattern });
   }
   return { kind: "object", fields };
@@ -188,8 +230,16 @@ export function namesOf(pattern: Pattern): string[] {
   }
 }
 
-/** Split at the commas that are not inside braces, brackets, parentheses or quotes. */
-function splitTopLevel(text: string): string[] {
+/** The pattern of an object field: its key's value, or the key's name when it has none. */
+function fieldPattern(key: string, value: string | undefined): Pattern {
+  if (value === undefined) {
+    return { kind: "bind", name: key };
+  }
+  return value.trim() === "absent" ? { kind: "absent" } : patternOf(value.trim());
+}
+
+/** Split at the `separator`s that are not inside braces, brackets, parentheses or quotes. */
+function splitTopLevel(text: string, separator = ","): string[] {
   const parts: string[] = [];
   let depth = 0;
   let quote: string | undefined;
@@ -206,7 +256,7 @@ function splitTopLevel(text: string): string[] {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
       depth--;
-    } else if (char === "," && depth === 0) {
+    } else if (char === separator && depth === 0) {
       parts.push(text.slice(start, i));
       start = i + 1;
     }

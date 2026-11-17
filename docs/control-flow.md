@@ -87,16 +87,16 @@ access     := identifier ( "." identifier | "(" ")" )*
 | `falsy` | a falsy value: `0`, `""`, `null`, `undefined`, `false`, `NaN` | `@case falsy` | done |
 | `_` | anything | `@case _ when a()` | done |
 | Name | anything, bound to that name in the branch | `@case value` | done |
-| `present` | anything except `null` and `undefined` | `@case present` | later |
+| `present` | anything except `null` and `undefined` | `@case present` | done |
 | Object, by tag or shape | an object with those fields | `@case { tag: "ok", value }` | done |
-| Object key absent | an object without that key | `@case { error: absent }` | later |
+| Object key absent | an object without that key | `@case { error: absent }` | done |
 | Type check in an object | a field of a runtime type | `@case { id: number, name: string }` | done |
 | Empty array | an empty list | `@case []` | done |
 | Array, fixed length or with rest | a list of that shape | `@case [first, ...rest]` | done |
 | Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | done |
-| Alternatives | any of several patterns | `@case "loading" \| "saving"` | later |
-| Range | a number between two bounds | `@case 0..12` | later |
-| `not` | anything the inner pattern does not match | `@case not "guest"` | later |
+| Alternatives | any of several patterns (they bind no names) | `@case "loading" \| "saving"` | done |
+| Range | a number from the smaller bound to the larger, both included | `@case 0..12` | done |
+| `not` | anything the inner pattern does not match (it binds no names) | `@case not "guest"` | done |
 
 Type names (`number`, `string`, `boolean`, `object`, `function`, `undefined`)
 are reserved words in patterns, so a field named `number` cannot be bound by a
@@ -162,7 +162,7 @@ working `@if` and `@match`, and it keeps every step testable on its own.
 5. **Guards with `when`, and the subject-less form.** Done. `@else if` is done too (it nests).
 6. **`@map`**, with `track`, the `$` variables, destructuring, and the empty case. Done.
 7. **Names and object patterns**, then arrays, then alternatives, `present`,
-   ranges and `not`.
+   ranges and `not`. Done.
 
 Steps 1 and 2 are small and can each be a pull request. Step 3 is the largest
 change, and steps 4 to 7 build on it.

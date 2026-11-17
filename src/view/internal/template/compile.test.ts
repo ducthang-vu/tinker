@@ -318,3 +318,19 @@ describe("@map header errors", () => {
       .toThrow("in @map");
   });
 });
+
+describe("@case bodies after the remaining patterns", () => {
+  test("the body follows an alternative of objects, and a not", () => {
+    const [alt] = compileTemplate([{ kind: "text", value: "@match x { @case { a: 1 } | { b: 2 } { one } }" }]);
+    expect(alt)
+      .toMatchObject({ kind: "match", cases: [{ pattern: { kind: "alt" } }] });
+    const [negated] = compileTemplate([{ kind: "text", value: "@match x { @case not { a: 1 } { one } }" }]);
+    expect(negated)
+      .toMatchObject({ kind: "match", cases: [{ pattern: { kind: "not" } }] });
+  });
+
+  test("a [ that does not start a pattern is not skipped as one", () => {
+    expect(() => compileTemplate([{ kind: "text", value: "@match x { @case a[0] { one } }" }]))
+      .toThrow("in @case");
+  });
+});
