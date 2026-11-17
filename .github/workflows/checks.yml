@@ -39,3 +39,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Example builds, and its bundle parses
+        run: |
+          npm run build:example
+          cp dist/example/assets/*.js /tmp/example-bundle.mjs
+          node --check /tmp/example-bundle.mjs
