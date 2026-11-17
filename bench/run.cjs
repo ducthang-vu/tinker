@@ -55,7 +55,8 @@ function median(values) {
       results.push({
         version,
         operation,
-        medianMs: median(runs.map((r) => r.time)).toFixed(1),
+        medianMs: median(runs.map((r) => r.time))
+          .toFixed(1),
         domMutations: runs[0].mutations,
         rows: runs[0].rows,
       });
@@ -64,4 +65,5 @@ function median(values) {
   console.table(results);
   console.log(JSON.stringify({ errors }));
   await browser.close();
-})().catch((e) => { console.error(e); process.exit(1); });
+})()
+  .catch((e) => { console.error(e); process.exit(1); });
