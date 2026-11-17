@@ -5,9 +5,10 @@
 // closure does.
 
 import type { Injector } from "../../../di/index.ts";
-import { signal } from "../../../signals/index.ts";
+import { type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";
+import { type Context, scopeWith } from "./context.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 
 /** Renders an instance: its body, its scope, the anchor it goes before, and the injector. */
@@ -18,7 +19,7 @@ export type InstanceRenderer = (
   injector: Injector,
 ) => EmbeddedView;
 
-/** The values an instance is given, by the `let-` names the template declared. */
+/** The plain values a caller gives an instance, by the `let-` names it declares. */
 export type TemplateContext = Readonly<Record<string, unknown>>;
 
 export class TemplateRef {
@@ -35,16 +36,48 @@ export class TemplateRef {
     private readonly render: InstanceRenderer,
   ) {}
 
-  /** Render an instance before `anchor`, under `injector`, with `context` for its `let-` names. */
-  instantiate(anchor: Node, injector: Injector, context: TemplateContext): EmbeddedView {
-    const missing = this.names.find((name) => !(name in context));
-    if (missing !== undefined) {
-      throw new Error(`The context has no "${missing}", which the template declares with let-${missing}`);
-    }
-    const lets = new Map(this.declared.lets);
+  /** The `let-` names an instance reads from its context. */
+  get letNames(): readonly string[] {
+    return this.names;
+  }
+
+  /**
+   * One signal per declared name, holding its value in `values`: what an instance
+   * reads, to be updated in place with `setSignals`. Throws if a name is missing.
+   */
+  signalsFor(values: TemplateContext): Map<string, Signal<unknown>> {
+    return new Map(this.names.map((name) => [name, signal(this.valueOf(values, name))] as const));
+  }
+
+  /** Set each signal of an instance (from `signalsFor`) to its value in `values`. */
+  setSignals(signals: ReadonlyMap<string, Signal<unknown>>, values: TemplateContext): void {
     for (const name of this.names) {
-      lets.set(name, signal(context[name]));
+      const value = this.valueOf(values, name);
+      signals.get(name)!.set(value);
     }
-    return this.render(this.body, new Scope(this.declared.component, lets), anchor, injector);
+  }
+
+  private valueOf(values: TemplateContext, name: string): unknown {
+    if (!(name in values)) {
+      throw new Error(`The context has no "${name}", which the template declares with let-${name}`);
+    }
+    return values[name];
+  }
+
+  /**
+   * Render an instance before `anchor`, under `injector`. Each `let-` name it declares
+   * is read from `context`; the rest of the context is not visible to it.
+   */
+  instantiate(anchor: Node, injector: Injector, context: Context): EmbeddedView {
+    const given = new Map<string, ReadonlySignal<unknown>>();
+    for (const name of this.names) {
+      const entry = context.get(name);
+      if (entry === undefined) {
+        throw new Error(`The context has no "${name}", which the template declares with let-${name}`);
+      }
+      given.set(name, entry);
+    }
+    const scope = scopeWith(this.declared.component, this.declared.lets, given);
+    return this.render(this.body, scope, anchor, injector);
   }
 }

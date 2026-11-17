@@ -16,6 +16,7 @@ import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import type { View } from "./view.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
+import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
 
@@ -126,7 +127,15 @@ export class ViewContainerRef {
    * Render an instance of a template declared with `<template #name>`, at the end
    * of the container: before its anchor, after what is already there.
    */
-  createEmbeddedView(template: TemplateRef, context: TemplateContext): EmbeddedView {
+  createEmbeddedView(template: TemplateRef, values: TemplateContext): EmbeddedView {
+    return this.embed(template, contextOf(values));
+  }
+
+  /**
+   * Render an instance of `template` with a context of signals (the outlet's, which it
+   * updates in place), at the end of the container.
+   */
+  embed(template: TemplateRef, context: Context): EmbeddedView {
     const view = template.instantiate(this.anchor, this.parentInjector, context);
     this.embedded.push(view);
     view.addDestroyCallback(() => {
