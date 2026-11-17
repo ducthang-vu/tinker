@@ -27,7 +27,36 @@
 import { Either, type EitherError } from "@tinker/functional";
 
 /** A parsed template expression. */
-export type Expression = ComponentReceiver | PropertyRead | Call | Literal | Binary | Not;
+export type Expression
+  = | ComponentReceiver
+    | PropertyRead
+    | Call
+    | Literal
+    | Binary
+    | Not
+    | Conditional
+    | ObjectLiteral
+    | ArrayLiteral;
+
+/** `{ key: value, shorthand }`: an object of the values, in order. */
+export interface ObjectLiteral {
+  readonly kind: "object";
+  readonly fields: readonly { readonly key: string; readonly value: Expression }[];
+}
+
+/** `[a, b]`: an array of the values, in order. */
+export interface ArrayLiteral {
+  readonly kind: "array";
+  readonly items: readonly Expression[];
+}
+
+/** `test ? then : otherwise`: the value of `then` when `test` is truthy, else `otherwise`. */
+export interface Conditional {
+  readonly kind: "conditional";
+  readonly test: Expression;
+  readonly then: Expression;
+  readonly otherwise: Expression;
+}
 
 /** A value written in the expression: a number, a string, or one of the keyword values. */
 export interface Literal {
@@ -37,7 +66,7 @@ export interface Literal {
 
 /** The operators, from `===` to `**`. */
 export type BinaryOperator
-  = | "||" | "&&"
+  = | "??" | "||" | "&&"
     | "===" | "==" | "!==" | "!="
     | "<" | ">" | "<=" | ">="
     | "+" | "-" | "*" | "/" | "**";
@@ -67,6 +96,8 @@ export interface PropertyRead {
   /** What the field is read from: the component for a bare name. */
   readonly receiver: Expression;
   readonly name: string;
+  /** `?.`: when the receiver is null or undefined, the value is undefined, not an error. */
+  readonly optional?: boolean;
 }
 
 /** Calling something without arguments, e.g. `count()`. */
@@ -104,7 +135,7 @@ export class ExpressionParser {
     if (this.atEnd()) {
       throw new Error(`Empty expression: write a field or a call, e.g. "title" or "count()"`);
     }
-    const expression = this.equality();
+    const expression = this.conditional();
     this.skipWhitespace();
     if (!this.atEnd()) {
       throw this.error(`Unexpected "${this.source[this.position]}"`);
@@ -114,6 +145,28 @@ export class ExpressionParser {
 
   /** `===` and `==`: the loosest operators. */
   /** `||`, the loosest operator. */
+  /** `test ? then : otherwise`, right-associative: `a ? b : c ? d : e` nests in the otherwise. */
+  private conditional(): Expression {
+    const test = this.coalesce();
+    this.skipWhitespace();
+    if (!this.take(["?"])) {
+      return test;
+    }
+    const then = this.conditional();
+    this.skipWhitespace();
+    if (!this.take([":"])) {
+      throw this.error(
+        this.atEnd() ? `Missing ":" in the conditional` : `Expected ":", found "${this.source[this.position]}"`,
+      );
+    }
+    return { kind: "conditional", test, then, otherwise: this.conditional() };
+  }
+
+  /** `a ?? b`: `b` when `a` is null or undefined, else `a`. */
+  private coalesce(): Expression {
+    return this.binaryLevel(["??"], () => this.equality());
+  }
+
   private equality(): Expression {
     return this.binaryLevel(["||"], () => this.conjunction());
   }
@@ -188,13 +241,19 @@ export class ExpressionParser {
     }
     if (this.source[this.position] === "(") {
       this.position++;
-      const inner = this.equality();
+      const inner = this.conditional();
       this.skipWhitespace();
       if (this.source[this.position] !== ")") {
         throw this.error(this.atEnd() ? `Missing ")"` : `Expected ")", found "${this.source[this.position]}"`);
       }
       this.position++;
       return inner;
+    }
+    if (this.source[this.position] === "{") {
+      return this.objectLiteral();
+    }
+    if (this.source[this.position] === "[") {
+      return this.arrayLiteral();
     }
     const quote = this.source[this.position];
     if (quote === "\"" || quote === "'") {
@@ -240,10 +299,67 @@ export class ExpressionParser {
     return text;
   }
 
-  /** A name, then any `.name` or `()` after it. */
+  /**
+   * `{ key: value, shorthand, "quoted": value }`: a key with no value reads
+   * the field of that name.
+   */
+  private objectLiteral(): Expression {
+    this.position++;
+    const fields: { key: string; value: Expression }[] = [];
+    for (this.skipWhitespace(); this.source[this.position] !== "}"; this.skipWhitespace()) {
+      if (this.atEnd()) {
+        throw this.error(`Missing "}" in the object`);
+      }
+      const quote = this.source[this.position];
+      const quoted = quote === "\"" || quote === "'";
+      const key = quoted ? this.string(quote) : this.identifier();
+      this.skipWhitespace();
+      if (this.take([":"]) !== undefined) {
+        fields.push({ key, value: this.conditional() });
+      } else if (quoted) {
+        throw this.error(`A quoted key needs a value, as in "${key}": value`);
+      } else {
+        fields.push({ key, value: { kind: "property", receiver: COMPONENT, name: key } });
+      }
+      this.skipWhitespace();
+      if (this.take([","]) === undefined && this.source[this.position] !== "}") {
+        throw this.error(`Expected "," or "}", found "${this.source[this.position] ?? "the end"}"`);
+      }
+    }
+    this.position++;
+    return { kind: "object", fields };
+  }
+
+  /** `[a, b]`: the values, in order. */
+  private arrayLiteral(): Expression {
+    this.position++;
+    const items: Expression[] = [];
+    for (this.skipWhitespace(); this.source[this.position] !== "]"; this.skipWhitespace()) {
+      if (this.atEnd()) {
+        throw this.error(`Missing "]" in the array`);
+      }
+      items.push(this.conditional());
+      this.skipWhitespace();
+      if (this.take([","]) === undefined && this.source[this.position] !== "]") {
+        throw this.error(`Expected "," or "]", found "${this.source[this.position] ?? "the end"}"`);
+      }
+    }
+    this.position++;
+    return { kind: "array", items };
+  }
+
+  /**
+   * A name, then any `.name`, `?.name` or `()` after it. Each `?.` guards only its own
+   * link, as in JavaScript: `a?.b.c` throws when `a` is set and `a.b` is missing.
+   */
   private access(): Expression {
     let expression: Expression = { kind: "property", receiver: COMPONENT, name: this.identifier() };
     for (this.skipWhitespace(); !this.atEnd(); this.skipWhitespace()) {
+      if (this.startsWithOptionalLink()) {
+        this.position += 2;
+        expression = { kind: "property", receiver: expression, name: this.identifier(), optional: true };
+        continue;
+      }
       const char = this.source[this.position];
       if (char !== "." && char !== "(") {
         break;
@@ -251,6 +367,12 @@ export class ExpressionParser {
       expression = this.postfix(expression);
     }
     return expression;
+  }
+
+  /** `?.` followed by a name: not the ternary's `?` before a number such as `.5`. */
+  private startsWithOptionalLink(): boolean {
+    return this.source.startsWith("?.", this.position)
+      && !/\d/.test(this.source[this.position + 2] ?? "");
   }
 
   /** `.name` or `()` after an expression. */

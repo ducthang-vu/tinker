@@ -4,16 +4,37 @@
 //   "(click.self.prevent)": "go()"   in a host option
 //
 // Guards come first: `self` ignores an event whose target is a child of the
-// element. Then the actions: `prevent` and `stop` change the event (they can
-// come in any order). `once` counts only events that passed the guards, and
-// ends the listener after the first of them.
+// element, and a key modifier ignores a keyboard event whose `key` is another one
+// (`(keydown.enter)`, `(keydown.esc)`). Then the actions: `prevent` and `stop` change
+// the event (they can come in any order). `once` counts only events that passed the
+// guards, and ends the listener after the first of them.
 
 import { Either, type EitherError } from "@tinker/functional";
 
-/** The modifiers Tinker supports. */
-export type EventModifier = "prevent" | "stop" | "self" | "once";
+/** The keys a keyboard event can be filtered to, by name. */
+const KEY_VALUES = {
+  enter: "Enter",
+  esc: "Escape",
+  escape: "Escape",
+  space: " ",
+  tab: "Tab",
+  up: "ArrowUp",
+  down: "ArrowDown",
+  left: "ArrowLeft",
+  right: "ArrowRight",
+} as const;
 
-const SUPPORTED: readonly string[] = ["prevent", "stop", "self", "once"];
+export type KeyModifier = keyof typeof KEY_VALUES;
+
+/** The modifiers Tinker supports. */
+export type EventModifier = "prevent" | "stop" | "self" | "once" | KeyModifier;
+
+const SUPPORTED: readonly string[] = ["prevent", "stop", "self", "once", ...Object.keys(KEY_VALUES)];
+
+/** The `KeyboardEvent.key` a key modifier stands for, if `modifier` is one. */
+export function keyOf(modifier: EventModifier): string | undefined {
+  return (KEY_VALUES as Partial<Record<string, string>>)[modifier];
+}
 
 /** A DOM event name with its modifiers, in the order written. */
 export interface EventName {

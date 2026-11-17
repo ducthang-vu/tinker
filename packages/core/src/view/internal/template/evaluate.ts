@@ -19,12 +19,25 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       return scope.component;
     case "property": {
       const declared = letOf(expression, scope);
-      return declared ? declared() : read(evaluate(expression.receiver, scope), expression.name);
+      if (declared) {
+        return declared();
+      }
+      const receiver = evaluate(expression.receiver, scope);
+      return expression.optional && receiver == null ? undefined : read(receiver, expression.name);
     }
+    case "object":
+      return Object.fromEntries(expression.fields.map(({ key, value }) =>
+        [key, evaluate(value, scope)]));
+    case "array":
+      return expression.items.map((item) => evaluate(item, scope));
     case "literal":
       return expression.value;
     case "not":
       return !evaluate(expression.operand, scope);
+    case "conditional":
+      return evaluate(expression.test, scope)
+        ? evaluate(expression.then, scope)
+        : evaluate(expression.otherwise, scope);
     case "binary":
       return binary(expression, scope);
     case "call": {
@@ -36,6 +49,9 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       }
       // A method keeps its receiver: evaluate it once, read the method from it.
       const receiver = callee.kind === "property" ? evaluate(callee.receiver, scope) : undefined;
+      if (callee.kind === "property" && callee.optional && receiver == null) {
+        return undefined;
+      }
       const fn = callee.kind === "property" ? read(receiver, callee.name) : evaluate(callee, scope);
       return callFunction(fn, callee, receiver);
     }
@@ -66,6 +82,9 @@ function callFunction(fn: unknown, callee: Expression, receiver?: unknown): unkn
  */
 function binary(expression: Extract<Expression, { kind: "binary" }>, scope: Scope): unknown {
   const left = evaluate(expression.left, scope);
+  if (expression.operator === "??") {
+    return left == null ? evaluate(expression.right, scope) : left;
+  }
   if (expression.operator === "&&") {
     return left ? evaluate(expression.right, scope) : left;
   }
@@ -129,12 +148,20 @@ export function print(expression: Expression): string {
       return `${print(expression.left)} ${expression.operator} ${print(expression.right)}`;
     case "not":
       return `!${print(expression.operand)}`;
+    case "conditional":
+      return `${print(expression.test)} ? ${print(expression.then)} : ${print(expression.otherwise)}`;
+    case "object":
+      return `{ ${expression.fields.map(({ key, value }) => `${key}: ${print(value)}`)
+        .join(", ")} }`;
+    case "array":
+      return `[${expression.items.map((item) => print(item))
+        .join(", ")}]`;
     case "component":
       return "";
     case "property":
       return expression.receiver.kind === "component"
         ? expression.name
-        : `${print(expression.receiver)}.${expression.name}`;
+        : `${print(expression.receiver)}${expression.optional ? "?." : "."}${expression.name}`;
     case "call":
       return `${print(expression.callee)}()`;
   }

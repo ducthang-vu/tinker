@@ -48,8 +48,8 @@ describe("HostBindings parsing", () => {
   });
 
   test("reports an invalid class binding expression with its key", () => {
-    expect(() => new HostBindings({ "[class.open]": "a ? b : c" }))
-      .toThrow(`Unexpected "?" (at column 3 in "a ? b : c"), `
+    expect(() => new HostBindings({ "[class.open]": "a(1)" }))
+      .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), `
         + `in host binding "[class.open]"`);
   });
 
@@ -68,7 +68,7 @@ describe("HostBindings parsing", () => {
   });
 
   test("reports an invalid style or attribute expression with its key", () => {
-    expect(() => new HostBindings({ "[attr.title]": "a ? b : c" }))
+    expect(() => new HostBindings({ "[attr.title]": "a(1)" }))
       .toThrow(`in host binding "[attr.title]"`);
   });
 

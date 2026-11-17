@@ -38,6 +38,7 @@ import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import type { View } from "../runtime/view.ts";
 import { MatchBinding } from "../runtime/match-binding.ts";
+import { ClassMapBinding } from "../runtime/class-map-binding.ts";
 import { ContainerPlacement, ElementPlacement, type Placement } from "../runtime/placement.ts";
 import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
@@ -506,6 +507,9 @@ export class TemplateBuilder {
     for (const { name, expression } of node.classBindings) {
       this.bindings.push(this.bindingFactory
         .classToggle(element, name, expression, this.scope));
+    }
+    for (const { expression } of node.classObjects) {
+      this.bindings.push(new ClassMapBinding(element, expression, this.scope, this.renderer));
     }
     for (const { name, expression } of node.styleBindings) {
       this.bindings.push(this.bindingFactory.style(element, name, expression, this.scope));

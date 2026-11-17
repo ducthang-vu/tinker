@@ -26,14 +26,25 @@ Expressions are what a case or a `when` reads. Their grammar, from the loosest
 operator to the tightest:
 
 ```
-expression := equality
+expression := conditional
+conditional := coalesce ( "?" conditional ":" conditional )?   -- right-associative
+coalesce   := equality ( "??" equality )*                      -- right side only for null or undefined
 equality   := ... (see below)
 additive   := term ( ("+" | "-") term )*
 term       := power ( ("*" | "/") power )*
 power      := operand ( "**" power )?                                   -- right-associative
-operand    := number | string | boolean | null | "(" expression ")" | access
-access     := identifier ( "." identifier | "(" ")" )*
+operand    := number | string | boolean | null | "!" operand
+            | "(" expression ")" | object | array | access
+object     := "{" ( key ( ":" conditional )? ) ( "," ... )* "}"          -- { k } reads field k
+array      := "[" ( conditional ( "," conditional )* )? "]"
+access     := identifier ( ( "." | "?." ) identifier | "(" ")" )*        -- "?." yields undefined on null
 ```
+
+`?.` matches JavaScript: each `?.` guards only its own link. `user?.address.city`
+throws when `user` is set and `address` is missing; write `user?.address?.city`
+to guard both. Key modifiers (`(keydown.enter)`, `.esc`,
+`.space`, ...) compare `KeyboardEvent.key`, so the names are `Enter`, `Escape`
+and `" "` (a space).
 
 | Item | Status | Notes |
 |---|---|---|
@@ -47,6 +58,7 @@ access     := identifier ( "." identifier | "(" ")" )*
 | `>`, `<`, `>=`, `<=` | done | |
 | `!==`, `!=` | done | |
 | `&&`, `\|\|`, `!` | done | short-circuit, as in JavaScript |
+| `test ? then : otherwise`, nested | done | only the chosen branch is evaluated |
 | Call arguments: `format(x)` | later | |
 | Arrow functions: `t => t.done` | later | needed for `filter` and `map` in templates |
 | Unary minus: `-1` | later | |

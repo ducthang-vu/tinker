@@ -208,3 +208,86 @@ describe("comparisons and logical operators", () => {
       .toBe(1);
   });
 });
+
+describe("the conditional operator", () => {
+  test("picks the then or the otherwise value by the test", () => {
+    const component = { on: true, count: 3 };
+    expect(run("on ? 'yes' : 'no'", component))
+      .toBe("yes");
+    expect(run("count > 5 ? 'big' : 'small'", component))
+      .toBe("small");
+  });
+
+  test("nests to the right, and parentheses group it", () => {
+    const grade = (score: number) => run(
+      "score >= 90 ? 'A' : score >= 60 ? 'B' : 'C'",
+      { score },
+    );
+    expect([grade(95), grade(70), grade(10)])
+      .toEqual(["A", "B", "C"]);
+    expect(run("(on ? 'a' : 'b') === 'a'", { on: false }))
+      .toBe(false);
+  });
+
+  test("only the chosen branch is evaluated", () => {
+    expect(run("missing ? 1 : 2", {}))
+      .toBe(2);
+  });
+
+  test("print writes it back", () => {
+    expect(print(ExpressionParser.parse("a ? b : c")
+      .getOrThrow()))
+      .toBe("a ? b : c");
+  });
+});
+
+describe("safe navigation, defaults, and literals", () => {
+  test("?. reads through a null or undefined receiver as undefined", () => {
+    expect(run("user?.name", { user: null }))
+      .toBeUndefined();
+    expect(run("user?.name", { user: { name: "Ana" } }))
+      .toBe("Ana");
+    expect(run("user?.greet()", { user: null }))
+      .toBeUndefined();
+  });
+
+  test("a link after ?. is not optional, as in JavaScript", () => {
+    expect(() => run("user?.address.city", { user: { address: undefined } }))
+      .toThrow(TypeError);
+    expect(run("user?.address?.city", { user: { address: undefined } }))
+      .toBeUndefined();
+  });
+
+  test("?? gives the right side only for null and undefined", () => {
+    expect(run("name ?? 'guest'", { name: null }))
+      .toBe("guest");
+    expect(run("name ?? 'guest'", { name: "" }))
+      .toBe("");
+    expect(run("count ?? 7", { count: 0 }))
+      .toBe(0);
+  });
+
+  test("an object literal builds an object, with a shorthand key reading the field", () => {
+    expect(run("{ done: todo.done, title, 'big': n > 1 }", { todo: { done: true }, title: "x", n: 2 }))
+      .toEqual({ done: true, title: "x", big: true });
+  });
+
+  test("an array literal builds an array", () => {
+    expect(run("[a, b + 1]", { a: 1, b: 2 }))
+      .toEqual([1, 3]);
+    expect(run("[]", {}))
+      .toEqual([]);
+  });
+
+  test("print writes the new forms back", () => {
+    expect(print(ExpressionParser.parse("a?.b ?? { k: c }")
+      .getOrThrow()))
+      .toBe("a?.b ?? { k: c }");
+  });
+});
+
+test("print writes an array literal back", () => {
+  expect(print(ExpressionParser.parse("[a, 1]")
+    .getOrThrow()))
+    .toBe("[a, 1]");
+});

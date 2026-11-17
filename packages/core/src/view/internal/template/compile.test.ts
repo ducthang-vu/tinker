@@ -33,6 +33,7 @@ describe("compileTemplate", () => {
           directives: [],
           component: Maybe.none(),
           container: false,
+          classObjects: [],
           classBindings: [],
           inputBindings: [],
           styleBindings: [],
@@ -103,7 +104,7 @@ describe("compileTemplate", () => {
   });
 
   test("reports an invalid style or attribute expression with its key", () => {
-    expect(() => compileTemplate([element("p", { "[style.color]": "a ? b : c" })]))
+    expect(() => compileTemplate([element("p", { "[style.color]": "a(1)" })]))
       .toThrow(/in \[style\.color\] on <p>/);
     expect(() => compileTemplate([element("p", { "[attr.title]": "a(1)" })]))
       .toThrow(`Call arguments are not supported yet (at column 3 in "a(1)"), in [attr.title] on <p>`);
@@ -419,5 +420,17 @@ describe("qualified bindings", () => {
       children: [],
     }], candidates))
       .toThrow("Unknown modifier");
+  });
+});
+
+describe("[class] object on a container", () => {
+  test("is an error, since a container has no element to take the classes", () => {
+    expect(() => compileTemplate([{
+      kind: "element",
+      name: "tk-container",
+      attributes: [{ name: "[class]", value: "{ a: b }" }],
+      children: [],
+    }]))
+      .toThrow("a container has no element");
   });
 });

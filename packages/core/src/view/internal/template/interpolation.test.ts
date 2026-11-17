@@ -45,9 +45,9 @@ describe("parseInterpolation", () => {
   });
 
   test("reports the first invalid expression", () => {
-    expect(() => parseInterpolation("{{ a ? b : c }} {{ c(1) }}")
+    expect(() => parseInterpolation("{{ a b }} {{ c(1) }}")
       .getOrThrow())
-      .toThrow(`Unexpected "?"`);
+      .toThrow(`Unexpected "b"`);
     expect(() => parseInterpolation("{{ }}")
       .getOrThrow())
       .toThrow("Empty expression");

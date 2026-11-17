@@ -67,7 +67,7 @@ describe("ExpressionParser", () => {
     expect(error("   "))
       .toMatch(/^Empty expression/);
     expect(error("a ? b"))
-      .toBe(`Unexpected "?" (at column 3 in "a ? b")`);
+      .toBe(`Missing ":" in the conditional (at column 6 in "a ? b")`);
     expect(error("count(1)"))
       .toBe(`Call arguments are not supported yet (at column 7 in "count(1)")`);
     expect(error("count("))
@@ -130,4 +130,60 @@ describe("ExpressionParser", () => {
     expect(error("!"))
       .toBe(`Missing a name at the end (at column 2 in "!")`);
   });
+});
+
+describe("the conditional operator: parsing", () => {
+  test("a conditional has a test, a then and an otherwise", () => {
+    expect(parse("a ? b : c"))
+      .toMatchObject({ kind: "conditional", test: { kind: "property" }, then: { kind: "property" } });
+  });
+
+  test("a missing ':' is an error that says so", () => {
+    expect(ExpressionParser.parse("a ? b")
+      .isLeft())
+      .toBe(true);
+    expect(ExpressionParser.parse("a ? b c")
+      .isLeft())
+      .toBe(true);
+  });
+});
+
+describe("the new expression forms: parsing errors", () => {
+  test("an unclosed object or array, or a missing comma, is an error", () => {
+    expect(ExpressionParser.parse("{ a: 1")
+      .isLeft())
+      .toBe(true);
+    expect(ExpressionParser.parse("[1, 2")
+      .isLeft())
+      .toBe(true);
+    expect(ExpressionParser.parse("{ a: 1 b: 2 }")
+      .isLeft())
+      .toBe(true);
+    expect(ExpressionParser.parse("[1 2]")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("a quoted key needs a value", () => {
+    expect(ExpressionParser.parse("{ 'a' }")
+      .isLeft())
+      .toBe(true);
+  });
+});
+
+describe("unterminated object and array literals", () => {
+  test("an object or an array that runs out of input is an error", () => {
+    expect(ExpressionParser.parse("{")
+      .isLeft())
+      .toBe(true);
+    expect(ExpressionParser.parse("[")
+      .isLeft())
+      .toBe(true);
+  });
+});
+
+test("a ?. at the end of the input is an error, not a link", () => {
+  expect(ExpressionParser.parse("a?.")
+    .isLeft())
+    .toBe(true);
 });
