@@ -94,21 +94,21 @@ export class Stream<T, R = void, E = Error> {
 
   /** No items, ends with `result`. */
   static end<R>(result: R): Stream<never, R, never> {
-    return Stream.fromEither(Either.right(result));
+    return Stream.from(Either.right(result));
   }
 
   /** No items, ends with the failure `error`. */
   static fail<E>(error: E): Stream<never, never, E> {
-    return Stream.fromEither(Either.left(error));
+    return Stream.from(Either.left(error));
   }
 
   /** No items, ends with `end`: a Right succeeds, a Left fails. */
-  static fromEither<E, R>(end: Either<E, R>): Stream<never, R, E> {
+  static from<E, R>(end: Either<E, R>): Stream<never, R, E> {
     return Stream.make((sink) => sink.end(end));
   }
 
   /** The successful items `items`, in order, then the end. */
-  static from<T>(items: Iterable<T>): Stream<T, void, never> {
+  static fromIterable<T>(items: Iterable<T>): Stream<T, void, never> {
     return Stream.make((sink) => {
       for (const item of items) {
         sink.next(Either.right(item));

@@ -103,10 +103,10 @@ describe("Task", () => {
       .toEqual({ message: "in f", cause: "in f" });
   });
 
-  test("fromEither: a Right succeeds, a Left fails", () => {
-    expect(record(Task.fromEither(Either.right(1))).log)
+  test("from: a Right succeeds, a Left fails", () => {
+    expect(record(Task.from(Either.right(1))).log)
       .toEqual([["ok", 1]]);
-    expect(record(Task.fromEither(Either.left("e"))).log)
+    expect(record(Task.from(Either.left("e"))).log)
       .toEqual([["error", "e"]]);
   });
 

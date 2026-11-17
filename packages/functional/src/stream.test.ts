@@ -187,21 +187,21 @@ describe("Stream", () => {
   });
 
   describe("constructors", () => {
-    test("of ends with its value, fail with its failure, fromEither with either", () => {
+    test("end ends with its value, fail with its failure, from with either", () => {
       expect(record(Stream.end(1)).log)
         .toEqual([["end", "right", 1]]);
       expect(record(Stream.fail("bad")).log)
         .toEqual([["end", "left", "bad"]]);
-      expect(record(Stream.fromEither(Either.right("ok"))).log)
+      expect(record(Stream.from(Either.right("ok"))).log)
         .toEqual([["end", "right", "ok"]]);
-      expect(record(Stream.fromEither(Either.left("no"))).log)
+      expect(record(Stream.from(Either.left("no"))).log)
         .toEqual([["end", "left", "no"]]);
     });
 
     test("from delivers the items, then ends", () => {
-      expect(record(Stream.from(new Set([1, 2]))).log)
+      expect(record(Stream.fromIterable(new Set([1, 2]))).log)
         .toEqual([["item", "right", 1], ["item", "right", 2], ["end", "right", undefined]]);
-      expect(record(Stream.from([])).log)
+      expect(record(Stream.fromIterable([])).log)
         .toEqual([["end", "right", undefined]]);
     });
   });

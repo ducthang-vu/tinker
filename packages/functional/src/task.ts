@@ -89,8 +89,8 @@ export class Task<T, E = Error> {
   }
 
   /** A task with the Either's outcome: a Right succeeds, a Left fails. */
-  static fromEither<E, T>(either: Either<E, T>): Task<T, E> {
-    return new Task(Stream.fromEither(either));
+  static from<E, T>(either: Either<E, T>): Task<T, E> {
+    return new Task(Stream.from(either));
   }
 
   /** A task that succeeds after `milliseconds`. Cancelling clears the timer. */
