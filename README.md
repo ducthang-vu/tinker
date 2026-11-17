@@ -49,8 +49,9 @@ class Counter {
 bootstrap(Counter); // renders into <tk-counter> in the page
 ```
 
-The full version, with a clock and three directives, is in
-[`examples/basics`](examples/basics/main.ts).
+The full version, with a clock, directives, a todo list and every pattern form,
+is in [`examples/basics`](examples/basics/), one file per topic. It runs in the
+browser at **[ducthang-vu.github.io/tinker](https://ducthang-vu.github.io/tinker/)**.
 
 ## Modules
 
