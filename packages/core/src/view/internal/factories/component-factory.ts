@@ -64,7 +64,7 @@ import { Selector } from "../template/selector.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
-import { ViewQueries } from "../runtime/view-queries.ts";
+import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
 import type { View } from "../runtime/view.ts";
 
 /**
@@ -92,6 +92,8 @@ export interface ParentContext {
   readonly bindInputs: (component: object) => void;
   /** The content of its element's children, by slot name, which its template's `<slot>`s show. */
   readonly projected: ReadonlyMap<string, Node[]>;
+  /** The registry the parent records the element's projected children in, for `from: "content"`. */
+  readonly contentQueries?: ContentQueries;
 }
 
 @Injectable()
@@ -174,6 +176,7 @@ export class ComponentFactory {
         ...hostDirectives,
         type,
         ViewQueries,
+        provide(ContentQueries, { useValue: child?.contentQueries ?? new ContentQueries() }),
         provide(ElementRef, { useValue: new ElementRef(host) }),
         Effects,
         RenderHooks,

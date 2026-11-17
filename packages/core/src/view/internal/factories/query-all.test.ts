@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component, Directive, ElementRef, input, viewChildren } from "../../index.ts";
+import { Component, Directive, ElementRef, input, queryAll } from "../../index.ts";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -23,7 +23,7 @@ class Mark {}
 })
 class Card {}
 
-describe("viewChildren", () => {
+describe("queryAll", () => {
   test("lists the child components in the template, in document order", () => {
     @Component({
       selector: "tk-list",
@@ -31,7 +31,7 @@ describe("viewChildren", () => {
       imports: [Item],
     })
     class List {
-      readonly items = viewChildren(Item);
+      readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
     const app = bootstrap(List, { host: el });
@@ -49,7 +49,7 @@ describe("viewChildren", () => {
     })
     class Rows {
       readonly labels = signal(["a", "b"]);
-      readonly items = viewChildren(Item);
+      readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
     const app = bootstrap(Rows, { host: el });
@@ -76,7 +76,7 @@ describe("viewChildren", () => {
     })
     class Branch {
       readonly open = signal(true);
-      readonly items = viewChildren(Item);
+      readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
     const app = bootstrap(Branch, { host: el });
@@ -97,7 +97,7 @@ describe("viewChildren", () => {
       imports: [Mark],
     })
     class Marks {
-      readonly marks = viewChildren(Mark);
+      readonly marks = queryAll(Mark);
     }
     const el = document.createElement("section");
     const app = bootstrap(Marks, { host: el });
@@ -115,7 +115,7 @@ describe("viewChildren", () => {
       imports: [Card, Item],
     })
     class Outer {
-      readonly items = viewChildren(Item);
+      readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
     const app = bootstrap(Outer, { host: el });
@@ -132,7 +132,7 @@ describe("viewChildren", () => {
     })
     class Elements {
       readonly labels = signal(["a", "b"]);
-      readonly elements = viewChildren(Item, { read: ElementRef });
+      readonly elements = queryAll(Item, { read: ElementRef });
     }
     const el = document.createElement("section");
     const app = bootstrap(Elements, { host: el });

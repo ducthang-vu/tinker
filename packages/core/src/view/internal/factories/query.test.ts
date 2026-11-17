@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component, ElementRef, input, ViewChildMissingError, viewChild } from "../../index.ts";
+import { Component, ElementRef, input, QueryMissingError, query } from "../../index.ts";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -13,7 +13,7 @@ class FirstItem {
   readonly label = input("");
 }
 
-describe("viewChild", () => {
+describe("query", () => {
   test("is the first match in the template, or none when there is none", async () => {
     @Component({
       selector: "tk-first",
@@ -22,7 +22,7 @@ describe("viewChild", () => {
     })
     class First {
       readonly labels = signal<string[]>([]);
-      readonly first = viewChild(FirstItem);
+      readonly first = query(FirstItem);
     }
     const el = document.createElement("section");
     const app = bootstrap(First, { host: el });
@@ -51,7 +51,7 @@ describe("viewChild", () => {
       imports: [FirstItem],
     })
     class FirstElement {
-      readonly first = viewChild(FirstItem, { read: ElementRef });
+      readonly first = query(FirstItem, { read: ElementRef });
     }
     const el = document.createElement("section");
     const app = bootstrap(FirstElement, { host: el });
@@ -62,7 +62,7 @@ describe("viewChild", () => {
     app.destroy();
   });
 
-  test("viewChild.required is the instance itself, and throws when the template has none", async () => {
+  test("query.required is the instance itself, and throws when the template has none", async () => {
     @Component({
       selector: "tk-required",
       template: "@map labels(); let label; track label { <tk-first-item [label]=\"label\"></tk-first-item> }",
@@ -70,12 +70,12 @@ describe("viewChild", () => {
     })
     class Required {
       readonly labels = signal<string[]>([]);
-      readonly item = viewChild.required(FirstItem);
+      readonly item = query.required(FirstItem);
     }
     const el = document.createElement("section");
     const app = bootstrap(Required, { host: el });
     expect(() => app.root.instance.item())
-      .toThrow(ViewChildMissingError);
+      .toThrow(QueryMissingError);
     app.root.instance.labels.set(["a"]);
     await tick();
     expect(app.root.instance.item()
@@ -90,25 +90,25 @@ describe("viewChild", () => {
       template: "<p>nothing here</p>",
     })
     class RequiredMessage {
-      readonly item = viewChild.required(FirstItem);
+      readonly item = query.required(FirstItem);
     }
     const app = bootstrap(RequiredMessage, { host: document.createElement("section") });
     expect(() => app.root.instance.item())
-      .toThrow("The template has no FirstItem, which viewChild.required(FirstItem) needs");
+      .toThrow("No FirstItem found, which query.required(FirstItem) needs");
     app.destroy();
   });
 
-  test("viewChild.required with read: ElementRef gives the element, and throws when missing", () => {
+  test("query.required with read: ElementRef gives the element, and throws when missing", () => {
     @Component({
       selector: "tk-required-element",
       template: "<p>nothing here</p>",
     })
     class RequiredElement {
-      readonly element = viewChild.required(FirstItem, { read: ElementRef });
+      readonly element = query.required(FirstItem, { read: ElementRef });
     }
     const app = bootstrap(RequiredElement, { host: document.createElement("section") });
     expect(() => app.root.instance.element())
-      .toThrow(ViewChildMissingError);
+      .toThrow(QueryMissingError);
     app.destroy();
   });
 });

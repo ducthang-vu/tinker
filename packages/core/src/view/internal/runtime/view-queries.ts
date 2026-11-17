@@ -1,5 +1,5 @@
 // The view queries of a component: the directive and component instances in
-// its template, each with the element it sits on. A query (`viewChildren`)
+// its template, each with the element it sits on. A query (`queryAll`)
 // reads them in document order, so it follows the DOM: rows that move, and
 // branches that appear or go, all update it. Matches of the component's own
 // template are recorded here, including those in its embedded views; the
@@ -76,6 +76,15 @@ export class ViewQueries {
     });
   }
 }
+
+/**
+ * The content queries of a component: the instances its parent's template declares as
+ * direct children of its element, recorded by the parent. The component reads them with
+ * `query(…, { from: "content" })`. It is the same registry as ViewQueries, a separate
+ * token, so the two sources cannot be mixed up.
+ */
+@Injectable()
+export class ContentQueries extends ViewQueries {}
 
 /**
  * Negative when `left` comes first in the document, positive when `right` does,

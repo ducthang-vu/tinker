@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Engine } from "../engine.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component, Directive, output, viewChildren } from "../../index.ts";
+import { Component, Directive, output, queryAll } from "../../index.ts";
 
 @Directive({ selector: "[fires]" })
 class Fires {
@@ -22,8 +22,8 @@ describe("qualified outputs: (owner.name)", () => {
       imports: [Fires, AlsoFires],
     })
     class Two {
-      readonly fires = viewChildren(Fires);
-      readonly alsoFires = viewChildren(AlsoFires);
+      readonly fires = queryAll(Fires);
+      readonly alsoFires = queryAll(AlsoFires);
       onFired(value: number) {
         seen.push(value);
       }

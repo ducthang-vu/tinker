@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
-import { Component, Directive, input, Outlet, type TemplateRef, ViewContainerRef, viewChildren } from "../../index.ts";
+import { Component, Directive, input, Outlet, type TemplateRef, ViewContainerRef, queryAll } from "../../index.ts";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -185,7 +185,7 @@ describe("code can render a declared template too", () => {
       imports: [Renders],
     })
     class CodeRender {
-      readonly found = viewChildren(Renders);
+      readonly found = queryAll(Renders);
     }
     const el = document.createElement("section");
     const app = bootstrap(CodeRender, { host: el });
