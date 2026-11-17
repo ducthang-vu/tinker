@@ -35,6 +35,7 @@ import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import type { View } from "../runtime/view.ts";
 import { MatchBinding } from "../runtime/match-binding.ts";
+import { ElementHost } from "../runtime/element-host.ts";
 import { MapBinding } from "../runtime/map-binding.ts";
 import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
@@ -188,7 +189,13 @@ export class TemplateBuilder {
       let directives: readonly object[] = [];
       if (node.directives.length > 0) {
         const created = this.directiveFactory
-          .createOnElement(node.directives, element, view, parentInjector, node.attributes);
+          .createOnHost(
+            node.directives,
+            new ElementHost(element),
+            view,
+            parentInjector,
+            node.attributes,
+          );
         injector = created.injector;
         directives = created.instances;
         hostBindings(created.bindings);
