@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component, Outlet } from "../../index.ts";
+import { inject } from "../../../di/index.ts";
+import { Component, Directive, input, Outlet, type TemplateRef, ViewContainerRef, viewChildren } from "../../index.ts";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -106,7 +107,7 @@ describe("<template #name> and the outlet", () => {
     app.destroy();
   });
 
-  test("a changed context renders the instance again with the new value", async () => {
+  test("a changed context updates the instance in place", async () => {
     @Component({
       selector: "tk-changed-context",
       template: "<template #row let-item><b>{{ item }}</b></template><tk-container [outlet]=\"row\" [context]=\"ctx()\"></tk-container>",
@@ -118,12 +119,35 @@ describe("<template #name> and the outlet", () => {
     const el = document.createElement("section");
     const app = bootstrap(ChangedContext, { host: el });
     await tick();
+    const before = el.querySelector("b");
     app.root.instance.ctx.set({ item: "second" });
     await tick();
     expect(el.querySelectorAll("b"))
       .toHaveLength(1);
+    expect(el.querySelector("b"))
+      .toBe(before);
     expect(el.querySelector("b")!.textContent)
       .toBe("second");
+    app.destroy();
+  });
+
+  test("a context change with no template renders nothing", async () => {
+    @Component({
+      selector: "tk-empty-outlet-context",
+      template: "<p>only</p><tk-container [outlet]=\"missing\" [context]=\"ctx()\"></tk-container>",
+      imports: [Outlet],
+    })
+    class EmptyOutletContext {
+      readonly missing = undefined;
+      readonly ctx = signal<Record<string, unknown>>({});
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(EmptyOutletContext, { host: el });
+    await tick();
+    app.root.instance.ctx.set({ item: "x" });
+    await tick();
+    expect(el.textContent)
+      .toBe("only");
     app.destroy();
   });
 
@@ -145,5 +169,31 @@ describe("<template #name> and the outlet", () => {
     class TwiceTemplate {}
     expect(() => bootstrap(TwiceTemplate, { host: document.createElement("section") }))
       .toThrow("#row is already declared in this template");
+  });
+});
+
+describe("code can render a declared template too", () => {
+  test("ViewContainerRef.createEmbeddedView renders an instance with plain values", async () => {
+    @Directive({ selector: "[renders]" })
+    class Renders {
+      readonly renders = input<TemplateRef | undefined>(undefined);
+      readonly container = inject(ViewContainerRef);
+    }
+    @Component({
+      selector: "tk-code-render",
+      template: "<template #row let-item><b>{{ item }}</b></template><tk-container [renders]=\"row\"></tk-container>",
+      imports: [Renders],
+    })
+    class CodeRender {
+      readonly found = viewChildren(Renders);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(CodeRender, { host: el });
+    await tick();
+    const [host] = app.root.instance.found();
+    host!.container.createEmbeddedView(host!.renders()!, { item: "from code" });
+    expect(el.querySelector("b")!.textContent)
+      .toBe("from code");
+    app.destroy();
   });
 });

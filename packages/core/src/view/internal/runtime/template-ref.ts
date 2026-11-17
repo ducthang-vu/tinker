@@ -5,7 +5,7 @@
 // closure does.
 
 import type { Injector } from "../../../di/index.ts";
-import type { ReadonlySignal } from "../../../signals/index.ts";
+import { type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";
 import { type Context, scopeWith } from "./context.ts";
@@ -35,6 +35,34 @@ export class TemplateRef {
     private readonly declared: Scope,
     private readonly render: InstanceRenderer,
   ) {}
+
+  /** The `let-` names an instance reads from its context. */
+  get letNames(): readonly string[] {
+    return this.names;
+  }
+
+  /**
+   * One signal per declared name, holding its value in `values`: what an instance
+   * reads, to be updated in place with `setSignals`. Throws if a name is missing.
+   */
+  signalsFor(values: TemplateContext): Map<string, Signal<unknown>> {
+    return new Map(this.names.map((name) => [name, signal(this.valueOf(values, name))] as const));
+  }
+
+  /** Set each signal of an instance (from `signalsFor`) to its value in `values`. */
+  setSignals(signals: ReadonlyMap<string, Signal<unknown>>, values: TemplateContext): void {
+    for (const name of this.names) {
+      const value = this.valueOf(values, name);
+      signals.get(name)!.set(value);
+    }
+  }
+
+  private valueOf(values: TemplateContext, name: string): unknown {
+    if (!(name in values)) {
+      throw new Error(`The context has no "${name}", which the template declares with let-${name}`);
+    }
+    return values[name];
+  }
 
   /**
    * Render an instance before `anchor`, under `injector`. Each `let-` name it declares

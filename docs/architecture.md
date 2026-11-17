@@ -180,7 +180,8 @@ visible where the template was declared, as a closure does.
 
 `<template #name let-x>` declares the names its instances take. The outlet's
 `context` input (or `createEmbeddedView`'s second argument) gives each name its value.
-A changed context renders the instances again, rather than updating them in place.
+A changed context updates the instance in place: the outlet keeps one signal per
+`let-` name, and sets it. The instance is rendered again only when the template changes.
 A context is a set of named signals (`runtime/context.ts`). The framework's `$`
 variables of a `@map` row are entries of one, the same as a caller's values, so both
 go through the same path to a template's scope.

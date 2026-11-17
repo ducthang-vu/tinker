@@ -28,4 +28,34 @@ describe("TemplateRef", () => {
     expect(() => template.instantiate(document.createComment(""), {} as Injector, new Map()))
       .toThrow(`The context has no "item", which the template declares with let-item`);
   });
+
+  test("signalsFor holds each declared name's value, and setSignals updates them in place", () => {
+    const template = new TemplateRef([], ["item", "other"], new Scope({}), () => {
+      throw new Error("not reached");
+    });
+    const signals = template.signalsFor({ item: 1, other: "two" });
+    expect(signals.get("item")!())
+      .toBe(1);
+    template.setSignals(signals, { item: 3, other: "four" });
+    expect(signals.get("other")!())
+      .toBe("four");
+  });
+
+  test("a value missing for a declared name is an error, when making or setting signals", () => {
+    const template = new TemplateRef([], ["item"], new Scope({}), () => {
+      throw new Error("not reached");
+    });
+    expect(() => template.signalsFor({}))
+      .toThrow(`The context has no "item"`);
+    expect(() => template.setSignals(new Map(), {}))
+      .toThrow(`The context has no "item"`);
+  });
+
+  test("letNames lists the names the template declares", () => {
+    const template = new TemplateRef([], ["item"], new Scope({}), () => {
+      throw new Error("not reached");
+    });
+    expect(template.letNames)
+      .toEqual(["item"]);
+  });
 });
