@@ -26,6 +26,8 @@ import type {
   CompiledText,
 } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
+import { inputsNamed } from "../authoring/input.ts";
+import { type Owned, ownerName } from "../runtime/owner.ts";
 import { Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { computed, type Signal, signal } from "../../../signals/index.ts";
@@ -203,9 +205,15 @@ export class TemplateBuilder {
       // Input bindings set the inputs of the element's directives and
       // component: their first values now (before the component's first
       // render), then this view's watch keeps them up to date.
-      const bindInputs = (instances: readonly object[]) => {
-        const binders = node.inputBindings.map(({ name, expression }) =>
-          this.bindingFactory.inputs(name, expression, this.scope, instances, node.name));
+      const bindInputs = (owned: readonly Owned[]) => {
+        const binders = node.inputBindings.map(({ name, owner, expression }) =>
+          this.bindingFactory.inputs(
+            name,
+            expression,
+            this.scope,
+            reached(owned, "input", name, owner, node.name),
+            node.name,
+          ));
         for (const binder of binders) {
           binder.update();
         }
@@ -221,12 +229,15 @@ export class TemplateBuilder {
             attributes: node.attributes,
             projected,
             adoptHostBindings: hostBindings,
-            bindInputs: (component) => bindInputs([...directives, component]),
+            bindInputs: (component) => bindInputs([
+              ...this.ownedOf(node.directives, directives),
+              ...this.ownedOf([type], [component]),
+            ]),
           });
           instances = [...directives, child.component];
           owner = { type, instance: child.component };
         },
-        none: () => bindInputs(directives),
+        none: () => bindInputs(this.ownedOf(node.directives, directives)),
       });
       this.resolveReferences(
         node,
@@ -239,7 +250,10 @@ export class TemplateBuilder {
       );
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
       if (element !== undefined) {
-        this.bindEvents(node, element, instances, view);
+        this.bindEvents(node, element, [
+          ...this.ownedOf(node.directives, directives),
+          ...(owner === undefined ? [] : this.ownedOf([owner.type], [owner.instance])),
+        ], view);
       }
       // The instances are view queries of this component: removed with their view.
       for (const instance of instances) {
@@ -321,21 +335,32 @@ export class TemplateBuilder {
   private bindEvents(
     node: CompiledElement,
     element: Element,
-    instances: readonly object[],
+    owned: readonly Owned[],
     view: View,
   ): void {
-    for (const { name, method, passEvent, modifiers } of node.outputBindings) {
+    for (const { name, owner, method, passEvent, modifiers } of node.outputBindings) {
       const handler = this.handlerOf(name, method);
       const call = (value: unknown) => (passEvent
         ? handler.call(this.component, value)
         : handler.call(this.component));
-      for (const emitter of outputsNamed(instances, name)) {
+      for (const emitter of outputsNamed(reached(owned, "output", name, owner, node.name), name)) {
         view.addDestroyCallback(emitter.stream.run({ next: call }));
       }
-      view.addDestroyCallback(
-        listenWithModifiers(this.renderer, element, { event: name, modifiers }, call),
-      );
+      // A qualified output is the directive's alone: the DOM event of that name is not bound.
+      if (owner === undefined) {
+        view.addDestroyCallback(
+          listenWithModifiers(this.renderer, element, { event: name, modifiers }, call),
+        );
+      }
     }
+  }
+
+  /** The directives (or the component) with the owner names their selectors give them. */
+  private ownedOf(types: readonly Class<object>[], instances: readonly object[]): Owned[] {
+    return types.map((type, index) => ({
+      owner: ownerName(this.directiveFactory.metadataOf(type).selector),
+      instance: instances[index]!,
+    }));
   }
 
   /** The method `method` of the component, for the event `name`. Throws if there is none. */
@@ -534,6 +559,42 @@ export class TemplateBuilder {
     this.enclosing.push(index);
     return Maybe.some(index);
   }
+}
+
+/**
+ * The instances a binding reaches on an element: those of the owner it names, or, for an
+ * unqualified binding, those with the input (or output) of that name. An unqualified
+ * binding that would reach two instances is an error: it must name its owner.
+ */
+function reached(
+  owned: readonly Owned[],
+  kind: "input" | "output",
+  name: string,
+  owner: string | undefined,
+  elementName: string,
+): object[] {
+  const [open, close] = kind === "input" ? ["[", "]"] : ["(", ")"];
+  const written = (qualified: string) => `${open}${qualified}${close}`;
+  const candidates = owner === undefined ? owned : owned.filter((item) => item.owner === owner);
+  if (owner !== undefined && candidates.length === 0) {
+    const hint = kind === "output" ? ", or a DOM modifier such as .prevent" : "";
+    throw new Error(`${written(`${owner}.${name}`)} on <${elementName}>: no directive or component has the selector "${owner}"${hint}`);
+  }
+  const has = (instance: object) => kind === "input"
+    ? inputsNamed([instance], name).length > 0
+    : outputsNamed([instance], name).length > 0;
+  const reaching = candidates.filter((item) => has(item.instance));
+  if (owner !== undefined && reaching.length === 0) {
+    throw new Error(`${written(`${owner}.${name}`)} on <${elementName}>: "${owner}" has no ${kind} "${name}"`);
+  }
+  if (owner === undefined && reaching.length > 1) {
+    const owners = reaching.map((item) => item.owner);
+    throw new Error(
+      `${written(name)} on <${elementName}> would reach ${owners.join(" and ")}: `
+      + `write ${written(`${owners[0]}.${name}`)} to choose one`,
+    );
+  }
+  return reaching.map((item) => item.instance);
 }
 
 /** The slot a child of a component's element goes to: its `slot` attribute, or the default one. */

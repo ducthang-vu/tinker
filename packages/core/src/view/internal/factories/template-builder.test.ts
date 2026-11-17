@@ -84,12 +84,12 @@ describe("TemplateBuilder", () => {
   });
 
   test("rejects attribute bindings, which are not supported yet", () => {
-    expect(() => build(`<button [foo.bar]="c">go</button>`, {}))
+    expect(() => build(`<button [a.b.c]="c">go</button>`, {}))
       .toThrow(
-        `Bindings are not supported yet: "[foo.bar]" on <button>`,
+        `Bindings are not supported yet: "[a.b.c]" on <button>`,
       );
-    expect(() => build(`<p [foo.bar]="c">x</p>`, {}))
-      .toThrow(`"[foo.bar]" on <p>`);
+    expect(() => build(`<p [a.b.c]="c">x</p>`, {}))
+      .toThrow(`"[a.b.c]" on <p>`);
     expect(() => build(`<p [title]="t">x</p>`, {}))
       .toThrow("[title] on <p>: only inputs can be bound");
   });

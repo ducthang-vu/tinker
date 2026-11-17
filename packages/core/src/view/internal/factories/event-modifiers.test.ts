@@ -59,6 +59,6 @@ describe("event modifiers in templates and host listeners", () => {
     }
     expect(() => Engine.create()
       .createComponent(A))
-      .toThrow(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once, on <button>`);
+      .toThrow(`(click.prevnt) on <button>: no directive or component has the selector "click", or a DOM modifier such as .prevent`);
   });
 });

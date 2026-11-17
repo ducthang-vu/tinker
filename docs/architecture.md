@@ -186,6 +186,16 @@ A context is a set of named signals (`runtime/context.ts`). The framework's `$`
 variables of a `@map` row are entries of one, the same as a caller's values, so both
 go through the same path to a template's scope.
 
+## Qualified bindings
+
+An input or output binding can name the directive or component it is for:
+`[abc.label]="value"` and `(abc.fired)="handler()"` reach only the instance whose selector
+is `abc`. The plain form, `[label]` and `(fired)`, still works. When it would reach two
+instances on the same element, the template fails to build and names the qualified form
+to write. A qualified output is the directive's alone: it does not bind the DOM event of
+the same name. A leading name in an event is an owner unless it is a modifier, so
+`(click.prevent)` is still a DOM event with a modifier.
+
 ## Glossary
 
 - **Host**: the element a component is rendered into. Its `ElementRef` is

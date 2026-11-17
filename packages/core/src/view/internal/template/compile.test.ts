@@ -123,10 +123,10 @@ describe("compileTemplate", () => {
   });
 
   test("rejects other binding syntax, and invalid class binding expressions", () => {
-    expect(() => compileTemplate([element("button", { "[foo.bar]": "c" })]))
-      .toThrow(`Bindings are not supported yet: "[foo.bar]" on <button>`);
-    expect(() => compileTemplate([element("p", { "[foo.bar]": "c" })]))
-      .toThrow(`Bindings are not supported yet: "[foo.bar]" on <p>`);
+    expect(() => compileTemplate([element("button", { "[a.b.c]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[a.b.c]" on <button>`);
+    expect(() => compileTemplate([element("p", { "[a.b.c]": "c" })]))
+      .toThrow(`Bindings are not supported yet: "[a.b.c]" on <p>`);
     expect(() => compileTemplate([element("p", { "[title]": "t" })]))
       .toThrow(
         "[title] on <p>: only inputs can be bound, and no imported directive or component matches this element",
@@ -382,5 +382,42 @@ describe("template references", () => {
       children: [],
     }]))
       .toThrow("names starting with $ are the framework's");
+  });
+});
+
+describe("qualified bindings", () => {
+  test("[owner.input] and (owner.output) name their owner; a modifier is not an owner", () => {
+    class Abc {}
+    const candidates = [{ type: Abc, selector: selector("[abc]"), isComponent: false }];
+    const [button] = compileTemplate([{
+      kind: "element",
+      name: "button",
+      attributes: [
+        { name: "abc", value: "" },
+        { name: "[abc.label]", value: "x()" },
+        { name: "(abc.fired)", value: "go()" },
+        { name: "(click.prevent)", value: "go()" },
+      ],
+      children: [],
+    }], candidates) as CompiledElement[];
+    expect(button!.inputBindings)
+      .toMatchObject([{ name: "label", owner: "abc" }]);
+    expect(button!.outputBindings)
+      .toMatchObject([
+        { name: "fired", owner: "abc" },
+        { name: "click", owner: undefined, modifiers: ["prevent"] },
+      ]);
+  });
+
+  test("a qualified event with an unknown modifier is an error", () => {
+    class Abc {}
+    const candidates = [{ type: Abc, selector: selector("[abc]"), isComponent: false }];
+    expect(() => compileTemplate([{
+      kind: "element",
+      name: "button",
+      attributes: [{ name: "abc", value: "" }, { name: "(abc.fired.bogus)", value: "go()" }],
+      children: [],
+    }], candidates))
+      .toThrow("Unknown modifier");
   });
 });

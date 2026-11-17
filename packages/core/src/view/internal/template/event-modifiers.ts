@@ -22,7 +22,7 @@ export interface EventName {
   readonly modifiers: readonly EventModifier[];
 }
 
-function isModifier(name: string): name is EventModifier {
+export function isModifier(name: string): name is EventModifier {
   return SUPPORTED.includes(name);
 }
 

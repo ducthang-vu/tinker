@@ -64,7 +64,7 @@ describe("input bindings", () => {
       .toBe("UNDO");
   });
 
-  test("set every input of that name on the element: directives and component", () => {
+  test("an unqualified input that two instances on the element have is an error, and a qualified one sets one", () => {
     @Directive({ selector: "[labelled]" })
     class Labelled {
       readonly label = input("");
@@ -81,11 +81,34 @@ describe("input bindings", () => {
     class List {
       readonly name = "Milk";
     }
+    expect(() => Engine.create()
+      .createComponent(List))
+      .toThrow("[label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one");
+  });
+
+  test("[owner.input] sets the input of the directive or component with that selector", () => {
+    @Directive({ selector: "[labelled]" })
+    class Labelled {
+      readonly label = input("");
+    }
+    @Component({ selector: "tk-item", template: "" })
+    class Item {
+      readonly label = input("");
+    }
+    @Component({
+      selector: "tk-list",
+      template: `<tk-item labelled [labelled.label]="name" [tk-item.label]="other"></tk-item>`,
+      imports: [Item, Labelled],
+    })
+    class List {
+      readonly name = "Milk";
+      readonly other = "Bread";
+    }
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const [labelled, item] = instancesOn(engine, view.host.nativeElement.querySelector("tk-item")!) as [Labelled, Item];
     expect([labelled.label(), item.label()])
-      .toEqual(["Milk", "Milk"]);
+      .toEqual(["Milk", "Bread"]);
   });
 
   test("match input names case-insensitively, and override a plain attribute of that name", () => {
