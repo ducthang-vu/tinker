@@ -24,6 +24,7 @@ test("the public API exports exactly these values", () => {
         "output",
         "viewChildren",
         "viewChild",
+        "Outlet",
         "ViewChildMissingError",
         "model",
         "Effects",

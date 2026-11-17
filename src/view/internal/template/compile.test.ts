@@ -373,3 +373,26 @@ describe("template references", () => {
       .toThrow("takes no value");
   });
 });
+
+describe("<template #name let-x> declarations", () => {
+  test("a template with a reference and no bindings is a declaration, with its let- names", () => {
+    const [declaration] = compileTemplate([{
+      kind: "element",
+      name: "template",
+      attributes: [{ name: "#row", value: "" }, { name: "let-item", value: "" }],
+      children: [{ kind: "text", value: "x" }],
+    }]);
+    expect(declaration)
+      .toMatchObject({ kind: "declaration", name: "row", names: ["item"] });
+  });
+
+  test("a let- name must be a plain name", () => {
+    expect(() => compileTemplate([{
+      kind: "element",
+      name: "template",
+      attributes: [{ name: "#row", value: "" }, { name: "let-1x", value: "" }],
+      children: [],
+    }]))
+      .toThrow("is not a name");
+  });
+});

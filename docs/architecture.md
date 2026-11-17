@@ -157,6 +157,23 @@ An `exportAs` that no directive on the element has, and `##` on an element with
 no component, are errors. These references are set once the directives on their
 element exist, so they are read in bindings after that, not while the element is built.
 
+## Declared templates and outlets
+
+`<template #name let-x>…</template>` declares a template. It renders nothing where
+it is, and `#name` is a value holding it (a `TemplateRef`). An `Outlet` renders it
+where its host is: `<template [outlet]="name" [context]="values"></template>`. The
+host is any element, and the instances go just after it. Each outlet renders its own
+instance, and a change of its template or context renders it again.
+
+A `TemplateRef` also works from code: `container.createEmbeddedView(template,
+context)` adds an instance at the end of a `ViewContainerRef`. The context gives a
+value for each `let-` name the template declared. An instance reads the names the
+template could read where it was declared, and the context on top of them.
+
+Not built yet: context values that update in place (a changed context renders the
+instances again), and the framework's `$` variables still come from `@map` directly,
+not through the same context path.
+
 ## Glossary
 
 - **Host**: the element a component is rendered into. Its `ElementRef` is

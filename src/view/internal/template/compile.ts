@@ -29,7 +29,20 @@ export type CompiledNode
     | CompiledSlot
     | CompiledLet
     | CompiledMatch
-    | CompiledMap;
+    | CompiledMap
+    | CompiledDeclaration;
+
+/**
+ * A `<template #name let-x>`: a template declared here, which renders nothing in
+ * place. Its body is rendered by each instance, given by the template reference
+ * `name` (see TemplateRef). `names` are the `let-` names its context must give.
+ */
+export interface CompiledDeclaration {
+  readonly kind: "declaration";
+  readonly name: string;
+  readonly names: readonly string[];
+  readonly body: readonly CompiledNode[];
+}
 
 /**
  * A `@map`: its body is rendered once per item of `list`, in order. The item is
@@ -408,8 +421,19 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     attributeBindings,
     references,
   } = classifyAttributes(node);
+  const bound = [classBindings, styleBindings, attributeBindings, inputBindings, outputBindings]
+    .some((list) => list.length > 0);
+  if (node.name === "template" && !bound && references.length === 1
+    && references[0]!.target.kind === "element") {
+    return declarationOf(node, references[0]!.name, candidates);
+  }
   const matched = candidates.filter((candidate) =>
-    candidate.selector.matches({ name: node.name, attributes }));
+    candidate.selector.matches({
+      name: node.name,
+      // An input binding counts as an attribute of its name, as in Angular:
+      // [outlet] matches an [outlet] selector.
+      attributes: [...attributes, ...inputBindings.map(({ name }) => ({ name, value: "" }))],
+    }));
   const components = matched.filter(({ isComponent }) => isComponent);
   if (components.length > 1) {
     const names = components.map(({ type }) => type.name)
@@ -440,6 +464,22 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     directives,
     component,
   };
+}
+
+/** A `<template #name let-x>`: its body, and the `let-` names its context gives. */
+function declarationOf(
+  node: ElementNode,
+  name: string,
+  candidates: readonly DirectiveCandidate[],
+): CompiledDeclaration {
+  const names = node.attributes
+    .filter((attribute) => attribute.name.startsWith("let-"))
+    .map((attribute) => attribute.name.slice("let-".length));
+  const invalid = names.find((letName) => !/^[A-Za-z_$][\w$]*$/.test(letName));
+  if (invalid !== undefined) {
+    throw new Error(`"let-${invalid}" on <template #${name}> is not a name`);
+  }
+  return { kind: "declaration", name, names, body: compileTemplate(node.children, candidates) };
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
