@@ -25,6 +25,7 @@
   "include": [
     "packages",
     "examples",
-    "vite.config.ts"
+    "vite.config.ts",
+    "vite.shared.ts"
   ]
 }
