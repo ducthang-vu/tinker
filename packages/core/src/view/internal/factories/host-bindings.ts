@@ -14,9 +14,10 @@
 // Class names keep their case: unlike templates, host bindings are not read
 // by the browser's HTML parser.
 
-import { type EitherError, Maybe } from "@tinker/functional";
+import { Either, type EitherError, Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
+import { isEventAttribute } from "../runtime/url-safety.ts";
 import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
@@ -101,6 +102,11 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
   const match = VALUE_KEY.exec(key);
   if (!match) {
     return parseListener(key, value);
+  }
+  if (match[1] === "attr" && isEventAttribute(match[2]!)) {
+    return Either.left(new Error(
+      `[attr.${match[2]}] in host binding "${key}": event attributes cannot be bound; use "(${match[2]!.slice(2)})" instead`,
+    ));
   }
   const kind = match[1] === "attr" ? "attribute" : (match[1] as "class" | "style");
   return ExpressionParser.parse(value)

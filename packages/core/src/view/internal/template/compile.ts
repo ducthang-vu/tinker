@@ -21,6 +21,7 @@ import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
 import { namesOf, type Pattern, parsePattern, splitGuard } from "./pattern.ts";
+import { isEventAttribute } from "../runtime/url-safety.ts";
 
 /** A node of a compiled template. */
 export type CompiledNode
@@ -637,6 +638,11 @@ function classifyAttributes(node: ElementNode): {
     if (styleName !== undefined) {
       styleBindings.push({ name: styleName, expression: parse(attribute) });
     } else if (attrName !== undefined) {
+      if (isEventAttribute(attrName)) {
+        throw new Error(
+          `[attr.${attrName}] on <${node.name}>: event attributes cannot be bound; use (${attrName.slice(2)}) instead`,
+        );
+      }
       attributeBindings.push({ name: attrName, expression: parse(attribute) });
     } else if (className !== undefined) {
       classBindings.push({ name: className, expression: parse(attribute) });
