@@ -193,8 +193,11 @@ An input or output binding can name the directive or component it is for:
 is `abc`. The plain form, `[label]` and `(fired)`, still works. When it would reach two
 instances on the same element, the template fails to build and names the qualified form
 to write. A qualified output is the directive's alone: it does not bind the DOM event of
-the same name. A leading name in an event is an owner unless it is a modifier, so
-`(click.prevent)` is still a DOM event with a modifier.
+the same name. A leading name in an event is an owner, except when it is followed by a single
+modifier name such as `.prevent` or `.enter`. Then the name after the owner is an output if the
+owner has one, and otherwise the DOM event with that modifier: `(click.prevent)` is the DOM
+event unless some directive selects `click` and has a `prevent` output. Outputs named like
+modifiers therefore work, as in `(keys.enter)` for an output `enter` of a `[keys]` directive.
 
 ## Glossary
 

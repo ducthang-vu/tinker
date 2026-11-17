@@ -183,6 +183,11 @@ export interface OutputBindingNode {
   readonly modifiers: readonly EventModifier[];
   /** What the event does: a call of a component method, with `$event` available. */
   readonly handler: Handler;
+  /**
+   * For `(owner.enter)`, where `enter` is also a modifier: the DOM event `owner` with
+   * that modifier, used unless `owner` has an output `enter`.
+   */
+  readonly domFallback?: DomFallback;
 }
 
 /** A directive the template may use, and where it applies. */
@@ -554,15 +559,30 @@ function declarationOf(
  * An event name may start with the selector that owns the output: `(abc.fired)`.
  * A leading name is an owner unless it is a modifier, as in `(click.prevent)`.
  */
-function splitOwner(text: string | undefined): { owner?: string; rest?: string } {
+function splitOwner(text: string | undefined): {
+  owner?: string;
+  rest?: string;
+  domFallback?: DomFallback;
+} {
   if (text === undefined) {
     return {};
   }
   const [first, ...more] = text.split(".");
+  const [second] = more;
+  if (more.length === 1 && second !== undefined && isModifier(second)) {
+    // `pick.enter`: the output `enter` of `pick`, or the DOM event `pick` with `.enter`.
+    return { owner: first, rest: second, domFallback: { event: first!, modifiers: [second] } };
+  }
   if (more.length > 0 && !isModifier(more[0]!)) {
     return { owner: first, rest: more.join(".") };
   }
   return { rest: text };
+}
+
+/** The DOM event an ambiguous `(owner.modifier)` means when `owner` has no such output. */
+export interface DomFallback {
+  readonly event: string;
+  readonly modifiers: readonly EventModifier[];
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
@@ -611,7 +631,7 @@ function classifyAttributes(node: ElementNode): {
     const inputName = input?.[2];
     const inputOwner = input?.[1];
     const output = OUTPUT_BINDING.exec(attribute.name)?.[1];
-    const { owner: outputOwner, rest: eventName } = splitOwner(output);
+    const { owner: outputOwner, rest: eventName, domFallback } = splitOwner(output);
     const styleName = STYLE_BINDING.exec(attribute.name)?.[1];
     const attrName = ATTRIBUTE_BINDING.exec(attribute.name)?.[1];
     if (styleName !== undefined) {
@@ -630,7 +650,13 @@ function classifyAttributes(node: ElementNode): {
         .mapLeft((error) =>
           new Error(`${error.message}, on <${node.name}>`))
         .getOrThrow();
-      outputBindings.push({ name: event, owner: outputOwner, modifiers, handler });
+      outputBindings.push({
+        name: event,
+        owner: outputOwner,
+        modifiers,
+        handler,
+        ...(domFallback && { domFallback }),
+      });
     } else if (/^[[(]/.test(attribute.name)) {
       throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
     } else {
