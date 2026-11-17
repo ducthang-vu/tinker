@@ -62,5 +62,6 @@ export function affectedPackages(changed, packages) {
       }
     }
   }
-  return packages.filter((pkg) => direct.has(pkg.name)).map((pkg) => pkg.dir);
+  return packages.filter((pkg) => direct.has(pkg.name))
+    .map((pkg) => pkg.dir);
 }

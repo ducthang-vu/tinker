@@ -18,7 +18,8 @@ if (diff.status !== 0) {
   console.error(diff.stderr);
   process.exit(diff.status ?? 1);
 }
-const changed = diff.stdout.split("\n").filter(Boolean);
+const changed = diff.stdout.split("\n")
+  .filter(Boolean);
 const folders = affectedPackages(changed, readPackages(root));
 
 if (folders.length === 0) {
