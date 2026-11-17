@@ -47,7 +47,10 @@ function readsElements(options: QueryOptions | undefined): options is ElementQue
  * The first match of `type`, in document order, or none when there is none. Call it
  * where the component's fields are set, as with `input()`.
  */
-function optionalQuery<T extends object>(type: Class<T>, options?: QueryOptions): ReadonlySignal<Maybe<T>>;
+function optionalQuery<T extends object>(
+  type: Class<T>,
+  options?: QueryOptions,
+): ReadonlySignal<Maybe<T>>;
 function optionalQuery<T extends object>(
   type: Class<T>,
   options: ElementQueryOptions,
@@ -64,7 +67,10 @@ function optionalQuery<T extends object>(
  * The first match of `type`, which must be there: reading it when there is none
  * throws QueryMissingError.
  */
-function requiredQuery<T extends object>(type: Class<T>, options?: QueryOptions): ReadonlySignal<T>;
+function requiredQuery<T extends object>(
+  type: Class<T>,
+  options?: QueryOptions,
+): ReadonlySignal<T>;
 function requiredQuery<T extends object>(
   type: Class<T>,
   options: ElementQueryOptions,
