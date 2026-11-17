@@ -62,7 +62,7 @@ module; each module also lists its own in its `index.ts`.
 |---|---|
 | [`packages/core/src/signals`](packages/core/src/signals/index.ts) | `signal`, `computed`, `watch`, `untracked`: push-pull reactivity with versions, lazy and glitch-free computeds, cycle detection |
 | [`packages/core/src/di`](packages/core/src/di/index.ts) | `inject()`, `InjectionToken` (and `InjectionToken.multi`), `provide()`, `@Injectable`, hierarchical injectors with `self` / `skipSelf` / `host` / `optional` lookups, `onDestroy` cleanup |
-| [`packages/core/src/view`](packages/core/src/view/index.ts) | `bootstrap`, `@Component`, `@Directive`, `input()`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
+| [`packages/core/src/view`](packages/core/src/view/index.ts) | `bootstrap`, `@Component`, `@Directive`, `input()`, `model()`, `query` / `queryAll`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
 | [`packages/functional/src`](packages/functional/src/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, and `Stream` / `Emitter` (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
 | [`packages/core/src/utils`](packages/core/src/utils) | small shared helpers (context variables, metadata, `runAll`) |
 
@@ -72,11 +72,14 @@ module; each module also lists its own in its `index.ts`.
   (child of the engine's), which holds their `providers` and their
   `hostDirectives`.
 - **Templates** support `{{ }}` interpolation with a small expression language:
-  fields and calls (`user().name`), numbers, strings, `true`, `false`, `null`,
-  `undefined`, `+ - * / **` (with parentheses), comparisons (`=== == !== != < > <= >=`),
-  and logical operators (`&& || !`, with short-circuit). Calls take no arguments
-  yet. Class bindings
-  (`[class.done]="todo.done()"`), style and attribute bindings
+  fields and calls with argument expressions (`user().name`, `format(item.id, 2)`),
+  numbers, strings, `true`, `false`, `null`, `undefined`, `+ - * / **` (with
+  parentheses), comparisons (`=== == !== != < > <= >=`), logical operators
+  (`&& || !`, with short-circuit), the conditional `a ? b : c` (nested), `??` for
+  defaults, `?.` for safe navigation, and object and array literals
+  (`{ done: todo.done, title }`, `[a, b]`). Class bindings
+  (`[class.done]="todo.done()"`, or an object: `[class]="{ done: todo.done }"`),
+  style and attribute bindings
   (`[style.color]="color()"`, `[attr.title]="label()"`, with kebab-case names
   such as `[style.background-color]` and `[attr.aria-label]`; an empty value
   removes the style or the attribute), input bindings (`[label]="item().name"`,
@@ -84,7 +87,10 @@ module; each module also lists its own in its `index.ts`.
   event bindings (`(selected)="choose($event)"`, calling a method for each
   value of a directive's or component's output, and for each DOM event of that
   name on the element, whatever is on it: `(click)="go()"` needs no directive).
-  When both exist, both fire.
+  A handler is a call of a method with any argument expressions, and `$event` is
+  the DOM event or the emitted value: `(keydown)="pick(id, $event.key)"`. Key
+  modifiers filter a keyboard event: `(keydown.enter)`, `(keydown.esc)`,
+  `(keydown.space)`. When both exist, both fire.
   A component's element can have content: the component shows it in its
   `<slot>` (the children without `slot="name"`), or in `<slot name="name">`
   (the children with `slot="name"`), as on the web. Content no slot takes is
@@ -119,10 +125,11 @@ it is on purpose.
   HTML parser, and expressions by a small parser of Tinker's own (no `eval`,
   so it works under a strict Content Security Policy). The cost: templates
   are not type-checked, and the browser lowercases names.
-- **Pattern matching in templates (planned).** `@match` tests a value against
-  patterns (literals, `truthy` and `falsy`, objects, arrays, guards), and `@if`
-  is the simplest case of it. Angular's `@switch` only compares values. The
-  design is in [docs/control-flow.md](docs/control-flow.md).
+- **Pattern matching in templates.** `@match` tests a value against patterns
+  (literals, `truthy` and `falsy`, objects, arrays, guards), and `@if` is the
+  simplest case of it. `@map` renders one row per item, keyed by `track`. Angular's
+  `@switch` only compares values. The design is in
+  [docs/control-flow.md](docs/control-flow.md).
 - **Change detection is our own design.** Each view has its own watch, and a
   view is scheduled by the signals it reads, not by its parent's refresh. Angular
   refreshes embedded views through the parent instead. The rules, the differences
@@ -199,6 +206,8 @@ It opens the example app, [`examples/basics`](examples/basics/), which is a work
 | `npm run typecheck` | check types with TypeScript 7 |
 | `npm run lint` | check style with ESLint (`npm run format` fixes it) |
 | `npm run build` | compile `packages/core/src/` to `packages/core/dist/` |
+| `npm run build:example` | build the example app |
+| `npm run test:repo-map` | tests of the repo-map generator and of the affected-package script |
 
 TypeScript runs side by side: the `typescript` package is TypeScript 6, used
 only by the ESLint parser; the compiler is `typescript7`, run by the
@@ -252,5 +261,6 @@ Run its focused tests with `npm run test:repo-map`.
   native nodes, `View`s and `ViewContainerRef`s relate, with diagrams.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: property bindings (`[value]` on a plain element), queries from a template variable in `@if` or `@map` (`query` takes a top-level one),
-`@if` / `@for`, and recursive components.
+Not there yet: property bindings on plain elements (`[value]` on an `<input>`),
+two-way binding `[(value)]` on plain elements, recursive components, and the
+gaps listed in [IMPROVEMENTS.md](IMPROVEMENTS.md).

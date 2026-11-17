@@ -44,8 +44,8 @@ methods included) stops when the component is destroyed. Done.
 `RenderHooks`, which stop only when the app is destroyed. A service in a component's `providers`
 is fine: it uses the component's.
 
-**To do.** Add `engine.destroy()`: destroy the views, then the engine's
-injector (which stops its effects and cancels its hooks).
+**Done.** `engine.destroy()` destroys the views, then the engine's injector,
+which stops its effects and cancels its hooks.
 
 ## Components
 
@@ -91,7 +91,7 @@ as nodes) cannot be built.
 
 **To do.** Accept forward references in `imports` (`ForwardRef.of(() =>
 TreeNode)`, which `packages/core/src/utils` already has), and allow recursion once
-templates can stop it: with `@if` / `@for`, a node renders children only
+templates can stop it: with `@if` and `@map`, a node renders children only
 while there are some. Keep the ban for a component that always contains
 itself.
 
@@ -144,6 +144,48 @@ separate path, and it is the only one that does not use a container.
 **To do.** Decide whether a root component should be a container anchored at
 its host, with a placement mode that does not insert. If not, document the
 root as the one case that renders into an existing element.
+
+## Templates (`packages/core/src/view/internal/template/`, `factories/template-builder.ts`)
+
+### 1. Property bindings on plain elements
+
+**Problem.** `[name]` binds inputs only, so `[value]` on an `<input>` or
+`[textContent]` on a `<p>` is an error. Forms need the DOM property, and a
+two-way `[(value)]` needs it too.
+
+**To do.** Decide the syntax that separates a DOM property from an input (a
+prefix, or a check that the element has no directive with that input), then
+bind the property through the renderer. `[(value)]` is sugar for the property and
+its `(input)` handler, once this exists.
+
+### 2. Content queries see only direct element children
+
+**Problem.** `query(…, { from: "content" })` lists the elements the parent passes
+in directly. Items inside `@if`, `@map` or `<tk-container>` children, and items
+nested in a plain element, are not in the list.
+
+**To do.** Record every match of the parent's template that lands in the
+component's slot, not only direct children, behind an option (`descendants`), and
+include the blocks' rows. The rule is settled in the query code, so this is a
+change in `projectChildren` and the block builders.
+
+### 3. A template variable is a query target only in `query`
+
+**Problem.** `query("name")` reads a top-level `#name`, but `queryAll` takes only
+a class, and a variable inside `@if` or `@map` is not in the registry, since one
+name can appear many times.
+
+**To do.** `queryAll` with a variable (a list of the one value, or of the rows that
+share the name), and a registry per row if a row variable is to be queried.
+
+### 4. Arrow functions and unary minus
+
+**Problem.** `t => t.done` (needed for `filter` and `map` in templates) and `-1`
+are not in the expression language.
+
+**To do.** Add both to `expression.ts`, with `filter` and `map` as methods that
+take a function. Arrow functions need their own scope for the parameter, like a
+`@let` but for a call.
 
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 

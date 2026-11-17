@@ -13,17 +13,17 @@ work: it injects it, or a factory for it.
 const view = new View(host, component, nodes, this.renderer);
 
 // Yes
-private readonly views = inject(ViewFactory);
+private readonly views = inject(ComponentViewFactory);
 const view = this.views.create(host, component, nodes);
 ```
 
 A factory is an `@Injectable` next to the class it creates (e.g.
-`ViewFactory` in `view.ts`). It injects the app's services the object needs,
+`ComponentViewFactory` in `runtime/component-view.ts`). It injects the app's services the object needs,
 and `create(...)` takes what differs per object. Every factory is listed in
 the engine's default providers, so a test (or an app) can replace it:
 
 ```ts
-bootstrap(App, { providers: [provide(ViewFactory, { useClass: RecordingViewFactory })] });
+bootstrap(App, { providers: [provide(ComponentViewFactory, { useClass: RecordingViewFactory })] });
 ```
 
 Exempt: values (`Maybe`, `Either`, `Task`, `ForwardRef`), data holders
@@ -38,7 +38,7 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 - Files under a module's `internal/` do not import from outside that module
   (shared `packages/core/src/utils` and `packages/functional/src` are fine).
 - `view` uses only the public APIs of `di` and `signals`.
-- Tests live next to the file they test: `view.ts` → `view.test.ts`.
+- Tests live next to the file they test: `component-view.ts` → `component-view.test.ts`.
 
 ## Code style
 

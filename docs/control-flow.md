@@ -1,9 +1,8 @@
 # Control flow in templates: design
 
-This page collects the design of template control flow: `@if`, `@else`, `@match`,
-`@for`, and the patterns they use. It is a plan, not a reference for what
-exists. The status of each item is marked: **done**, **planned**, or
-**later**. The last section orders the work.
+This page is the design of template control flow: `@if`, `@else`, `@match`, `@map`
+(the list block), and the patterns they use. Each item is marked **done**,
+**planned**, or **later**, so it is also the record of what exists.
 
 ## Principles
 
@@ -37,7 +36,8 @@ operand    := number | string | boolean | null | "!" operand
             | "(" expression ")" | object | array | access
 object     := "{" ( key ( ":" conditional )? ) ( "," ... )* "}"          -- { k } reads field k
 array      := "[" ( conditional ( "," conditional )* )? "]"
-access     := identifier ( ( "." | "?." ) identifier | "(" ")" )*        -- "?." yields undefined on null
+access     := identifier ( ( "." | "?." ) identifier | "(" arguments? ")" )*  -- "?." yields undefined on null
+arguments  := conditional ( "," conditional )*                 -- each argument is an expression
 ```
 
 `?.` matches JavaScript: each `?.` guards only its own link. `user?.address.city`
@@ -49,7 +49,14 @@ and `" "` (a space).
 | Item | Status | Notes |
 |---|---|---|
 | Fields and chains: `title`, `user.name` | done | bare names read from the component, or a `@let` |
-| Calls with no arguments: `count()`, `user().name` | done | |
+| Calls: `count()`, `user().name`, `format(item.id, 2)` | done | arguments are expressions, evaluated in order |
+| Safe navigation: `user?.name` | done | guards only its own link, as in JavaScript |
+| Defaults: `name ?? "guest"` | done | the right side only for `null` and `undefined` |
+| Object literals: `{ done: todo.done, title }` | done | a key with no value reads the field of that name |
+| Array literals: `[a, b + 1]` | done | |
+| `[class]="{ done: todo.done }"` | done | adds the classes of the truthy keys, removes the others; not on `<tk-container>` |
+| Key modifiers: `(keydown.enter)`, `.esc`, `.space` | done | compare `KeyboardEvent.key`; see the note above |
+| `$event` in handlers: `pick($event.key)` | done | the DOM event, or the value an output emits |
 | Numbers: `2`, `0.5` | done | |
 | `+ - * / **`, parentheses | done | JavaScript's precedence; `**` right-associative |
 | `===`, `==` | done | `==` converts operands, as JavaScript does |
@@ -59,7 +66,6 @@ and `" "` (a space).
 | `!==`, `!=` | done | |
 | `&&`, `\|\|`, `!` | done | short-circuit, as in JavaScript |
 | `test ? then : otherwise`, nested | done | only the chosen branch is evaluated |
-| Call arguments: `format(x)` | later | |
 | Arrow functions: `t => t.done` | later | needed for `filter` and `map` in templates |
 | Unary minus: `-1` | later | |
 | Pipes | not planned | |
@@ -161,23 +167,20 @@ is recreated only when its identity leaves the list.
 
 ## What to implement first
 
-Each step depends on the one before. The order below is the cheapest path to a
-working `@if` and `@match`, and it keeps every step testable on its own.
+The steps were ordered so that each depended on the one before, and each was
+testable on its own. All of them are done.
 
 1. **Literals: strings, `true`, `false`, `null`, `undefined`.** Done.
 2. **Comparison and logical operators: `> < >= <=`, `!== !=`, `&& || !`.** Done.
 3. **Embedded views.** A `View` kind with no host element and no component, owned
    by an anchor, that a block creates and removes. This is the machinery `@if`,
-   `@match` and `@for` all need.
+   `@match` and `@map` all use. Done.
 4. **`@match` with a subject, and the patterns `truthy`, `falsy`, literals and
-   `_`, with `@default`.** Then `@if` and `@else` as sugar for it.
+   `_`, with `@default`.** Then `@if` and `@else` as sugar for it. Done.
 5. **Guards with `when`, and the subject-less form.** Done. `@else if` is done too (it nests).
 6. **`@map`**, with `track`, the `$` variables, destructuring, and the empty case. Done.
 7. **Names and object patterns**, then arrays, then alternatives, `present`,
    ranges and `not`. Done.
-
-Steps 1 and 2 are small and can each be a pull request. Step 3 is the largest
-change, and steps 4 to 7 build on it.
 
 ## Relations and object patterns (as built)
 
