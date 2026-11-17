@@ -133,7 +133,7 @@ exists.
 | `@map list(); let item { ... }` | one row per item, in order, the item named `item` | done |
 | `$index`, `$first`, `$last`, `$even`, `$odd`, `$count` | per-row variables, always in scope, reserved | done |
 | `@map list(); let item; track item.id { ... }` | the identity of each row; defaults to the index | done |
-| `track { id }` (a pattern as identity) | identity by some fields | later |
+| `track { id, kind }` | identity by some fields, each compared with `===` | done |
 | `@match list() { @case [] { ... } }` | shown when the list is empty | later, needs array patterns |
 | `let { id, title }` (destructured item) | names the fields of each item | later |
 

@@ -241,3 +241,27 @@ describe("@map", () => {
       .toEqual([{ kind: "text", interpolation: { strings: ["@mapping"], expressions: [] } }]);
   });
 });
+
+describe("@map track { fields }", () => {
+  test("the braces are the track's field names, not the body", () => {
+    const [map] = compileTemplate([{ kind: "text", value: "@map todos(); let todo; track { id, kind } { x }" }]);
+    expect(map)
+      .toMatchObject({ kind: "map", track: { kind: "fields", names: ["id", "kind"] } });
+    expect(map)
+      .toMatchObject({ body: [expect.anything()] });
+  });
+
+  test("the names must be plain names, each once, and inside braces", () => {
+    const compile = (track: string) => compileTemplate([{ kind: "text", value: `@map a; let b; track ${track} { x }` }]);
+    expect(() => compile("{ id: 1 }"))
+      .toThrow("takes field names");
+    expect(() => compile("{ id, id }"))
+      .toThrow("names a field twice");
+    expect(() => compile("{ }"))
+      .toThrow("takes field names");
+    expect(() => compile("{ id } x"))
+      .toThrow("takes field names");
+    expect(() => compileTemplate([{ kind: "text", value: "@map a; let b; track { id { x }" }]))
+      .toThrow(`Missing "}" in the pattern`);
+  });
+});

@@ -94,6 +94,9 @@ function tokenize(node: TemplateNode): Token[] {
  * which has braces of its own: the body is the first `{` after that pattern.
  */
 function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
+  if (keyword === "map") {
+    return mapBodyBrace(value, from);
+  }
   let start = from;
   if (keyword === "case") {
     while (start < value.length && /\s/.test(value[start]!)) {
@@ -104,6 +107,21 @@ function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
     }
   }
   return value.indexOf("{", start);
+}
+
+/**
+ * The body of a `@map`: the first `{` that does not open a `track { … }` pattern.
+ * A `{` is a pattern when the header before it ends with `; track`.
+ */
+function mapBodyBrace(value: string, from: number): number {
+  let search = from;
+  for (;;) {
+    const brace = value.indexOf("{", search);
+    if (brace === -1 || !/;\s*track\s*$/.test(value.slice(from, brace))) {
+      return brace;
+    }
+    search = matchingBrace(value, brace) + 1;
+  }
 }
 
 /** The index of the `}` that closes the `{` at `open`, skipping quoted text. */

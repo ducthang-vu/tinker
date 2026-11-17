@@ -41,9 +41,18 @@ export interface CompiledMap {
   readonly kind: "map";
   readonly list: Expression;
   readonly item: string;
-  readonly track?: Expression;
+  readonly track?: CompiledTrack;
   readonly body: readonly CompiledNode[];
 }
+
+/**
+ * How a `@map` row is identified: by the value of an expression (`track item.id`),
+ * or by the values of some fields of the item (`track { id, kind }`), which
+ * match when each one is `===`.
+ */
+export type CompiledTrack
+  = | { readonly kind: "value"; readonly expression: Expression }
+    | { readonly kind: "fields"; readonly names: readonly string[] };
 
 /**
  * A `@match`, and so an `@if` (which is a match with one truthy case). The
@@ -251,17 +260,43 @@ function compileMap(block: BlockItem, candidates: readonly DirectiveCandidate[])
   if (parts.length > 3 || source === undefined || !declared) {
     throw new Error(`@map needs a list and a name, e.g. @map todos; let todo`);
   }
-  const tracked = tracking === undefined ? undefined : /^track\s+([\s\S]+)$/.exec(tracking);
-  if (tracking !== undefined && !tracked) {
-    throw new Error(`@map takes "track key" after the name, e.g. track todo.id, got "${tracking}"`);
-  }
   return {
     kind: "map",
     list: expressionOf({ ...block, header: source }),
     item: declared![1]!,
-    track: tracked ? expressionOf({ ...block, header: tracked[1]! }) : undefined,
+    track: trackOf(block, tracking),
     body: compileItems(block.body, candidates),
   };
+}
+
+/** The `track` after a `@map`'s name: an expression, or `{ field, … }` naming fields. */
+function trackOf(block: BlockItem, tracking: string | undefined): CompiledTrack | undefined {
+  if (tracking === undefined) {
+    return undefined;
+  }
+  const tracked = /^track\s+([\s\S]+)$/.exec(tracking);
+  if (!tracked) {
+    throw new Error(`@map takes "track key" after the name, e.g. track todo.id, got "${tracking}"`);
+  }
+  const text = tracked[1]!.trim();
+  if (text.startsWith("{")) {
+    return { kind: "fields", names: fieldNamesOf(text) };
+  }
+  return { kind: "value", expression: expressionOf({ ...block, header: text }) };
+}
+
+/** The names in `{ id, kind }`: each one a plain name, none twice. */
+function fieldNamesOf(text: string): string[] {
+  const inner = text.endsWith("}") ? text.slice(1, -1) : undefined;
+  const names = inner?.split(",")
+    .map((name) => name.trim());
+  if (names === undefined || names.some((name) => !/^[A-Za-z_$][\w$]*$/.test(name))) {
+    throw new Error(`@map's track { } takes field names, e.g. track { id, kind }, got "${text}"`);
+  }
+  if (new Set(names).size !== names.length) {
+    throw new Error(`@map's track names a field twice: "${text}"`);
+  }
+  return names;
 }
 
 /** The condition of an `@if`: an expression in parentheses. */
