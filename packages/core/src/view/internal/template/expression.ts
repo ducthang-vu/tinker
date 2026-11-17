@@ -349,16 +349,14 @@ export class ExpressionParser {
   }
 
   /**
-   * A name, then any `.name`, `?.name` or `()` after it. Once a `?.` link is seen, the
-   * links after it are optional too, so `a?.b.c` gives undefined when `a` has no `b`.
+   * A name, then any `.name`, `?.name` or `()` after it. Each `?.` guards only its own
+   * link, as in JavaScript: `a?.b.c` throws when `a` is set and `a.b` is missing.
    */
   private access(): Expression {
     let expression: Expression = { kind: "property", receiver: COMPONENT, name: this.identifier() };
-    let optional = false;
     for (this.skipWhitespace(); !this.atEnd(); this.skipWhitespace()) {
       if (this.startsWithOptionalLink()) {
         this.position += 2;
-        optional = true;
         expression = { kind: "property", receiver: expression, name: this.identifier(), optional: true };
         continue;
       }
@@ -366,7 +364,7 @@ export class ExpressionParser {
       if (char !== "." && char !== "(") {
         break;
       }
-      expression = this.postfix(expression, optional);
+      expression = this.postfix(expression);
     }
     return expression;
   }
@@ -378,12 +376,12 @@ export class ExpressionParser {
   }
 
   /** `.name` or `()` after an expression. */
-  private postfix(receiver: Expression, optional: boolean): Expression {
+  private postfix(receiver: Expression): Expression {
     const char = this.source[this.position];
     this.position++;
     this.skipWhitespace();
     if (char === ".") {
-      return { kind: "property", receiver, name: this.identifier(), ...(optional && { optional: true }) };
+      return { kind: "property", receiver, name: this.identifier() };
     }
     if (this.source[this.position] !== ")") {
       throw this.error(this.atEnd() ? `Missing ")"` : "Call arguments are not supported yet");

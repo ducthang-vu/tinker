@@ -251,8 +251,10 @@ describe("safe navigation, defaults, and literals", () => {
       .toBeUndefined();
   });
 
-  test("a link after ?. is optional too", () => {
-    expect(run("user?.address.city", { user: { address: undefined } }))
+  test("a link after ?. is not optional, as in JavaScript", () => {
+    expect(() => run("user?.address.city", { user: { address: undefined } }))
+      .toThrow(TypeError);
+    expect(run("user?.address?.city", { user: { address: undefined } }))
       .toBeUndefined();
   });
 

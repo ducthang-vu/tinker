@@ -40,11 +40,9 @@ array      := "[" ( conditional ( "," conditional )* )? "]"
 access     := identifier ( ( "." | "?." ) identifier | "(" ")" )*        -- "?." yields undefined on null
 ```
 
-`?.` is lenient: once a chain has a `?.` link, every later link in that chain
-also reads `undefined` instead of throwing when its receiver is nullish. So
-`user?.address.city` is `undefined` when `user.address` is missing. JavaScript
-throws in that case, so this differs on purpose for templates, where a missing
-field should not break rendering. Key modifiers (`(keydown.enter)`, `.esc`,
+`?.` matches JavaScript: each `?.` guards only its own link. `user?.address.city`
+throws when `user` is set and `address` is missing; write `user?.address?.city`
+to guard both. Key modifiers (`(keydown.enter)`, `.esc`,
 `.space`, ...) compare `KeyboardEvent.key`, so the names are `Enter`, `Escape`
 and `" "` (a space).
 
