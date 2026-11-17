@@ -108,9 +108,24 @@ describe("@match", () => {
       .toHaveLength(2);
   });
 
-  test("a match needs a subject", () => {
+  test("a match without a subject takes only _ cases, with a when guard", () => {
     expect(() => compile("@match { @case 1 { x } }"))
-      .toThrow("@match needs a value");
+      .toThrow("A @match without a subject takes \"@case _ when …\" cases");
+    const match = onlyMatch("@match { @case _ when a() { x } @default { y } }");
+    expect(match.subject)
+      .toBeUndefined();
+    expect(match.cases[0]!.guard)
+      .toEqual(expression("a()"));
+  });
+
+  test("a guard follows the pattern, and needs a condition", () => {
+    const match = onlyMatch("@match n() { @case 1 when ok() { x } }");
+    expect(match.cases[0]!.pattern)
+      .toEqual({ kind: "value", value: 1 });
+    expect(match.cases[0]!.guard)
+      .toEqual(expression("ok()"));
+    expect(() => compile("@match n() { @case 1 when { x } }"))
+      .toThrow("@case needs a value");
   });
 
   test("only @case and @default can be inside a match", () => {
