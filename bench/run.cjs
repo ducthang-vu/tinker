@@ -66,4 +66,7 @@ function median(values) {
   console.log(JSON.stringify({ errors }));
   await browser.close();
 })()
-  .catch((e) => { console.error(e); process.exit(1); });
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
