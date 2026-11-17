@@ -45,11 +45,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     // Tests live next to the files they test.
-    include: ["src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
+    include: ["packages/*/src/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.ts", "packages/*/src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
+      include: ["packages/*/src/**/*.ts"],
+      exclude: ["packages/*/src/**/*.test.ts"],
       reporter: ["text", "html"],
       thresholds: {
         lines: 100,

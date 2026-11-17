@@ -6,9 +6,9 @@
 // The list is replaced, never changed in place: a toggle makes a new object for
 // the one row, and the other rows keep theirs.
 
-import { inject, Injectable } from "../../src/di/index.ts";
-import { computed, signal } from "../../src/signals/index.ts";
-import { Component, Directive, input, viewChildren } from "../../src/view/index.ts";
+import { inject, Injectable } from "@tinker/core";
+import { computed, signal } from "@tinker/core";
+import { Component, Directive, input, viewChildren } from "@tinker/core";
 import { Highlight } from "./highlight.ts";
 
 export interface Todo {

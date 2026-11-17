@@ -3,23 +3,12 @@
   "version": "0.0.1",
   "description": "A tiny frontend framework, built to learn how frameworks work.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "node node_modules/typescript7/bin/tsc -p tsconfig.build.json",
+    "build": "node node_modules/typescript7/bin/tsc -p packages/core/tsconfig.build.json",
     "build:example": "vite build examples/basics --config vite.config.ts --base ./ --outDir ../../dist/example --emptyOutDir",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "lint": "eslint .",
@@ -48,6 +37,7 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
-    "@tinker/functional": "*"
-  }
+    "@tinker/core": "*"
+  },
+  "private": true
 }

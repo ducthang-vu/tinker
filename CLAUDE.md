@@ -13,9 +13,11 @@ fails when it is out of date: regenerate it after changing exports or imports.
 
 ## Layout
 
-- `src/signals`, `src/di`, `src/view`, `src/functional`: the four modules, each
-  with a public `index.ts`. `src/index.ts` re-exports them as `tinker`.
-- `src/utils`: shared helpers. `examples/basics`: the demo the root page opens.
+- `packages/core` (`@tinker/core`): signals, di, view and utils, each module with a public
+  `index.ts`. `packages/core/src/index.ts` re-exports them as `tinker`.
+- `packages/functional` (`@tinker/functional`): the functional helpers (Maybe, Either, Task,
+  Stream, Emitter). Its public API is `src/public-api.ts`, and `src/index.ts` re-exports it.
+- `examples/basics`: the demo the root page opens. It imports from `@tinker/core`.
 - `scripts/`: the repo-map generator and its tests.
 
 ## Commands
