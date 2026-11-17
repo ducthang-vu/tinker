@@ -8,7 +8,7 @@
 
 import { inject, Injectable } from "@tinker/core";
 import { computed, signal } from "@tinker/core";
-import { Component, Directive, input, viewChildren } from "@tinker/core";
+import { Component, Directive, input, queryAll } from "@tinker/core";
 import { Highlight } from "./highlight.ts";
 
 export interface Todo {
@@ -98,7 +98,7 @@ export class Toggle {
 export class Todos {
   readonly store = inject(TodoStore);
   /** The toggle directives in the list, in order: a query that follows the rows. */
-  readonly toggles = viewChildren(Toggle);
+  readonly toggles = queryAll(Toggle);
 
   add(): void {
     this.store.add();

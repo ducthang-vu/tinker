@@ -11,8 +11,8 @@ export { Effect, type EffectContext, Effects, type EffectFn } from "./internal/a
 export { AfterEachRender, AfterNextRender, RenderHooks } from "./internal/authoring/render-hooks.ts";
 export { output, type Output, type OutputName, type OutputValue } from "./internal/authoring/output.ts";
 export { model, type ModelSignal } from "./internal/authoring/model.ts";
-export { viewChildren, type ViewChildrenOptions } from "./internal/authoring/view-children.ts";
-export { viewChild, ViewChildMissingError } from "./internal/authoring/view-child.ts";
+export { queryAll, type QueryOptions } from "./internal/authoring/query.ts";
+export { query, QueryMissingError } from "./internal/authoring/query.ts";
 export { Outlet } from "./internal/authoring/outlet.ts";
 export type { TemplateContext, TemplateRef } from "./internal/runtime/template-ref.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./internal/authoring/input.ts";

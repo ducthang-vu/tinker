@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
-import { Component, Directive, ElementRef, input, ViewContainerRef, viewChildren } from "../../index.ts";
+import { Component, Directive, ElementRef, input, ViewContainerRef, queryAll } from "../../index.ts";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -51,7 +51,7 @@ describe("<tk-container>", () => {
     })
     class InputContainer {
       readonly text = signal("bound");
-      readonly label = viewChildren(Label);
+      readonly label = queryAll(Label);
     }
     const el = document.createElement("section");
     const app = bootstrap(InputContainer, { host: el });
@@ -92,15 +92,15 @@ describe("<tk-container>", () => {
       .toThrow("cannot hold a component");
   });
 
-  test("viewChildren lists a container's directive, and read: ElementRef leaves it out", () => {
+  test("queryAll lists a container's directive, and read: ElementRef leaves it out", () => {
     @Component({
       selector: "tk-listed-container",
       template: "<tk-container label=\"a\"></tk-container>",
       imports: [Label],
     })
     class ListedContainer {
-      readonly labels = viewChildren(Label);
-      readonly elements = viewChildren(Label, { read: ElementRef });
+      readonly labels = queryAll(Label);
+      readonly elements = queryAll(Label, { read: ElementRef });
     }
     const app = bootstrap(ListedContainer, { host: document.createElement("section") });
     expect(app.root.instance.labels())
@@ -117,7 +117,7 @@ describe("<tk-container>", () => {
       imports: [Here],
     })
     class CreatingContainer {
-      readonly here = viewChildren(Here);
+      readonly here = queryAll(Here);
     }
     const el = document.createElement("section");
     const app = bootstrap(CreatingContainer, { host: el });

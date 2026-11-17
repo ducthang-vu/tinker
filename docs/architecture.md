@@ -14,9 +14,9 @@ Client code sees a few objects. Everything else is internal.
 | `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
-| `viewChildren` | A signal of the instances of a type in the component's template, in document order. `{ read: ElementRef }` gives their elements instead. |
-| `viewChild` | A signal of the first of those, as a `Maybe` (none when there is none). `{ read: ElementRef }` works here too. |
-| `viewChild.required` | The same, as the instance itself. Reading it when the template has none throws `ViewChildMissingError`. |
+| `queryAll` | A signal of the instances of a type in the component's template, in document order. `{ read: ElementRef }` gives their elements instead. |
+| `query` | A signal of the first of those, as a `Maybe` (none when there is none). `{ read: ElementRef }` works here too. |
+| `query.required` | The same, as the instance itself. Reading it when the template has none throws `QueryMissingError`. |
 
 | Internal | What it is for |
 |---|---|
@@ -129,13 +129,13 @@ template builder records each directive and component instance it creates, with
 the element it sits on, and removes it when its owning view is destroyed. Embedded
 views (`@if` branches, `@map` rows) record into the same registry, since they
 belong to the component's template. A child component's template records into its
-own registry, so `viewChildren` never lists the items inside a child.
+own registry, so `queryAll` never lists the items inside a child.
 
-`viewChildren(type)` reads the registry in document order. A `@map` that moves
+`queryAll(type)` reads the registry in document order. A `@map` that moves
 its rows tells the registry, which then sorts again.
 
-Not built yet: template reference variables (`#name`), `viewChild` (a single
-match), and content queries (`contentChildren`).
+Not built yet: a template reference variable (`#name`) as the target of a query, and
+content queries, which will take a `from: "content"` option.
 
 ## Template references
 

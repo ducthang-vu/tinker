@@ -1,5 +1,5 @@
 // The view queries of a component: the directive and component instances in
-// its template, each with the element it sits on. A query (`viewChildren`)
+// its template, each with the element it sits on. A query (`queryAll`)
 // reads them in document order, so it follows the DOM: rows that move, and
 // branches that appear or go, all update it. Matches of the component's own
 // template are recorded here, including those in its embedded views; the
