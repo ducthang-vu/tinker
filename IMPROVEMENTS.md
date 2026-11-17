@@ -178,7 +178,17 @@ name can appear many times.
 **To do.** `queryAll` with a variable (a list of the one value, or of the rows that
 share the name), and a registry per row if a row variable is to be queried.
 
-### 4. Arrow functions and unary minus
+### 4. Allow an unsafe URL on purpose
+
+**Problem.** A URL attribute that is bound to `javascript:`, `data:` or another
+unsafe scheme is not set (see `runtime/url-safety.ts`). An app that really needs
+such a URL (a `data:` image, say) has no way to say so.
+
+**To do.** Add a trust wrapper, such as `trustUrl(url)`, that a binding accepts
+without the check, with the name making the risk visible in the template. Warn in
+developer mode when a trusted URL is used, so the bypass is never silent.
+
+### 5. Arrow functions and unary minus
 
 **Problem.** `t => t.done` (needed for `filter` and `map` in templates) and `-1`
 are not in the expression language.
