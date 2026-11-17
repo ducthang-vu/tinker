@@ -110,7 +110,7 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
 function parseListener(key: string, handler: string): EitherError<HostListener> {
-  const source = Maybe.fromNullable(LISTENER_KEY.exec(key)?.[1])
+  const source = Maybe.from(LISTENER_KEY.exec(key)?.[1])
     .toEither(
       new Error(
         `Unsupported host binding "${key}": only "(event)" listeners and "[class.name]", `

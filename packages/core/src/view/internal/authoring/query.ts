@@ -51,7 +51,7 @@ function readsElements(options: QueryOptions | undefined): options is ElementQue
 function namedOf<T>(name: string): ReadonlySignal<Maybe<T>> {
   const value = inject(ViewQueries)
     .reference(name);
-  return computed(() => Maybe.fromNullable(value() as T | undefined));
+  return computed(() => Maybe.from(value() as T | undefined));
 }
 
 /**

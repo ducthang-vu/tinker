@@ -73,13 +73,13 @@ export class ViewQueries {
   /** The first instance of `type` in document order, if there is one. */
   first<T extends object>(type: Class<T>): ReadonlySignal<Maybe<T>> {
     const all = this.of(type);
-    return computed(() => Maybe.fromNullable(all()[0]));
+    return computed(() => Maybe.from(all()[0]));
   }
 
   /** The first element of an instance of `type`, as an ElementRef, if there is one. */
   firstElement<T extends object>(type: Class<T>): ReadonlySignal<Maybe<ElementRef>> {
     const all = this.elementsOf(type);
-    return computed(() => Maybe.fromNullable(all()[0]));
+    return computed(() => Maybe.from(all()[0]));
   }
 
   private matchesOf<T extends object>(type: Class<T>): ReadonlySignal<readonly Match[]> {

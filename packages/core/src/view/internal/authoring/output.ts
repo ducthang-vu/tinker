@@ -65,7 +65,7 @@ export function output<T>(): Output<T> {
 export function outputsOf(instance: object): ReadonlyMap<string, Emitter<unknown, void, never>> {
   const outputs = new Map<string, Emitter<unknown, void, never>>();
   for (const [property, value] of Object.entries(instance)) {
-    Maybe.fromNullable(emitters.get(Object(value)))
+    Maybe.from(emitters.get(Object(value)))
       .ifSome((emitter) => {
         const name = changeOutputs.has(Object(value)) ? `${property}Change` : property;
         outputs.set(name, emitter);

@@ -6,7 +6,7 @@
 //   maybe.flatMap(f) chain a step that may itself produce nothing
 //   maybe.match({ some, none })  get out, handling both cases
 //
-//   Maybe.fromNullable(user.address)
+//   Maybe.from(user.address)
 //     .map((address) => address.city)
 //     .getOrElse("unknown");
 
@@ -31,7 +31,7 @@ export class Maybe<T> {
   }
 
   /** `None` for `null` or `undefined`, otherwise `Some(value)`. */
-  static fromNullable<T>(value: T | null | undefined): Maybe<NonNullable<T>> {
+  static from<T>(value: T | null | undefined): Maybe<NonNullable<T>> {
     return value === null || value === undefined
       ? Maybe.none()
       : Maybe.some(value as NonNullable<T>);

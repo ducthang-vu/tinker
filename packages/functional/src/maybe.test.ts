@@ -24,18 +24,18 @@ describe("Maybe", () => {
       .toBe(Maybe.none()); // one shared None
   });
 
-  test("fromNullable: null and undefined are None, everything else is Some", () => {
-    expect(Maybe.fromNullable(null)
+  test("from: null and undefined are None, everything else is Some", () => {
+    expect(Maybe.from(null)
       .isNone())
       .toBe(true);
-    expect(Maybe.fromNullable(undefined)
+    expect(Maybe.from(undefined)
       .isNone())
       .toBe(true);
-    expect(show(Maybe.fromNullable(0)))
+    expect(show(Maybe.from(0)))
       .toEqual(["some", 0]);
-    expect(show(Maybe.fromNullable("")))
+    expect(show(Maybe.from("")))
       .toEqual(["some", ""]);
-    expectTypeOf(Maybe.fromNullable("x" as string | null))
+    expectTypeOf(Maybe.from("x" as string | null))
       .toEqualTypeOf<Maybe<string>>();
   });
 
