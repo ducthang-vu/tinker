@@ -14,7 +14,7 @@ Client code sees a few objects. Everything else is internal.
 | `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
-| `viewChildren` | A signal of the instances of a type in the component's template, in document order. |
+| `viewChildren` | A signal of the instances of a type in the component's template, in document order. `{ read: ElementRef }` gives their elements instead. |
 
 | Internal | What it is for |
 |---|---|

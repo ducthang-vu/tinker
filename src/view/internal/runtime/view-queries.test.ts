@@ -66,4 +66,17 @@ describe("ViewQueries", () => {
     expect(list())
       .toEqual([b, a]);
   });
+
+  test("elementsOf(type) gives an ElementRef for each instance's element, in order", () => {
+    const parent = document.createElement("div");
+    const first = document.createElement("i");
+    const second = document.createElement("b");
+    parent.append(first, second);
+    const queries = new ViewQueries();
+    queries.add(new Badge(), second);
+    queries.add(new Badge(), first);
+    expect(queries.elementsOf(Badge)()
+      .map((ref) => ref.nativeElement))
+      .toEqual([first, second]);
+  });
 });

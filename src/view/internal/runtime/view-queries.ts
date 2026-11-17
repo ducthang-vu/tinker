@@ -8,10 +8,11 @@
 import { Injectable } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
+import { ElementRef } from "./element-ref.ts";
 
 interface Match {
   readonly instance: object;
-  readonly element: Node;
+  readonly element: Element;
 }
 
 @Injectable()
@@ -21,7 +22,7 @@ export class ViewQueries {
   private readonly order = signal(0);
 
   /** Record `instance` on `element`. Returns what removes it again. */
-  add(instance: object, element: Node): () => void {
+  add(instance: object, element: Element): () => void {
     const match: Match = { instance, element };
     this.matches.update((matches) => [...matches, match]);
     return () => {
@@ -36,12 +37,24 @@ export class ViewQueries {
 
   /** The instances of `type`, in document order. */
   of<T extends object>(type: Class<T>): ReadonlySignal<readonly T[]> {
+    const matches = this.matchesOf(type);
+    return computed(() => matches()
+      .map((match) => match.instance as T));
+  }
+
+  /** The elements of the instances of `type`, in document order, as ElementRefs. */
+  elementsOf<T extends object>(type: Class<T>): ReadonlySignal<readonly ElementRef[]> {
+    const matches = this.matchesOf(type);
+    return computed(() => matches()
+      .map((match) => new ElementRef(match.element)));
+  }
+
+  private matchesOf<T extends object>(type: Class<T>): ReadonlySignal<readonly Match[]> {
     return computed(() => {
       this.order();
       return this.matches()
         .filter((match) => match.instance instanceof type)
-        .sort((left, right) => documentOrder(left.element, right.element))
-        .map((match) => match.instance as T);
+        .sort((left, right) => documentOrder(left.element, right.element));
     });
   }
 }

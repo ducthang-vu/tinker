@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component, Directive, input, viewChildren } from "../../index.ts";
+import { Component, Directive, ElementRef, input, viewChildren } from "../../index.ts";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -121,6 +121,32 @@ describe("viewChildren", () => {
     const app = bootstrap(Outer, { host: el });
     expect(app.root.instance.items())
       .toEqual([]);
+    app.destroy();
+  });
+
+  test("with read: ElementRef, it lists the elements the matches sit on, in order", async () => {
+    @Component({
+      selector: "tk-elements",
+      template: "@map labels(); let label; track label { <tk-item [label]=\"label\"></tk-item> }",
+      imports: [Item],
+    })
+    class Elements {
+      readonly labels = signal(["a", "b"]);
+      readonly elements = viewChildren(Item, { read: ElementRef });
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(Elements, { host: el });
+    const tags = () => app.root.instance.elements()
+      .map((ref) => ref.nativeElement.tagName);
+    expect(tags())
+      .toEqual(["TK-ITEM", "TK-ITEM"]);
+    expect(app.root.instance.elements()[0]!.nativeElement)
+      .toBe(el.querySelector("tk-item"));
+    app.root.instance.labels.set(["b"]);
+    await tick();
+    expect(app.root.instance.elements()
+      .map((ref) => ref.nativeElement.textContent))
+      .toEqual(["b"]);
     app.destroy();
   });
 });
