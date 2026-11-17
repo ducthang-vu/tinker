@@ -447,3 +447,25 @@ describe("@map with a let pattern", () => {
       .toThrow("does not match its let pattern");
   });
 });
+
+describe("@map rows without nodes", () => {
+  test("a row whose body makes no nodes keeps its place, and the element after the map stays last", async () => {
+    @Component({
+      selector: "tk-no-nodes",
+      template: "<ul>@map rows(); let row { @let shown = row; }<li>end</li></ul>",
+    })
+    class NoNodes {
+      readonly rows = signal(["a"]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(NoNodes, { host: el });
+    app.root.instance.rows.set(["b", "a", "c"]);
+    await tick();
+    const ul = el.querySelector("ul")!;
+    expect(ul.lastElementChild!.tagName)
+      .toBe("LI");
+    expect(ul.querySelectorAll("li"))
+      .toHaveLength(1);
+    app.destroy();
+  });
+});
