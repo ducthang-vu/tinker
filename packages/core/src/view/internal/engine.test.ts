@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { tick } from "./test-support.ts";
 import { Component, Directive } from "./authoring/decorators.ts";
 import { Effects } from "./authoring/effects.ts";
 import { RenderHookRegistry } from "./runtime/render-hook-registry.ts";
@@ -40,12 +41,13 @@ describe("Engine.create", () => {
       .toBeInstanceOf(Engine);
   });
 
-  test("each engine has its own root injector and services", () => {
+  test("each engine has its own root injector and services", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "" })
     class App {}
     const view = Engine.create()
       .bootstrap(App);
+    await tick();
     expect(Engine.create()
       .getContext(view.host.nativeElement)
       .isNone())
@@ -54,7 +56,7 @@ describe("Engine.create", () => {
 });
 
 describe("Engine.bootstrap", () => {
-  test("renders the root component into its host element", () => {
+  test("renders the root component into its host element", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({
       selector: "tk-app",
@@ -65,13 +67,15 @@ describe("Engine.bootstrap", () => {
     const ref = Engine.create()
       .bootstrap(App);
 
+    await tick();
+
     expect(ref.host.nativeElement)
       .toBe(document.querySelector("tk-app"));
     expect(ref.host.nativeElement.innerHTML)
       .toBe(`<h1 class="title">Hello</h1><p>from <b>Tinker</b></p>`);
   });
 
-  test("creates the component instance", () => {
+  test("creates the component instance", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "" })
     class App {
@@ -81,16 +85,20 @@ describe("Engine.bootstrap", () => {
     const ref = Engine.create()
       .bootstrap(App);
 
+    await tick();
+
     expect(ref.instance)
       .toBeInstanceOf(App);
     expect(ref.instance.title)
       .toBe("Tinker");
   });
 
-  test("finds the host with any selector, e.g. an attribute", () => {
+  test("finds the host with any selector, e.g. an attribute", async () => {
     document.body.innerHTML = `<div id="x" app-root></div>`;
     @Component({ selector: "[app-root]", template: "<p>hi</p>" })
     class App {}
+
+    await tick();
 
     expect(Engine.create()
       .bootstrap(App).host.nativeElement.id)
@@ -107,6 +115,7 @@ describe("Engine.bootstrap", () => {
 
     const view = Engine.create()
       .bootstrap(App);
+    await tick();
     expect(view.host.nativeElement.textContent)
       .toBe("1 clicks");
     view.instance.count.set(2);
@@ -115,13 +124,14 @@ describe("Engine.bootstrap", () => {
       .toBe("2 clicks");
   });
 
-  test("destroy removes what was rendered, and only that", () => {
+  test("destroy removes what was rendered, and only that", async () => {
     document.body.innerHTML = "<tk-app><span>existing</span></tk-app>";
     @Component({ selector: "tk-app", template: "<p>a</p><p>b</p>" })
     class App {}
 
     const ref = Engine.create()
       .bootstrap(App);
+    await tick();
     expect(ref.host.nativeElement.children)
       .toHaveLength(3);
     ref.destroy();
@@ -130,7 +140,7 @@ describe("Engine.bootstrap", () => {
       .toBe("<span>existing</span>");
   });
 
-  test("parses each component's template only once", () => {
+  test("parses each component's template only once", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
@@ -142,13 +152,15 @@ describe("Engine.bootstrap", () => {
       .destroy();
     engine.bootstrap(App);
 
+    await tick();
+
     expect(parse)
       .toHaveBeenCalledOnce();
     expect(document.querySelector("tk-app")!.innerHTML)
       .toBe("<p>hi</p>");
   });
 
-  test("providers replace the default document and renderer", () => {
+  test("providers replace the default document and renderer", async () => {
     const other = document.implementation.createHTMLDocument("other");
     other.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>other</p>" })
@@ -164,19 +176,23 @@ describe("Engine.bootstrap", () => {
     })
       .bootstrap(App);
 
+    await tick();
+
     expect(ref.host.nativeElement.ownerDocument)
       .toBe(other);
     expect(createElement)
       .toHaveBeenCalledWith("p");
   });
 
-  test("returns a ComponentView and remembers it for its host element", () => {
+  test("returns a ComponentView and remembers it for its host element", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
     const engine = Engine.create();
 
     const view = engine.bootstrap(App);
+
+    await tick();
 
     expect(view)
       .toBeInstanceOf(ComponentRef);
@@ -196,7 +212,7 @@ describe("Engine.bootstrap", () => {
       .toBe(true);
   });
 
-  test("keeps the host's context while directives remain on it", () => {
+  test("keeps the host's context while directives remain on it", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "" })
     class App {}
@@ -208,6 +224,8 @@ describe("Engine.bootstrap", () => {
 
     view.destroy();
 
+    await tick();
+
     expect(engine.getContext(view.host.nativeElement)
       .getOrElse(undefined))
       .toBe(context);
@@ -215,7 +233,7 @@ describe("Engine.bootstrap", () => {
       .toBe(true);
   });
 
-  test("forgets the view when it is destroyed, so the host can be used again", () => {
+  test("forgets the view when it is destroyed, so the host can be used again", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
@@ -223,6 +241,7 @@ describe("Engine.bootstrap", () => {
 
     const first = engine.bootstrap(App);
     first.destroy();
+    await tick();
     expect(engine.getContext(first.host.nativeElement)
       .isNone())
       .toBe(true);
@@ -254,12 +273,14 @@ describe("Engine.bootstrap", () => {
       .toBe("<p>hi</p>");
   });
 
-  test("two engines keep separate views", () => {
+  test("two engines keep separate views", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "" })
     class App {}
     const one = Engine.create();
     const view = one.bootstrap(App);
+
+    await tick();
 
     expect(Engine.create()
       .getContext(view.host.nativeElement)
@@ -267,13 +288,15 @@ describe("Engine.bootstrap", () => {
       .toBe(true);
   });
 
-  test("createComponent renders into a given host", () => {
+  test("createComponent renders into a given host", async () => {
     const host = document.createElement("section");
     @Component({ selector: "tk-x", template: "<p>x</p>" })
     class X {}
     const engine = Engine.create();
 
     const view = engine.createComponent(X, host);
+
+    await tick();
 
     expect(view.host.nativeElement)
       .toBe(host);
@@ -287,7 +310,7 @@ describe("Engine.bootstrap", () => {
       .toBe(view.host.nativeElement);
   });
 
-  test("createComponent without a host creates one from the selector", () => {
+  test("createComponent without a host creates one from the selector", async () => {
     @Component({ selector: "tk-tag", template: "" })
     class Tag {}
     @Component({ selector: "[attr-only]", template: "" })
@@ -295,6 +318,8 @@ describe("Engine.bootstrap", () => {
     @Component({ selector: "tk-both[extra]", template: "" })
     class Both {}
     const engine = Engine.create();
+
+    await tick();
 
     expect(engine.createComponent(Tag).host.nativeElement.outerHTML)
       .toBe("<tk-tag></tk-tag>");
@@ -359,7 +384,7 @@ describe("Engine.bootstrap", () => {
 });
 
 describe("Engine view updates", () => {
-  test("flush runs the pending view updates now", () => {
+  test("flush runs the pending view updates now", async () => {
     @Component({ selector: "tk-a", template: "{{ count() }}" })
     class A {
       count = signal(1);
@@ -369,6 +394,7 @@ describe("Engine view updates", () => {
       providers: [provide(ChangeDetection, { useValue: detection })],
     });
     const view = engine.createComponent(A);
+    engine.flush();
     view.instance.count.set(2);
     expect(detection.views.pending)
       .toBe(1);
@@ -379,15 +405,16 @@ describe("Engine view updates", () => {
       .toBe("2");
   });
 
-  test("each engine has its own change detection", () => {
+  test("each engine has its own change detection", async () => {
     @Component({ selector: "tk-a", template: "{{ count() }}" })
     class A {
       count = signal(1);
     }
     const one = changeDetection();
     const two = changeDetection();
-    const view = Engine.create({ providers: [provide(ChangeDetection, { useValue: one })] })
-      .createComponent(A);
+    const engine = Engine.create({ providers: [provide(ChangeDetection, { useValue: one })] });
+    const view = engine.createComponent(A);
+    engine.flush();
     Engine.create({ providers: [provide(ChangeDetection, { useValue: two })] });
     view.instance.count.set(2);
     expect(one.views.pending)
@@ -398,7 +425,7 @@ describe("Engine view updates", () => {
 });
 
 describe("Engine collaborators", () => {
-  test("createViewContainer uses the injected ViewContainerRefFactory", () => {
+  test("createViewContainer uses the injected ViewContainerRefFactory", async () => {
     const anchor = document.createComment("anchor");
     const anchors: Node[] = [];
     class RecordingContainers extends ViewContainerRefFactory {
@@ -416,6 +443,8 @@ describe("Engine collaborators", () => {
     });
 
     const container = engine.createViewContainer(anchor);
+
+    await tick();
 
     expect(anchors)
       .toEqual([anchor]);
@@ -444,6 +473,8 @@ describe("Engine.afterStable", () => {
       .toPromise();
     log.push(view.host.nativeElement.textContent!);
 
+    await tick();
+
     expect(log)
       .toEqual(["10"]);
   });
@@ -454,11 +485,12 @@ describe("Engine.afterStable", () => {
       .toPromise()).resolves.toBeUndefined();
   });
 
-  test("is lazy and cancellable", () => {
+  test("is lazy and cancellable", async () => {
     const engine = Engine.create();
     const ended: string[] = [];
     const stable = engine.afterStable();
     engine.flush();
+    await tick();
     expect(ended)
       .toEqual([]); // not run yet
     const cancel = stable.run({ ok: () => ended.push("stable") });
@@ -470,18 +502,19 @@ describe("Engine.afterStable", () => {
 });
 
 describe("Engine.get", () => {
-  test("returns a service of the engine's root injector, providers first", () => {
+  test("returns a service of the engine's root injector, providers first", async () => {
     const GREETING = new InjectionToken<string>("GREETING");
     const engine = Engine.create({
       providers: [provide(GREETING, { useValue: "given" })],
     });
+    await tick();
     expect(engine.get(GREETING))
       .toBe("given");
   });
 });
 
 describe("CLASS_REPLACEMENTS", () => {
-  test("a template gets the replacement of an imported class", () => {
+  test("a template gets the replacement of an imported class", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Directive({ selector: "[mark]" })
     class Real {}
@@ -496,20 +529,21 @@ describe("CLASS_REPLACEMENTS", () => {
     engine.bootstrap(App);
     const context = engine.getContext(document.querySelector("p")!)
       .getOrElse(undefined)!;
+    await tick();
     expect(context.directives[0])
       .toBeInstanceOf(Stub);
   });
 });
 
-describe("Engine.bootstrap with deferRender", () => {
-  test("the text is written on the next tick, not when it is bootstrapped", () => {
+describe("Engine.bootstrap renders on the next tick", () => {
+  test("the text is written on the next tick, not when it is bootstrapped", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>{{ text() }}</p>" })
     class App {
       readonly text = signal("first");
     }
     const engine = Engine.create();
-    engine.bootstrap(App, undefined, true);
+    engine.bootstrap(App);
     expect(document.querySelector("p")?.textContent)
       .toBe("");
     engine.flush();

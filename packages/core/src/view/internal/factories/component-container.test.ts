@@ -3,6 +3,7 @@
 // what surrounds the element, and they are part of the parent's view.
 
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject, Injectable } from "../../../di/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -22,7 +23,7 @@ class Item {
 }
 
 describe("a component's ViewContainerRef", () => {
-  test("a component can inject the view container of its host element", () => {
+  test("a component can inject the view container of its host element", async () => {
     let container: ViewContainerRef | undefined;
     @Component({ selector: "tk-list", template: "<p>list</p>", providers: [ListStore] })
     class List {
@@ -32,11 +33,12 @@ describe("a component's ViewContainerRef", () => {
     }
     const el = document.createElement("section");
     bootstrap(List, { host: el });
+    await tick();
     expect(container)
       .toBeInstanceOf(ViewContainerRef);
   });
 
-  test("a component's container creates components that inject its providers", () => {
+  test("a component's container creates components that inject its providers", async () => {
     @Component({ selector: "tk-list", template: "<p>list</p>", providers: [ListStore] })
     class List {
       private readonly container = inject(ViewContainerRef);
@@ -49,14 +51,16 @@ describe("a component's ViewContainerRef", () => {
     wrapper.append(el);
     document.body.append(wrapper);
     const app = bootstrap(List, { host: el });
+    await tick();
     app.root.instance.add();
+    await tick();
     expect(wrapper.querySelector("li")!.textContent)
       .toBe("from the list's providers");
     app.destroy();
     wrapper.remove();
   });
 
-  test("the components it adds are removed with it, as part of its view", () => {
+  test("the components it adds are removed with it, as part of its view", async () => {
     @Component({ selector: "tk-list", template: "<p>list</p>", providers: [ListStore] })
     class List {
       private readonly container = inject(ViewContainerRef);
@@ -69,6 +73,7 @@ describe("a component's ViewContainerRef", () => {
     wrapper.append(el);
     document.body.append(wrapper);
     const app = bootstrap(List, { host: el });
+    await tick();
     app.root.instance.add();
     expect(wrapper.querySelectorAll("li"))
       .toHaveLength(1);
@@ -80,7 +85,7 @@ describe("a component's ViewContainerRef", () => {
 });
 
 describe("a directive and a component on an element get the same element providers", () => {
-  test("both inject ElementRef, ViewContainerRef, Effects and RenderHooks", () => {
+  test("both inject ElementRef, ViewContainerRef, Effects and RenderHooks", async () => {
     const got: Record<string, boolean> = {};
     @Directive({ selector: "[probe]" })
     class Probe {
@@ -107,6 +112,7 @@ describe("a directive and a component on an element get the same element provide
     @Component({ selector: "tk-host", template: `<tk-target probe></tk-target>`, imports: [Target, Probe] })
     class Host {}
     bootstrap(Host, { host: document.createElement("section") });
+    await tick();
     expect(got)
       .toEqual({ directive: true, component: true });
   });

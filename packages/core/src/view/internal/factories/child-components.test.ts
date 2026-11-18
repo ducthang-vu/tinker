@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject, Injectable } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, type ComponentMetadata, Directive } from "../authoring/decorators.ts";
@@ -22,7 +23,7 @@ function componentOn<T>(engine: Engine, element: Element): T {
 }
 
 describe("components in templates", () => {
-  test("render inside the parent's template, each with its own instance", () => {
+  test("render inside the parent's template, each with its own instance", async () => {
     @Component({ selector: "tk-item", template: "<span>item</span>" })
     class Item {}
     @Component({
@@ -34,6 +35,8 @@ describe("components in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
 
+    await tick();
+
     expect(view.host.nativeElement.innerHTML)
       .toBe("<ul><li><tk-item><span>item</span></tk-item></li><li><tk-item><span>item</span></tk-item></li></ul>");
     const [first, second] = [...view.host.nativeElement.querySelectorAll("tk-item")];
@@ -43,7 +46,7 @@ describe("components in templates", () => {
       .not.toBe(componentOn(engine, second!));
   });
 
-  test("can inject their parent component, its providers, and the directives around them", () => {
+  test("can inject their parent component, its providers, and the directives around them", async () => {
     @Injectable()
     class ListStore {}
     @Directive({ selector: "li" })
@@ -69,6 +72,7 @@ describe("components in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const item = componentOn<Item>(engine, view.host.nativeElement.querySelector("tk-item")!);
+    await tick();
     expect(item.list)
       .toBe(view.instance);
     expect(item.store)
@@ -79,7 +83,7 @@ describe("components in templates", () => {
       .toBeInstanceOf(Selectable);
   });
 
-  test("a grandchild finds its grandparent through the chain", () => {
+  test("a grandchild finds its grandparent through the chain", async () => {
     @Component({ selector: "tk-c", template: "" })
     class C {
       readonly a = inject(A);
@@ -90,11 +94,12 @@ describe("components in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = engine.createComponent(A);
+    await tick();
     expect(componentOn<C>(engine, view.host.nativeElement.querySelector("tk-c")!).a)
       .toBe(view.instance);
   });
 
-  test("plain attributes set their inputs before their first render", () => {
+  test("plain attributes set their inputs before their first render", async () => {
     @Component({ selector: "tk-item", template: "<span>{{ label() }}</span>" })
     class Item {
       readonly label = input<string>(); // required: reading it unbound would throw
@@ -103,11 +108,12 @@ describe("components in templates", () => {
     class List {}
     const view = Engine.create()
       .createComponent(List);
+    await tick();
     expect(view.host.nativeElement.querySelector("span")!.textContent)
       .toBe("Milk");
   });
 
-  test("are created after their element's directives and before the parent's first render", () => {
+  test("are created after their element's directives and before the parent's first render", async () => {
     const log: string[] = [];
     @Directive({ selector: "[marked]" })
     class Marked {
@@ -134,11 +140,12 @@ describe("components in templates", () => {
     }
     Engine.create()
       .createComponent(List);
+    await tick();
     expect(log)
       .toEqual(["parent", "directive", "child", "parent renders"]);
   });
 
-  test("are destroyed with the parent's view, before it, effects included", () => {
+  test("are destroyed with the parent's view, before it, effects included", async () => {
     const log: string[] = [];
     const count = signal(1);
     @Component({ selector: "tk-item", template: "" })
@@ -165,6 +172,7 @@ describe("components in templates", () => {
     view.destroy();
     count.set(2);
     engine.flush();
+    await tick();
     expect(log)
       .toEqual(["effect 1", "item destroyed", "list destroyed"]);
     expect(engine.getContext(itemHost)
@@ -239,11 +247,12 @@ describe("recursion", () => {
       .toBe(true);
   });
 
-  test("the same component twice side by side is not recursion", () => {
+  test("the same component twice side by side is not recursion", async () => {
     @Component({ selector: "tk-leaf", template: "" })
     class Leaf {}
     @Component({ selector: "tk-pair", template: "<tk-leaf></tk-leaf><tk-leaf></tk-leaf>", imports: [Leaf] })
     class Pair {}
+    await tick();
     expect(Engine.create()
       .createComponent(Pair).host.nativeElement.querySelectorAll("tk-leaf"))
       .toHaveLength(2);

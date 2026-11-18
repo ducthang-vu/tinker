@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
-import { bootstrap } from "../../bootstrap.ts";
+import { Engine } from "../engine.ts";
 import { Component } from "../authoring/decorators.ts";
 
 /** Render `template` over `items` in an @map, and return the text of each row, in order. */
@@ -10,9 +11,11 @@ function rowsOf(template: string, items: readonly unknown[]): string[] {
     readonly items = signal<readonly unknown[]>(items);
   }
   const el = document.createElement("section");
-  const app = bootstrap(Rows, { host: el });
+  const engine = Engine.create();
+  engine.bootstrap(Rows, el);
+  engine.flush();
   const rows = [...el.querySelectorAll("ul > li")].map((row) => row.textContent.trim());
-  app.destroy();
+  engine.destroy();
   return rows;
 }
 

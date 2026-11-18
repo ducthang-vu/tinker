@@ -1,9 +1,8 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 describe("@if and @else", () => {
   test("shows its body when the condition is truthy, and nothing when it is not", async () => {
@@ -13,6 +12,7 @@ describe("@if and @else", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(If, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("yes");
     app.root.instance.on.set(false);
@@ -29,6 +29,7 @@ describe("@if and @else", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Else, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("B");
     app.root.instance.on.set(true);
@@ -48,6 +49,7 @@ describe("@if and @else", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Chain, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("none");
     app.root.instance.a.set(1);
@@ -77,6 +79,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Match, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("wait");
     app.root.instance.state.set("error");
@@ -97,6 +100,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(NoDefault, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("one");
     app.root.instance.n.set(2);
@@ -124,6 +128,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Keep, { host: el });
+    await tick();
     expect(made)
       .toBe(1);
     app.root.instance.n.set(2);
@@ -148,6 +153,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Lets, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("Ana");
     app.root.instance.person.set("Bo");
@@ -157,7 +163,7 @@ describe("@match", () => {
     app.destroy();
   });
 
-  test("destroying the app removes the shown branch and its components", () => {
+  test("destroying the app removes the shown branch and its components", async () => {
     let destroyed = 0;
     @Component({ selector: "tk-gone", template: "<b>x</b>" })
     class Gone {
@@ -173,6 +179,7 @@ describe("@match", () => {
     class OwnerMatch {}
     const el = document.createElement("section");
     const app = bootstrap(OwnerMatch, { host: el });
+    await tick();
     expect(el.querySelector("tk-gone"))
       .not.toBeNull();
     app.destroy();
@@ -192,6 +199,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Falsy, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("zero");
     app.root.instance.n.set(3);
@@ -201,7 +209,7 @@ describe("@match", () => {
     app.destroy();
   });
 
-  test("a match inside an element with a directive is attached with that element's injector", () => {
+  test("a match inside an element with a directive is attached with that element's injector", async () => {
     @Directive({ selector: "[mark]" })
     class Mark {}
     @Component({
@@ -212,13 +220,14 @@ describe("@match", () => {
     class Marked {}
     const el = document.createElement("section");
     bootstrap(Marked, { host: el });
+    await tick();
     expect(el.querySelector("div")!.textContent!.trim())
       .toBe("inner");
     expect(el.textContent)
       .toContain("root");
   });
 
-  test("_ matches anything, so the case after it is never reached", () => {
+  test("_ matches anything, so the case after it is never reached", async () => {
     @Component({
       selector: "tk-any",
       template: "@match n() { @case _ { anything } @case 1 { never } }",
@@ -228,6 +237,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(Any, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("anything");
   });
@@ -246,6 +256,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Guards, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("C");
     app.root.instance.score.set(60);
@@ -259,7 +270,7 @@ describe("@match", () => {
     app.destroy();
   });
 
-  test("a guard is not evaluated when its pattern does not match", () => {
+  test("a guard is not evaluated when its pattern does not match", async () => {
     let calls = 0;
     @Component({
       selector: "tk-lazy",
@@ -275,13 +286,14 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(Lazy, { host: el });
+    await tick();
     expect(calls)
       .toBe(0);
     expect(el.textContent!.trim())
       .toBe("other");
   });
 
-  test("a case whose guard is false falls through to the next case", () => {
+  test("a case whose guard is false falls through to the next case", async () => {
     @Component({
       selector: "tk-fall",
       template: "@match n() { @case 1 when ok() { first } @case 1 { second } }",
@@ -292,6 +304,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(Fall, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("second");
   });
@@ -306,6 +319,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Rel, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("C");
     app.root.instance.n.set(60);
@@ -329,6 +343,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(ObjectMatch, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("paid");
     app.root.instance.res.set({ status: "late", index: 2 });
@@ -348,6 +363,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Shape, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("other");
     app.root.instance.res.set(null);
@@ -361,7 +377,7 @@ describe("@match", () => {
     app.destroy();
   });
 
-  test("a nested object pattern matches inside a field", () => {
+  test("a nested object pattern matches inside a field", async () => {
     @Component({
       selector: "tk-nested",
       template: "@match order() { @case { customer: { country: \"FR\" } } { free } @default { paid } }",
@@ -371,11 +387,12 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(Nested, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("free");
   });
 
-  test("a guard can read the names its pattern bound", () => {
+  test("a guard can read the names its pattern bound", async () => {
     @Component({
       selector: "tk-bound-guard",
       template: "@match res() { @case { status } when status === \"ok\" { ok } @default { no } }",
@@ -385,6 +402,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(BoundGuard, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("ok");
   });
@@ -399,6 +417,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Ops, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("eq");
     app.root.instance.n.set(2);
@@ -408,7 +427,7 @@ describe("@match", () => {
     app.destroy();
   });
 
-  test("a bare name binds the whole value", () => {
+  test("a bare name binds the whole value", async () => {
     @Component({
       selector: "tk-name",
       template: "@match n() { @case m { value {{ m }} } }",
@@ -418,11 +437,12 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(NameBinding, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("value 4");
   });
 
-  test("an object pattern fails on a number, which is not an object", () => {
+  test("an object pattern fails on a number, which is not an object", async () => {
     @Component({
       selector: "tk-number-shape",
       template: "@match n() { @case { a } { yes } @default { no } }",
@@ -432,11 +452,12 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(NumberShape, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("no");
   });
 
-  test("an object pattern fails when a key is missing, even if its value would be undefined", () => {
+  test("an object pattern fails when a key is missing, even if its value would be undefined", async () => {
     @Component({
       selector: "tk-missing",
       template: "@match r() { @case { status } { yes } @default { no } }",
@@ -446,11 +467,12 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(Missing, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("no");
   });
 
-  test("the object type does not match null, but matches an object", () => {
+  test("the object type does not match null, but matches an object", async () => {
     @Component({
       selector: "tk-object-type",
       template: "@match r() { @case { v: object } { yes } @default { no } }",
@@ -460,6 +482,7 @@ describe("@match", () => {
     }
     const el = document.createElement("section");
     bootstrap(ObjectType, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("no");
   });
@@ -476,6 +499,7 @@ describe("@match with array patterns", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(EmptyCase, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("none");
     app.root.instance.items.set(["a"]);
@@ -495,6 +519,7 @@ describe("@match with array patterns", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(RestCase, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("empty");
     app.root.instance.items.set(["a", "b", "c"]);
@@ -516,6 +541,7 @@ describe("@case with an array literal pattern", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(LiteralArray, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("yes");
     for (const value of ["x", [3, 2], [1, 2, 3]]) {
@@ -545,6 +571,7 @@ describe("@match with the remaining patterns", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Remaining, { host: el });
+    await tick();
     const shown = async (value: unknown) => {
       app.root.instance.value.set(value);
       await tick();
@@ -573,6 +600,7 @@ describe("@match with the remaining patterns", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Absent, { host: el });
+    await tick();
     expect(el.textContent!.trim())
       .toBe("ok");
     app.root.instance.result.set({ error: "boom" });

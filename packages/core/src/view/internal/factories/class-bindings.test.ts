@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -10,7 +11,7 @@ afterEach(() => {
 });
 
 describe("class bindings in templates", () => {
-  test("follow the component's signals, and leave plain classes alone", () => {
+  test("follow the component's signals, and leave plain classes alone", async () => {
     @Component({
       selector: "tk-todo",
       template: `<p class="todo" [class.done]="done()" [class.urgent]="urgent">Milk</p>`,
@@ -22,6 +23,7 @@ describe("class bindings in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(Todo);
     const p = view.host.nativeElement.querySelector("p")!;
+    await tick();
     expect(p.className)
       .toBe("todo urgent");
     view.instance.done.set(true);
@@ -34,17 +36,19 @@ describe("class bindings in templates", () => {
       .toBe("todo urgent");
   });
 
-  test("class names are lowercased by the browser's parser", () => {
+  test("class names are lowercased by the browser's parser", async () => {
     @Component({ selector: "tk-a", template: `<p [class.isOpen]="open">x</p>` })
     class A {
       readonly open = true;
     }
-    expect(Engine.create()
-      .createComponent(A).host.nativeElement.querySelector("p")!.className)
+    const engine = Engine.create();
+    const view = engine.createComponent(A);
+    engine.flush();
+    expect(view.host.nativeElement.querySelector("p")!.className)
       .toBe("isopen");
   });
 
-  test("on a child component's element, they are evaluated against the parent", () => {
+  test("on a child component's element, they are evaluated against the parent", async () => {
     @Component({ selector: "tk-item", template: "item" })
     class Item {}
     @Component({
@@ -59,13 +63,14 @@ describe("class bindings in templates", () => {
     const view = engine.createComponent(List);
     view.instance.selected.set(true);
     engine.flush();
+    await tick();
     expect(view.host.nativeElement.querySelector("tk-item")!.className)
       .toBe("selected");
   });
 });
 
 describe("host class bindings", () => {
-  test("a directive's follow its own signals, keeping their case", () => {
+  test("a directive's follow its own signals, keeping their case", async () => {
     @Directive({
       selector: "[toggle]",
       host: { "[class.isOn]": "on()", "(click)": "flip()" },
@@ -80,6 +85,7 @@ describe("host class bindings", () => {
     class A {}
     const engine = Engine.create();
     const button = engine.createComponent(A).host.nativeElement.querySelector("button")!;
+    await tick();
     expect(button.className)
       .toBe("");
     button.click();
@@ -92,7 +98,7 @@ describe("host class bindings", () => {
       .toBe("");
   });
 
-  test("a component's own, and its host directives', are set from its first render", () => {
+  test("a component's own, and its host directives', are set from its first render", async () => {
     @Directive({ selector: "[focusable]", host: { "[class.focusable]": "enabled" } })
     class Focusable {
       readonly enabled = true;
@@ -108,6 +114,7 @@ describe("host class bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(Menu);
+    await tick();
     expect(view.host.nativeElement.className)
       .toBe("focusable open");
     view.instance.open.set(false);
@@ -128,7 +135,7 @@ describe("host class bindings", () => {
 });
 
 describe("a child component's host class bindings", () => {
-  test("are updated by the parent's view, not the child's", () => {
+  test("are updated by the parent's view, not the child's", async () => {
     let childRenders = 0;
     @Component({ selector: "tk-item", template: "{{ render() }}", host: { "[class.active]": "active()" } })
     class Item {
@@ -148,6 +155,7 @@ describe("a child component's host class bindings", () => {
       (child) => child.component as Item,
     )
       .getOrThrow(() => new Error("no item"));
+    await tick();
     expect(childRenders)
       .toBe(1);
 
@@ -160,7 +168,7 @@ describe("a child component's host class bindings", () => {
       .toBe(1);
   });
 
-  test("the parent's template binding on that element takes precedence, for the same class", () => {
+  test("the parent's template binding on that element takes precedence, for the same class", async () => {
     @Component({
       selector: "tk-item",
       template: "",
@@ -181,6 +189,7 @@ describe("a child component's host class bindings", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const host = view.host.nativeElement.querySelector("tk-item")!;
+    await tick();
     expect(host.className) // the child says selected, the parent says not: the parent wins
       .toBe("item");
     view.instance.selected.set(true);
@@ -189,7 +198,7 @@ describe("a child component's host class bindings", () => {
       .toBe("item selected");
   });
 
-  test("the same precedence over a directive's host binding on that element", () => {
+  test("the same precedence over a directive's host binding on that element", async () => {
     @Directive({ selector: "[marker]", host: { "[class.on]": "on" } })
     class Marker {
       readonly on = true;
@@ -202,12 +211,13 @@ describe("a child component's host class bindings", () => {
     class A {
       readonly off = false;
     }
+    await tick();
     expect(Engine.create()
       .createComponent(A).host.nativeElement.querySelector("p")!.className)
       .toBe("");
   });
 
-  test("its host directives' bindings move to the parent's view too", () => {
+  test("its host directives' bindings move to the parent's view too", async () => {
     @Directive({ selector: "[pressable]", host: { "[class.pressed]": "pressed()" } })
     class Pressable {
       readonly pressed = signal(false);
@@ -226,6 +236,7 @@ describe("a child component's host class bindings", () => {
       (child) => (child.component as Button).pressable.pressed.set(true),
     );
     engine.flush();
+    await tick();
     expect(host.className)
       .toBe("pressed");
   });

@@ -5,6 +5,7 @@
 // values.
 
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "./internal/test-support.ts";
 import { Either, Maybe, pipe } from "@tinker/functional";
 import {
   bootstrap,
@@ -22,7 +23,6 @@ import {
 } from "../index.ts";
 
 /** Lets scheduled work (change detection, effects) run. */
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 let host: HTMLElement | undefined;
 afterEach(() => {
@@ -31,10 +31,12 @@ afterEach(() => {
 });
 
 /** Mount `type` into a fresh element attached to the document. */
-function mount<T extends object>(type: new () => T) {
+async function mount<T extends object>(type: new () => T) {
   host = document.createElement("section");
   document.body.appendChild(host);
-  return { app: bootstrap(type, { host }), el: host };
+  const app = bootstrap(type, { host });
+  await tick();
+  return { app, el: host };
 }
 
 describe("a shared store, a directive that changes it, and a list that shows it", () => {
@@ -69,7 +71,7 @@ describe("a shared store, a directive that changes it, and a list that shows it"
   }
 
   test("clicks change the store, and the count and the list follow", async () => {
-    const { app, el } = mount(Shop);
+    const { app, el } = await mount(Shop);
     const buttons = el.querySelectorAll("button");
     expect(el.querySelector("p")!.textContent)
       .toBe("0 in cart");
@@ -113,7 +115,7 @@ describe("a parent and child linked by an input, an output and a model", () => {
   }
 
   test("a parent value reaches the child, and the child's change reaches the parent", async () => {
-    const { app, el } = mount(Panel);
+    const { app, el } = await mount(Panel);
     expect(el.querySelector("span")!.textContent)
       .toBe("3");
     app.root.instance.level.set(5);
@@ -157,7 +159,7 @@ describe("a template that reacts to several signals at once", () => {
   }
 
   test("each signal changes its part of the view, and keys reach the handler", async () => {
-    const { app, el } = mount(Status);
+    const { app, el } = await mount(Status);
     const paragraphs = () => [...el.querySelectorAll("p")];
     expect(paragraphs()[0]!.textContent!.trim())
       .toBe("idle");
@@ -205,7 +207,7 @@ describe("effects and cleanup end with the app", () => {
   }
 
   test("an effect runs with the latest value after changes, and stops when the app is destroyed", async () => {
-    const { app } = mount(Clock);
+    const { app } = await mount(Clock);
     const clock = app.root.instance;
     clock.count.set(1);
     clock.count.set(2);
@@ -244,7 +246,7 @@ describe("a computed built from functional values, shown in the view", () => {
   }
 
   test("a valid port shows, and a missing or empty value falls back to the default", async () => {
-    const { app, el } = mount(Port);
+    const { app, el } = await mount(Port);
     expect(el.querySelector("p")!.textContent)
       .toBe("8080");
     const input = el.querySelector("input")!;
@@ -306,7 +308,7 @@ describe("a parent updates before the child it contains", () => {
 
   test("the child renders once for one change, after the parent has passed it its new input", async () => {
     childRenders = 0;
-    const { app, el } = mount(Parent);
+    const { app, el } = await mount(Parent);
     expect(childRenders)
       .toBe(1);
     app.root.instance.level.level.set(2);

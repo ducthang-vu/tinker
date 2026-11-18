@@ -1,4 +1,5 @@
 import { ElementScope } from "../factories/element-scope.ts";
+import { tick } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import { Injectable, inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
@@ -40,12 +41,14 @@ function setup() {
 }
 
 describe("DirectiveFactory", () => {
-  test("create makes the instance and registers it in the element's context", () => {
+  test("create makes the instance and registers it in the element's context", async () => {
     @Directive({ selector: "[tooltip]" })
     class Tooltip {}
     const { factory, contexts, element, view } = setup();
 
     const tooltip = factory.create(Tooltip, element, view);
+
+    await tick();
 
     expect(tooltip)
       .toBeInstanceOf(Tooltip);
@@ -54,7 +57,7 @@ describe("DirectiveFactory", () => {
       .toEqual([tooltip]);
   });
 
-  test("create records the directive's inputs in the view", () => {
+  test("create records the directive's inputs in the view", async () => {
     @Directive({ selector: "[tooltip]" })
     class Tooltip {
       readonly text = input<string>();
@@ -65,11 +68,13 @@ describe("DirectiveFactory", () => {
     view.input(tooltip, "text")
       .ifSome((binding) => binding.bind("hello"));
 
+    await tick();
+
     expect(tooltip.text())
       .toBe("hello");
   });
 
-  test("create applies the host listeners", () => {
+  test("create applies the host listeners", async () => {
     @Directive({ selector: "[counter]", host: { "(click)": "increment()" } })
     class Counter {
       count = 0;
@@ -81,11 +86,12 @@ describe("DirectiveFactory", () => {
     const counter = factory.create(Counter, element, view);
     element.click();
     element.click();
+    await tick();
     expect(counter.count)
       .toBe(2);
   });
 
-  test("destroying the view removes the listeners and the directive from the context", () => {
+  test("destroying the view removes the listeners and the directive from the context", async () => {
     @Directive({ selector: "[counter]", host: { "(click)": "increment()" } })
     class Counter {
       count = 0;
@@ -103,6 +109,8 @@ describe("DirectiveFactory", () => {
     view.destroy();
     element.click();
 
+    await tick();
+
     expect(counter.count)
       .toBe(0);
     expect(Maybe.map(contexts.get(element), (context) => context.directives)
@@ -114,7 +122,7 @@ describe("DirectiveFactory", () => {
       .toBe(true);
   });
 
-  test("several directives on one element", () => {
+  test("several directives on one element", async () => {
     @Directive({ selector: "[a]" })
     class A {}
     @Directive({ selector: "[b]" })
@@ -122,6 +130,7 @@ describe("DirectiveFactory", () => {
     const { factory, contexts, element, view } = setup();
     const a = factory.create(A, element, view);
     const b = factory.create(B, element, view);
+    await tick();
     expect(Maybe.map(contexts.get(element), (context) => context.directives)
       .getOrElse(undefined))
       .toEqual([a, b]);
@@ -147,7 +156,7 @@ describe("DirectiveFactory", () => {
 });
 
 describe("DirectiveFactory injection context", () => {
-  test("creates directives in the engine's injection context: inject() and inject(Effects).create() work", () => {
+  test("creates directives in the engine's injection context: inject() and inject(Effects).create() work", async () => {
     @Injectable()
     class Theme {
       readonly color = signal("red");
@@ -187,6 +196,8 @@ describe("DirectiveFactory injection context", () => {
     changeDetection.tick();
     tip.theme.color.set("blue");
     changeDetection.tick();
+
+    await tick();
 
     expect(seen)
       .toEqual(["red", "blue"]);

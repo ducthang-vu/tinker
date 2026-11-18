@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject, Injectable } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
@@ -15,7 +16,7 @@ class Item {
 }
 
 describe("a directive can inject the ViewContainerRef of its element", () => {
-  test("components it creates are inserted after its element, in the same parent", () => {
+  test("components it creates are inserted after its element, in the same parent", async () => {
     @Directive({ selector: "[list]", providers: [Store] })
     class List {
       constructor() {
@@ -29,13 +30,14 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     Engine.create()
       .createComponent(A, host);
     const div = host.querySelector("div")!;
+    await tick();
     expect(div.nextElementSibling!.tagName)
       .toBe("TK-ITEM");
     expect(host.querySelector("span")!.textContent)
       .toBe("after");
   });
 
-  test("the created component injects what its element's directives provide", () => {
+  test("the created component injects what its element's directives provide", async () => {
     @Directive({ selector: "[list]", providers: [Store] })
     class List {
       constructor() {
@@ -48,11 +50,12 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     const host = document.createElement("section");
     Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.querySelector("tk-item p")!.textContent)
       .toBe("store");
   });
 
-  test("destroying the owner removes its dynamic components and the anchor", () => {
+  test("destroying the owner removes its dynamic components and the anchor", async () => {
     @Directive({ selector: "[list]", providers: [Store] })
     class List {
       constructor() {
@@ -65,6 +68,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     const host = document.createElement("section");
     const view = Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.querySelector("tk-item"))
       .not.toBeNull();
     view.destroy();
@@ -72,7 +76,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
       .toBe("");
   });
 
-  test("an element whose directives do not inject it gets no anchor", () => {
+  test("an element whose directives do not inject it gets no anchor", async () => {
     @Directive({ selector: "[plain]" })
     class Plain {}
     @Component({ selector: "tk-a", template: "<div plain></div>", imports: [Plain] })
@@ -80,6 +84,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     const host = document.createElement("section");
     Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.innerHTML)
       .toBe("<div plain=\"\"></div>");
   });

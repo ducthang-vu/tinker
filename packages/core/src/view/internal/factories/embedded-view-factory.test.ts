@@ -1,4 +1,5 @@
 import { ViewQueries } from "../runtime/view-queries.ts";
+import { tick } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import { Injector, inject } from "../../../di/index.ts";
 import { computed, signal } from "../../../signals/index.ts";

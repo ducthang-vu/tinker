@@ -1,9 +1,8 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, ElementRef, input, queryAll } from "../../index.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 @Component({
   selector: "tk-item",
@@ -24,7 +23,7 @@ class Mark {}
 class Card {}
 
 describe("queryAll", () => {
-  test("lists the child components in the template, in document order", () => {
+  test("lists the child components in the template, in document order", async () => {
     @Component({
       selector: "tk-list",
       template: "<tk-item label=\"one\"></tk-item><tk-item label=\"two\"></tk-item>",
@@ -35,6 +34,7 @@ describe("queryAll", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(List, { host: el });
+    await tick();
     expect(app.root.instance.items()
       .map((item) => item.label()))
       .toEqual(["one", "two"]);
@@ -53,6 +53,7 @@ describe("queryAll", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Rows, { host: el });
+    await tick();
     const shown = () => app.root.instance.items()
       .map((item) => item.label());
     expect(shown())
@@ -80,6 +81,7 @@ describe("queryAll", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Branch, { host: el });
+    await tick();
     expect(app.root.instance.items()
       .map((item) => item.label()))
       .toEqual(["shown"]);
@@ -90,7 +92,7 @@ describe("queryAll", () => {
     app.destroy();
   });
 
-  test("lists directive instances by their type", () => {
+  test("lists directive instances by their type", async () => {
     @Component({
       selector: "tk-marks",
       template: "<p mark></p><p mark></p>",
@@ -101,6 +103,7 @@ describe("queryAll", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Marks, { host: el });
+    await tick();
     expect(app.root.instance.marks())
       .toHaveLength(2);
     expect(app.root.instance.marks()[0])
@@ -108,7 +111,7 @@ describe("queryAll", () => {
     app.destroy();
   });
 
-  test("does not list the items inside a child component's own template", () => {
+  test("does not list the items inside a child component's own template", async () => {
     @Component({
       selector: "tk-outer",
       template: "<tk-card></tk-card>",
@@ -119,6 +122,7 @@ describe("queryAll", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Outer, { host: el });
+    await tick();
     expect(app.root.instance.items())
       .toEqual([]);
     app.destroy();
@@ -136,6 +140,7 @@ describe("queryAll", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Elements, { host: el });
+    await tick();
     const tags = () => app.root.instance.elements()
       .map((ref) => ref.nativeElement.tagName);
     expect(tags())

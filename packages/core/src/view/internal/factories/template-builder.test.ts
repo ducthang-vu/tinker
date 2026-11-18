@@ -1,4 +1,5 @@
 import { ElementScope } from "../factories/element-scope.ts";
+import { tick } from "../test-support.ts";
 import { ViewQueries } from "../runtime/view-queries.ts";
 import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
@@ -98,11 +99,13 @@ describe("TemplateBuilder", () => {
 });
 
 describe("TemplateBuilderFactory", () => {
-  test("creates builders that use the app's renderer", () => {
+  test("creates builders that use the app's renderer", async () => {
     const renderer = new DomRenderer();
     const createText = vi.spyOn(renderer, "createText");
     const builder = builderFactory(renderer)
       .create({ name: "Ada" }, noComponents, new ViewQueries());
+
+    await tick();
 
     expect(builder)
       .toBeInstanceOf(TemplateBuilder);

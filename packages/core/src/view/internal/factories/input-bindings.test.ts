@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { computed, signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
@@ -20,7 +21,7 @@ function instancesOn(engine: Engine, element: Element): object[] {
 }
 
 describe("input bindings", () => {
-  test("set a child component's input from the parent, and keep it up to date", () => {
+  test("set a child component's input from the parent, and keep it up to date", async () => {
     @Component({ selector: "tk-item", template: "<span>{{ label() }}</span>" })
     class Item {
       readonly label = input<string>(); // required: bound before the first render
@@ -32,6 +33,7 @@ describe("input bindings", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const span = view.host.nativeElement.querySelector("span")!;
+    await tick();
     expect(span.textContent)
       .toBe("Milk");
 
@@ -42,7 +44,7 @@ describe("input bindings", () => {
       .toBe("Bread");
   });
 
-  test("set a directive's input; what derives from it follows", () => {
+  test("set a directive's input; what derives from it follows", async () => {
     @Directive({ selector: "[tooltip]" })
     class Tooltip {
       readonly text = input("");
@@ -56,6 +58,7 @@ describe("input bindings", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     const [tooltip] = instancesOn(engine, view.host.nativeElement.querySelector("button")!) as [Tooltip];
+    await tick();
     expect(tooltip.shout())
       .toBe("SAVE");
     view.instance.hint.set("undo");
@@ -86,7 +89,7 @@ describe("input bindings", () => {
       .toThrow("[label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one");
   });
 
-  test("[owner.input] sets the input of the directive or component with that selector", () => {
+  test("[owner.input] sets the input of the directive or component with that selector", async () => {
     @Directive({ selector: "[labelled]" })
     class Labelled {
       readonly label = input("");
@@ -107,6 +110,7 @@ describe("input bindings", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const [labelled, item] = instancesOn(engine, view.host.nativeElement.querySelector("tk-item")!) as [Labelled, Item];
+    await tick();
     expect([labelled.label(), item.label()])
       .toEqual(["Milk", "Bread"]);
   });
@@ -124,12 +128,14 @@ describe("input bindings", () => {
     class A {
       readonly width = "200";
     }
-    expect(Engine.create()
-      .createComponent(A).host.nativeElement.querySelector("tk-box")!.textContent)
+    const engine = Engine.create();
+    const view = engine.createComponent(A);
+    engine.flush();
+    expect(view.host.nativeElement.querySelector("tk-box")!.textContent)
       .toBe("200");
   });
 
-  test("set the input only when the value changed: the child does not re-render needlessly", () => {
+  test("set the input only when the value changed: the child does not re-render needlessly", async () => {
     let childRenders = 0;
     @Component({ selector: "tk-item", template: "{{ render() }}" })
     class Item {
@@ -150,6 +156,7 @@ describe("input bindings", () => {
     }
     const engine = Engine.create();
     const view = engine.createComponent(List);
+    await tick();
     expect(childRenders)
       .toBe(1);
     view.instance.count.set(1); // the parent re-renders; the bound value stays "Milk"

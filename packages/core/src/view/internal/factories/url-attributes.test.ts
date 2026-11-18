@@ -1,4 +1,6 @@
 import { describe, expect, test } from "vitest";
+import { Engine } from "../engine.ts";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
@@ -14,7 +16,9 @@ function attributeFor(attribute: string, value: string | null): string | null {
     readonly value = signal<string | null>(value);
   }
   const el = document.createElement("section");
-  const app = bootstrap(Link, { host: el });
+  const engine = Engine.create();
+  const app = engine.bootstrap(Link, el);
+  engine.flush();
   const result = el.querySelector("a")!.getAttribute(attribute);
   app.destroy();
   return result;
@@ -48,7 +52,10 @@ describe("event attributes cannot be bound", () => {
       readonly code = signal("alert(1)");
     }
     const el = document.createElement("section");
-    expect(() => bootstrap(Bad, { host: el }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(Bad, el))
+
       .toThrow("[attr.onclick] on <button>: event attributes cannot be bound; use (click) instead");
   });
 

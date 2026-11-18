@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
+import { Engine } from "../engine.ts";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
 import { Component, Directive, input, Outlet, type TemplateRef, ViewContainerRef, queryAll } from "../../index.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 describe("<template #name> and the outlet", () => {
   test("the declaration renders nothing; the outlet on a container renders it after the container's content", async () => {
@@ -16,6 +16,7 @@ describe("<template #name> and the outlet", () => {
     class Declared {}
     const el = document.createElement("section");
     const app = bootstrap(Declared, { host: el });
+    await tick();
     await tick();
     expect(el.textContent)
       .toBe("beforecontentciaoafter");
@@ -34,6 +35,7 @@ describe("<template #name> and the outlet", () => {
     const el = document.createElement("section");
     const app = bootstrap(TwiceOutlet, { host: el });
     await tick();
+    await tick();
     expect(el.querySelectorAll("i"))
       .toHaveLength(2);
     app.destroy();
@@ -51,6 +53,7 @@ describe("<template #name> and the outlet", () => {
     const el = document.createElement("section");
     const app = bootstrap(ClosureTemplate, { host: el });
     await tick();
+    await tick();
     expect(el.textContent!.trim())
       .toBe("from the declaration");
     app.destroy();
@@ -65,6 +68,7 @@ describe("<template #name> and the outlet", () => {
     class ElementOutlet {}
     const el = document.createElement("section");
     const app = bootstrap(ElementOutlet, { host: el });
+    await tick();
     await tick();
     expect(el.querySelector("div")!.childElementCount)
       .toBe(0);
@@ -85,6 +89,7 @@ describe("<template #name> and the outlet", () => {
     const el = document.createElement("section");
     const app = bootstrap(NoOutletTemplate, { host: el });
     await tick();
+    await tick();
     expect(el.textContent)
       .toBe("only");
     app.destroy();
@@ -102,6 +107,7 @@ describe("<template #name> and the outlet", () => {
     const el = document.createElement("section");
     const app = bootstrap(ContextTemplate, { host: el });
     await tick();
+    await tick();
     expect(el.querySelector("b")!.textContent)
       .toBe("x");
     app.destroy();
@@ -118,6 +124,7 @@ describe("<template #name> and the outlet", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(ChangedContext, { host: el });
+    await tick();
     await tick();
     const before = el.querySelector("b");
     app.root.instance.ctx.set({ item: "second" });
@@ -144,6 +151,7 @@ describe("<template #name> and the outlet", () => {
     const el = document.createElement("section");
     const app = bootstrap(EmptyOutletContext, { host: el });
     await tick();
+    await tick();
     app.root.instance.ctx.set({ item: "x" });
     await tick();
     expect(el.textContent)
@@ -157,7 +165,10 @@ describe("<template #name> and the outlet", () => {
       template: "<template #row let-1x></template>",
     })
     class BadLet {}
-    expect(() => bootstrap(BadLet, { host: document.createElement("section") }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(BadLet, document.createElement("section")))
+
       .toThrow("is not a name");
   });
 
@@ -167,7 +178,10 @@ describe("<template #name> and the outlet", () => {
       template: "<template #row></template><template #row></template>",
     })
     class TwiceTemplate {}
-    expect(() => bootstrap(TwiceTemplate, { host: document.createElement("section") }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(TwiceTemplate, document.createElement("section")))
+
       .toThrow("#row is already declared in this template");
   });
 });
@@ -189,6 +203,7 @@ describe("code can render a declared template too", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(CodeRender, { host: el });
+    await tick();
     await tick();
     const [host] = app.root.instance.found();
     host!.container.createEmbeddedView(host!.renders()!, { item: "from code" });

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject, Injectable, InjectionToken, provide } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -13,7 +14,7 @@ afterEach(() => {
 });
 
 describe("directives in templates", () => {
-  test("are created on the elements matching their selector, with their element", () => {
+  test("are created on the elements matching their selector, with their element", async () => {
     const seen: string[] = [];
     @Directive({ selector: "[highlight]" })
     class Highlight {
@@ -31,6 +32,8 @@ describe("directives in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
 
+    await tick();
+
     expect(seen)
       .toEqual(["p", "b"]);
     const p = view.host.nativeElement.querySelector("p")!;
@@ -39,7 +42,7 @@ describe("directives in templates", () => {
       .toBe(1);
   });
 
-  test("only the directives the component imports are matched", () => {
+  test("only the directives the component imports are matched", async () => {
     const created: string[] = [];
     @Directive({ selector: "[tip]" })
     class Tip {
@@ -51,13 +54,14 @@ describe("directives in templates", () => {
     class WithoutImport {}
     Engine.create()
       .createComponent(WithoutImport);
+    await tick();
     expect(created)
       .toEqual([]);
     expect(Tip)
       .toBeDefined();
   });
 
-  test("apply their host listeners", () => {
+  test("apply their host listeners", async () => {
     @Directive({ selector: "[counter]", host: { "(click)": "increment()" } })
     class Counter {
       count = 0;
@@ -74,11 +78,12 @@ describe("directives in templates", () => {
     button.click();
     const [counter] = Maybe.map(engine.getContext(button), (context) => context.directives)
       .getOrElse([]) as Counter[];
+    await tick();
     expect(counter!.count)
       .toBe(2);
   });
 
-  test("directives on the same element can inject each other, whatever their order", () => {
+  test("directives on the same element can inject each other, whatever their order", async () => {
     @Directive({ selector: "[model]" })
     class Model {
       readonly value = "model value";
@@ -97,11 +102,12 @@ describe("directives in templates", () => {
     const view = engine.createComponent(A);
     const [validator, model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
       .getOrElse([]) as [Validator, Model];
+    await tick();
     expect(validator.model)
       .toBe(model);
   });
 
-  test("a directive can inject the directives of its ancestors, and the component's providers", () => {
+  test("a directive can inject the directives of its ancestors, and the component's providers", async () => {
     @Injectable()
     class Theme {
       readonly color = "red";
@@ -126,13 +132,14 @@ describe("directives in templates", () => {
       .getOrElse([]) as [Form];
     const [model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
       .getOrElse([]) as [Model];
+    await tick();
     expect(model.form)
       .toBe(form);
     expect(model.theme.color)
       .toBe("red");
   });
 
-  test("a directive cannot inject the directives of its descendants", () => {
+  test("a directive cannot inject the directives of its descendants", async () => {
     @Directive({ selector: "[child]" })
     class Child {}
     @Directive({ selector: "[parent]" })
@@ -149,11 +156,12 @@ describe("directives in templates", () => {
     const view = engine.createComponent(A);
     const [parent] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("div")!), (context) => context.directives)
       .getOrElse([]) as [Parent];
+    await tick();
     expect(parent.child)
       .toBeNull();
   });
 
-  test("plain attributes bind inputs of the same name, case-insensitively, before the first render", () => {
+  test("plain attributes bind inputs of the same name, case-insensitively, before the first render", async () => {
     const seen: string[] = [];
     @Directive({ selector: "[tooltip]" })
     class Tooltip {
@@ -174,13 +182,14 @@ describe("directives in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     engine.flush();
+    await tick();
     expect(seen)
       .toEqual(["Save 200 top"]);
     expect(view.host.nativeElement.querySelector("button")!.getAttribute("text"))
       .toBe("Save");
   });
 
-  test("are destroyed with the view: onDestroy, effects, and the element's context", () => {
+  test("are destroyed with the view: onDestroy, effects, and the element's context", async () => {
     const log: string[] = [];
     const count = signal(1);
     @Directive({ selector: "[tracked]" })
@@ -203,6 +212,7 @@ describe("directives in templates", () => {
     view.destroy();
     count.set(2);
     engine.flush();
+    await tick();
     expect(log)
       .toEqual(["effect 1", "destroyed"]);
     expect(engine.getContext(p)
@@ -262,7 +272,7 @@ describe("imports errors", () => {
 });
 
 describe("directive providers", () => {
-  test("each element gets its own, shared with its other directives and its descendants'", () => {
+  test("each element gets its own, shared with its other directives and its descendants'", async () => {
     let created = 0;
     @Injectable()
     class State {
@@ -296,6 +306,8 @@ describe("directive providers", () => {
     const [inner] = directivesOf(view.host.nativeElement.querySelector("p")!) as [Inner];
     const [otherStateful] = directivesOf(second!) as [Stateful];
 
+    await tick();
+
     expect(sibling.state)
       .toBe(stateful.state);
     expect(inner.state)
@@ -306,7 +318,7 @@ describe("directive providers", () => {
       .toBe(2);
   });
 
-  test("are destroyed with their element", () => {
+  test("are destroyed with their element", async () => {
     const destroyed: string[] = [];
     @Injectable()
     class Resource {
@@ -322,6 +334,7 @@ describe("directive providers", () => {
     class A {}
     const view = Engine.create()
       .createComponent(A);
+    await tick();
     expect(destroyed)
       .toEqual([]);
     view.destroy();
@@ -329,7 +342,7 @@ describe("directive providers", () => {
       .toEqual(["resource"]);
   });
 
-  test("cannot replace what the framework provides; between directives, the first imported wins", () => {
+  test("cannot replace what the framework provides; between directives, the first imported wins", async () => {
     const LABEL = new InjectionToken<string>("LABEL");
     const fake = document.createElement("fake");
     @Directive({
@@ -352,6 +365,7 @@ describe("directive providers", () => {
     const p = view.host.nativeElement.querySelector("p")!;
     const [first] = Maybe.map(engine.getContext(p), (context) => context.directives)
       .getOrElse([]) as [First];
+    await tick();
     expect(first.host.nativeElement)
       .toBe(p);
     expect(first.label)
@@ -362,7 +376,7 @@ describe("directive providers", () => {
 });
 
 describe("ElementRef", () => {
-  test("wraps the element; a type argument narrows it, without a cast", () => {
+  test("wraps the element; a type argument narrows it, without a cast", async () => {
     @Directive({ selector: "input[autofocus]" })
     class Autofocus {
       private readonly host = inject(ElementRef<HTMLInputElement>);
@@ -379,13 +393,14 @@ describe("ElementRef", () => {
     const input = view.host.nativeElement.querySelector("input")!;
     const [autofocus] = Maybe.map(engine.getContext(input), (context) => context.directives)
       .getOrElse([]) as [Autofocus];
+    await tick();
     expect(autofocus.focus())
       .toBe("hi");
     expect(document.activeElement)
       .toBe(input);
   });
 
-  test("directives on the same element share their ElementRef", () => {
+  test("directives on the same element share their ElementRef", async () => {
     @Directive({ selector: "[a]" })
     class A {
       readonly host = inject(ElementRef);
@@ -400,6 +415,7 @@ describe("ElementRef", () => {
     const view = engine.createComponent(X);
     const [a, b] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
       .getOrElse([]) as [A, B];
+    await tick();
     expect(a.host)
       .toBe(b.host);
   });
