@@ -3,7 +3,8 @@
 
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { input, output } from "@tinker/core";
-import { ComponentBuilder, type ElementFixture, type Fixture, type TestBed, type TestBedRef } from "./api.ts";
+import type { ElementFixture, Fixture, TestBed, TestBedRef } from "./api.ts";
+import { ComponentBuilder } from "./testbed.ts";
 
 class Button {
   readonly pressed = output<number>();

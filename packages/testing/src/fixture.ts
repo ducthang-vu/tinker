@@ -1,0 +1,87 @@
+// Fixtures: what a test holds on an element or a component/directive, and how
+// queries find them. A query walks the DOM under an element and asks the engine
+// what is on each element, so it sees every descendant, nested components included.
+
+import { inputsOf, Maybe, outputsOf } from "@tinker/core";
+import type { Engine } from "@tinker/core";
+import type { ElementFixture, Fixture } from "./api.ts";
+
+/** What a query looks for: a CSS selector, or a component or directive class. */
+export type QueryTarget = string | (new () => object);
+
+/** What fixtures need from their bed: the engine, and the classes replaced by overrides. */
+export interface Scope {
+  readonly engine: Engine;
+  readonly replacements: ReadonlyMap<new () => object, new () => object>;
+}
+
+/** A fixture for an element: it can be queried, and has no instance to drive. */
+export function elementFixture(element: Element, scope: Scope): ElementFixture {
+  return {
+    element,
+    query: (target: QueryTarget) => queryAll(element, target, scope)[0] ?? null,
+    queryAll: (target: QueryTarget) => queryAll(element, target, scope),
+  } as ElementFixture;
+}
+
+/** A fixture for the component or directive `instance`, on `element`. */
+export function fixtureOf<T extends object>(
+  instance: T,
+  element: Element,
+  scope: Scope,
+): Fixture<T> {
+  const bindings = inputsOf(instance);
+  const emitters = outputsOf(instance);
+  const inputs: Record<string, unknown> = {};
+  for (const [name, binding] of bindings) {
+    // Read on access, not now: an input that nothing has bound throws when read.
+    Object.defineProperty(inputs, name, { enumerable: true, get: () => binding.signal() });
+  }
+  const outputs: Record<string, unknown> = {};
+  for (const [name, emitter] of emitters) {
+    outputs[name] = emitter.stream;
+  }
+  return {
+    ...elementFixture(element, scope),
+    instance,
+    inputs,
+    outputs,
+    setInput: (name: string, value: unknown) => {
+      bindings.get(name)
+        ?.bind(value);
+    },
+    emitOutput: (name: string, value: unknown) => {
+      emitters.get(name)
+        ?.emit(value);
+    },
+  } as unknown as Fixture<T>;
+}
+
+/** Every descendant of `root` that matches `target`, in document order. */
+function queryAll(
+  root: Element,
+  target: QueryTarget,
+  scope: Scope,
+): (ElementFixture | Fixture<object>)[] {
+  if (typeof target === "string") {
+    return Array.from(root.querySelectorAll(target), (element) => elementFixture(element, scope));
+  }
+  // A replaced class is found as its replacement: the one that is on the page.
+  const wanted = scope.replacements.get(target) ?? target;
+  return Array.from(root.querySelectorAll("*"))
+    .flatMap((element) => {
+      const context = scope.engine.getContext(element)
+        .getOrElse(undefined);
+      if (!context) {
+        return [];
+      }
+      const component = Maybe.map(context.componentView, (view) => view.component)
+        .getOrElse(null);
+      const instances: readonly unknown[] = component === null
+        ? context.directives
+        : [...context.directives, component];
+      return instances
+        .filter((instance): instance is object => instance instanceof wanted)
+        .map((instance) => fixtureOf(instance, element, scope));
+    });
+}

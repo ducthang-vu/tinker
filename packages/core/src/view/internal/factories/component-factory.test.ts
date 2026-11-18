@@ -7,7 +7,7 @@ import { ElementContexts } from "../runtime/element-contexts.ts";
 import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
 import { BrowserTemplateParser } from "../template/browser-parser.ts";
-import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
+import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ComponentFactory } from "./component-factory.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { type ComponentView, ComponentViewFactory } from "../runtime/component-view.ts";
@@ -29,6 +29,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
       ...overrides,
       provide(RENDERER, { useValue: new DomRenderer() }),
       provide(TEMPLATE_PARSER, { useValue: new BrowserTemplateParser() }),
+      provide(CLASS_REPLACEMENTS, { useValue: new Map() }),
       ElementContexts,
       Ticker,
       EffectScheduler,

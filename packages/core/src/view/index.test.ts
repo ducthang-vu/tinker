@@ -32,6 +32,13 @@ test("the public API exports exactly these values", () => {
         "RenderHooks",
         "AfterEachRender",
         "AfterNextRender",
+        // Private API, marked @privateAPI: for the testing helpers only.
+        "Engine",
+        "inputsOf",
+        "outputsOf",
+        "CLASS_REPLACEMENTS",
+        "defineComponent",
+        "defineDirective",
       ].sort(),
     );
 });

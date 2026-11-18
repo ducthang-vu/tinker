@@ -1,10 +1,9 @@
-/* v8 ignore file -- types only, no runtime yet; remove with the runtime */
-// The public entry point for testing Tinker apps. For now it exports the API's
-// types only (see api.ts): `TestBed` is declared there and is exported once it is
-// implemented, so that importing this package never reaches code that does not exist.
+// The public entry point for testing Tinker apps: a test bed for a component, its
+// fixtures, and the builders for templates and mocks.
 
+export { ComponentBuilder, TestBed } from "./testbed.ts";
+export type { ComponentBuilder as ComponentBuilderType, TestBed as TestBedType } from "./testbed.ts";
 export type {
-  ComponentBuilder,
   ElementFixture,
   Fixture,
   MethodName,
@@ -12,6 +11,5 @@ export type {
   MockClass,
   Spies,
   Spy,
-  TestBed,
   TestBedRef,
 } from "./api.ts";
