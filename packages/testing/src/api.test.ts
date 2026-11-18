@@ -3,7 +3,7 @@
 
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { input, output } from "@tinker/core";
-import type { ElementFixture, Fixture, TestBed, TestBedRef } from "./api.ts";
+import type { Fixture, TestBed, TestingElement } from "./api.ts";
 import { ComponentBuilder } from "./testbed.ts";
 
 class Button {
@@ -17,13 +17,13 @@ class Button {
 
 class Other {}
 
-function queries(ref: TestBedRef<Button>): void {
+function queries(ref: Fixture<Button>): void {
   expectTypeOf(ref.root.query("p"))
-    .toEqualTypeOf<ElementFixture>();
+    .toEqualTypeOf<TestingElement>();
   expectTypeOf(ref.root.query(Button))
-    .toEqualTypeOf<Fixture<Button>>();
+    .toEqualTypeOf<TestingElement<Button>>();
   expectTypeOf(ref.root.queryAll(Button))
-    .toEqualTypeOf<Fixture<Button>[]>();
+    .toEqualTypeOf<TestingElement<Button>[]>();
   expectTypeOf(ref.root.inputs.label)
     .toEqualTypeOf<string>();
 }

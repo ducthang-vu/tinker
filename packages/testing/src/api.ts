@@ -4,7 +4,7 @@
 // `TestBed` is a builder. Each configuration method exists twice: as a static, which
 // starts a new builder with that setting, and as an instance method, which adds the
 // setting to the builder it is called on, so the calls can come in any order.
-// `build()` creates the bed and returns a `TestBedRef`, which hosts the component under
+// `build()` creates the bed and returns a `Fixture`, which hosts the component under
 // test (`root`) and drives the bed (change detection, services, cleanup).
 //
 //   const ref = TestBed.providers(provide(API_URL, { useValue: "x" }))
@@ -48,59 +48,66 @@ export interface TestBed<T extends object = object> {
    * Create the bed and its component. Needs a component: `component(type)` first, or
    * the static `TestBed.component(type)`.
    */
-  build(): TestBedRef<T>;
+  build(): Fixture<T>;
 }
 
-/**
- * An element a test can query inside of: the root of a fixture, or a match of a CSS
- * selector. It has no instance, so it has no inputs or outputs to drive.
- */
-export interface ElementFixture {
+/** Members every testing element has: its element, and the queries under it. */
+type ElementMembers = {
   /** The element. */
   readonly element: Element;
   /**
-   * The first descendant of `element` that matches, in document order: a fixture for a
-   * component or directive class, so it can be driven too; an element fixture for a CSS
-   * selector. Descendants include elements of nested components. A class also matches
-   * the class that overrides it (see `TestBed.override`). Throws, naming what was looked
-   * for, when nothing matches. To check that something is absent, use `queryAll`.
+   * The first descendant of `element` that matches, in document order: a testing element
+   * for a CSS selector, or one for a component or directive class, so it can be driven
+   * too. Descendants include elements of nested components. A class also matches the class
+   * that overrides it (see `TestBed.override`). Throws, naming what was looked for, when
+   * nothing matches. To check that something is absent, use `queryAll`.
    */
-  query(selector: string): ElementFixture;
-  query<C extends object>(type: new () => C): Fixture<C>;
+  query(selector: string): TestingElement;
+  query<C extends object>(type: new () => C): TestingElement<C>;
   /** Every match, as `query`, in document order. Empty when nothing matches. */
-  queryAll(selector: string): ElementFixture[];
-  queryAll<C extends object>(type: new () => C): Fixture<C>[];
-}
+  queryAll(selector: string): TestingElement[];
+  queryAll<C extends object>(type: new () => C): TestingElement<C>[];
+};
 
-/** A component or directive as a test sees it: its instance, and what drives it. */
-export interface Fixture<T extends object> extends ElementFixture {
-  /** The component instance. */
+/** Members of a component or directive: its instance, and what drives it. */
+type InstanceMembers<T extends object> = {
+  /** The component or directive instance. */
   readonly instance: T;
   /**
-   * The component's inputs, by name: each one's current value, as the component reads it.
-   * Reading an input that nothing has bound throws `InputNotBoundError`, as it does in
-   * the component.
+   * Its inputs, by name: each one's current value, as it reads it. Reading an input that
+   * nothing has bound throws `InputNotBoundError`, as it does in the component.
    */
   readonly inputs: {
     readonly [K in InputName<T>]: InputValue<T[K]>;
   };
   /**
-   * The component's outputs, by name. Subscribe to one to hear what it emits, from the
-   * moment you subscribe, as a template would. A subscriber can be a spy.
+   * Its outputs, by name. Subscribe to one to hear what it emits, from the moment you
+   * subscribe, as a template would. A subscriber can be a spy.
    */
   readonly outputs: {
     readonly [K in OutputName<T>]: Stream<OutputValue<T[K]>, void, never>;
   };
-  /** Set one of the component's inputs, as a parent template would. */
+  /** Set one of its inputs, as a parent template would. */
   setInput(name: string, value: unknown): void;
-  /** Emit one of the component's outputs, so the template's handler for it runs. */
+  /** Emit one of its outputs, so the template's handler for it runs. */
   emitOutput(name: string, value: unknown): void;
-}
+};
 
-/** A built test bed: its component under test, and what drives it. */
-export interface TestBedRef<T extends object> {
+/**
+ * A thing a test holds on the rendered page: an element, or a component or directive on
+ * it (`TestingElement<C>`). The element members are always there; the instance members
+ * only for a class.
+ */
+export type TestingElement<T extends object | void = void> = ElementMembers
+  & (T extends object ? InstanceMembers<T> : unknown);
+
+/**
+ * The setup of one test: the component under test (`root`), and what drives it. The
+ * `TestBed.build()` call returns one.
+ */
+export interface Fixture<T extends object> {
   /** The component under test. */
-  readonly root: Fixture<T>;
+  readonly root: TestingElement<T>;
   /** Run a change detection tick now: effects first, then views, until nothing is left. */
   detectChanges(): void;
   /** Resolve once the next change detection tick has ended. */

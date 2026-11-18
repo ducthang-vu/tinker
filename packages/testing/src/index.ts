@@ -4,12 +4,11 @@
 export { ComponentBuilder, TestBed } from "./testbed.ts";
 export type { ComponentBuilder as ComponentBuilderType, TestBed as TestBedType } from "./testbed.ts";
 export type {
-  ElementFixture,
+  TestingElement,
   Fixture,
   MethodName,
   MockBuilder,
   MockClass,
   Spies,
   Spy,
-  TestBedRef,
 } from "./api.ts";

@@ -4,7 +4,7 @@
 
 import { inputsOf, Maybe, outputsOf } from "@tinker/core";
 import type { Engine } from "@tinker/core";
-import type { ElementFixture, Fixture } from "./api.ts";
+import type { TestingElement } from "./api.ts";
 
 /** What a query looks for: a CSS selector, or a component or directive class. */
 export type QueryTarget = string | (new () => object);
@@ -21,7 +21,7 @@ function describe(target: QueryTarget): string {
 }
 
 /** A fixture for an element: it can be queried, and has no instance to drive. */
-export function elementFixture(element: Element, scope: Scope): ElementFixture {
+export function elementOf(element: Element, scope: Scope): TestingElement {
   return {
     element,
     query: (target: QueryTarget) => {
@@ -32,15 +32,15 @@ export function elementFixture(element: Element, scope: Scope): ElementFixture {
       return first;
     },
     queryAll: (target: QueryTarget) => queryAll(element, target, scope),
-  } as ElementFixture;
+  } as TestingElement;
 }
 
 /** A fixture for the component or directive `instance`, on `element`. */
-export function fixtureOf<T extends object>(
+export function testingElementOf<T extends object>(
   instance: T,
   element: Element,
   scope: Scope,
-): Fixture<T> {
+): TestingElement<T> {
   const bindings = inputsOf(instance);
   const emitters = outputsOf(instance);
   const inputs: Record<string, unknown> = {};
@@ -53,7 +53,7 @@ export function fixtureOf<T extends object>(
     outputs[name] = emitter.stream;
   }
   return {
-    ...elementFixture(element, scope),
+    ...elementOf(element, scope),
     instance,
     inputs,
     outputs,
@@ -65,7 +65,7 @@ export function fixtureOf<T extends object>(
       emitters.get(name)
         ?.emit(value);
     },
-  } as unknown as Fixture<T>;
+  } as unknown as TestingElement<T>;
 }
 
 /** Every descendant of `root` that matches `target`, in document order. */
@@ -73,9 +73,9 @@ function queryAll(
   root: Element,
   target: QueryTarget,
   scope: Scope,
-): (ElementFixture | Fixture<object>)[] {
+): (TestingElement | TestingElement<object>)[] {
   if (typeof target === "string") {
-    return Array.from(root.querySelectorAll(target), (element) => elementFixture(element, scope));
+    return Array.from(root.querySelectorAll(target), (element) => elementOf(element, scope));
   }
   // A replaced class is found as its replacement: the one that is on the page.
   const wanted = scope.replacements.get(target) ?? target;
@@ -93,6 +93,6 @@ function queryAll(
         : [...context.directives, component];
       return instances
         .filter((instance): instance is object => instance instanceof wanted)
-        .map((instance) => fixtureOf(instance, element, scope));
+        .map((instance) => testingElementOf(instance, element, scope));
     });
 }

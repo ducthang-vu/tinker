@@ -10,13 +10,13 @@ import {
   provide,
   type Token,
 } from "@tinker/core";
-import { fixtureOf, type Scope } from "./fixture.ts";
+import { testingElementOf, type Scope } from "./fixture.ts";
 import type {
   ComponentBuilder as ComponentBuilderApi,
   ComponentBuilderStatic,
   MockClass,
   TestBed as TestBedApi,
-  TestBedRef,
+  Fixture,
   TestBedStatic,
 } from "./api.ts";
 
@@ -61,7 +61,7 @@ class Bed<T extends object> implements TestBedApi<T> {
     return new Bed<T>({ ...this.state, inputs: { ...this.state.inputs, ...values } });
   }
 
-  build(): TestBedRef<T> {
+  build(): Fixture<T> {
     const { component, replacements } = this.state;
     if (!component) {
       throw new Error("TestBed.build needs a component: call component(type) first");
@@ -72,7 +72,7 @@ class Bed<T extends object> implements TestBedApi<T> {
     const host = this.state.host ?? document.createElement("div");
     const ref = engine.bootstrap(component, host);
     const scope: Scope = { engine, replacements };
-    const root = fixtureOf(ref.instance as T, host, scope);
+    const root = testingElementOf(ref.instance as T, host, scope);
     for (const [name, value] of Object.entries(this.state.inputs)) {
       root.setInput(name, value);
     }

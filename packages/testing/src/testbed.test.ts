@@ -104,7 +104,7 @@ describe("TestBed.build", () => {
   });
 });
 
-describe("TestBedRef.root", () => {
+describe("Fixture.root", () => {
   test("setInput changes the component after detectChanges", () => {
     const ref = TestBed.component(Greeting)
       .build();
