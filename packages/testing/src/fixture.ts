@@ -15,6 +15,11 @@ export interface Scope {
   readonly replacements: ReadonlyMap<new () => object, new () => object>;
 }
 
+/** The name of the instance's class, for messages. */
+function nameOf(instance: object): string {
+  return instance.constructor.name;
+}
+
 /** The query target as the test wrote it, for messages. */
 function describe(target: QueryTarget): string {
   return typeof target === "string" ? `"${target}"` : target.name;
@@ -63,12 +68,18 @@ export function testingElementOf<T extends object>(
     inputs,
     outputs,
     setInput: (name: string, value: unknown) => {
-      bindings.get(name)
-        ?.bind(value);
+      const binding = bindings.get(name);
+      if (!binding) {
+        throw new Error(`${nameOf(instance)} has no input "${name}"`);
+      }
+      binding.bind(value);
     },
     emitOutput: (name: string, value: unknown) => {
-      emitters.get(name)
-        ?.emit(value);
+      const emitter = emitters.get(name);
+      if (!emitter) {
+        throw new Error(`${nameOf(instance)} has no output "${name}"`);
+      }
+      emitter.emit(value);
     },
   } as unknown as TestingElement<T>;
 }

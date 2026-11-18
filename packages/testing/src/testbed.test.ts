@@ -121,7 +121,8 @@ describe("Fixture.root", () => {
       .toBe("Grace");
     expect(ref.root.element.textContent)
       .toBe("Hello Grace");
-    ref.root.setInput("unknown", 1);
+    expect(() => ref.root.setInput("unknown", 1))
+      .toThrow("has no input \"unknown\"");
     ref.destroy();
   });
 });
@@ -191,7 +192,8 @@ describe("fixture queries", () => {
     mark.setInput("label", "changed");
     expect(mark.inputs.label)
       .toBe("changed");
-    mark.setInput("unknown", 1);
+    expect(() => mark.setInput("unknown", 1))
+      .toThrow("has no input \"unknown\"");
     ref.destroy();
   });
 
@@ -214,7 +216,8 @@ describe("fixture queries", () => {
     const seen: number[] = [];
     pick.outputs.picked.run({ next: (value) => seen.push(value) });
     pick.emitOutput("picked", 3);
-    pick.emitOutput("unknown", 4);
+    expect(() => pick.emitOutput("unknown", 4))
+      .toThrow("has no output \"unknown\"");
     expect(seen)
       .toEqual([3]);
     ref.destroy();
