@@ -10,13 +10,13 @@ import {
   provide,
   type Token,
 } from "@tinker/core";
-import { fixtureOf, type Scope } from "./fixture.ts";
+import { testingElementOf, type Scope } from "./fixture.ts";
 import type {
   ComponentBuilder as ComponentBuilderApi,
   ComponentBuilderStatic,
   MockClass,
   TestBed as TestBedApi,
-  TestBedRef,
+  Fixture,
   TestBedStatic,
 } from "./api.ts";
 
@@ -30,9 +30,33 @@ interface BedState {
   readonly host?: Element;
   readonly inputs: Readonly<Record<string, unknown>>;
   readonly replacements: ReadonlyMap<new () => object, new () => object>;
+  /** Whether the author destroys the fixture, rather than `cleanup()` doing it. */
+  readonly manual: boolean;
 }
 
-const EMPTY: BedState = { providers: [], inputs: {}, replacements: new Map() };
+const EMPTY: BedState = { providers: [], inputs: {}, replacements: new Map(), manual: false };
+
+/** The fixtures not yet destroyed: `cleanup()` destroys whatever is left here. */
+const live = new Set<{ destroy(): void }>();
+
+/** Destroy every fixture still alive, e.g. the ones a test left behind. */
+export function cleanup(): void {
+  for (const fixture of [...live]) {
+    fixture.destroy();
+  }
+  live.clear();
+}
+
+/**
+ * Run `cleanup` after each test, when the test runner offers `afterEach` as a global
+ * (Vitest with `globals: true`). Without it, nothing is registered, and the test setup
+ * calls `afterEach(cleanup)` itself.
+ */
+export function registerCleanup(afterEach: ((hook: () => void) => void) | undefined): void {
+  afterEach?.(cleanup);
+}
+
+registerCleanup((globalThis as { afterEach?: (hook: () => void) => void }).afterEach);
 
 class Bed<T extends object> implements TestBedApi<T> {
   constructor(private readonly state: BedState) {}
@@ -61,7 +85,11 @@ class Bed<T extends object> implements TestBedApi<T> {
     return new Bed<T>({ ...this.state, inputs: { ...this.state.inputs, ...values } });
   }
 
-  build(): TestBedRef<T> {
+  manualCleanup(): TestBedApi<T> {
+    return new Bed<T>({ ...this.state, manual: true });
+  }
+
+  build(): Fixture<T> {
     const { component, replacements } = this.state;
     if (!component) {
       throw new Error("TestBed.build needs a component: call component(type) first");
@@ -72,13 +100,13 @@ class Bed<T extends object> implements TestBedApi<T> {
     const host = this.state.host ?? document.createElement("div");
     const ref = engine.bootstrap(component, host);
     const scope: Scope = { engine, replacements };
-    const root = fixtureOf(ref.instance as T, host, scope);
+    const root = testingElementOf(ref.instance as T, host, scope);
     for (const [name, value] of Object.entries(this.state.inputs)) {
       root.setInput(name, value);
     }
     engine.flush();
     let destroyed = false;
-    return {
+    const fixture: Fixture<T> = {
       root,
       detectChanges: () => engine.flush(),
       whenStable: () => engine.afterStable()
@@ -87,10 +115,15 @@ class Bed<T extends object> implements TestBedApi<T> {
       destroy: () => {
         if (!destroyed) {
           destroyed = true;
+          live.delete(fixture);
           engine.destroy();
         }
       },
     };
+    if (!this.state.manual) {
+      live.add(fixture);
+    }
+    return fixture;
   }
 }
 
@@ -106,6 +139,8 @@ export const TestBed: TestBedStatic = {
     .override(from, to),
   inputs: (values) => new Bed(EMPTY)
     .inputs(values),
+  manualCleanup: () => new Bed(EMPTY)
+    .manualCleanup(),
 };
 
 class TemplateBuilder implements ComponentBuilderApi {

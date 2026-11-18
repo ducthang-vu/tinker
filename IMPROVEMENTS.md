@@ -159,3 +159,18 @@ should be an error, and nothing tells the author today.
 
 Shadowing across scopes is allowed, as in most languages: this is a warning for
 the author, not a ban.
+
+## Testing: concurrent tests
+
+`cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only
+while tests in a file run one after another (Vitest's default). A concurrent test
+(`test.concurrent`) that is still running when another finishes would have its fixture
+destroyed by that cleanup. Today a concurrent test must use `manualCleanup()`.
+
+Ideas to choose from:
+
+- Tie each fixture to the test that built it, through the runner's per-test hook
+  (`onTestFinished` in Vitest). The setup passes the hook to the package, and cleanup
+  destroys only that test's fixtures.
+- Fail loudly when a fixture is built inside a concurrent test without `manualCleanup()`,
+  if the runner exposes that the test is concurrent.
