@@ -33,11 +33,12 @@ export interface TestBed<T extends object = object> {
   /** Render the component into `host`, instead of a new detached element. */
   host(element: Element): TestBed<T>;
   /**
-   * Replace the component or directive `from` with `to` wherever the bed's templates use
-   * it. Class queries for `from` then find `to`. Usually `to` is a mock from
-   * `ComponentBuilder.mock`. Calling it again for the same `from` replaces the earlier one.
+   * Replace the component or directive `from` with the mock `to` wherever the bed's
+   * templates use it. Class queries for `from` then find `to`. Only a mock of `from` is
+   * accepted, so a mistake is a type error. Calling it again for the same `from` replaces
+   * the earlier one.
    */
-  override(from: new () => object, to: new () => object): TestBed<T>;
+  override<F extends object>(from: new () => F, to: MockClass<F>): TestBed<T>;
   /**
    * Set the component's inputs before it is built, by name. An input left unset
    * throws `InputNotBoundError` when it is read.
@@ -95,34 +96,49 @@ export interface TestBedRef<T extends object> {
 }
 
 /**
- * A builder for a component class made from a template string, or a mock of an existing
- * component. The class works anywhere a component class does.
+ * A builder for a component class made from a template string. The class works anywhere
+ * a component class does.
  */
 export interface ComponentBuilder {
-  /** The template of the component. A mock renders nothing unless this is set. */
+  /** The template of the component. */
   template(source: string): ComponentBuilder;
   /**
    * The components and directives the template may use, as `imports` does for a
    * standalone component. Calling it again adds more.
    */
   directives(...types: readonly (new () => object)[]): ComponentBuilder;
-  /**
-   * Create the component class. A template that uses something not listed fails here.
-   * The class is named `Mock<Name>` for a mock, and has a static `mockOf` naming the
-   * class it replaces, so a mock is easy to spot in a test and in a debugger.
-   */
+  /** Create the component class. A template that uses something not listed fails here. */
   build(): new () => object;
+}
+
+/**
+ * A mock of the class `F`: a component class named `Mock<Name>`, with the same selector,
+ * inputs and outputs, and a static `mockOf` naming the class it replaces, so a mock is
+ * easy to spot in a test and in a debugger.
+ */
+export type MockClass<F extends object = object> = (new () => object) & {
+  readonly mockOf: new () => F;
+};
+
+/**
+ * A builder for a mock of `F`. It renders nothing until `template` is set. The mock
+ * keeps `F`'s selector, inputs and outputs.
+ */
+export interface MockBuilder<F extends object> {
+  /** The template of the mock. */
+  template(source: string): MockBuilder<F>;
+  /** The components and directives the template may use, as `directives` does above. */
+  directives(...types: readonly (new () => object)[]): MockBuilder<F>;
+  /** Create the mock class. */
+  build(): MockClass<F>;
 }
 
 /** The static starts: a builder for a component from a template, or a mock of a class. */
 export declare const ComponentBuilder: {
   /** A builder for a component with that template. */
   template(source: string): ComponentBuilder;
-  /**
-   * A builder for a mock of `type`: same selector, inputs and outputs, and the name
-   * `Mock<Name>`. It renders nothing until `template` is set.
-   */
-  mock(type: new () => object): ComponentBuilder;
+  /** A builder for a mock of `type`. */
+  mock<F extends object>(type: new () => F): MockBuilder<F>;
 };
 
 /**
@@ -133,6 +149,6 @@ export declare const TestBed: {
   component<C extends object>(type: new () => C): TestBed<C>;
   providers(...providers: readonly Provider[]): TestBed;
   host(element: Element): TestBed;
-  override(from: new () => object, to: new () => object): TestBed;
+  override<F extends object>(from: new () => F, to: MockClass<F>): TestBed;
   inputs(values: Readonly<Record<string, unknown>>): TestBed;
 };
