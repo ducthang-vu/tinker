@@ -30,7 +30,7 @@ function queries(ref: Fixture<Button>): void {
 
 function overrides(bed: TestBed<Button>): void {
   const mock = new MockDirectiveBuilder(Button)
-    .inputs("label")
+    .optionalInputs({ label: "" })
     .outputs("pressed")
     .build();
   expectTypeOf(mock.mockOf)

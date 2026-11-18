@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import {
-  signal,
   Component,
   Directive,
   InjectionToken,
@@ -8,6 +7,7 @@ import {
   InputNotBoundError,
   output,
   provide,
+  signal,
 } from "@tinker/core";
 import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
 
@@ -355,7 +355,7 @@ describe("mock builders", () => {
 
   test("recreates the inputs it names, so a parent template can bind them", () => {
     const mock = new MockDirectiveBuilder(Mark)
-      .inputs("label")
+      .optionalInputs({ label: "m" })
       .build();
     const Host = ComponentBuilder.template("<p mark>x</p>")
       .directives(Mark)
@@ -368,6 +368,30 @@ describe("mock builders", () => {
     expect(ref.root.query(Mark).inputs.label)
       .toBe("x");
     ref.destroy();
+  });
+
+  test("a required input is unbound until set, an optional one has its default", () => {
+    const required = new MockDirectiveBuilder(Mark)
+      .requiredInputs("label")
+      .build();
+    const optional = new MockDirectiveBuilder(Mark)
+      .optionalInputs({ label: "m" })
+      .build();
+    const Host = ComponentBuilder.template("<p mark>x</p>")
+      .directives(Mark)
+      .build();
+    const requiredRef = TestBed.override(Mark, required)
+      .component(Host)
+      .build();
+    expect(() => requiredRef.root.query(Mark).inputs.label)
+      .toThrow(InputNotBoundError);
+    requiredRef.destroy();
+    const optionalRef = TestBed.override(Mark, optional)
+      .component(Host)
+      .build();
+    expect(optionalRef.root.query(Mark).inputs.label)
+      .toBe("m");
+    optionalRef.destroy();
   });
 
   test("recreates the outputs it names, so a parent template can listen", () => {
@@ -419,7 +443,7 @@ describe("mock builders", () => {
 
   test("a component mock declares inputs, and of() starts the chain", () => {
     const mock = MockComponentBuilder.of(Greeting)
-      .inputs("name")
+      .optionalInputs({ name: "world" })
       .outputs()
       .build();
     const Host = ComponentBuilder.template("<tk-greeting></tk-greeting>")
@@ -432,6 +456,21 @@ describe("mock builders", () => {
       .setInput("name", "Ada");
     expect(ref.root.query(Greeting).inputs.name)
       .toBe("Ada");
+    ref.destroy();
+  });
+
+  test("a required component input is unbound until set", () => {
+    const mock = MockComponentBuilder.of(Greeting)
+      .requiredInputs("name")
+      .build();
+    const Host = ComponentBuilder.template("<tk-greeting></tk-greeting>")
+      .directives(Greeting)
+      .build();
+    const ref = TestBed.override(Greeting, mock)
+      .component(Host)
+      .build();
+    expect(() => ref.root.query(Greeting).inputs.name)
+      .toThrow(InputNotBoundError);
     ref.destroy();
   });
 
