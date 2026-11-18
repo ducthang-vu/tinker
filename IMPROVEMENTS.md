@@ -16,8 +16,8 @@ has these gaps.
 `a.set(1); await x; b.set(2);` runs two cycles in one frame. The result is
 correct, the work is not minimal.
 
-**To do.** Nothing for now. If it shows up in profiles, try another strategy,
-e.g. Angular's zoneless race between `setTimeout` and
+**To do.** Nothing yet: the cost is not measured. If it shows up in profiles, try
+another strategy, e.g. Angular's zoneless race between `setTimeout` and
 `requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
 runs, so this is a change in one place.
 
@@ -31,55 +31,21 @@ inconsistent state.
 **To do.** When child components exist, run the queue in tree order (parents
 first), e.g. by sorting each batch by view depth.
 
-## Effects and render hooks (`packages/core/src/view/internal/authoring/effects.ts`, `render-hooks.ts`)
-
-### 1. Stop the engine's own effects and hooks
-
-Each component has its own injector, which provides its own `Effects` and
-`RenderHooks`: everything a component registers through them (decorated
-methods included) stops when the component is destroyed. Done.
-
-**Problem.** Services provided by the engine (`providedIn: "root"`, or
-`bootstrap(App, { providers })`) use the engine's `Effects` and
-`RenderHooks`, which stop only when the app is destroyed. A service in a component's `providers`
-is fine: it uses the component's.
-
-**Done.** `engine.destroy()` destroys the views, then the engine's injector,
-which stops its effects and cancels its hooks.
-
 ## Components
 
-### 1. Dynamic components do not know where they are
+### 1. A component cannot inject the container of its host element
 
-**Problem.** A `ViewContainerRef` comes from `engine.createViewContainer(anchor)`,
-and the components it creates get an injector whose parent is the engine's,
-wherever the anchor is. A container inside a component's template, e.g. a
-directive in `<tk-list>` adding `<tk-item>`s at runtime, then creates items
-that:
+**Problem.** A directive injects its element's `ViewContainerRef`, and the
+components it adds sit at its element, under its injector, inside its view. A
+component cannot: it only has `engine.createViewContainer(anchor)`, whose
+components get the engine's injector wherever the anchor is. So the components
+a component adds at runtime cannot inject what surrounds the component (its
+providers, the directives next to it), and they are not part of its view, so
+they outlive it unless `container.clear()` is called by hand.
 
-- cannot inject what is around them: not the list's providers (`ListStore`),
-  not `List` itself, not the directive next to them; worse, if the engine
-  also provides that token, they silently get the engine's instance;
-- outlive the list: they are not part of the list's view, so destroying the
-  list leaves them alive (effects still running) unless `container.clear()`
-  is called by hand.
-
-**Done for directives.** A directive injects its element's `ViewContainerRef`
-(`inject(ViewContainerRef)`): its parent injector is the element's injector, and
-its owner is the view of the template it is in. Still to do: a component
-injecting the container of its own host element, and the test for it.
-
-**To do (the original plan).** As in Angular, let a directive inject its container:
-`inject(ViewContainerRef)` gives a container at the directive's element,
-which carries its place:
-
-- its parent injector is that element's injector, so created components
-  inject what surrounds them;
-- its owner view is the view of the template it is in, so created
-  components are destroyed with it.
-
-`engine.createViewContainer(anchor)` stays for containers outside any
-component (e.g. at the top of a page), with the engine's injector.
+**To do.** Let a component inject the container of its own host element, the
+same way a directive does, with a test that checks the injector and the owner
+view of the components it adds.
 
 ### 2. Recursive components cannot be written, and are banned
 
@@ -118,12 +84,7 @@ Keeping it means two entry points for each case.
 A test helper in the test folder (not in `src`) can absorb the two
 differences (host identity, attachment) so each test changes by one line.
 
-### 2. Rename `ChildPlacement` to `ParentContext` (done)
-
-The object describes the context a component gets from its parent, not where
-it sits. Renamed; no behaviour change.
-
-### 3. Move template-only work out of the component factory
+### 2. Move template-only work out of the component factory
 
 **Problem.** The factory still takes `attributes`, `bindInputs` and
 `adoptHostBindings`, which describe the parent's template, not how to build
@@ -135,7 +96,7 @@ the type, the parent context (injector and owner view), and the slot content.
 This is a cleanup, not a new architecture: the factory's API keeps the same
 shape.
 
-### 4. Make the root path consistent with the container
+### 3. Make the root path consistent with the container
 
 **Problem.** Bootstrap renders into an existing element, which a container
 (which inserts a new element before its anchor) cannot do. So the root is a
