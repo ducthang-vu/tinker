@@ -52,13 +52,13 @@ export interface Fixture<T extends object> {
   readonly element: Element;
   /**
    * The first match inside the component's template, in document order, or `null`:
-   * an element for a CSS selector, or the instance of a directive or component class.
+   * an element for a CSS selector, or a fixture for a component class, to drive it too.
    */
   query(selector: string): Element | null;
-  query<C extends object>(type: new () => C): C | null;
+  query<C extends object>(type: new () => C): Fixture<C> | null;
   /** Every match, as `query`, in document order. */
   queryAll(selector: string): Element[];
-  queryAll<C extends object>(type: new () => C): C[];
+  queryAll<C extends object>(type: new () => C): Fixture<C>[];
   /** Set one of the component's inputs, as a parent template would. */
   setInput(name: string, value: unknown): void;
   /** Emit one of the component's outputs, so the template's handler for it runs. */
