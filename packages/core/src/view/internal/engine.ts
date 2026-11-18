@@ -143,7 +143,13 @@ export class Engine {
     return refOf(this.components.create(type, host));
   }
 
-  /** Create a container that inserts views just before `anchor` (usually a comment). */
+  /**
+   * Create a container that inserts views just before `anchor` (usually a comment).
+   *
+   * @deprecated Components that need a container get one from a directive or a
+   * component (`inject(ViewContainerRef)`). Planned removal: see IMPROVEMENTS.md,
+   * "The engine's entry points".
+   */
   createViewContainer(anchor: Node): ViewContainerRef {
     return this.containers.create(anchor, this.injector);
   }

@@ -5,7 +5,11 @@
 import type { InputBinding } from "../authoring/input.ts";
 import type { ElementContext } from "./element-context.ts";
 
+import type { ViewNode } from "./schedulers/view-scheduler.ts";
+
 export interface View {
+  /** The view's place in the view tree, for the order of its updates. */
+  readonly node: ViewNode;
   /** Run `callback` when the view is destroyed (right away if it already is). */
   addDestroyCallback(callback: () => void): void;
   /** Record the inputs of a directive in this view's template. */

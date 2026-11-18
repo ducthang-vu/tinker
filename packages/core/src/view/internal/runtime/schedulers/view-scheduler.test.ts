@@ -1,8 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, runInInjectionContext } from "../../../../di/index.ts";
 import { signal, watch } from "../../../../signals/index.ts";
-import { ViewScheduler } from "./view-scheduler.ts";
+import { type ViewNode, ViewScheduler } from "./view-scheduler.ts";
 import { Ticker } from "../ticker.ts";
+
+/** A view node `depth` owners below a root: depth 0 is a root. */
+const nodeAt = (depth: number): ViewNode => (depth === 0 ? {} : { owner: nodeAt(depth - 1) });
 
 /** A task that records its runs. */
 const task = (log: string[], name: string, run?: () => void) => ({
@@ -108,5 +111,60 @@ describe("ViewScheduler", () => {
     scheduler.flush();
     expect(log)
       .toEqual(["count 0", "other 0", "count 2"]);
+  });
+});
+
+describe("ViewScheduler: parents first", () => {
+  test("a batch runs the shallower views first, whatever the order they were queued in", () => {
+    const { scheduler, log } = setup();
+    scheduler.schedule(task(log, "child"), nodeAt(2));
+    scheduler.schedule(task(log, "root"), nodeAt(0));
+    scheduler.schedule(task(log, "parent"), nodeAt(1));
+    scheduler.flush();
+    expect(log)
+      .toEqual(["root", "parent", "child"]);
+  });
+
+  test("views at the same depth keep the order they were queued in", () => {
+    const { scheduler, log } = setup();
+    scheduler.schedule(task(log, "b"), nodeAt(1));
+    scheduler.schedule(task(log, "a"), nodeAt(1));
+    scheduler.flush();
+    expect(log)
+      .toEqual(["b", "a"]);
+  });
+
+  test("a view queued again keeps one place, at its latest depth", () => {
+    const { scheduler, log } = setup();
+    const view = task(log, "view");
+    scheduler.schedule(view, nodeAt(3));
+    scheduler.schedule(task(log, "other"), nodeAt(1));
+    scheduler.schedule(view, nodeAt(0));
+    scheduler.flush();
+    expect(log)
+      .toEqual(["view", "other"]);
+  });
+
+  test("forDepth queues the views at that depth", () => {
+    const { scheduler, log } = setup();
+    scheduler.forNode(nodeAt(2))
+      .schedule(task(log, "deep"));
+    scheduler.forNode(nodeAt(0))
+      .schedule(task(log, "root"));
+    scheduler.flush();
+    expect(log)
+      .toEqual(["root", "deep"]);
+  });
+
+  test("work queued by an update runs in the next batch, after the others", () => {
+    const { scheduler, log } = setup();
+    scheduler.schedule(task(log, "parent", () => scheduler.schedule(task(log, "late"), nodeAt(0))), nodeAt(0));
+    scheduler.schedule(task(log, "child"), nodeAt(1));
+    scheduler.flush();
+    expect(log)
+      .toEqual(["parent", "child"]);
+    scheduler.flush();
+    expect(log)
+      .toEqual(["parent", "child", "late"]);
   });
 });

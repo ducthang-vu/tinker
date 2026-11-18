@@ -11,6 +11,7 @@
 // bindings are the `{{ }}` texts; `[prop]` bindings and directive inputs
 // will be collected and updated here too.
 
+import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { inject, Injectable, type Injector } from "../../../di/index.ts";
 import { Maybe, partial } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
@@ -71,6 +72,7 @@ export class TemplateBuilderFactory {
     queries: ViewQueries,
     scope = new Scope(component),
     root = true,
+    node: ViewNode = {},
   ): TemplateBuilder {
     return new TemplateBuilder(
       component,
@@ -83,6 +85,7 @@ export class TemplateBuilderFactory {
       this.embedded,
       queries,
       root,
+      node,
     );
   }
 }
@@ -155,6 +158,8 @@ export class TemplateBuilder {
     private readonly queries: ViewQueries,
     /** Whether this is the component's own template, not an embedded view of it. */
     private readonly root: boolean,
+    /** The view this builds, in the view tree: a block's views are owned by it. */
+    readonly node: ViewNode,
   ) {
     this.scope = scope;
   }
@@ -239,6 +244,7 @@ export class TemplateBuilder {
           const child = this.components.create(type, element, {
             parentInjector: injector,
             parentView: view,
+            node: this.node,
             attributes: node.attributes,
             projected,
             contentQueries: content,
@@ -506,6 +512,7 @@ export class TemplateBuilder {
       this.queries,
       scope,
       false,
+      { owner: this.node },
     );
     return this.embedded.create(builder, body, anchor, injector);
   }

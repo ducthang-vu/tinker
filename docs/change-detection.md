@@ -96,7 +96,7 @@ doesn't.
 Any of these could change without changing the rules above, because they live
 in the scheduler and the watch:
 
-- running views in parent-first order, or in depth order;
+- running views in parent-first order (by owner), or in another order that keeps it;
 - merging runs of a view within one tick;
 - batching the DOM writes of a view;
 - skipping the watch of a view that no signal in its subtree changed.

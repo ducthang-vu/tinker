@@ -20,8 +20,11 @@ import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
 
-/** What a container is disposed with: the one thing it needs is to hear that it is destroyed. */
-export type ContainerOwner = Pick<View, "addDestroyCallback">;
+/**
+ * What a container is disposed with: it hears that it is destroyed, and its
+ * node owns the components the container creates.
+ */
+export type ContainerOwner = Pick<View, "addDestroyCallback" | "node">;
 
 /** Creates view containers, with the app's component factory and renderer. */
 @Injectable()
@@ -69,7 +72,7 @@ export class ViewContainerRef {
     private readonly components: ComponentFactory,
     private readonly renderer: Renderer,
     private readonly parentInjector: Injector,
-    owner?: ContainerOwner,
+    private readonly owner?: ContainerOwner,
     private readonly ownsAnchor = true,
   ) {
     owner?.addDestroyCallback(() => this.dispose());
@@ -97,7 +100,13 @@ export class ViewContainerRef {
   createComponent<T extends object>(type: Class<T>, index: number = this.length): ComponentRef<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
-    const view = this.components.create(type, undefined, undefined, this.parentInjector);
+    const view = this.components.create(
+      type,
+      undefined,
+      undefined,
+      this.parentInjector,
+      this.owner?.node,
+    );
     const ref = refOf(view);
     this.refs.splice(index, 0, ref);
     this.renderer.insertBefore(parent, ref.host.nativeElement, this.nodeAfter(index));

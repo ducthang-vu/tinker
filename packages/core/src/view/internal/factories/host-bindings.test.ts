@@ -5,7 +5,7 @@ import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
 
 const renderer = new DomRenderer();
-const makeView = (host: Element) => new ComponentView(host, {}, [], renderer);
+const makeView = (host: Element) => new ComponentView(host, {}, [], renderer, {});
 
 describe("HostBindings parsing", () => {
   test("parses listeners with and without $event", () => {

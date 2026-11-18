@@ -9,6 +9,8 @@ import type { Renderer } from "../renderer.ts";
 import type { ElementContext } from "./element-context.ts";
 import type { View } from "./view.ts";
 
+import type { ViewNode } from "./schedulers/view-scheduler.ts";
+
 export class EmbeddedView implements View {
   private readonly contexts: ElementContext[] = [];
   private readonly destroyCallbacks: (() => void)[] = [];
@@ -24,6 +26,8 @@ export class EmbeddedView implements View {
     readonly parent: Node,
     readonly nodes: readonly Node[],
     private readonly renderer: Renderer,
+    /** The view's place in the view tree: its owner is the view of the block it is in. */
+    readonly node: ViewNode,
   ) {}
 
   /** Whether `destroy()` has been called. */

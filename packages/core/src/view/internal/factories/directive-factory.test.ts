@@ -35,7 +35,7 @@ function setup() {
     contexts: inject(ElementContexts),
   }));
   const element = document.createElement("button");
-  const view = new ComponentView(document.createElement("div"), {}, [], renderer);
+  const view = new ComponentView(document.createElement("div"), {}, [], renderer, {});
   return { factory, contexts, element, view };
 }
 
@@ -97,7 +97,7 @@ describe("DirectiveFactory", () => {
     class Other {}
     const { factory, contexts, element, view } = setup();
     const counter = factory.create(Counter, element, view);
-    const otherView = new ComponentView(document.createElement("div"), {}, [], new DomRenderer());
+    const otherView = new ComponentView(document.createElement("div"), {}, [], new DomRenderer(), {});
     const other = factory.create(Other, element, otherView);
 
     view.destroy();
@@ -181,7 +181,7 @@ describe("DirectiveFactory injection context", () => {
       factory: inject(DirectiveFactory),
       changeDetection: inject(ChangeDetection),
     }));
-    const view = new ComponentView(document.createElement("div"), {}, [], new DomRenderer());
+    const view = new ComponentView(document.createElement("div"), {}, [], new DomRenderer(), {});
 
     const tip = factory.create(Tip, document.createElement("p"), view);
     changeDetection.tick();

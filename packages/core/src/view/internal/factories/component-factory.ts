@@ -44,6 +44,7 @@ import {
   provide,
   runInInjectionContext,
 } from "../../../di/index.ts";
+import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { Maybe, partial } from "@tinker/functional";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
@@ -79,6 +80,8 @@ const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 export interface ParentContext {
   readonly parentInjector: Injector;
   readonly parentView: View;
+  /** The parent view's node: the child's view is owned by it, for the order of updates. */
+  readonly node: ViewNode;
   readonly attributes: readonly AttributeNode[];
   /**
    * Takes the child's host bindings (its own and its host directives'): its
@@ -137,6 +140,7 @@ export class ComponentFactory {
     host?: Element,
     child?: ParentContext,
     parentInjector?: Injector,
+    owner?: ViewNode,
   ): ComponentView<T> {
     const start = this.creating.indexOf(type);
     if (start !== -1) {
@@ -146,7 +150,7 @@ export class ComponentFactory {
     }
     this.creating.push(type);
     try {
-      return this.createView(type, host, child, parentInjector);
+      return this.createView(type, host, child, parentInjector, owner);
     } finally {
       this.creating.pop();
     }
@@ -157,6 +161,7 @@ export class ComponentFactory {
     host?: Element,
     child?: ParentContext,
     parentInjector?: Injector,
+    owner?: ViewNode,
   ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
@@ -175,6 +180,8 @@ export class ComponentFactory {
     const hostDirectives = this.hostDirectivesOf(type, metadata);
     /** Cleanups of what a root component's element holds: run when its view is destroyed. */
     const rootCleanups: (() => void)[] = [];
+    // Owned by the parent view of the element, or by the view a container was attached to.
+    const node: ViewNode = { owner: child?.node ?? owner };
     const ownInjector = Injector.create({
       providers: [
         ...hostDirectives,
@@ -186,7 +193,10 @@ export class ComponentFactory {
           () => ownInjector.injector,
           // Inside a template, the containers go with the parent's view; a root component
           // has none, so they go with its own view, which is made after its constructor.
-          child?.parentView ?? { addDestroyCallback: (callback) => rootCleanups.push(callback) },
+          child?.parentView ?? {
+            addDestroyCallback: (callback) => rootCleanups.push(callback),
+            node,
+          },
         ),
         ...(metadata.providers ?? []),
         ...hostDirectives.flatMap((directive) =>
@@ -200,12 +210,13 @@ export class ComponentFactory {
       hostDirectives,
       ownInjector,
       child?.projected ?? new Map(),
+      node,
     );
     for (const node of rendered) {
       this.renderer.appendChild(host, node);
     }
 
-    const view = this.views.create(host, instance, rendered);
+    const view = this.views.create(host, instance, rendered, node);
     view.addDestroyCallback(() => ownInjector.destroy());
     view.addDestroyCallback(() => rootCleanups.forEach((cleanup) => cleanup()));
     // Its outputs are over when it is: the templates subscribed to them are told.
@@ -240,7 +251,7 @@ export class ComponentFactory {
     // The view's one watch: updates the bindings (the template's, then the
     // host bindings of its template's directives, and its own if it is a
     // root). Its first run happens now, so the view is complete when it is returned.
-    const firstRun = new RunFirstNow(this.changeDetection.views);
+    const firstRun = new RunFirstNow(this.changeDetection.views.forNode(node));
     const viewWatch = watch(() => template.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
     firstRun.failure.ifSome((error) => {
@@ -272,6 +283,7 @@ export class ComponentFactory {
     hostDirectives: readonly Class<object>[],
     ownInjector: InjectorRef,
     projected: ReadonlyMap<string, Node[]>,
+    node: ViewNode,
   ): { instance: T; hostInstances: object[]; rendered: Node[]; template: TemplateBuilder } {
     try {
       // Host directives first, in order, so the component can inject them.
@@ -283,7 +295,7 @@ export class ComponentFactory {
       }));
       // The builder creates the template's child components with this factory.
       const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
-      const template = this.builders.create(instance, this, queries);
+      const template = this.builders.create(instance, this, queries, undefined, true, node);
       const rendered = template.build(this.templateOf(type, metadata), projected);
       return { instance, hostInstances, rendered, template };
     } catch (error) {
