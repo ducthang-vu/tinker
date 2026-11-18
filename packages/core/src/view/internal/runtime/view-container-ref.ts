@@ -20,7 +20,10 @@ import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
 
-/** What a container is disposed with: it hears that it is destroyed, and its node is the owner of what it creates. */
+/**
+ * What a container is disposed with: it hears that it is destroyed, and its
+ * node owns the components the container creates.
+ */
 export type ContainerOwner = Pick<View, "addDestroyCallback" | "node">;
 
 /** Creates view containers, with the app's component factory and renderer. */

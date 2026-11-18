@@ -180,6 +180,8 @@ export class ComponentFactory {
     const hostDirectives = this.hostDirectivesOf(type, metadata);
     /** Cleanups of what a root component's element holds: run when its view is destroyed. */
     const rootCleanups: (() => void)[] = [];
+    // Owned by the parent view of the element, or by the view a container was attached to.
+    const node: ViewNode = { owner: child?.node ?? owner };
     const ownInjector = Injector.create({
       providers: [
         ...hostDirectives,
@@ -191,7 +193,10 @@ export class ComponentFactory {
           () => ownInjector.injector,
           // Inside a template, the containers go with the parent's view; a root component
           // has none, so they go with its own view, which is made after its constructor.
-          child?.parentView ?? { addDestroyCallback: (callback) => rootCleanups.push(callback) },
+          child?.parentView ?? {
+            addDestroyCallback: (callback) => rootCleanups.push(callback),
+            node,
+          },
         ),
         ...(metadata.providers ?? []),
         ...hostDirectives.flatMap((directive) =>
@@ -199,8 +204,6 @@ export class ComponentFactory {
       ],
       parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });
-    // Owned by the parent view of the element, or by the view a container was attached to.
-    const node: ViewNode = { owner: child?.node ?? owner };
     const { instance, hostInstances, rendered, template } = this.createAndBuild(
       type,
       metadata,
