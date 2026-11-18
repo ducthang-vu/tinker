@@ -21,16 +21,6 @@ another strategy, e.g. Angular's zoneless race between `setTimeout` and
 `requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
 runs, so this is a change in one place.
 
-### 2. Parents before children
-
-**Problem.** Queued views run in the order they were scheduled. Once
-components nest, a child could update before its parent, then again after
-the parent changes its inputs: wasted work, and possibly a frame showing an
-inconsistent state.
-
-**To do.** When child components exist, run the queue in tree order (parents
-first), e.g. by sorting each batch by view depth.
-
 ## Components
 
 ### 1. Recursive components cannot be written, and are banned

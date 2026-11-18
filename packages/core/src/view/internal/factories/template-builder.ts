@@ -71,6 +71,7 @@ export class TemplateBuilderFactory {
     queries: ViewQueries,
     scope = new Scope(component),
     root = true,
+    depth = 0,
   ): TemplateBuilder {
     return new TemplateBuilder(
       component,
@@ -83,6 +84,7 @@ export class TemplateBuilderFactory {
       this.embedded,
       queries,
       root,
+      depth,
     );
   }
 }
@@ -155,6 +157,8 @@ export class TemplateBuilder {
     private readonly queries: ViewQueries,
     /** Whether this is the component's own template, not an embedded view of it. */
     private readonly root: boolean,
+    /** How far the view this builds is from the root (see ViewScheduler). */
+    readonly depth: number,
   ) {
     this.scope = scope;
   }
@@ -239,6 +243,7 @@ export class TemplateBuilder {
           const child = this.components.create(type, element, {
             parentInjector: injector,
             parentView: view,
+            depth: this.depth,
             attributes: node.attributes,
             projected,
             contentQueries: content,
@@ -506,6 +511,7 @@ export class TemplateBuilder {
       this.queries,
       scope,
       false,
+      this.depth + 1,
     );
     return this.embedded.create(builder, body, anchor, injector);
   }

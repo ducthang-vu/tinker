@@ -110,3 +110,58 @@ describe("ViewScheduler", () => {
       .toEqual(["count 0", "other 0", "count 2"]);
   });
 });
+
+describe("ViewScheduler: parents first", () => {
+  test("a batch runs the shallower views first, whatever the order they were queued in", () => {
+    const { scheduler, log } = setup();
+    scheduler.schedule(task(log, "child"), 2);
+    scheduler.schedule(task(log, "root"), 0);
+    scheduler.schedule(task(log, "parent"), 1);
+    scheduler.flush();
+    expect(log)
+      .toEqual(["root", "parent", "child"]);
+  });
+
+  test("views at the same depth keep the order they were queued in", () => {
+    const { scheduler, log } = setup();
+    scheduler.schedule(task(log, "b"), 1);
+    scheduler.schedule(task(log, "a"), 1);
+    scheduler.flush();
+    expect(log)
+      .toEqual(["b", "a"]);
+  });
+
+  test("a view queued again keeps one place, at its latest depth", () => {
+    const { scheduler, log } = setup();
+    const view = task(log, "view");
+    scheduler.schedule(view, 3);
+    scheduler.schedule(task(log, "other"), 1);
+    scheduler.schedule(view, 0);
+    scheduler.flush();
+    expect(log)
+      .toEqual(["view", "other"]);
+  });
+
+  test("forDepth queues the views at that depth", () => {
+    const { scheduler, log } = setup();
+    scheduler.forDepth(2)
+      .schedule(task(log, "deep"));
+    scheduler.forDepth(0)
+      .schedule(task(log, "root"));
+    scheduler.flush();
+    expect(log)
+      .toEqual(["root", "deep"]);
+  });
+
+  test("work queued by an update runs in the next batch, after the others", () => {
+    const { scheduler, log } = setup();
+    scheduler.schedule(task(log, "parent", () => scheduler.schedule(task(log, "late"), 0)), 0);
+    scheduler.schedule(task(log, "child"), 1);
+    scheduler.flush();
+    expect(log)
+      .toEqual(["parent", "child"]);
+    scheduler.flush();
+    expect(log)
+      .toEqual(["parent", "child", "late"]);
+  });
+});
