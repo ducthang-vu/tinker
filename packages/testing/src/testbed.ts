@@ -23,6 +23,7 @@ import type {
 import type {
   ComponentBuilder as ComponentBuilderApi,
   ComponentBuilderStatic,
+  MockBuilderStatic,
   MockBuilder as MockBuilderApi,
   MockClass,
   TestBed as TestBedApi,
@@ -230,10 +231,17 @@ class MockBuilderImpl<F extends object> implements MockBuilderApi<F> {
   }
 }
 
-/** The static starts: a builder for a component with a template, or a mock of a class. */
+/** The static start: a builder for a component with a template. */
 export const ComponentBuilder: ComponentBuilderStatic = {
   template: (source) => new TemplateBuilder(source),
-  mock: (type) => {
+};
+
+/** A builder for a mock of a class: the same selector, exportAs, inputs and outputs. */
+export type MockBuilder<F extends object> = MockBuilderApi<F>;
+
+/** The static start of a mock builder: a builder for a mock of `type`. */
+export const MockBuilder: MockBuilderStatic = {
+  of: (type) => {
     const metadata = getDirectiveMetadata(type)
       .getOrThrow(() => new Error(`${type.name} is not a directive or component: nothing to mock`));
     return new MockBuilderImpl({

@@ -194,8 +194,11 @@ export interface MockBuilder<F extends object> {
 export interface ComponentBuilderStatic {
   /** A builder for a component with that template. */
   template(source: string): ComponentBuilder;
-  /** A builder for a mock of `type`. */
-  mock<F extends object>(type: new () => F): MockBuilder<F>;
+}
+
+/** The static start of a mock builder: a builder for a mock of `type`. */
+export interface MockBuilderStatic {
+  of<F extends object>(type: new () => F): MockBuilder<F>;
 }
 
 /**

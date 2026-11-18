@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { TestBed } from "@tinker/testing";
-import { Counter } from "./counter.ts";
+import { MockBuilder, TestBed } from "@tinker/testing";
+import { Counter, Step } from "./counter.ts";
+import { Highlight } from "./highlight.ts";
 import { buttonNamed } from "./testing-helpers.ts";
 
 describe("Counter", () => {
@@ -75,6 +76,21 @@ describe("Counter", () => {
     ref.detectChanges();
     expect(count.classList.contains("highlighted"))
       .toBe(true);
+    ref.destroy();
+  });
+
+  test("with Highlight mocked, hovering the count does not highlight it", () => {
+    const mock = MockBuilder.of(Highlight)
+      .build();
+    const ref = TestBed.override(Highlight, mock)
+      .component(Counter)
+      .build();
+    ref.root.query("p")
+      .dispatchEvent("mouseenter");
+    expect(ref.root.query("p").element.classList.contains("highlighted"))
+      .toBe(false);
+    expect(ref.root.query(Highlight).instance)
+      .toBeInstanceOf(mock);
     ref.destroy();
   });
 });

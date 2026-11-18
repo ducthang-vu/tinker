@@ -9,7 +9,7 @@ import {
   output,
   provide,
 } from "@tinker/core";
-import { cleanup, ComponentBuilder, registerCleanup, TestBed } from "./testbed.ts";
+import { cleanup, ComponentBuilder, MockBuilder, registerCleanup, TestBed } from "./testbed.ts";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
 class Greeting {
@@ -336,9 +336,9 @@ describe("registerCleanup", () => {
   });
 });
 
-describe("ComponentBuilder.mock", () => {
+describe("MockBuilder.of", () => {
   test("keeps the selector, and renders nothing", () => {
-    const mock = ComponentBuilder.mock(Item)
+    const mock = MockBuilder.of(Item)
       .build();
     const ref = TestBed.override(Item, mock)
       .component(List)
@@ -351,7 +351,7 @@ describe("ComponentBuilder.mock", () => {
   });
 
   test("recreates the inputs it names, so a parent template can bind them", () => {
-    const mock = ComponentBuilder.mock(Mark)
+    const mock = MockBuilder.of(Mark)
       .inputs("label")
       .build();
     const Host = ComponentBuilder.template("<p mark>x</p>")
@@ -368,7 +368,7 @@ describe("ComponentBuilder.mock", () => {
   });
 
   test("recreates the outputs it names, so a parent template can listen", () => {
-    const mock = ComponentBuilder.mock(Pick)
+    const mock = MockBuilder.of(Pick)
       .outputs("picked")
       .build();
     const Host = ComponentBuilder.template("<p pick>x</p>")
@@ -387,7 +387,7 @@ describe("ComponentBuilder.mock", () => {
   });
 
   test("keeps exportAs, so a template can name the mock", () => {
-    const mock = ComponentBuilder.mock(Named)
+    const mock = MockBuilder.of(Named)
       .build();
     const Host = ComponentBuilder.template("<p named #n=\"named\">x</p>")
       .directives(Named)
@@ -401,7 +401,7 @@ describe("ComponentBuilder.mock", () => {
   });
 
   test("a component mock keeps exportAs too", () => {
-    const mock = ComponentBuilder.mock(Card)
+    const mock = MockBuilder.of(Card)
       .build();
     const Host = ComponentBuilder.template("<tk-card #c=\"card\"></tk-card>")
       .directives(Card)
@@ -415,7 +415,7 @@ describe("ComponentBuilder.mock", () => {
   });
 
   test("refuses a class that is not a directive or component", () => {
-    expect(() => ComponentBuilder.mock(class Plain {}))
+    expect(() => MockBuilder.of(class Plain {}))
       .toThrow("is not a directive or component");
   });
 });
