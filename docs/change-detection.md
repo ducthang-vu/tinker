@@ -28,6 +28,43 @@ one place when we know more about its costs.
 6. **Values are written only when they change.** A binding writes the DOM only
    when its value differs from the last one it wrote.
 
+## When the DOM is ready
+
+Creating a component and rendering it are two steps:
+
+1. **Create.** `bootstrap(type)`, and `createComponent(type)` on a container,
+   create the component and its element. The constructor and the field
+   initializers run here. The elements exist, but their bindings are not
+   applied yet.
+2. **First render.** The first render is queued for the next tick. The effects
+   of that tick run before the views, so an effect can set the state that the
+   first render reads.
+
+So right after `bootstrap` or `createComponent` returns:
+
+- the text, attributes and classes of the component are not written yet;
+- inputs can be bound before the first render, and a required input is read
+  only by that render (the testing helpers bind inputs this way);
+- a compile error in the template is still thrown at creation, since templates
+  compile then.
+
+Code that reads the DOM, or needs the component rendered, runs after the first
+render, in an `AfterNextRender` hook:
+
+```ts
+@Component({ selector: "tk-search", template: `<input placeholder="Search">` })
+class Search {
+  private readonly host = inject(ElementRef);
+
+  @AfterNextRender() focusInput(): void {
+    this.host.nativeElement.querySelector("input")?.focus();
+  }
+}
+```
+
+Code in the constructor can't read the DOM in either case: nothing is rendered
+yet there.
+
 ## Where a view lives
 
 Every view sits in one of two places, and Tinker never adds an element of its
