@@ -1,8 +1,10 @@
 // Handlers: what an event does. A handler is one call of a method of the
-// component, with any arguments the template can express:
+// component, or of a template variable (`#g="gauge"`, or an @let), with any
+// arguments the template can express:
 //
 //   method()                     call the method
 //   method($event)               call it with the event
+//   g.show(3)                    call a method of the template variable g
 //   select(item.id, $event.key)  arguments are ordinary expressions
 //
 // `$event` is the DOM event, or the value an output emits. Used by template
@@ -16,8 +18,13 @@ import { Scope } from "./scope.ts";
 
 /** A parsed handler: the method it calls, and the call as written. */
 export interface Handler {
-  /** The method of the component that is called, e.g. `"select"`. */
+  /** The method that is called, e.g. `"select"`. */
   readonly method: string;
+  /**
+   * The template variable the method belongs to (`g` in `g.show(3)`); undefined for the
+   * component.
+   */
+  readonly target?: string;
   readonly call: Call;
 }
 
@@ -32,26 +39,35 @@ export function parseHandler(source: string, what: string): EitherError<Handler>
     .match({
       left: (error) => unsupported(error.message),
       right: (expression) => {
-        const shape = `write a call of a method, as in "method()" or "method($event)"`;
+        const shape = `write a call of a method, as in "method()", "method($event)" or "g.method()"`;
         if (expression.kind !== "call") {
           return unsupported(shape);
         }
         const { callee } = expression;
-        if (callee.kind !== "property" || callee.receiver.kind !== "component") {
+        if (callee.kind !== "property") {
           return unsupported(shape);
         }
-        return Either.right({ method: callee.name, call: expression });
+        if (callee.receiver.kind === "component") {
+          return Either.right({ method: callee.name, call: expression });
+        }
+        const { receiver } = callee;
+        if (receiver.kind === "property" && receiver.receiver.kind === "component") {
+          return Either.right({ method: callee.name, target: receiver.name, call: expression });
+        }
+        return unsupported(shape);
       },
     });
 }
 
 /**
- * Run `handler` on `component` for `event`: the handler's `$event` is the
- * event, and the method is called with `component` as `this`.
+ * Run `handler` in `scope` for `event`: the handler's `$event` is the event, the
+ * template variables of the scope are visible, and a method is called with its
+ * object as `this`.
  */
-export function runHandler(handler: Handler, component: object, event: unknown): unknown {
-  const lets = new Map<string, ReadonlySignal<unknown>>([["$event", signal(event)]]);
-  return evaluate(handler.call, new Scope(component, lets));
+export function runHandler(handler: Handler, scope: Scope, event: unknown): unknown {
+  const lets = new Map<string, ReadonlySignal<unknown>>(scope.lets);
+  lets.set("$event", signal(event));
+  return evaluate(handler.call, new Scope(scope.component, lets));
 }
 
 /** Throw unless `target` has a method `method`. `describe` names the event for the message. */

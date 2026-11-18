@@ -189,3 +189,29 @@ describe("template references", () => {
       .toThrow("has no component");
   });
 });
+
+describe("a handler that calls a method of a template reference", () => {
+  test("g.show(3) calls the method of the component named #g", () => {
+    document.body.innerHTML = "<tk-panel></tk-panel>";
+    const shown: number[] = [];
+    @Component({ selector: "tk-gauge", exportAs: "gauge", template: "" })
+    class Gauge {
+      show(level: number): void {
+        shown.push(level);
+      }
+    }
+    @Component({
+      selector: "tk-panel",
+      template: `<tk-gauge #g="gauge"></tk-gauge><button (click)="g.show(3)">Set</button>`,
+      imports: [Gauge],
+    })
+    class Panel {}
+    const engine = Engine.create();
+    engine.bootstrap(Panel);
+    engine.flush();
+    document.querySelector("button")!.click();
+    expect(shown)
+      .toEqual([3]);
+    engine.destroy();
+  });
+});

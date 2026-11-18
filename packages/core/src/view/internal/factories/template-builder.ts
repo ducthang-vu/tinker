@@ -371,8 +371,10 @@ export class TemplateBuilder {
     view: View,
   ): void {
     for (const { name, owner, handler, modifiers, domFallback } of node.outputBindings) {
-      requireMethod(this.component, handler.method, `event "(${name})"`);
-      const call = (value: unknown) => runHandler(handler, this.component, value);
+      if (handler.target === undefined) {
+        requireMethod(this.component, handler.method, `event "(${name})"`);
+      }
+      const call = (value: unknown) => runHandler(handler, this.scope, value);
       // `(owner.enter)` with a fallback is the output when `owner` has one, else the DOM event.
       const hasOutput = (item: Owned) =>
         item.owner === owner && outputsNamed([item.instance], name).length > 0;

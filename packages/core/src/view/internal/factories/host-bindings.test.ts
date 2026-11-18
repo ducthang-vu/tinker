@@ -73,10 +73,10 @@ describe("HostBindings parsing", () => {
   });
 
   test("rejects handlers other than method() and method($event)", () => {
-    for (const handler of ["go", "a.b()", "open.toggle"]) {
+    for (const handler of ["go", "a.b.c()", "open.toggle"]) {
       expect(() => new HostBindings({ "(click)": handler }))
         .toThrow(
-          `Unsupported host handler "${handler}": write a call of a method, as in "method()" or "method($event)"`,
+          `Unsupported host handler "${handler}": write a call of a method, as in "method()", "method($event)" or "g.method()"`,
         );
     }
     expect(() => new HostBindings({ "(click)": "open = !open" }))
@@ -86,7 +86,7 @@ describe("HostBindings parsing", () => {
   test("reports every invalid entry at once", () => {
     let thrown: unknown;
     try {
-      new HostBindings({ "[title]": "x()", "(click)": "go()", "(keyup)": "a.b()" });
+      new HostBindings({ "[title]": "x()", "(click)": "go()", "(keyup)": "a.b.c()" });
     } catch (error) {
       thrown = error;
     }
@@ -99,7 +99,7 @@ describe("HostBindings parsing", () => {
       .toBe(
         "Unsupported host binding \"[title]\": only \"(event)\" listeners and "
         + "\"[class.name]\", \"[style.name]\" and \"[attr.name]\" bindings are supported for now\n"
-        + `Unsupported host handler "a.b()": write a call of a method, as in "method()" or "method($event)"`,
+        + `Unsupported host handler "a.b.c()": write a call of a method, as in "method()", "method($event)" or "g.method()"`,
       );
   });
 });
@@ -169,5 +169,18 @@ describe("HostBindings handlers with event fields", () => {
     element.dispatchEvent(new Event("input"));
     expect(seen)
       .toEqual([element]);
+  });
+});
+
+describe("HostBindings handlers on a field", () => {
+  test("a listener calls a method of a field of the instance: other.go()", () => {
+    const element = document.createElement("button");
+    const go = vi.fn();
+    const instance = { other: { go } };
+    new HostBindings({ "(click)": "other.go()" })
+      .attach(instance, element, renderer, makeView(element));
+    element.click();
+    expect(go)
+      .toHaveBeenCalledTimes(1);
   });
 });
