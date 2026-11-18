@@ -144,16 +144,15 @@ describe("RenderHooks in change detection", () => {
       .toThrow(ChangeDetectionLoopError);
   });
 
-  test("afterStable completes after the render hooks", async () => {
+  test("a flush runs the render hooks after the views have rendered", () => {
     const { engine, component } = setup();
     const log: string[] = [];
     component.render.afterNextRender(() => log.push("hook"));
     component.count.set(2);
-    await engine.afterStable()
-      .toPromise();
-    log.push("stable");
+    engine.flush();
+    log.push("flushed");
     expect(log)
-      .toEqual(["hook", "stable"]);
+      .toEqual(["hook", "flushed"]);
   });
 });
 

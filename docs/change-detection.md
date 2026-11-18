@@ -123,7 +123,7 @@ doesn't.
   creating and removing rows, which a browser pays too, so splitting the tick
   would spread that work out without reducing it. Browser numbers are not
   measured yet. Until they are, the tick stays synchronous: yielding between
-  rounds would weaken the guarantee that `afterStable` waits for a finished tick.
+  rounds would weaken the guarantee that a flush finishes the work written so far.
   If a real browser is too slow, the options are to reuse rows whose track key
   is unchanged, or to yield.
 

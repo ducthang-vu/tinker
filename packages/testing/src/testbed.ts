@@ -119,8 +119,12 @@ class Bed<T extends object> implements TestBedApi<T> {
     const fixture: Fixture<T> = {
       root,
       detectChanges: () => engine.flush(),
-      whenStable: () => engine.afterStable()
-        .toPromise(),
+      whenStable: async () => {
+        // Writes made by promises and other microtasks request their ticks there, so one
+        // macrotask later those ticks have run; then anything still queued is flushed.
+        await new Promise((resolve) => setTimeout(resolve));
+        engine.flush();
+      },
       get: <S>(token: Token<S>): S => engine.get(token),
       destroy: () => {
         if (!destroyed) {

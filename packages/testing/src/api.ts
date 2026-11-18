@@ -129,7 +129,11 @@ export interface Fixture<T extends object> {
   readonly root: TestingElement<T>;
   /** Run a change detection tick now: effects first, then views, until nothing is left. */
   detectChanges(): void;
-  /** Resolve once the next change detection tick has ended. */
+  /**
+   * Resolve once the writes made so far have rendered: the microtasks they request have run,
+   * and anything still queued is flushed. A timer's write is not waited for: advance timers
+   * in the test.
+   */
   whenStable(): Promise<void>;
   /** A service from the bed's engine: its providers, then the defaults. */
   get<S>(token: Token<S>): S;

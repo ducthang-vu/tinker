@@ -453,54 +453,6 @@ describe("Engine collaborators", () => {
   });
 });
 
-describe("Engine.afterStable", () => {
-  test("completes once the tick ended: effects ran and views rendered", async () => {
-    const log: string[] = [];
-    @Component({ selector: "tk-a", template: "<p>{{ doubled() }}</p>" })
-    class A {
-      readonly count = signal(1);
-      readonly doubled = signal(0);
-      constructor() {
-        inject(Effects)
-          .create(() => this.doubled.set(this.count() * 2));
-      }
-    }
-    const engine = Engine.create();
-    const view = engine.createComponent(A);
-
-    view.instance.count.set(5);
-    await engine.afterStable()
-      .toPromise();
-    log.push(view.host.nativeElement.textContent!);
-
-    await tick();
-
-    expect(log)
-      .toEqual(["10"]);
-  });
-
-  test("completes even when nothing changed", async () => {
-    await expect(Engine.create()
-      .afterStable()
-      .toPromise()).resolves.toBeUndefined();
-  });
-
-  test("is lazy and cancellable", async () => {
-    const engine = Engine.create();
-    const ended: string[] = [];
-    const stable = engine.afterStable();
-    engine.flush();
-    await tick();
-    expect(ended)
-      .toEqual([]); // not run yet
-    const cancel = stable.run({ ok: () => ended.push("stable") });
-    cancel();
-    engine.flush();
-    expect(ended)
-      .toEqual([]);
-  });
-});
-
 describe("Engine.get", () => {
   test("returns a service of the engine's root injector, providers first", async () => {
     const GREETING = new InjectionToken<string>("GREETING");

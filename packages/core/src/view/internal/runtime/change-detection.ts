@@ -23,8 +23,8 @@
 // task runs even if some throw; the first error is re-thrown once the tick
 // is over.
 //
-// To know when a tick is over: `afterStable()`, a Task completing at the end
-// of the next tick (run it again to follow every tick).
+// A caller that needs the ticks to be over flushes them (`flush`), or waits for
+// the microtasks that request them and then flushes (the test bed does this).
 
 import { inject, Injectable } from "../../../di/index.ts";
 import { Task } from "@tinker/functional";
@@ -61,31 +61,9 @@ export class ChangeDetection {
   private readonly renderHooks = inject(RenderHookRegistry);
   private viewsRendered = false;
   private readonly ticker = inject(Ticker);
-  /** Who waits for the end of the next tick (running `afterStable()` tasks). */
-  private readonly waiting = new Set<() => void>();
 
   constructor() {
     this.ticker.onTick(() => this.tick());
-  }
-
-  /**
-   * The end of the next tick, as a Task: lazy (nothing happens until it is
-   * run), and cancellable. Running it requests a tick, so it completes even
-   * when nothing else is pending. It completes after a failed tick too.
-   *
-   * To follow every tick, run it again when it completes: it then waits for
-   * the following tick, but does not force one (otherwise following would
-   * chain ticks forever): that tick comes with the next change.
-   *
-   *   await changeDetection.afterStable().toPromise();   // e.g. in a test
-   */
-  afterStable(): Task<void> {
-    return Task.from((ok) => {
-      const waiter = () => ok();
-      this.waiting.add(waiter);
-      this.ticker.requestTick();
-      return () => this.waiting.delete(waiter);
-    });
   }
 
   /**
@@ -98,31 +76,11 @@ export class ChangeDetection {
   }
 
   /**
-   * Run a tick now: every queued task, phase by phase, round after round,
-   * until settled. Then the `afterStable()` tasks waiting for it complete, even
-   * if the tick failed. Work they queue (e.g. a waiter writing a signal a
-   * view reads) still runs in this tick: no tick request is lost while the
-   * Ticker considers this tick running. Every step runs even if an earlier
-   * one throws; the first error is re-thrown at the end.
+   * Run a tick now: every queued task, phase by phase, round after round, until
+   * settled. One loop guard covers the whole tick.
    */
   tick(): void {
-    const rounds = { count: 0 }; // one loop guard for the whole tick
-    runAll([
-      () => this.settle(rounds),
-      () => this.completeWaiters(),
-      () => this.settle(rounds),
-    ]);
-  }
-
-  /**
-   * Complete the `afterStable()` tasks waiting now. A snapshot: a task run
-   * again while completing waits for the next tick (which it does not force,
-   * see `afterStable`).
-   */
-  private completeWaiters(): void {
-    const waiters = [...this.waiting];
-    this.waiting.clear();
-    runAll(waiters);
+    this.settle({ count: 0 });
   }
 
   /**
