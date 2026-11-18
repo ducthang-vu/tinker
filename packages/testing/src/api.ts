@@ -45,6 +45,11 @@ export interface TestBed<T extends object = object> {
    */
   inputs(values: Readonly<Record<string, unknown>>): TestBed<T>;
   /**
+   * The fixture is not destroyed by `cleanup()`: the test destroys it itself. Use it for
+   * a test that must control when its fixture goes, e.g. one that runs concurrently.
+   */
+  manualCleanup(): TestBed<T>;
+  /**
    * Create the bed and its component. Needs a component: `component(type)` first, or
    * the static `TestBed.component(type)`.
    */
@@ -205,4 +210,5 @@ export interface TestBedStatic {
   host(element: Element): TestBed;
   override<F extends object>(from: new () => F, to: MockClass<F>): TestBed;
   inputs(values: Readonly<Record<string, unknown>>): TestBed;
+  manualCleanup(): TestBed;
 }

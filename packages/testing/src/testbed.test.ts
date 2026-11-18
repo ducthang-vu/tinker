@@ -9,7 +9,7 @@ import {
   output,
   provide,
 } from "@tinker/core";
-import { ComponentBuilder, TestBed } from "./testbed.ts";
+import { cleanup, ComponentBuilder, registerCleanup, TestBed } from "./testbed.ts";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
 class Greeting {
@@ -296,5 +296,41 @@ describe("TestingElement methods", () => {
     expect(ref.root.query("button").element.textContent)
       .toBe("2");
     ref.destroy();
+  });
+});
+
+describe("cleanup", () => {
+  test("destroys the fixtures left behind, and keeps the manual ones", () => {
+    const left = TestBed.component(Clicker)
+      .build();
+    const kept = TestBed.manualCleanup()
+      .component(Clicker)
+      .build();
+    const leftButton = left.root.query("button").element;
+    cleanup();
+    leftButton.dispatchEvent(new Event("click"));
+    expect(leftButton.textContent)
+      .toBe("0");
+    kept.root.query("button")
+      .dispatchEvent("click");
+    expect(kept.root.query("button").element.textContent)
+      .toBe("1");
+    kept.destroy();
+  });
+});
+
+describe("registerCleanup", () => {
+  test("registers cleanup with the runner's afterEach, when there is one", () => {
+    const hooks: (() => void)[] = [];
+    registerCleanup((hook) => {
+      hooks.push(hook);
+    });
+    expect(hooks)
+      .toEqual([cleanup]);
+  });
+
+  test("registers nothing without one", () => {
+    expect(() => registerCleanup(undefined))
+      .not.toThrow();
   });
 });
