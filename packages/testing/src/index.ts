@@ -2,4 +2,4 @@
 // types only (see api.ts): `TestBed` is declared there and is exported once it is
 // implemented, so that importing this package never reaches code that does not exist.
 
-export type { ElementFixture, Fixture, TestBed, TestBedRef } from "./api.ts";
+export type { ComponentBuilder, ElementFixture, Fixture, TestBed, TestBedRef } from "./api.ts";

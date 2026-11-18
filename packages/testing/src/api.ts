@@ -88,6 +88,25 @@ export interface TestBedRef<T extends object> {
 }
 
 /**
+ * A builder for a component class made from a template string, for tests that need a
+ * host for a directive. The class works anywhere a component class does.
+ */
+export interface ComponentBuilder {
+  /**
+   * The components and directives the template may use, as `imports` does for a
+   * standalone component. Calling it again adds more.
+   */
+  directives(...types: readonly (new () => object)[]): ComponentBuilder;
+  /** Create the component class. A template that uses something not listed fails here. */
+  build(): new () => object;
+}
+
+/** The static start: a builder for a component with that template. */
+export declare const ComponentBuilder: {
+  template(source: string): ComponentBuilder;
+};
+
+/**
  * The static starts: each returns a new builder with that one setting, the same as
  * calling the instance method of the same name on a fresh builder.
  */
