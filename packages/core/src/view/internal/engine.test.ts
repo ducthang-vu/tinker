@@ -3,11 +3,13 @@ import { Component, Directive } from "./authoring/decorators.ts";
 import { Effects } from "./authoring/effects.ts";
 import { RenderHookRegistry } from "./runtime/render-hook-registry.ts";
 import { ElementContext } from "./runtime/element-context.ts";
+
+import type { Class } from "../../utils/types.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
 import { signal } from "../../signals/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
-import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
+import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { inject, InjectionToken, Injector, provide, runInInjectionContext } from "../../di/index.ts";
 import { ChangeDetection } from "./runtime/change-detection.ts";
@@ -475,5 +477,26 @@ describe("Engine.get", () => {
     });
     expect(engine.get(GREETING))
       .toBe("given");
+  });
+});
+
+describe("CLASS_REPLACEMENTS", () => {
+  test("a template gets the replacement of an imported class", () => {
+    document.body.innerHTML = "<tk-app></tk-app>";
+    @Directive({ selector: "[mark]" })
+    class Real {}
+    @Directive({ selector: "[mark]" })
+    class Stub {}
+    @Component({ selector: "tk-app", template: "<p mark></p>", imports: [Real] })
+    class App {}
+    const replacements = new Map<Class<object>, Class<object>>([[Real, Stub]]);
+    const engine = Engine.create({
+      providers: [provide(CLASS_REPLACEMENTS, { useValue: replacements })],
+    });
+    engine.bootstrap(App);
+    const context = engine.getContext(document.querySelector("p")!)
+      .getOrElse(undefined)!;
+    expect(context.directives[0])
+      .toBeInstanceOf(Stub);
   });
 });

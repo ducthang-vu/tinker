@@ -62,7 +62,7 @@ import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Selector } from "../template/selector.ts";
-import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
+import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ElementScope } from "./element-scope.ts";
 import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
@@ -106,6 +106,7 @@ export class ComponentFactory {
   /** The components being created right now, outermost first: to detect recursion. */
   private readonly creating: Class<unknown>[] = [];
   private readonly parser = inject(TEMPLATE_PARSER);
+  private readonly replacements = inject(CLASS_REPLACEMENTS);
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
   private readonly directives = inject(DirectiveFactory);
@@ -351,13 +352,16 @@ export class ComponentFactory {
    * one that is not a directive, or whose selector is not supported.
    */
   private candidatesOf(type: Class<unknown>, metadata: ComponentMetadata): DirectiveCandidate[] {
-    return (metadata.imports ?? []).map((imported) => ({
-      type: imported,
-      selector: Selector.parse(this.directives.metadataOf(imported).selector)
-        .mapLeft((error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))
-        .getOrThrow(),
-      isComponent: getComponentMetadata(imported)
-        .isSome(),
-    }));
+    return (metadata.imports ?? []).map((declared) => {
+      const imported = this.replacements.get(declared) ?? declared;
+      return {
+        type: imported,
+        selector: Selector.parse(this.directives.metadataOf(imported).selector)
+          .mapLeft((error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))
+          .getOrThrow(),
+        isComponent: getComponentMetadata(imported)
+          .isSome(),
+      };
+    });
   }
 }

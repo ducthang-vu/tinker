@@ -29,3 +29,11 @@ export { DomRenderer, type Renderer } from "./internal/renderer.ts";
 export type { TemplateParser } from "./internal/template/parser.ts";
 export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./internal/template/ast.ts";
 export { BrowserTemplateParser } from "./internal/template/browser-parser.ts";
+
+// Private API: for the testing helpers only. Each is marked @privateAPI in its doc:
+// do not use it in an app, unless you accept that it may change without notice.
+export { Engine, type EngineOptions } from "./internal/engine.ts";
+export { inputsOf } from "./internal/authoring/input.ts";
+export { outputsOf } from "./internal/authoring/output.ts";
+export { defineComponent, defineDirective } from "./internal/authoring/decorators.ts";
+export { CLASS_REPLACEMENTS } from "./internal/tokens.ts";
