@@ -6,8 +6,11 @@ export type {
   ComponentBuilder,
   ElementFixture,
   Fixture,
+  MethodName,
   MockBuilder,
   MockClass,
+  Spies,
+  Spy,
   TestBed,
   TestBedRef,
 } from "./api.ts";

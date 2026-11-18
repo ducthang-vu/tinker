@@ -118,26 +118,50 @@ export interface ComponentBuilder {
   build(): new () => object;
 }
 
+/** The names of the methods of `F`. */
+export type MethodName<F> = {
+  [K in keyof F]: F[K] extends (...args: never[]) => unknown ? K : never;
+}[keyof F]
+& string;
+
 /**
- * A mock of the class `F`: a component class named `Mock<Name>`, with the same selector,
- * inputs and outputs, and a static `mockOf` naming the class it replaces, so a mock is
- * easy to spot in a test and in a debugger.
+ * A method spy: a function that records the arguments of each call, in order. It calls
+ * the method of the mock it replaces, so a mock without a body returns `undefined`.
  */
-export type MockClass<F extends object = object> = (new () => object) & {
-  readonly mockOf: new () => F;
+export type Spy<A extends readonly unknown[], R> = ((...args: A) => R) & {
+  /** The arguments of each call so far, in order. */
+  readonly calls: readonly A[];
+};
+
+/** A spy for each of the methods `K` of `F`, typed as the method of `F`. */
+export type Spies<F, K extends keyof F> = {
+  readonly [P in K]: F[P] extends (...args: infer A) => infer R ? Spy<A, R> : never;
 };
 
 /**
- * A builder for a mock of `F`. It renders nothing until `template` is set. The mock
- * keeps `F`'s selector, inputs and outputs.
+ * A mock of the class `F`: a component class named `Mock<Name>`, with the same selector,
+ * inputs and outputs, and a static `mockOf` naming the class it replaces, so a mock is
+ * easy to spot in a test and in a debugger. Its instance has a spy for each method `K`.
  */
-export interface MockBuilder<F extends object> {
+export type MockClass<F extends object = object, K extends MethodName<F> = never>
+  = (new () => Spies<F, K>) & {
+    readonly mockOf: new () => F;
+  };
+
+/**
+ * A builder for a mock of `F`. It renders nothing until `template` is set. The mock
+ * keeps `F`'s selector, inputs and outputs. Only the methods named by `spy` get a spy;
+ * the others are left as they are.
+ */
+export interface MockBuilder<F extends object, K extends MethodName<F> = never> {
   /** The template of the mock. */
-  template(source: string): MockBuilder<F>;
+  template(source: string): MockBuilder<F, K>;
   /** The components and directives the template may use, as `directives` does above. */
-  directives(...types: readonly (new () => object)[]): MockBuilder<F>;
+  directives(...types: readonly (new () => object)[]): MockBuilder<F, K>;
+  /** Spy on these methods of `F`. Calling it again adds more. */
+  spy<N extends MethodName<F>>(...names: readonly N[]): MockBuilder<F, K | N>;
   /** Create the mock class. */
-  build(): MockClass<F>;
+  build(): MockClass<F, K>;
 }
 
 /** The static starts: a builder for a component from a template, or a mock of a class. */
