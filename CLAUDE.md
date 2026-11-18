@@ -36,6 +36,10 @@ Read `CONVENTIONS.md` before writing code (DI and factories, no `any`,
 `Maybe`/`Either`, tests next to their files). `IMPROVEMENTS.md` lists known
 gaps and planned work; check it before adding something it already covers.
 
+Never import `@tinker/testing` in `packages/core`, not in its source and not in
+its tests: the testing package depends on core, so core must not depend on it.
+Core tests use only what is inside core.
+
 ## Agent instructions
 
 The rules for every AI agent (design patterns, SOLID, declarative code,
