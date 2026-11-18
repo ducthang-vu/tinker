@@ -44,21 +44,29 @@ export interface TestBed<T extends object = object> {
   build(): TestBedRef<T>;
 }
 
-/** The component under test, as a test sees it. */
-export interface Fixture<T extends object> {
-  /** The component instance. */
-  readonly instance: T;
-  /** The element the component is rendered into. */
+/**
+ * An element a test can query inside of: the root of a fixture, or a match of a CSS
+ * selector. It has no instance, so it has no inputs or outputs to drive.
+ */
+export interface ElementFixture {
+  /** The element. */
   readonly element: Element;
   /**
-   * The first match inside the component's template, in document order, or `null`:
-   * an element for a CSS selector, or a fixture for a component class, to drive it too.
+   * The first match inside `element`, in document order, or `null`: a fixture for a
+   * component or directive class, so it can be driven too; an element fixture for a
+   * CSS selector.
    */
-  query(selector: string): Element | null;
+  query(selector: string): ElementFixture | null;
   query<C extends object>(type: new () => C): Fixture<C> | null;
   /** Every match, as `query`, in document order. */
-  queryAll(selector: string): Element[];
+  queryAll(selector: string): ElementFixture[];
   queryAll<C extends object>(type: new () => C): Fixture<C>[];
+}
+
+/** A component or directive as a test sees it: its instance, and what drives it. */
+export interface Fixture<T extends object> extends ElementFixture {
+  /** The component instance. */
+  readonly instance: T;
   /** Set one of the component's inputs, as a parent template would. */
   setInput(name: string, value: unknown): void;
   /** Emit one of the component's outputs, so the template's handler for it runs. */
