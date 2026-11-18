@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { Engine } from "../engine.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, output, queryAll } from "../../index.ts";
@@ -14,7 +15,7 @@ class AlsoFires {
 }
 
 describe("qualified outputs: (owner.name)", () => {
-  test("(owner.name) handles the output of that directive only", () => {
+  test("(owner.name) handles the output of that directive only", async () => {
     const seen: number[] = [];
     @Component({
       selector: "tk-two",
@@ -29,6 +30,7 @@ describe("qualified outputs: (owner.name)", () => {
       }
     }
     const app = bootstrap(Two, { host: document.createElement("section") });
+    await tick();
     app.root.instance.alsoFires()[0]!.fired.emit(7);
     expect(seen)
       .toEqual([]);

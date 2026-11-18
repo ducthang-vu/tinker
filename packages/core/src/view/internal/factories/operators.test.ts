@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
+import { Engine } from "../engine.ts";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 describe("template operators", () => {
   test("[class]=\"{ name: value }\" sets the classes whose values are truthy", async () => {
@@ -15,18 +15,20 @@ describe("template operators", () => {
       readonly todo = signal({ done: true, late: false });
     }
     const el = document.createElement("section");
-    const app = bootstrap(ClassObject, { host: el });
+    const engine = Engine.create();
+    const app = engine.bootstrap(ClassObject, el);
+    engine.flush();
     const p = () => el.querySelector("p")!;
     expect(p().className)
       .toBe("done");
-    app.root.instance.todo.set({ done: false, late: true });
+    app.instance.todo.set({ done: false, late: true });
     await tick();
     expect(p().className)
       .toBe("late");
     app.destroy();
   });
 
-  test("(keydown.enter) runs only for Enter, and (keydown.esc) for Escape", () => {
+  test("(keydown.enter) runs only for Enter, and (keydown.esc) for Escape", async () => {
     const pressed: string[] = [];
     @Component({
       selector: "tk-keys",
@@ -43,6 +45,7 @@ describe("template operators", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Keys, { host: el });
+    await tick();
     const input = el.querySelector("input")!;
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
@@ -52,7 +55,7 @@ describe("template operators", () => {
     app.destroy();
   });
 
-  test("a key modifier combines with the others, and a space is ' '", () => {
+  test("a key modifier combines with the others, and a space is ' '", async () => {
     let count = 0;
     @Component({
       selector: "tk-space",
@@ -65,6 +68,7 @@ describe("template operators", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Space, { host: el });
+    await tick();
     const input = el.querySelector("input")!;
     const pressedSpace = new KeyboardEvent("keydown", { key: " ", cancelable: true });
     input.dispatchEvent(pressedSpace);
@@ -83,6 +87,7 @@ describe("template operators", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Safe, { host: el });
+    await tick();
     const p = () => el.querySelector("p")!;
     expect([p().textContent, p()
       .getAttribute("title")])

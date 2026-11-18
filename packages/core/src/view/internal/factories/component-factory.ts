@@ -55,7 +55,6 @@ import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
-import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { type ComponentView, ComponentViewFactory } from "../runtime/component-view.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
@@ -252,16 +251,10 @@ export class ComponentFactory {
     // The view's one watch: updates the bindings (the template's, then the
     // host bindings of its template's directives, and its own if it is a
     // root). Its first run happens now, so the view is complete when it is returned.
-    const firstRun = new RunFirstNow(this.changeDetection.views.forNode(node));
-    const viewWatch = watch(() => template.update(), firstRun);
+    // The first render waits for the next tick, after the caller has bound the inputs
+    // (see `create`). Effects of that tick run before the views, so an effect sees them too.
+    const viewWatch = watch(() => template.update(), this.changeDetection.views.forNode(node));
     view.addDestroyCallback(() => viewWatch.destroy());
-    firstRun.failure.ifSome((error) => {
-      view.destroy(); // nothing half-rendered, and the watch no longer listens
-      throw error;
-    });
-    // The first render happened outside a tick: report it, so the render
-    // hooks run in the next tick (e.g. an afterNextRender registered by the component).
-    this.changeDetection.viewRendered();
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);

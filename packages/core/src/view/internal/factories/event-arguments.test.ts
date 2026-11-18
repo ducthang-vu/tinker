@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
 

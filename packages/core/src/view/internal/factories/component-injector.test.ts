@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject, Injectable, InjectionToken, provide } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -12,7 +13,7 @@ afterEach(() => {
 });
 
 describe("each component has its own injector", () => {
-  test("component providers: each instance gets its own, destroyed with it", () => {
+  test("component providers: each instance gets its own, destroyed with it", async () => {
     const destroyed: number[] = [];
     let created = 0;
     @Injectable()
@@ -30,6 +31,8 @@ describe("each component has its own injector", () => {
     const first = engine.createComponent(A);
     const second = engine.createComponent(A);
 
+    await tick();
+
     expect(first.instance.counter)
       .not.toBe(second.instance.counter);
     first.destroy();
@@ -40,7 +43,7 @@ describe("each component has its own injector", () => {
       .toEqual([1, 2]);
   });
 
-  test("a token is looked up in the component's injector first, then the engine's", () => {
+  test("a token is looked up in the component's injector first, then the engine's", async () => {
     const NAME = new InjectionToken<string>("NAME");
     const COLOR = new InjectionToken<string>("COLOR");
     @Component({ selector: "tk-a", template: "", providers: [provide(NAME, { useValue: "component" })] })
@@ -52,11 +55,12 @@ describe("each component has its own injector", () => {
       providers: [provide(NAME, { useValue: "engine" }), provide(COLOR, { useValue: "red" })],
     });
     const { instance: component } = engine.createComponent(A);
+    await tick();
     expect([component.name, component.color])
       .toEqual(["component", "red"]);
   });
 
-  test("the component's providers can inject the component's other providers and the engine's", () => {
+  test("the component's providers can inject the component's other providers and the engine's", async () => {
     @Injectable({ providedIn: "root" })
     class Api {
       readonly url = "/api";
@@ -69,6 +73,7 @@ describe("each component has its own injector", () => {
     class A {
       readonly store = inject(Store);
     }
+    await tick();
     expect(Engine.create()
       .createComponent(A).instance.store.api.url)
       .toBe("/api");
@@ -96,7 +101,7 @@ describe("each component has its own injector", () => {
       .toEqual(["resource"]);
   });
 
-  test("a failing first render destroys the injector with the view", () => {
+  test("a failed first render is thrown by the flush, and destroying the engine destroys the injector", () => {
     const destroyed: string[] = [];
     @Injectable()
     class Resource {
@@ -111,16 +116,20 @@ describe("each component has its own injector", () => {
         throw new Error("render failed");
       }
     }
-    expect(() => Engine.create()
-      .createComponent(A))
+    const engine = Engine.create();
+    engine.createComponent(A);
+    expect(() => engine.flush())
       .toThrow("render failed");
+    expect(destroyed)
+      .toEqual([]);
+    engine.destroy();
     expect(destroyed)
       .toEqual(["resource"]);
   });
 });
 
 describe("effects and render hooks stop with their component", () => {
-  test("effects created by a component are destroyed with it, decorated ones too", () => {
+  test("effects created by a component are destroyed with it, decorated ones too", async () => {
     const runs: string[] = [];
     const count = signal(1);
     @Component({ selector: "tk-a", template: "" })
@@ -140,11 +149,12 @@ describe("effects and render hooks stop with their component", () => {
     view.destroy();
     count.set(2);
     engine.flush();
+    await tick();
     expect(runs)
       .toEqual(["decorated 1", "created 1"]);
   });
 
-  test("render hooks registered by a component are cancelled with it, decorated ones too", () => {
+  test("render hooks registered by a component are cancelled with it, decorated ones too", async () => {
     const runs: string[] = [];
     const count = signal(1);
     @Component({ selector: "tk-a", template: "<p>{{ value() }}</p>" })
@@ -172,6 +182,7 @@ describe("effects and render hooks stop with their component", () => {
     const a = engine.createComponent(A);
     engine.createComponent(B); // keeps rendering after A is gone
     engine.flush();
+    await tick();
     expect(runs)
       .toEqual(["decorated", "hook"]);
     a.destroy();
@@ -181,7 +192,7 @@ describe("effects and render hooks stop with their component", () => {
       .toEqual(["decorated", "hook"]);
   });
 
-  test("each component gets its own Effects and RenderHooks", () => {
+  test("each component gets its own Effects and RenderHooks", async () => {
     @Component({ selector: "tk-a", template: "" })
     class A {
       readonly effects = inject(Effects);
@@ -190,6 +201,7 @@ describe("effects and render hooks stop with their component", () => {
     const engine = Engine.create();
     const first = engine.createComponent(A).instance;
     const second = engine.createComponent(A).instance;
+    await tick();
     expect(first.effects)
       .not.toBe(second.effects);
     expect(first.render)
@@ -198,7 +210,7 @@ describe("effects and render hooks stop with their component", () => {
 });
 
 describe("the component in its own injector", () => {
-  test("its onDestroy() runs when its view is destroyed, after its template's directives", () => {
+  test("its onDestroy() runs when its view is destroyed, after its template's directives", async () => {
     const log: string[] = [];
     @Directive({ selector: "[part]" })
     class Part {
@@ -214,6 +226,7 @@ describe("the component in its own injector", () => {
     }
     const view = Engine.create()
       .createComponent(A);
+    await tick();
     expect(log)
       .toEqual([]);
     view.destroy();
@@ -221,7 +234,7 @@ describe("the component in its own injector", () => {
       .toEqual(["part", "component"]);
   });
 
-  test("the directives of its template can inject it", () => {
+  test("the directives of its template can inject it", async () => {
     @Directive({ selector: "[part]" })
     class Part {
       readonly owner = inject(A);
@@ -232,6 +245,7 @@ describe("the component in its own injector", () => {
     const view = engine.createComponent(A);
     const [part] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
       .getOrElse([]) as [Part];
+    await tick();
     expect(part.owner)
       .toBe(view.instance);
   });

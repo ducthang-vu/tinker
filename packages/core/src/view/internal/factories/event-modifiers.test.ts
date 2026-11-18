@@ -1,9 +1,10 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 
 describe("event modifiers in templates and host listeners", () => {
-  test("(click.prevent.once) in a template: the default is cancelled, and the handler runs once", () => {
+  test("(click.prevent.once) in a template: the default is cancelled, and the handler runs once", async () => {
     let calls = 0;
     @Component({ selector: "tk-a", template: `<a href="#x" (click.prevent.once)="go()">x</a>` })
     class A {
@@ -18,6 +19,7 @@ describe("event modifiers in templates and host listeners", () => {
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
     link.dispatchEvent(event);
     link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    await tick();
     expect(event.defaultPrevented)
       .toBe(true);
     expect(calls)

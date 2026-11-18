@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
@@ -9,7 +10,7 @@ afterEach(() => {
 });
 
 describe("style and attribute bindings in templates", () => {
-  test("[style.x] and [attr.x] follow the component's signals, on a plain element", () => {
+  test("[style.x] and [attr.x] follow the component's signals, on a plain element", async () => {
     @Component({
       selector: "tk-a",
       template: `<p [style.color]="color()" [attr.title]="title()">x</p>`,
@@ -21,6 +22,7 @@ describe("style and attribute bindings in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     const p = view.host.nativeElement.querySelector("p")!;
+    await tick();
     expect([p.style.color, p.getAttribute("title")])
       .toEqual(["red", "first"]);
     view.instance.color.set("blue");
@@ -30,7 +32,7 @@ describe("style and attribute bindings in templates", () => {
       .toEqual(["blue", false]);
   });
 
-  test("[style.x] on a component's element is the parent's, like a class binding", () => {
+  test("[style.x] on a component's element is the parent's, like a class binding", async () => {
     @Component({ selector: "tk-item", template: "" })
     class Item {}
     @Component({
@@ -44,6 +46,7 @@ describe("style and attribute bindings in templates", () => {
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const item = view.host.nativeElement.querySelector("tk-item") as HTMLElement;
+    await tick();
     expect(item.style.opacity)
       .toBe("0.5");
     view.instance.opacity.set("1");
@@ -54,7 +57,7 @@ describe("style and attribute bindings in templates", () => {
 });
 
 describe("style and attribute bindings in host bindings", () => {
-  test("a directive's host style and attribute follow its own signals", () => {
+  test("a directive's host style and attribute follow its own signals", async () => {
     @Directive({
       selector: "[fade]",
       host: { "[style.opacity]": "opacity()", "[attr.role]": "role()" },
@@ -68,6 +71,7 @@ describe("style and attribute bindings in host bindings", () => {
     const engine = Engine.create();
     const view = engine.createComponent(A);
     const p = view.host.nativeElement.querySelector("p")!;
+    await tick();
     expect([p.style.opacity, p.getAttribute("role")])
       .toEqual(["0.25", "status"]);
     const [fade] = Maybe.map(engine.getContext(p), (context) => context.directives)
@@ -81,7 +85,7 @@ describe("style and attribute bindings in host bindings", () => {
 });
 
 describe("precedence: a template binding on the element wins over a host binding", () => {
-  test("for the same attribute and style, the parent's template decides; the child's host binding is ignored", () => {
+  test("for the same attribute and style, the parent's template decides; the child's host binding is ignored", async () => {
     @Component({
       selector: "tk-item",
       template: "",
@@ -102,11 +106,12 @@ describe("precedence: a template binding on the element wins over a host binding
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const item = view.host.nativeElement.querySelector("tk-item") as HTMLElement;
+    await tick();
     expect([item.getAttribute("title"), item.style.color])
       .toEqual(["parent", "green"]);
   });
 
-  test("a host binding for another name is kept", () => {
+  test("a host binding for another name is kept", async () => {
     @Component({
       selector: "tk-item",
       template: "",
@@ -126,6 +131,7 @@ describe("precedence: a template binding on the element wins over a host binding
     const engine = Engine.create();
     const view = engine.createComponent(List);
     const item = view.host.nativeElement.querySelector("tk-item")!;
+    await tick();
     expect([item.getAttribute("title"), item.getAttribute("role")])
       .toEqual(["t", "listitem"]);
   });

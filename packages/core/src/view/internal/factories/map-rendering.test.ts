@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
+import { Engine } from "../engine.ts";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 /** The text of each row's element, in the page's order. */
 function rows(el: HTMLElement): string[] {
@@ -11,7 +11,7 @@ function rows(el: HTMLElement): string[] {
 }
 
 describe("@map", () => {
-  test("renders one row per item, in order", () => {
+  test("renders one row per item, in order", async () => {
     @Component({
       selector: "tk-list",
       template: "<ul>@map todos(); let todo { <li>{{ todo }}</li> }</ul>",
@@ -21,12 +21,13 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(List, { host: el });
+    await tick();
     expect(rows(el))
       .toEqual(["a", "b", "c"]);
     app.destroy();
   });
 
-  test("an empty list renders no rows", () => {
+  test("an empty list renders no rows", async () => {
     @Component({
       selector: "tk-empty",
       template: "<ul>@map todos(); let todo { <li>{{ todo }}</li> }</ul>",
@@ -36,12 +37,13 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Empty, { host: el });
+    await tick();
     expect(rows(el))
       .toEqual([]);
     app.destroy();
   });
 
-  test("the implicit variables are $index, $first, $last, $even, $odd and $count", () => {
+  test("the implicit variables are $index, $first, $last, $even, $odd and $count", async () => {
     @Component({
       selector: "tk-vars",
       template: `<ul>@map todos(); let todo {
@@ -53,6 +55,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Vars, { host: el });
+    await tick();
     expect(rows(el))
       .toEqual([
         "a:0:true:false:true:false:3",
@@ -72,6 +75,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Same, { host: el });
+    await tick();
     const first = el.querySelector("li");
     app.root.instance.todos.set(["x", "y"]);
     await tick();
@@ -92,6 +96,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Front, { host: el });
+    await tick();
     const before = [...el.querySelectorAll("li")];
     app.root.instance.todos.set(["Z", "A", "B", "C"]);
     await tick();
@@ -116,6 +121,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Remove, { host: el });
+    await tick();
     app.root.instance.todos.set(["a", "c"]);
     await tick();
     expect(rows(el))
@@ -133,6 +139,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Track, { host: el });
+    await tick();
     const [first, second] = [...el.querySelectorAll("li")];
     app.root.instance.todos.set([{ id: 2, title: "b" }, { id: 1, title: "a" }]);
     await tick();
@@ -154,6 +161,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(TrackUpdate, { host: el });
+    await tick();
     app.root.instance.todos.set([{ id: 1, title: "renamed" }]);
     await tick();
     expect(rows(el))
@@ -169,7 +177,9 @@ describe("@map", () => {
     class Dup {
       readonly todos = signal([{ id: 1 }, { id: 1 }]);
     }
-    expect(() => bootstrap(Dup, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(Dup, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow("two items the same key");
   });
 
@@ -181,7 +191,9 @@ describe("@map", () => {
     class NotList {
       readonly todos = signal<unknown>("text");
     }
-    expect(() => bootstrap(NotList, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(NotList, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow("@map needs a list, got string");
   });
 
@@ -193,11 +205,13 @@ describe("@map", () => {
     class NullList {
       readonly todos = signal<unknown>(null);
     }
-    expect(() => bootstrap(NullList, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(NullList, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow("@map needs a list, got null");
   });
 
-  test("destroying the app removes the rows", () => {
+  test("destroying the app removes the rows", async () => {
     @Component({
       selector: "tk-destroy",
       template: "<ul>@map todos(); let todo { <li>{{ todo }}</li> }</ul>",
@@ -207,12 +221,13 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Destroy, { host: el });
+    await tick();
     app.destroy();
     expect(el.querySelectorAll("li"))
       .toHaveLength(0);
   });
 
-  test("a row can read the @let values above the map", () => {
+  test("a row can read the @let values above the map", async () => {
     @Component({
       selector: "tk-let",
       template: "@let prefix = label(); <ul>@map todos(); let todo { <li>{{ prefix }}{{ todo }}</li> }</ul>",
@@ -225,6 +240,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(LetMap, { host: el });
+    await tick();
     expect(rows(el))
       .toEqual(["> a"]);
     app.destroy();
@@ -240,6 +256,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(TrackIndex, { host: el });
+    await tick();
     app.root.instance.todos.set(["x", "y"]);
     await tick();
     expect(rows(el))
@@ -257,6 +274,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Reorder, { host: el });
+    await tick();
     const [a, b, c] = [...el.querySelectorAll("li")];
     app.root.instance.todos.set(["c", "a", "b"]);
     await tick();
@@ -277,6 +295,7 @@ describe("@map", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Stable, { host: el });
+    await tick();
     const [a, b] = [...el.querySelectorAll("li")];
     app.root.instance.todos.set(["a", "b", "c"]);
     await tick();
@@ -297,7 +316,9 @@ describe("@map errors", () => {
     class Uncalled {
       readonly todos = signal(["a"]);
     }
-    expect(() => bootstrap(Uncalled, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(Uncalled, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow("a signal is read with ()");
   });
 });
@@ -313,6 +334,7 @@ describe("@map with track { fields }", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Fields, { host: el });
+    await tick();
     const [first, second] = [...el.querySelectorAll("li")];
     app.root.instance.rows.set([{ id: 1, kind: "b" }, { id: 1, kind: "a" }]);
     await tick();
@@ -333,6 +355,7 @@ describe("@map with track { fields }", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(FieldsChange, { host: el });
+    await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ id: 1, kind: "b" }]);
     await tick();
@@ -354,6 +377,7 @@ describe("@map with track { fields }", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(ObjectField, { host: el });
+    await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ owner: { ...owner } }]);
     await tick();
@@ -370,7 +394,9 @@ describe("@map with track { fields }", () => {
     class FieldsDup {
       readonly rows = signal([{ id: 1, kind: "a" }, { id: 1, kind: "a" }]);
     }
-    expect(() => bootstrap(FieldsDup, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(FieldsDup, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow("two items the same key");
   });
 
@@ -382,7 +408,9 @@ describe("@map with track { fields }", () => {
     class FieldsMissing {
       readonly rows = signal<unknown[]>([{ id: 1 }]);
     }
-    expect(() => bootstrap(FieldsMissing, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(FieldsMissing, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow(`needs the field "kind" on each item`);
   });
 
@@ -394,7 +422,9 @@ describe("@map with track { fields }", () => {
     class FieldsPrimitive {
       readonly rows = signal<unknown[]>(["a"]);
     }
-    expect(() => bootstrap(FieldsPrimitive, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(FieldsPrimitive, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow(`needs the field "id" on each item`);
   });
 });
@@ -410,6 +440,7 @@ describe("@map with a let pattern", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Destructure, { host: el });
+    await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ id: 1, title: "renamed" }]);
     await tick();
@@ -420,7 +451,7 @@ describe("@map with a let pattern", () => {
     app.destroy();
   });
 
-  test("an array pattern destructures each item into a first and a rest", () => {
+  test("an array pattern destructures each item into a first and a rest", async () => {
     @Component({
       selector: "tk-destructure-array",
       template: "<ul>@map pairs(); let [first, ...rest] { <li>{{ first }}:{{ rest.length }}</li> }</ul>",
@@ -430,6 +461,7 @@ describe("@map with a let pattern", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(DestructureArray, { host: el });
+    await tick();
     expect(rows(el))
       .toEqual(["a:2", "x:0"]);
     app.destroy();
@@ -443,7 +475,9 @@ describe("@map with a let pattern", () => {
     class DestructureMiss {
       readonly rows = signal<unknown[]>([{ id: 1 }]);
     }
-    expect(() => bootstrap(DestructureMiss, { host: document.createElement("section") }))
+    const engine = Engine.create();
+    engine.bootstrap(DestructureMiss, document.createElement("section"));
+    expect(() => engine.flush())
       .toThrow("does not match its let pattern");
   });
 });
@@ -459,6 +493,7 @@ describe("@map rows without nodes", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(NoNodes, { host: el });
+    await tick();
     app.root.instance.rows.set(["b", "a", "c"]);
     await tick();
     const ul = el.querySelector("ul")!;

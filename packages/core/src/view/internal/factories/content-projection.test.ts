@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { signal } from "../../../signals/index.ts";
@@ -13,12 +14,13 @@ class Card {}
 class Titled {}
 
 describe("content projection", () => {
-  test("the default <slot> shows the children of the component's element", () => {
+  test("the default <slot> shows the children of the component's element", async () => {
     @Component({ selector: "tk-a", template: "<tk-card><p>hi</p></tk-card>", imports: [Card] })
     class A {}
     const host = document.createElement("div");
     Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.querySelector("tk-card div p")!.textContent)
       .toBe("hi");
   });
@@ -39,7 +41,7 @@ describe("content projection", () => {
       .toBe("body");
   });
 
-  test("text is content too: it goes to the default slot", () => {
+  test("text is content too: it goes to the default slot", async () => {
     @Component({
       selector: "tk-a",
       template: "<tk-card>plain text</tk-card>",
@@ -49,11 +51,12 @@ describe("content projection", () => {
     const host = document.createElement("div");
     Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.querySelector("tk-card div")!.textContent)
       .toBe("plain text");
   });
 
-  test("content that no slot takes is not rendered, and does not throw", () => {
+  test("content that no slot takes is not rendered, and does not throw", async () => {
     @Component({ selector: "tk-plain", template: "<div>inside</div>" })
     class Plain {}
     @Component({
@@ -65,11 +68,12 @@ describe("content projection", () => {
     const host = document.createElement("div");
     Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.textContent)
       .toBe("inside");
   });
 
-  test("a second <slot> with the same name shows nothing: the first one takes the content", () => {
+  test("a second <slot> with the same name shows nothing: the first one takes the content", async () => {
     @Component({
       selector: "tk-twice",
       template: "<div><slot></slot></div><footer><slot></slot></footer>",
@@ -84,6 +88,7 @@ describe("content projection", () => {
     const host = document.createElement("div");
     Engine.create()
       .createComponent(A, host);
+    await tick();
     expect(host.querySelectorAll("p"))
       .toHaveLength(1);
     expect(host.querySelector("div p")!.textContent)
@@ -92,7 +97,7 @@ describe("content projection", () => {
       .toBe("");
   });
 
-  test("projected content is bound in the parent: its signals update it", () => {
+  test("projected content is bound in the parent: its signals update it", async () => {
     @Component({
       selector: "tk-a",
       template: "<tk-card><p>{{ name() }}</p></tk-card>",
@@ -104,6 +109,7 @@ describe("content projection", () => {
     const engine = Engine.create();
     const host = document.createElement("div");
     const view = engine.createComponent(A, host);
+    await tick();
     expect(host.querySelector("p")!.textContent)
       .toBe("first");
     view.instance.name.set("second");
@@ -112,7 +118,7 @@ describe("content projection", () => {
       .toBe("second");
   });
 
-  test("a projected element's event handler belongs to the parent", () => {
+  test("a projected element's event handler belongs to the parent", async () => {
     let clicks = 0;
     @Component({
       selector: "tk-a",
@@ -128,11 +134,12 @@ describe("content projection", () => {
     Engine.create()
       .createComponent(A, host);
     host.querySelector("button")!.click();
+    await tick();
     expect(clicks)
       .toBe(1);
   });
 
-  test("destroying the parent removes the projected content with its element", () => {
+  test("destroying the parent removes the projected content with its element", async () => {
     @Component({
       selector: "tk-a",
       template: "<tk-card><p>x</p></tk-card>",
@@ -143,6 +150,7 @@ describe("content projection", () => {
     const view = Engine.create()
       .createComponent(A, host);
     view.destroy();
+    await tick();
     expect(host.children)
       .toHaveLength(0);
   });

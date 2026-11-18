@@ -1,4 +1,6 @@
 import { describe, expect, test } from "vitest";
+import { Engine } from "../engine.ts";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
@@ -57,6 +59,7 @@ describe("@let template variables", () => {
   test("a declared variable is shown, and follows the signals it reads", async () => {
     const host = document.createElement("section");
     const app = bootstrap(Greeting, { host });
+    await tick();
     expect(host.textContent!.trim())
       .toBe("Hi Ana (2)");
     app.root.instance.person.set("Bo");
@@ -67,23 +70,26 @@ describe("@let template variables", () => {
     app.destroy();
   });
 
-  test("a variable shadows a method or field of the same name", () => {
+  test("a variable shadows a method or field of the same name", async () => {
     const host = document.createElement("section");
     bootstrap(Shadow, { host });
+    await tick();
     expect(host.textContent!.trim())
       .toBe("local");
   });
 
-  test("a variable holding a function is called without a receiver", () => {
+  test("a variable holding a function is called without a receiver", async () => {
     const host = document.createElement("section");
     bootstrap(Callable, { host });
+    await tick();
     expect(host.textContent!.trim())
       .toBe("from let");
   });
 
-  test("a variable is set before a child's input reads it", () => {
+  test("a variable is set before a child's input reads it", async () => {
     const host = document.createElement("section");
     bootstrap(Parent, { host });
+    await tick();
     expect(host.querySelector("tk-child")!.textContent)
       .toBe("ready");
   });
@@ -91,7 +97,10 @@ describe("@let template variables", () => {
   test("an invalid expression is a compile error, naming the variable", () => {
     @Component({ selector: "tk-bad", template: "@let x = a.;" })
     class Bad {}
-    expect(() => bootstrap(Bad, { host: document.createElement("div") }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(Bad, document.createElement("div")))
+
       .toThrow("in @let x");
   });
 
@@ -108,6 +117,7 @@ describe("@let template variables", () => {
     }
     const host = document.createElement("section");
     const app = bootstrap(Shared, { host });
+    await tick();
     expect(calls)
       .toBe(1);
     app.root.instance.total.set(2);
@@ -119,7 +129,7 @@ describe("@let template variables", () => {
     app.destroy();
   });
 
-  test("a variable sees only the variables declared above it", () => {
+  test("a variable sees only the variables declared above it", async () => {
     @Component({ selector: "tk-order", template: "@let a = b(); @let b = 'let'; {{ a }}" })
     class Order {
       b(): string {
@@ -128,17 +138,19 @@ describe("@let template variables", () => {
     }
     const host = document.createElement("section");
     bootstrap(Order, { host });
+    await tick();
     expect(host.textContent!.trim())
       .toBe("field");
   });
 
-  test("a variable that refers to its own name reads the field of that name", () => {
+  test("a variable that refers to its own name reads the field of that name", async () => {
     @Component({ selector: "tk-self", template: "@let title = title; {{ title }}" })
     class Self {
       readonly title = "field";
     }
     const host = document.createElement("section");
     bootstrap(Self, { host });
+    await tick();
     expect(host.textContent!.trim())
       .toBe("field");
   });

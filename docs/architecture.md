@@ -52,8 +52,10 @@ flowchart LR
 ```
 
 1. **Root.** `bootstrap(type)` finds the element on the page that
-   matches the component's selector, and renders the component into it. Nothing
-   is inserted: the element is already there.
+   matches the component's selector, and creates the component in it. Nothing
+   is inserted: the element is already there. Its first render runs on the next
+   tick, after its inputs can be bound (see
+   [change-detection.md](change-detection.md#when-the-dom-is-ready)).
 2. **Template child.** A parent's template contains `<tk-item>`. The parent's
    `TemplateBuilder` builds that element first, then creates the component
    inside it, passing the parent context: the parent's injector and the

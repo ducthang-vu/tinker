@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "./internal/test-support.ts";
 import { inject, InjectionToken, provide } from "../di/index.ts";
 import { Component } from "./internal/authoring/decorators.ts";
 import { AppRef, bootstrap } from "./bootstrap.ts";
@@ -11,12 +12,13 @@ class App {
 }
 
 describe("bootstrap", () => {
-  test("renders the root into the given host, and returns an AppRef with the root", () => {
+  test("renders the root into the given host, and returns an AppRef with the root", async () => {
     const host = document.createElement("section");
     const app = bootstrap(App, {
       host,
       providers: [provide(TITLE, { useValue: "hello" })],
     });
+    await tick();
     expect(app)
       .toBeInstanceOf(AppRef);
     expect(app.root.instance)
@@ -25,9 +27,10 @@ describe("bootstrap", () => {
       .toBe("hello");
   });
 
-  test("without a host, renders into the page element that matches the root's selector", () => {
+  test("without a host, renders into the page element that matches the root's selector", async () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     const app = bootstrap(App, { providers: [provide(TITLE, { useValue: "page" })] });
+    await tick();
     expect(document.querySelector("tk-app")!.textContent)
       .toBe("page");
     app.destroy();
@@ -40,20 +43,21 @@ describe("bootstrap", () => {
       .toThrow("No host element matches \"tk-app\" for App");
   });
 
-  test("destroy removes the root from its host, and is harmless when repeated", () => {
+  test("destroy removes the root from its host, and is harmless when repeated", async () => {
     const host = document.createElement("section");
     const app = bootstrap(App, {
       host,
       providers: [provide(TITLE, { useValue: "bye" })],
     });
     app.destroy();
+    await tick();
     expect(host.innerHTML)
       .toBe("");
     expect(() => app.destroy())
       .not.toThrow();
   });
 
-  test("each bootstrap is its own app, with its own providers", () => {
+  test("each bootstrap is its own app, with its own providers", async () => {
     const first = bootstrap(App, {
       host: document.createElement("div"),
       providers: [provide(TITLE, { useValue: "one" })],
@@ -62,6 +66,7 @@ describe("bootstrap", () => {
       host: document.createElement("div"),
       providers: [provide(TITLE, { useValue: "two" })],
     });
+    await tick();
     expect(first.root.host.nativeElement.textContent)
       .toBe("one");
     expect(second.root.host.nativeElement.textContent)

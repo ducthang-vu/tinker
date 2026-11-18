@@ -1,9 +1,8 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, ElementRef, input, QueryMissingError, query } from "../../index.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 @Component({
   selector: "tk-first-item",
@@ -26,6 +25,7 @@ describe("query", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(First, { host: el });
+    await tick();
     expect(app.root.instance.first()
       .isNone())
       .toBe(true);
@@ -44,7 +44,7 @@ describe("query", () => {
     app.destroy();
   });
 
-  test("with read: ElementRef, it is the element of the first match", () => {
+  test("with read: ElementRef, it is the element of the first match", async () => {
     @Component({
       selector: "tk-first-element",
       template: "<tk-first-item label=\"x\"></tk-first-item><tk-first-item label=\"y\"></tk-first-item>",
@@ -55,6 +55,7 @@ describe("query", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(FirstElement, { host: el });
+    await tick();
     const ref = app.root.instance.first()
       .getOrThrow(() => new Error("expected a first element"));
     expect(ref.nativeElement)
@@ -74,6 +75,7 @@ describe("query", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Required, { host: el });
+    await tick();
     expect(() => app.root.instance.item())
       .toThrow(QueryMissingError);
     app.root.instance.labels.set(["a"]);
@@ -84,7 +86,7 @@ describe("query", () => {
     app.destroy();
   });
 
-  test("the error names the type the template should contain", () => {
+  test("the error names the type the template should contain", async () => {
     @Component({
       selector: "tk-required-message",
       template: "<p>nothing here</p>",
@@ -93,12 +95,13 @@ describe("query", () => {
       readonly item = query.required(FirstItem);
     }
     const app = bootstrap(RequiredMessage, { host: document.createElement("section") });
+    await tick();
     expect(() => app.root.instance.item())
       .toThrow("No FirstItem found, which query.required(FirstItem) needs");
     app.destroy();
   });
 
-  test("query.required with read: ElementRef gives the element, and throws when missing", () => {
+  test("query.required with read: ElementRef gives the element, and throws when missing", async () => {
     @Component({
       selector: "tk-required-element",
       template: "<p>nothing here</p>",
@@ -107,6 +110,7 @@ describe("query", () => {
       readonly element = query.required(FirstItem, { read: ElementRef });
     }
     const app = bootstrap(RequiredElement, { host: document.createElement("section") });
+    await tick();
     expect(() => app.root.instance.element())
       .toThrow(QueryMissingError);
     app.destroy();

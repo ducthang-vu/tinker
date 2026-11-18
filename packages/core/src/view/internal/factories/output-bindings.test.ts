@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { inject } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
@@ -59,7 +60,7 @@ describe("output bindings in templates", () => {
       .toEqual([[]]);
   });
 
-  test("the subscription ends with the view: a later emit reaches nobody", () => {
+  test("the subscription ends with the view: a later emit reaches nobody", async () => {
     const chosen: number[] = [];
     @Component({
       selector: "tk-a",
@@ -76,11 +77,12 @@ describe("output bindings in templates", () => {
     const button = view.host.nativeElement.querySelector("button")!;
     view.destroy();
     button.click(); // the directive is gone: nothing is called
+    await tick();
     expect(chosen)
       .toEqual([]);
   });
 
-  test("a directive's output is completed when the directive is destroyed: emitting after is ignored", () => {
+  test("a directive's output is completed when the directive is destroyed: emitting after is ignored", async () => {
     const heard: number[] = [];
     @Component({
       selector: "tk-a",
@@ -100,11 +102,12 @@ describe("output bindings in templates", () => {
     button.click();
     view.destroy();
     pick!.selected.emit(99); // after the end: nothing reaches the template
+    await tick();
     expect(heard)
       .toEqual([7]);
   });
 
-  test("names match case-insensitively", () => {
+  test("names match case-insensitively", async () => {
     const chosen: number[] = [];
     @Component({
       selector: "tk-a",
@@ -119,11 +122,12 @@ describe("output bindings in templates", () => {
     const view = Engine.create()
       .createComponent(A);
     view.host.nativeElement.querySelector("button")!.click();
+    await tick();
     expect(chosen)
       .toEqual([7]);
   });
 
-  test("a binding with no output of that name listens to the DOM event on the element", () => {
+  test("a binding with no output of that name listens to the DOM event on the element", async () => {
     const calls: unknown[] = [];
     @Component({
       selector: "tk-a",
@@ -139,6 +143,7 @@ describe("output bindings in templates", () => {
     const engine = Engine.create();
     engine.createComponent(A, host);
     host.querySelector("button")!.dispatchEvent(new Event("other"));
+    await tick();
     expect(calls)
       .toHaveLength(1);
     expect(calls[0])
@@ -157,7 +162,7 @@ describe("output bindings in templates", () => {
       .toThrow(`A has no method "missing" for event "(selected)"`);
   });
 
-  test("a click on an element with no directive is a DOM event, with no directive needed", () => {
+  test("a click on an element with no directive is a DOM event, with no directive needed", async () => {
     let clicks = 0;
     @Component({ selector: "tk-a", template: `<button (click)="go()">x</button>` })
     class A {
@@ -169,11 +174,12 @@ describe("output bindings in templates", () => {
     Engine.create()
       .createComponent(A, host);
     host.querySelector("button")!.click();
+    await tick();
     expect(clicks)
       .toBe(1);
   });
 
-  test("a directive output and a DOM event with the same name both fire", () => {
+  test("a directive output and a DOM event with the same name both fire", async () => {
     const seen: string[] = [];
     @Directive({ selector: "[relay]", host: { "(click)": "relay()" } })
     class Relay {
@@ -197,6 +203,7 @@ describe("output bindings in templates", () => {
     Engine.create()
       .createComponent(A, host);
     host.querySelector("button")!.click();
+    await tick();
     expect(seen.sort())
       .toEqual(["from DOM event", "from output"]);
   });
@@ -213,7 +220,7 @@ describe("output bindings in templates", () => {
       .toThrow(`Unsupported event handler "a + b": write a call of a method, as in "method()" or "method($event)", on <button>`);
   });
 
-  test("a directive can emit from its own host listener, and the template receives the value", () => {
+  test("a directive can emit from its own host listener, and the template receives the value", async () => {
     @Directive({ selector: "[counter]", host: { "(click)": "bump()" } })
     class Counter {
       readonly count = output<number>();
@@ -238,11 +245,12 @@ describe("output bindings in templates", () => {
     const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
+    await tick();
     expect(view.instance.seen_)
       .toEqual([1, 2]);
   });
 
-  test("a directive's output may be used by another directive on the element, via inject", () => {
+  test("a directive's output may be used by another directive on the element, via inject", async () => {
     @Directive({ selector: "[relay]" })
     class Relay {
       readonly picked: number[] = [];
@@ -258,6 +266,7 @@ describe("output bindings in templates", () => {
     const view = engine.createComponent(A);
     const [pick, relay] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives)
       .getOrElse([]) as [Pick, Relay];
+    await tick();
     expect(relay.pick)
       .toBe(pick);
   });

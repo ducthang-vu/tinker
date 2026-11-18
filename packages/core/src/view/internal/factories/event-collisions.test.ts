@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { output, type Output } from "../authoring/output.ts";
@@ -17,7 +18,7 @@ class Keys {
 }
 
 describe("an output named like a key modifier", () => {
-  test("(owner.enter) is the output when the owner has one, not the DOM key event", () => {
+  test("(owner.enter) is the output when the owner has one, not the DOM key event", async () => {
     @Component({
       selector: "tk-a",
       template: `<button keys (keys.enter)="seen()">x</button>`,
@@ -33,6 +34,7 @@ describe("an output named like a key modifier", () => {
     const view = engine.createComponent(A);
     const button = view.host.nativeElement.querySelector("button")!;
     button.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    await tick();
     expect(view.instance.count)
       .toBe(0);
     button.click();
@@ -40,7 +42,7 @@ describe("an output named like a key modifier", () => {
       .toBe(1);
   });
 
-  test("(keydown.space) is the DOM key event: no directive with the selector keydown", () => {
+  test("(keydown.space) is the DOM key event: no directive with the selector keydown", async () => {
     @Component({
       selector: "tk-b",
       template: `<button keys (keydown.space)="seen()">x</button>`,
@@ -56,6 +58,7 @@ describe("an output named like a key modifier", () => {
     const view = engine.createComponent(B);
     const button = view.host.nativeElement.querySelector("button")!;
     button.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    await tick();
     expect(view.instance.count)
       .toBe(0);
     button.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));

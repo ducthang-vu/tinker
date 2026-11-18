@@ -1,13 +1,14 @@
 import { describe, expect, test } from "vitest";
 import {
-  signal,
   Component,
   Directive,
+  Effect,
   InjectionToken,
   input,
   InputNotBoundError,
   output,
   provide,
+  signal,
 } from "@tinker/core";
 import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
 
@@ -355,7 +356,7 @@ describe("mock builders", () => {
 
   test("recreates the inputs it names, so a parent template can bind them", () => {
     const mock = new MockDirectiveBuilder(Mark)
-      .inputs("label")
+      .optionalInputs({ label: "m" })
       .build();
     const Host = ComponentBuilder.template("<p mark>x</p>")
       .directives(Mark)
@@ -368,6 +369,30 @@ describe("mock builders", () => {
     expect(ref.root.query(Mark).inputs.label)
       .toBe("x");
     ref.destroy();
+  });
+
+  test("a required input is unbound until set, an optional one has its default", () => {
+    const required = new MockDirectiveBuilder(Mark)
+      .requiredInputs("label")
+      .build();
+    const optional = new MockDirectiveBuilder(Mark)
+      .optionalInputs({ label: "m" })
+      .build();
+    const Host = ComponentBuilder.template("<p mark>x</p>")
+      .directives(Mark)
+      .build();
+    const requiredRef = TestBed.override(Mark, required)
+      .component(Host)
+      .build();
+    expect(() => requiredRef.root.query(Mark).inputs.label)
+      .toThrow(InputNotBoundError);
+    requiredRef.destroy();
+    const optionalRef = TestBed.override(Mark, optional)
+      .component(Host)
+      .build();
+    expect(optionalRef.root.query(Mark).inputs.label)
+      .toBe("m");
+    optionalRef.destroy();
   });
 
   test("recreates the outputs it names, so a parent template can listen", () => {
@@ -419,7 +444,7 @@ describe("mock builders", () => {
 
   test("a component mock declares inputs, and of() starts the chain", () => {
     const mock = MockComponentBuilder.of(Greeting)
-      .inputs("name")
+      .optionalInputs({ name: "world" })
       .outputs()
       .build();
     const Host = ComponentBuilder.template("<tk-greeting></tk-greeting>")
@@ -435,6 +460,21 @@ describe("mock builders", () => {
     ref.destroy();
   });
 
+  test("a required component input is unbound until set", () => {
+    const mock = MockComponentBuilder.of(Greeting)
+      .requiredInputs("name")
+      .build();
+    const Host = ComponentBuilder.template("<tk-greeting></tk-greeting>")
+      .directives(Greeting)
+      .build();
+    const ref = TestBed.override(Greeting, mock)
+      .component(Host)
+      .build();
+    expect(() => ref.root.query(Greeting).inputs.name)
+      .toThrow(InputNotBoundError);
+    ref.destroy();
+  });
+
   test("a component builder refuses a class that is not a component", () => {
     expect(() => new MockComponentBuilder(class Plain {}))
       .toThrow("is not a component");
@@ -445,5 +485,41 @@ describe("mock builders", () => {
       .toThrow("is a component");
     expect(() => new MockDirectiveBuilder(class Plain {}))
       .toThrow("is not a directive");
+  });
+});
+
+describe("text", () => {
+  test("collapses the template's whitespace, unlike textContent", () => {
+    const Host = ComponentBuilder.template("<p>\n    hello\n    <b>there</b>\n  </p>")
+      .build();
+    const ref = TestBed.component(Host)
+      .build();
+    const paragraph = ref.root.query("p");
+    expect(paragraph.text())
+      .toBe("hello there");
+    expect(paragraph.element.textContent)
+      .toContain("\n");
+    ref.destroy();
+  });
+});
+
+@Component({ selector: "tk-labelled", template: "<p>{{ shown() }}</p>" })
+class Labelled {
+  readonly label = input<string>();
+  readonly shown = signal("");
+
+  @Effect() sync(): void {
+    this.shown.set(this.label());
+  }
+}
+
+describe("inputs set before the first render", () => {
+  test("a required input set by the bed is ready for an effect before the first render", () => {
+    const ref = TestBed.inputs({ label: "Ada" })
+      .component(Labelled)
+      .build();
+    expect(ref.root.text())
+      .toBe("Ada");
+    ref.destroy();
   });
 });

@@ -1,9 +1,8 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 describe("the conditional operator in a template", () => {
   test("in a text and an attribute, nested, and updating with its values", async () => {
@@ -17,6 +16,7 @@ describe("the conditional operator in a template", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(Conditional, { host: el });
+    await tick();
     const p = () => el.querySelector("p")!;
     expect([p().textContent, p()
       .getAttribute("title")])

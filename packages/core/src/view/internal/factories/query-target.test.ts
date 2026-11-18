@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { query } from "../authoring/query.ts";
 import { QueryMissingError } from "../authoring/query.ts";
@@ -15,7 +16,7 @@ class Tagged {
 }
 
 describe("query with a template variable as the target", () => {
-  test("##name is the component the variable names", () => {
+  test("##name is the component the variable names", async () => {
     @Component({
       selector: "tk-a",
       template: `<tk-tagged ##item></tk-tagged>`,
@@ -26,6 +27,7 @@ describe("query with a template variable as the target", () => {
     }
     const view = Engine.create()
       .createComponent(A);
+    await tick();
     expect(view.instance.item()
       .getOrElse(undefined))
       .toBeInstanceOf(Tagged);
@@ -46,7 +48,7 @@ describe("query with a template variable as the target", () => {
       .toBeInstanceOf(Marker);
   });
 
-  test("#name is the element, and query returns it", () => {
+  test("#name is the element, and query returns it", async () => {
     @Component({
       selector: "tk-c",
       template: `<p #para>x</p>`,
@@ -56,12 +58,13 @@ describe("query with a template variable as the target", () => {
     }
     const view = Engine.create()
       .createComponent(C);
+    await tick();
     expect(view.instance.para()
       .getOrElse(undefined)?.tagName)
       .toBe("P");
   });
 
-  test("a name declared inside @if is not a target: it is not in the component's registry", () => {
+  test("a name declared inside @if is not a target: it is not in the component's registry", async () => {
     @Component({
       selector: "tk-d",
       template: `@if (true) { <p #inner></p> }`,
@@ -71,6 +74,7 @@ describe("query with a template variable as the target", () => {
     }
     const view = Engine.create()
       .createComponent(D);
+    await tick();
     expect(view.instance.inner()
       .isNone())
       .toBe(true);

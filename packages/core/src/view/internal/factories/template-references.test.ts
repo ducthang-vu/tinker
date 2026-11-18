@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
+import { Engine } from "../engine.ts";
+import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, input } from "../../index.ts";
-
-const tick = () => new Promise((resolve) => setTimeout(resolve));
 
 @Directive({ selector: "[mark]" })
 class Mark {}
@@ -27,7 +27,7 @@ class Tagged {
 }
 
 describe("template references", () => {
-  test("#name is the native element, and its properties can be read", () => {
+  test("#name is the native element, and its properties can be read", async () => {
     @Component({
       selector: "tk-ref",
       template: "<p #para>{{ para.tagName }}</p>",
@@ -35,12 +35,13 @@ describe("template references", () => {
     class Ref {}
     const el = document.createElement("section");
     const app = bootstrap(Ref, { host: el });
+    await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("P");
     app.destroy();
   });
 
-  test("the reference is the native element even when a directive is on it", () => {
+  test("the reference is the native element even when a directive is on it", async () => {
     @Component({
       selector: "tk-ref-directive",
       template: "<p #para mark>{{ para.tagName }}</p>",
@@ -49,12 +50,13 @@ describe("template references", () => {
     class RefDirective {}
     const el = document.createElement("section");
     const app = bootstrap(RefDirective, { host: el });
+    await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("P");
     app.destroy();
   });
 
-  test("the reference is the host element even when a component is on it", () => {
+  test("the reference is the host element even when a component is on it", async () => {
     @Component({
       selector: "tk-ref-component",
       template: "<tk-tagged #item label=\"hi\"></tk-tagged><p>{{ item.tagName }}</p>",
@@ -63,12 +65,13 @@ describe("template references", () => {
     class RefComponent {}
     const el = document.createElement("section");
     const app = bootstrap(RefComponent, { host: el });
+    await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("TK-TAGGED");
     app.destroy();
   });
 
-  test("a reference can be read before its element in the template", () => {
+  test("a reference can be read before its element in the template", async () => {
     @Component({
       selector: "tk-ref-forward",
       template: "<p>{{ later.tagName }}</p><span #later></span>",
@@ -76,6 +79,7 @@ describe("template references", () => {
     class RefForward {}
     const el = document.createElement("section");
     const app = bootstrap(RefForward, { host: el });
+    await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("SPAN");
     app.destroy();
@@ -91,6 +95,7 @@ describe("template references", () => {
     }
     const el = document.createElement("section");
     const app = bootstrap(RefBranch, { host: el });
+    await tick();
     app.root.instance.on.set(true);
     await tick();
     expect(el.querySelector("b")!.textContent)
@@ -104,7 +109,10 @@ describe("template references", () => {
       template: "<p #box></p><span #box></span>",
     })
     class RefTwice {}
-    expect(() => bootstrap(RefTwice, { host: document.createElement("section") }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(RefTwice, document.createElement("section")))
+
       .toThrow("#box is already declared in this template");
   });
 
@@ -116,13 +124,15 @@ describe("template references", () => {
     })
     class ExportRef {}
     const el = document.createElement("section");
-    const app = bootstrap(ExportRef, { host: el });
+    const engine = Engine.create();
+    const app = engine.bootstrap(ExportRef, el);
+    engine.flush();
     expect(el.querySelector("p")!.textContent)
       .toBe("marked");
     app.destroy();
   });
 
-  test("##name is the component on the element, while #name is still the element", () => {
+  test("##name is the component on the element, while #name is still the element", async () => {
     @Component({
       selector: "tk-both",
       template: "<tk-tagged #el ##item label=\"hi\"></tk-tagged><p>{{ el.tagName }} {{ item.label() }}</p>",
@@ -131,6 +141,7 @@ describe("template references", () => {
     class Both {}
     const el = document.createElement("section");
     const app = bootstrap(Both, { host: el });
+    await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("TK-TAGGED hi");
     app.destroy();
@@ -144,7 +155,9 @@ describe("template references", () => {
     })
     class NamedRef {}
     const el = document.createElement("section");
-    const app = bootstrap(NamedRef, { host: el });
+    const engine = Engine.create();
+    const app = engine.bootstrap(NamedRef, el);
+    engine.flush();
     expect(el.querySelector("p")!.textContent)
       .toBe("hello");
     app.destroy();
@@ -156,7 +169,10 @@ describe("template references", () => {
       template: "<p #m=\"nope\"></p>",
     })
     class MissingExport {}
-    expect(() => bootstrap(MissingExport, { host: document.createElement("section") }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(MissingExport, document.createElement("section")))
+
       .toThrow("no directive on <p> is exported as \"nope\"");
   });
 
@@ -166,7 +182,10 @@ describe("template references", () => {
       template: "<p ##item></p>",
     })
     class NoComponent {}
-    expect(() => bootstrap(NoComponent, { host: document.createElement("section") }))
+    const engine = Engine.create();
+
+    expect(() => engine.bootstrap(NoComponent, document.createElement("section")))
+
       .toThrow("has no component");
   });
 });

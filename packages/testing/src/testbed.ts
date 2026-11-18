@@ -18,6 +18,7 @@ import {
 import { testingElementOf, type Scope } from "./fixture.ts";
 import type {
   InputName,
+  InputValue,
   OutputName,
 } from "@tinker/core";
 import type {
@@ -179,16 +180,21 @@ export const ComponentBuilder: ComponentBuilderStatic = {
   template: (source) => new TemplateBuilder(source),
 };
 
-/** The inputs and outputs a mock declares by name: each becomes one on the mock. */
+/** The members a mock declares: required inputs, optional inputs with defaults, outputs. */
 interface MockMembers {
-  readonly inputs: readonly string[];
+  readonly required: readonly string[];
+  readonly optional: Readonly<Record<string, unknown>>;
   readonly outputs: readonly string[];
 }
 
 /** The members of a mock instance: one input and one output per declared name. */
 function membersOf(members: MockMembers): object {
   return {
-    ...Object.fromEntries(members.inputs.map((name) => [name, input()])),
+    ...Object.fromEntries(members.required.map((name) => [name, input()])),
+    ...Object.fromEntries(
+      Object.entries(members.optional)
+        .map(([name, value]) => [name, input(value)]),
+    ),
     ...Object.fromEntries(members.outputs.map((name) => [name, output()])),
   };
 }
@@ -208,7 +214,7 @@ export class MockComponentBuilder<F extends object> {
 
   constructor(
     private readonly type: new () => F,
-    private readonly members: MockMembers = { inputs: [], outputs: [] },
+    private readonly members: MockMembers = { required: [], optional: {}, outputs: [] },
   ) {
     const metadata = getComponentMetadata(type)
       .getOrThrow(() => new Error(`${type.name} is not a component: use MockDirectiveBuilder`));
@@ -216,11 +222,21 @@ export class MockComponentBuilder<F extends object> {
     this.exportAs = metadata.exportAs;
   }
 
-  /** Inputs of `F` that the mock has too, so a parent template can bind them. */
-  inputs<N extends InputName<F>>(...names: readonly N[]): MockComponentBuilder<F> {
+  /** Required inputs of `F` that the mock has too: a parent template must bind them. */
+  requiredInputs<N extends InputName<F>>(...names: readonly N[]): MockComponentBuilder<F> {
     return new MockComponentBuilder<F>(this.type, {
       ...this.members,
-      inputs: [...this.members.inputs, ...names],
+      required: [...this.members.required, ...names],
+    });
+  }
+
+  /** Optional inputs of `F` that the mock has too, each with the default the real input has. */
+  optionalInputs<K extends InputName<F>>(
+    defaults: { readonly [P in K]: InputValue<F[P]> },
+  ): MockComponentBuilder<F> {
+    return new MockComponentBuilder<F>(this.type, {
+      ...this.members,
+      optional: { ...this.members.optional, ...defaults },
     });
   }
 
@@ -262,7 +278,7 @@ export class MockDirectiveBuilder<F extends object> {
 
   constructor(
     private readonly type: new () => F,
-    private readonly members: MockMembers = { inputs: [], outputs: [] },
+    private readonly members: MockMembers = { required: [], optional: {}, outputs: [] },
   ) {
     if (getComponentMetadata(type)
       .isSome()) {
@@ -274,11 +290,21 @@ export class MockDirectiveBuilder<F extends object> {
     this.exportAs = metadata.exportAs;
   }
 
-  /** Inputs of `F` that the mock has too, so a parent template can bind them. */
-  inputs<N extends InputName<F>>(...names: readonly N[]): MockDirectiveBuilder<F> {
+  /** Required inputs of `F` that the mock has too: a parent template must bind them. */
+  requiredInputs<N extends InputName<F>>(...names: readonly N[]): MockDirectiveBuilder<F> {
     return new MockDirectiveBuilder<F>(this.type, {
       ...this.members,
-      inputs: [...this.members.inputs, ...names],
+      required: [...this.members.required, ...names],
+    });
+  }
+
+  /** Optional inputs of `F` that the mock has too, each with the default the real input has. */
+  optionalInputs<K extends InputName<F>>(
+    defaults: { readonly [P in K]: InputValue<F[P]> },
+  ): MockDirectiveBuilder<F> {
+    return new MockDirectiveBuilder<F>(this.type, {
+      ...this.members,
+      optional: { ...this.members.optional, ...defaults },
     });
   }
 
