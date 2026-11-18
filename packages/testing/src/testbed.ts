@@ -4,13 +4,22 @@
 
 import {
   CLASS_REPLACEMENTS,
-  defineComponent,
+  Component,
+  Directive,
+  getComponentMetadata,
+  getDirectiveMetadata,
+  input,
+  output,
   Engine,
   type Provider,
   provide,
   type Token,
 } from "@tinker/core";
 import { testingElementOf, type Scope } from "./fixture.ts";
+import type {
+  InputName,
+  OutputName,
+} from "@tinker/core";
 import type {
   ComponentBuilder as ComponentBuilderApi,
   ComponentBuilderStatic,
@@ -158,20 +167,140 @@ class TemplateBuilder implements ComponentBuilderApi {
   }
 
   build(): new () => object {
+    const { source, imports } = this;
+    @Component({ selector: "tk-test-component", template: source, imports })
     class TestComponent {}
-    defineComponent(TestComponent, {
-      selector: "tk-test-component",
-      template: this.source,
-      imports: this.imports,
-    });
     return TestComponent;
   }
 }
 
-/** The static starts: a builder for a component with a template, or a mock of a class. */
+/** The static start: a builder for a component with a template. */
 export const ComponentBuilder: ComponentBuilderStatic = {
   template: (source) => new TemplateBuilder(source),
-  mock: () => {
-    throw new Error("ComponentBuilder.mock is not implemented yet");
-  },
 };
+
+/** The inputs and outputs a mock declares by name: each becomes one on the mock. */
+interface MockMembers {
+  readonly inputs: readonly string[];
+  readonly outputs: readonly string[];
+}
+
+/** The members of a mock instance: one input and one output per declared name. */
+function membersOf(members: MockMembers): object {
+  return {
+    ...Object.fromEntries(members.inputs.map((name) => [name, input()])),
+    ...Object.fromEntries(members.outputs.map((name) => [name, output()])),
+  };
+}
+
+/**
+ * A builder for a mock of a component: a component with the same selector and exportAs,
+ * the inputs and outputs named here, and no template. Immutable, like the other builders.
+ */
+export class MockComponentBuilder<F extends object> {
+  private readonly selector: string;
+  private readonly exportAs?: string;
+
+  /** The same as `new MockComponentBuilder(type)`: the start of a chain. */
+  static of<F extends object>(type: new () => F): MockComponentBuilder<F> {
+    return new MockComponentBuilder<F>(type);
+  }
+
+  constructor(
+    private readonly type: new () => F,
+    private readonly members: MockMembers = { inputs: [], outputs: [] },
+  ) {
+    const metadata = getComponentMetadata(type)
+      .getOrThrow(() => new Error(`${type.name} is not a component: use MockDirectiveBuilder`));
+    this.selector = metadata.selector;
+    this.exportAs = metadata.exportAs;
+  }
+
+  /** Inputs of `F` that the mock has too, so a parent template can bind them. */
+  inputs<N extends InputName<F>>(...names: readonly N[]): MockComponentBuilder<F> {
+    return new MockComponentBuilder<F>(this.type, {
+      ...this.members,
+      inputs: [...this.members.inputs, ...names],
+    });
+  }
+
+  /** Outputs of `F` that the mock has too, so a parent template can listen to them. */
+  outputs<N extends OutputName<F>>(...names: readonly N[]): MockComponentBuilder<F> {
+    return new MockComponentBuilder<F>(this.type, {
+      ...this.members,
+      outputs: [...this.members.outputs, ...names],
+    });
+  }
+
+  /** Create the mock class. It renders nothing. */
+  build(): MockClass<F> {
+    const { type, members, selector, exportAs } = this;
+    @Component({ selector, template: "", ...(exportAs && { exportAs }) })
+    class MockComponent {
+      static readonly mockOf = type;
+
+      constructor() {
+        Object.assign(this, membersOf(members));
+      }
+    }
+    return MockComponent as unknown as MockClass<F>;
+  }
+}
+
+/**
+ * A builder for a mock of a directive: a directive with the same selector and exportAs,
+ * the inputs and outputs named here, and nothing else. Immutable, like the other builders.
+ */
+export class MockDirectiveBuilder<F extends object> {
+  private readonly selector: string;
+  private readonly exportAs?: string;
+
+  /** The same as `new MockDirectiveBuilder(type)`: the start of a chain. */
+  static of<F extends object>(type: new () => F): MockDirectiveBuilder<F> {
+    return new MockDirectiveBuilder<F>(type);
+  }
+
+  constructor(
+    private readonly type: new () => F,
+    private readonly members: MockMembers = { inputs: [], outputs: [] },
+  ) {
+    if (getComponentMetadata(type)
+      .isSome()) {
+      throw new Error(`${type.name} is a component: use MockComponentBuilder`);
+    }
+    const metadata = getDirectiveMetadata(type)
+      .getOrThrow(() => new Error(`${type.name} is not a directive: nothing to mock`));
+    this.selector = metadata.selector;
+    this.exportAs = metadata.exportAs;
+  }
+
+  /** Inputs of `F` that the mock has too, so a parent template can bind them. */
+  inputs<N extends InputName<F>>(...names: readonly N[]): MockDirectiveBuilder<F> {
+    return new MockDirectiveBuilder<F>(this.type, {
+      ...this.members,
+      inputs: [...this.members.inputs, ...names],
+    });
+  }
+
+  /** Outputs of `F` that the mock has too, so a parent template can listen to them. */
+  outputs<N extends OutputName<F>>(...names: readonly N[]): MockDirectiveBuilder<F> {
+    return new MockDirectiveBuilder<F>(this.type, {
+      ...this.members,
+      outputs: [...this.members.outputs, ...names],
+    });
+  }
+
+  /** Create the mock class. */
+  build(): MockClass<F> {
+    const { type, members, selector, exportAs } = this;
+    @Directive({ selector, ...(exportAs && { exportAs }) })
+    class MockDirective {
+      static readonly mockOf = type;
+
+      constructor() {
+        Object.assign(this, membersOf(members));
+      }
+    }
+    return MockDirective as unknown as MockClass<F>;
+  }
+}

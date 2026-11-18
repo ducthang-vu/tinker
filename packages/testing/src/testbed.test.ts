@@ -9,7 +9,7 @@ import {
   output,
   provide,
 } from "@tinker/core";
-import { cleanup, ComponentBuilder, registerCleanup, TestBed } from "./testbed.ts";
+import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
 class Greeting {
@@ -21,6 +21,12 @@ class Mark {
   readonly label = input("m");
   readonly must = input<string>();
 }
+
+@Directive({ selector: "[named]", exportAs: "named" })
+class Named {}
+
+@Component({ selector: "tk-card", template: "<b>card</b>", exportAs: "card" })
+class Card {}
 
 @Directive({ selector: "[pick]" })
 class Pick {
@@ -115,7 +121,8 @@ describe("Fixture.root", () => {
       .toBe("Grace");
     expect(ref.root.element.textContent)
       .toBe("Hello Grace");
-    ref.root.setInput("unknown", 1);
+    expect(() => ref.root.setInput("unknown", 1))
+      .toThrow("has no input \"unknown\"");
     ref.destroy();
   });
 });
@@ -185,7 +192,8 @@ describe("fixture queries", () => {
     mark.setInput("label", "changed");
     expect(mark.inputs.label)
       .toBe("changed");
-    mark.setInput("unknown", 1);
+    expect(() => mark.setInput("unknown", 1))
+      .toThrow("has no input \"unknown\"");
     ref.destroy();
   });
 
@@ -208,7 +216,8 @@ describe("fixture queries", () => {
     const seen: number[] = [];
     pick.outputs.picked.run({ next: (value) => seen.push(value) });
     pick.emitOutput("picked", 3);
-    pick.emitOutput("unknown", 4);
+    expect(() => pick.emitOutput("unknown", 4))
+      .toThrow("has no output \"unknown\"");
     expect(seen)
       .toEqual([3]);
     ref.destroy();
@@ -236,11 +245,6 @@ describe("ComponentBuilder", () => {
     expect(ref.root.element.textContent)
       .toBe("second");
     ref.destroy();
-  });
-
-  test("mocks are not implemented yet", () => {
-    expect(() => ComponentBuilder.mock(Greeting))
-      .toThrow("not implemented yet");
   });
 });
 
@@ -332,5 +336,114 @@ describe("registerCleanup", () => {
   test("registers nothing without one", () => {
     expect(() => registerCleanup(undefined))
       .not.toThrow();
+  });
+});
+
+describe("mock builders", () => {
+  test("keeps the selector, and renders nothing", () => {
+    const mock = new MockComponentBuilder(Item)
+      .build();
+    const ref = TestBed.override(Item, mock)
+      .component(List)
+      .build();
+    expect(ref.root.queryAll("b"))
+      .toHaveLength(0);
+    expect(ref.root.queryAll(Item))
+      .toHaveLength(1);
+    ref.destroy();
+  });
+
+  test("recreates the inputs it names, so a parent template can bind them", () => {
+    const mock = new MockDirectiveBuilder(Mark)
+      .inputs("label")
+      .build();
+    const Host = ComponentBuilder.template("<p mark>x</p>")
+      .directives(Mark)
+      .build();
+    const ref = TestBed.override(Mark, mock)
+      .component(Host)
+      .build();
+    ref.root.query(Mark)
+      .setInput("label", "x");
+    expect(ref.root.query(Mark).inputs.label)
+      .toBe("x");
+    ref.destroy();
+  });
+
+  test("recreates the outputs it names, so a parent template can listen", () => {
+    const mock = new MockDirectiveBuilder(Pick)
+      .outputs("picked")
+      .build();
+    const Host = ComponentBuilder.template("<p pick>x</p>")
+      .directives(Pick)
+      .build();
+    const ref = TestBed.override(Pick, mock)
+      .component(Host)
+      .build();
+    const seen: number[] = [];
+    ref.root.query(Pick).outputs.picked.run({ next: (value) => seen.push(value) });
+    ref.root.query(Pick)
+      .emitOutput("picked", 3);
+    expect(seen)
+      .toEqual([3]);
+    ref.destroy();
+  });
+
+  test("keeps exportAs, so a template can name the mock", () => {
+    const mock = MockDirectiveBuilder.of(Named)
+      .build();
+    const Host = ComponentBuilder.template("<p named #n=\"named\">x</p>")
+      .directives(Named)
+      .build();
+    const ref = TestBed.override(Named, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query("p").element.textContent)
+      .toBe("x");
+    ref.destroy();
+  });
+
+  test("a component mock keeps exportAs too", () => {
+    const mock = new MockComponentBuilder(Card)
+      .build();
+    const Host = ComponentBuilder.template("<tk-card #c=\"card\"></tk-card>")
+      .directives(Card)
+      .build();
+    const ref = TestBed.override(Card, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Card).instance)
+      .toBeInstanceOf(mock);
+    ref.destroy();
+  });
+
+  test("a component mock declares inputs, and of() starts the chain", () => {
+    const mock = MockComponentBuilder.of(Greeting)
+      .inputs("name")
+      .outputs()
+      .build();
+    const Host = ComponentBuilder.template("<tk-greeting></tk-greeting>")
+      .directives(Greeting)
+      .build();
+    const ref = TestBed.override(Greeting, mock)
+      .component(Host)
+      .build();
+    ref.root.query(Greeting)
+      .setInput("name", "Ada");
+    expect(ref.root.query(Greeting).inputs.name)
+      .toBe("Ada");
+    ref.destroy();
+  });
+
+  test("a component builder refuses a class that is not a component", () => {
+    expect(() => new MockComponentBuilder(class Plain {}))
+      .toThrow("is not a component");
+  });
+
+  test("a directive builder refuses a component, and a plain class", () => {
+    expect(() => new MockDirectiveBuilder(Item))
+      .toThrow("is a component");
+    expect(() => new MockDirectiveBuilder(class Plain {}))
+      .toThrow("is not a directive");
   });
 });

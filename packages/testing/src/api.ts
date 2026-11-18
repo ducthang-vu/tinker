@@ -131,8 +131,9 @@ export interface Fixture<T extends object> {
 }
 
 /**
- * A builder for a component class made from a template string. The class works anywhere
- * a component class does.
+ * A builder for a component class made from a template string. It is a testing helper,
+ * mainly a host for a directive under test, but the class it makes is an ordinary component
+ * and works anywhere one does.
  */
 export interface ComponentBuilder {
   /** The template of the component. */
@@ -181,23 +182,11 @@ export type MockClass<F extends object = object, K extends MethodName<F> = never
  * keeps `F`'s selector, inputs and outputs. Only the methods named by `spy` get a spy;
  * the others are left as they are.
  */
-export interface MockBuilder<F extends object, K extends MethodName<F> = never> {
-  /** The template of the mock. */
-  template(source: string): MockBuilder<F, K>;
-  /** The components and directives the template may use, as `directives` does above. */
-  directives(...types: readonly (new () => object)[]): MockBuilder<F, K>;
-  /** Spy on these methods of `F`. Calling it again adds more. */
-  spy<N extends MethodName<F>>(...names: readonly N[]): MockBuilder<F, K | N>;
-  /** Create the mock class. */
-  build(): MockClass<F, K>;
-}
 
 /** The static starts: a builder for a component from a template, or a mock of a class. */
 export interface ComponentBuilderStatic {
   /** A builder for a component with that template. */
   template(source: string): ComponentBuilder;
-  /** A builder for a mock of `type`. */
-  mock<F extends object>(type: new () => F): MockBuilder<F>;
 }
 
 /**

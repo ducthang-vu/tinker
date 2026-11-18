@@ -4,7 +4,7 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { input, output } from "@tinker/core";
 import type { Fixture, TestBed, TestingElement } from "./api.ts";
-import { ComponentBuilder } from "./testbed.ts";
+import { ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder } from "./testbed.ts";
 
 class Button {
   readonly pressed = output<number>();
@@ -29,11 +29,12 @@ function queries(ref: Fixture<Button>): void {
 }
 
 function overrides(bed: TestBed<Button>): void {
-  const mock = ComponentBuilder.mock(Button)
-    .spy("press")
+  const mock = new MockDirectiveBuilder(Button)
+    .inputs("label")
+    .outputs("pressed")
     .build();
-  expectTypeOf(new mock().press.calls)
-    .toEqualTypeOf<readonly [number][]>();
+  expectTypeOf(mock.mockOf)
+    .toEqualTypeOf<new () => Button>();
   bed.override(Button, mock);
   // @ts-expect-error only a mock of the class it replaces is accepted
   bed.override(Button, Other);
