@@ -231,7 +231,9 @@ export class MockComponentBuilder<F extends object> {
   }
 
   /** Optional inputs of `F` that the mock has too, each with the default the real input has. */
-  optionalInputs<K extends InputName<F>>(defaults: { readonly [P in K]: InputValue<F[P]> }): MockComponentBuilder<F> {
+  optionalInputs<K extends InputName<F>>(
+    defaults: { readonly [P in K]: InputValue<F[P]> },
+  ): MockComponentBuilder<F> {
     return new MockComponentBuilder<F>(this.type, {
       ...this.members,
       optional: { ...this.members.optional, ...defaults },
@@ -297,7 +299,9 @@ export class MockDirectiveBuilder<F extends object> {
   }
 
   /** Optional inputs of `F` that the mock has too, each with the default the real input has. */
-  optionalInputs<K extends InputName<F>>(defaults: { readonly [P in K]: InputValue<F[P]> }): MockDirectiveBuilder<F> {
+  optionalInputs<K extends InputName<F>>(
+    defaults: { readonly [P in K]: InputValue<F[P]> },
+  ): MockDirectiveBuilder<F> {
     return new MockDirectiveBuilder<F>(this.type, {
       ...this.members,
       optional: { ...this.members.optional, ...defaults },
