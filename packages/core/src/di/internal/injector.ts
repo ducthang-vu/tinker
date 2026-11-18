@@ -56,6 +56,8 @@ export class Injector {
   readonly hostBoundary: boolean;
 
   private readonly destroyCallbacks = new Set<() => void>();
+  /** Child injectors, destroyed before the values of this one. */
+  private readonly childDestroyCallbacks = new Set<() => void>();
   private isDestroyed = false;
   /** Removes this injector's own entry from its parent's destroy callbacks. */
   private readonly detachFromParent: (() => void) | undefined;
@@ -76,7 +78,7 @@ export class Injector {
       new InjectorCreationHooks(this),
     );
     this.hostBoundary = options.hostBoundary ?? false;
-    this.detachFromParent = parent?.addDestroyCallback(() => this.destroy());
+    this.detachFromParent = parent?.addChildDestroyCallback(() => this.destroy());
   }
 
   /** Whether `destroy()` has been called. */
@@ -89,18 +91,27 @@ export class Injector {
    * unregisters it. Throws if the injector is already destroyed.
    */
   addDestroyCallback(callback: () => void): () => void {
+    return this.register(this.destroyCallbacks, callback);
+  }
+
+  /** Like `addDestroyCallback`, for a child injector: it is destroyed before the values. */
+  addChildDestroyCallback(callback: () => void): () => void {
+    return this.register(this.childDestroyCallbacks, callback);
+  }
+
+  private register(set: Set<() => void>, callback: () => void): () => void {
     this.assertNotDestroyed();
     // Wrapped, so the same function registered twice is kept twice.
     const entry = () => callback();
-    this.destroyCallbacks.add(entry);
-    return () => this.destroyCallbacks.delete(entry);
+    set.add(entry);
+    return () => set.delete(entry);
   }
 
   /**
-   * Destroy this injector: its children first (they registered themselves
-   * on it), then the cleanups of the values it created and of `addDestroyCallback`
-   * callbacks, newest first. Every cleanup runs even if one throws; the
-   * first error is re-thrown at the end. Calling it again does nothing.
+   * Destroy this injector: first its child injectors, then the cleanups of the
+   * values it created and of `addDestroyCallback` callbacks. Within each group,
+   * the newest runs first. Every cleanup runs even if one throws; the first error
+   * is re-thrown at the end. Calling it again does nothing.
    */
   destroy(): void {
     if (this.isDestroyed) {
@@ -108,9 +119,11 @@ export class Injector {
     }
     this.isDestroyed = true;
     this.detachFromParent?.();
-    const callbacks = [...this.destroyCallbacks].reverse();
+    const children = [...this.childDestroyCallbacks].reverse();
+    this.childDestroyCallbacks.clear();
+    const values = [...this.destroyCallbacks].reverse();
     this.destroyCallbacks.clear();
-    runAll(callbacks);
+    runAll([...children, ...values]);
   }
 
   /** Whether this injector is the root of its hierarchy (it has no parent). */

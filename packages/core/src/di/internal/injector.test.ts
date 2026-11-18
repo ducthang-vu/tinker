@@ -278,6 +278,62 @@ describe("destroy", () => {
   });
 });
 
+describe("destroy order", () => {
+  test("children go first even when the parent's cleanup was registered after the child", () => {
+    const root = new Injector([]);
+    const log: string[] = [];
+    const child = new Injector([], root);
+    child.addDestroyCallback(() => log.push("child cleanup"));
+    root.addDestroyCallback(() => log.push("root cleanup"));
+    root.destroy();
+    expect(log)
+      .toEqual(["child cleanup", "root cleanup"]);
+  });
+
+  test("among the children, the newest is destroyed first", () => {
+    const root = new Injector([]);
+    const log: string[] = [];
+    new Injector([], root)
+      .addDestroyCallback(() => log.push("first child"));
+    new Injector([], root)
+      .addDestroyCallback(() => log.push("second child"));
+    root.destroy();
+    expect(log)
+      .toEqual(["second child", "first child"]);
+  });
+
+  test("a child's cleanup that throws does not stop the parent's cleanups", () => {
+    const root = new Injector([]);
+    const log: string[] = [];
+    root.addDestroyCallback(() => log.push("root cleanup"));
+    const child = new Injector([], root);
+    child.addDestroyCallback(() => {
+      throw new Error("child failed");
+    });
+    expect(() => root.destroy())
+      .toThrow("child failed");
+    expect(log)
+      .toEqual(["root cleanup"]);
+  });
+
+  test("a destroyed injector refuses a new child destroy callback", () => {
+    const root = new Injector([]);
+    root.destroy();
+    expect(() => root.addChildDestroyCallback(() => undefined))
+      .toThrow();
+  });
+
+  test("addChildDestroyCallback returns a function that unregisters the callback", () => {
+    const root = new Injector([]);
+    let runs = 0;
+    const unregister = root.addChildDestroyCallback(() => runs++);
+    unregister();
+    root.destroy();
+    expect(runs)
+      .toBe(0);
+  });
+});
+
 describe("INJECTOR", () => {
   test("every injector provides itself", () => {
     const injector = new Injector([]);
