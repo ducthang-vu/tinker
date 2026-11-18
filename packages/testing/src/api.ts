@@ -19,12 +19,6 @@ import type { Provider } from "@tinker/core";
  */
 export interface TestBedBuilder {
   /**
-   * A wrapper component the component under test is placed in, so the component has an
-   * owner view as it does inside an app's template. Without it, the component under
-   * test is the root, as `bootstrap` makes an app's root component.
-   */
-  wrapper(type: new () => object): TestBedBuilder;
-  /**
    * Add providers to the test bed's engine. They replace the defaults, as they do for
    * `bootstrap`'s providers. Calling it again adds more.
    */
@@ -53,9 +47,9 @@ export interface Fixture<T extends object> {
  */
 export interface TestBed {
   /**
-   * Create the component under test. It is the root, unless the builder has a wrapper,
-   * in which case it is placed in the wrapper's template. With a `host`, it is rendered
-   * there.
+   * Create the component under test as the root, as `bootstrap` makes an app's root.
+   * With a `host`, it is rendered there. To test a component inside another template,
+   * create a wrapper component in the test that contains it, and pass the wrapper.
    */
   createComponent<T extends object>(type: new () => T, host?: Element): Fixture<T>;
   /** Destroy every component this test bed created. Calling it again does nothing. */
