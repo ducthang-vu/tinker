@@ -1,3 +1,4 @@
+import { ElementScope } from "../factories/element-scope.ts";
 import { describe, expect, test } from "vitest";
 import { Injectable, inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
@@ -26,6 +27,7 @@ function setup() {
       ElementContexts,
       BindingFactory,
       DirectiveFactory,
+      ElementScope,
     ],
   });
   const { factory, contexts } = runInInjectionContext(injector, () => ({
@@ -165,6 +167,7 @@ describe("DirectiveFactory injection context", () => {
         ElementContexts,
         BindingFactory,
         DirectiveFactory,
+        ElementScope,
         Theme,
         Ticker,
         EffectScheduler,
