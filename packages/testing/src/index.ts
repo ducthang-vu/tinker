@@ -1,4 +1,5 @@
-// The public entry point for testing Tinker apps. It has no API yet: its helpers
-// will be added here, and the core package's own tests do not use it.
+// The public entry point for testing Tinker apps. For now it exports the API's
+// types only (see api.ts): `TestBed.create` is declared there and is exported once
+// it is implemented, so that importing this package never reaches code that does not exist.
 
-export {};
+export type { Fixture, TestBed, TestBedOptions } from "./api.ts";
