@@ -52,9 +52,9 @@ export interface ElementFixture {
   /** The element. */
   readonly element: Element;
   /**
-   * The first match inside `element`, in document order, or `null`: a fixture for a
-   * component or directive class, so it can be driven too; an element fixture for a
-   * CSS selector.
+   * The first descendant of `element` that matches, in document order, or `null`: a
+   * fixture for a component or directive class, so it can be driven too; an element
+   * fixture for a CSS selector. Descendants include elements of nested components.
    */
   query(selector: string): ElementFixture | null;
   query<C extends object>(type: new () => C): Fixture<C> | null;
