@@ -24,6 +24,11 @@ function describe(target: QueryTarget): string {
 export function elementOf(element: Element, scope: Scope): TestingElement {
   return {
     element,
+    getAttribute: (name: string) => element.getAttribute(name),
+    dispatchEvent: (type: string, init?: EventInit) => {
+      element.dispatchEvent(new Event(type, { bubbles: true, ...init }));
+      scope.engine.flush();
+    },
     query: (target: QueryTarget) => {
       const [first] = queryAll(element, target, scope);
       if (!first) {

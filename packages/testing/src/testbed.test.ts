@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  signal,
   Component,
   Directive,
   InjectionToken,
@@ -252,6 +253,48 @@ describe("TestBed.override", () => {
       .toBe("stub");
     expect(ref.root.query(Item).instance)
       .toBeInstanceOf(StubItem);
+    ref.destroy();
+  });
+});
+
+@Component({
+  selector: "tk-clicker",
+  template: "<button id=\"go\" (click)=\"press()\">{{ clicks() }}</button>",
+})
+class Clicker {
+  readonly clicks = signal(0);
+
+  press(): void {
+    this.clicks.update((count) => count + 1);
+  }
+}
+
+describe("TestingElement methods", () => {
+  test("getAttribute reads an attribute, or null when it is not set", () => {
+    const Host = ComponentBuilder.template("<p id=\"intro\">hi</p>")
+      .build();
+    const ref = TestBed.component(Host)
+      .build();
+    expect(ref.root.query("p")
+      .getAttribute("id"))
+      .toBe("intro");
+    expect(ref.root.query("p")
+      .getAttribute("title"))
+      .toBeNull();
+    ref.destroy();
+  });
+
+  test("dispatchEvent runs the listeners, then renders what they changed", () => {
+    const ref = TestBed.component(Clicker)
+      .build();
+    ref.root.query("button")
+      .dispatchEvent("click");
+    expect(ref.root.query("button").element.textContent)
+      .toBe("1");
+    ref.root.query("button")
+      .dispatchEvent("click");
+    expect(ref.root.query("button").element.textContent)
+      .toBe("2");
     ref.destroy();
   });
 });

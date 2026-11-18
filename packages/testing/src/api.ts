@@ -55,6 +55,13 @@ export interface TestBed<T extends object = object> {
 type ElementMembers = {
   /** The element. */
   readonly element: Element;
+  /** The value of attribute `name` on the element, or `null` when it is not set. */
+  getAttribute(name: string): string | null;
+  /**
+   * Dispatch an event of type `type` at the element, bubbling by default, then run change
+   * detection, so the DOM reflects what listeners did. A click is `dispatchEvent("click")`.
+   */
+  dispatchEvent(type: string, init?: EventInit): void;
   /**
    * The first descendant of `element` that matches, in document order: a testing element
    * for a CSS selector, or one for a component or directive class, so it can be driven
