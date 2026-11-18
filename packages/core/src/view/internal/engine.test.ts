@@ -551,3 +551,30 @@ describe("Engine.bootstrap renders on the next tick", () => {
       .toBe("first");
   });
 });
+
+describe("a failed first render", () => {
+  test("stays in place, and the view renders again when its signals change", () => {
+    document.body.innerHTML = "<tk-app></tk-app>";
+    @Component({ selector: "tk-app", template: "<p>{{ value() }}</p>" })
+    class App {
+      readonly fail = signal(true);
+      readonly value = (): string => {
+        if (this.fail()) {
+          throw new Error("not yet");
+        }
+        return "ok";
+      };
+    }
+    const engine = Engine.create();
+    const app = engine.bootstrap(App);
+    expect(() => engine.flush())
+      .toThrow("not yet");
+    expect(document.querySelector("tk-app p"))
+      .not.toBeNull();
+    app.instance.fail.set(false);
+    engine.flush();
+    expect(document.querySelector("tk-app p")?.textContent)
+      .toBe("ok");
+    engine.destroy();
+  });
+});
