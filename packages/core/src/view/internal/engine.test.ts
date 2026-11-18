@@ -500,3 +500,20 @@ describe("CLASS_REPLACEMENTS", () => {
       .toBeInstanceOf(Stub);
   });
 });
+
+describe("Engine.bootstrap with deferRender", () => {
+  test("the text is written on the next tick, not when it is bootstrapped", () => {
+    document.body.innerHTML = "<tk-app></tk-app>";
+    @Component({ selector: "tk-app", template: "<p>{{ text() }}</p>" })
+    class App {
+      readonly text = signal("first");
+    }
+    const engine = Engine.create();
+    engine.bootstrap(App, undefined, true);
+    expect(document.querySelector("p")?.textContent)
+      .toBe("");
+    engine.flush();
+    expect(document.querySelector("p")?.textContent)
+      .toBe("first");
+  });
+});

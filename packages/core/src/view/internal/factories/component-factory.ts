@@ -142,6 +142,7 @@ export class ComponentFactory {
     child?: ParentContext,
     parentInjector?: Injector,
     owner?: ViewNode,
+    deferRender = false,
   ): ComponentView<T> {
     const start = this.creating.indexOf(type);
     if (start !== -1) {
@@ -151,7 +152,7 @@ export class ComponentFactory {
     }
     this.creating.push(type);
     try {
-      return this.createView(type, host, child, parentInjector, owner);
+      return this.createView(type, host, child, parentInjector, owner, deferRender);
     } finally {
       this.creating.pop();
     }
@@ -163,6 +164,7 @@ export class ComponentFactory {
     child?: ParentContext,
     parentInjector?: Injector,
     owner?: ViewNode,
+    deferRender = false,
   ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
@@ -252,16 +254,23 @@ export class ComponentFactory {
     // The view's one watch: updates the bindings (the template's, then the
     // host bindings of its template's directives, and its own if it is a
     // root). Its first run happens now, so the view is complete when it is returned.
-    const firstRun = new RunFirstNow(this.changeDetection.views.forNode(node));
-    const viewWatch = watch(() => template.update(), firstRun);
-    view.addDestroyCallback(() => viewWatch.destroy());
-    firstRun.failure.ifSome((error) => {
-      view.destroy(); // nothing half-rendered, and the watch no longer listens
-      throw error;
-    });
-    // The first render happened outside a tick: report it, so the render
-    // hooks run in the next tick (e.g. an afterNextRender registered by the component).
-    this.changeDetection.viewRendered();
+    if (deferRender) {
+      // The first render waits for the next tick, so the caller can bind the inputs
+      // first. Effects of the tick run before the views, so an effect sees them too.
+      const viewWatch = watch(() => template.update(), this.changeDetection.views.forNode(node));
+      view.addDestroyCallback(() => viewWatch.destroy());
+    } else {
+      const firstRun = new RunFirstNow(this.changeDetection.views.forNode(node));
+      const viewWatch = watch(() => template.update(), firstRun);
+      view.addDestroyCallback(() => viewWatch.destroy());
+      firstRun.failure.ifSome((error) => {
+        view.destroy(); // nothing half-rendered, and the watch no longer listens
+        throw error;
+      });
+      // The first render happened outside a tick: report it, so the render
+      // hooks run in the next tick (e.g. an afterNextRender registered by the component).
+      this.changeDetection.viewRendered();
+    }
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   Component,
   Directive,
+  Effect,
   InjectionToken,
   input,
   InputNotBoundError,
@@ -498,6 +499,27 @@ describe("text", () => {
       .toBe("hello there");
     expect(paragraph.element.textContent)
       .toContain("\n");
+    ref.destroy();
+  });
+});
+
+@Component({ selector: "tk-labelled", template: "<p>{{ shown() }}</p>" })
+class Labelled {
+  readonly label = input<string>();
+  readonly shown = signal("");
+
+  @Effect() sync(): void {
+    this.shown.set(this.label());
+  }
+}
+
+describe("inputs set before the first render", () => {
+  test("a required input set by the bed is ready for an effect before the first render", () => {
+    const ref = TestBed.inputs({ label: "Ada" })
+      .component(Labelled)
+      .build();
+    expect(ref.root.text())
+      .toBe("Ada");
     ref.destroy();
   });
 });
