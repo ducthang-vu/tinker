@@ -16,7 +16,7 @@
 //   expect(ref.root.element.textContent).toBe("Hello Ada");
 //   ref.destroy();
 
-import type { Provider } from "@tinker/core";
+import type { OutputName, OutputValue, Provider, Stream } from "@tinker/core";
 
 /**
  * A builder for one test bed. Each method returns the builder, so the configuration
@@ -75,6 +75,13 @@ export interface ElementFixture {
 export interface Fixture<T extends object> extends ElementFixture {
   /** The component instance. */
   readonly instance: T;
+  /**
+   * The component's outputs, by name. Subscribe to one to hear what it emits, from the
+   * moment you subscribe, as a template would. A subscriber can be a spy.
+   */
+  readonly outputs: {
+    readonly [K in OutputName<T>]: Stream<OutputValue<T[K]>, void, never>;
+  };
   /** Set one of the component's inputs, as a parent template would. */
   setInput(name: string, value: unknown): void;
   /** Emit one of the component's outputs, so the template's handler for it runs. */
