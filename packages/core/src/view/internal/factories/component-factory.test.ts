@@ -20,6 +20,7 @@ import { Ticker } from "../runtime/ticker.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { Maybe } from "@tinker/functional";
+import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory(overrides: readonly Provider[] = []) {
@@ -325,5 +326,25 @@ describe("ComponentFactory collaborators", () => {
 
     expect(created)
       .toEqual([view.component]);
+  });
+});
+
+describe("the owner of a component's view", () => {
+  @Component({ selector: "tk-owned", template: "<p>x</p>" })
+  class Owned {}
+
+  test("a root component has no owner", () => {
+    const { factory } = makeFactory();
+    const view = factory.create(Owned, document.createElement("div"));
+    expect(view.node.owner)
+      .toBeUndefined();
+  });
+
+  test("a component created with an owner is owned by that node", () => {
+    const { factory } = makeFactory();
+    const owner: ViewNode = {};
+    const view = factory.create(Owned, document.createElement("div"), undefined, undefined, owner);
+    expect(view.node.owner)
+      .toBe(owner);
   });
 });
