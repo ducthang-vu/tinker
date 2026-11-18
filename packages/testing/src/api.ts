@@ -1,9 +1,12 @@
 // The public API of @tinker/testing, as types. It is the contract for the helpers:
-// nothing here runs yet. `TestBed` is the builder: a test starts it from the component
-// under test, configures it, and builds a fixture, which is the builder's result.
+// nothing here runs yet.
 //
-//   const fixture = TestBed.component(Greeting)
-//     .providers(provide(API_URL, { useValue: "x" }))
+// `TestBed` is a builder for one fixture. Each configuration method exists twice: as a
+// static, which starts a new builder with that setting, and as an instance method, which
+// adds the setting to the builder it is called on. So the calls can come in any order:
+//
+//   const fixture = TestBed.providers(provide(API_URL, { useValue: "x" }))
+//     .component(Greeting)
 //     .build();
 //   expect(fixture.host.textContent).toBe("Hello");
 //   fixture.instance.name.set("Ada");
@@ -14,10 +17,12 @@
 import type { Provider } from "@tinker/core";
 
 /**
- * Configures one fixture of the component under test, and builds it. Each call
- * returns the builder, so the configuration reads as one chain.
+ * A builder for one fixture. Each method returns the builder, so the configuration
+ * reads as one chain, and `build()` returns the fixture.
  */
-export interface TestBed<T extends object> {
+export interface TestBed<T extends object = object> {
+  /** The component under test: the fixture's instance is of this type. */
+  component<C extends object>(type: new () => C): TestBed<C>;
   /**
    * Providers for the fixture's engine. They replace the defaults, as they do for
    * `bootstrap`'s providers. Calling it again adds more.
@@ -48,8 +53,13 @@ export interface Fixture<T extends object> {
   destroy(): void;
 }
 
-/** Starts the configuration of a fixture. */
+/**
+ * The static starts: each returns a new builder with that one setting, the same as
+ * calling the instance method of the same name on a fresh builder.
+ */
 export declare const TestBed: {
-  /** Start the configuration of a fixture of the component under test `type`. */
-  component<T extends object>(type: new () => T): TestBed<T>;
+  component<C extends object>(type: new () => C): TestBed<C>;
+  providers(...providers: readonly Provider[]): TestBed;
+  host(element: Element): TestBed;
+  inputs(values: Readonly<Record<string, unknown>>): TestBed;
 };
