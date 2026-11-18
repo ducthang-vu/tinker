@@ -2,3 +2,7 @@ node_modules/
 dist/
 coverage/
 .repo-map.json
+
+# Playwright output
+test-results/
+playwright-report/

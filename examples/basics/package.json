@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "dependencies": {
     "@tinker/core": "*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
   }
 }
