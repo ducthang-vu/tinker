@@ -182,7 +182,6 @@ interface MockConfig<F> {
   readonly isComponent: boolean;
   readonly selector: string;
   readonly exportAs?: string;
-  readonly template?: string;
   readonly inputs: readonly string[];
   readonly outputs: readonly string[];
 }
@@ -198,10 +197,6 @@ function membersOf(inputs: readonly string[], outputs: readonly string[]): objec
 class MockBuilderImpl<F extends object> implements MockBuilderApi<F> {
   constructor(private readonly config: MockConfig<F>) {}
 
-  template(source: string): MockBuilderApi<F> {
-    return new MockBuilderImpl<F>({ ...this.config, template: source });
-  }
-
   inputs<N extends InputName<F>>(...names: readonly N[]): MockBuilderApi<F> {
     return new MockBuilderImpl<F>({ ...this.config, inputs: [...this.config.inputs, ...names] });
   }
@@ -211,11 +206,8 @@ class MockBuilderImpl<F extends object> implements MockBuilderApi<F> {
   }
 
   build(): MockClass<F> {
-    const { type, isComponent, selector, exportAs, template, inputs, outputs } = this.config;
+    const { type, isComponent, selector, exportAs, inputs, outputs } = this.config;
     if (!isComponent) {
-      if (template !== undefined) {
-        throw new Error(`${type.name} is a directive: it has no template to mock`);
-      }
       @Directive({ selector, ...(exportAs && { exportAs }) })
       class MockDirective {
         static readonly mockOf = type;
@@ -226,7 +218,7 @@ class MockBuilderImpl<F extends object> implements MockBuilderApi<F> {
       }
       return MockDirective as unknown as MockClass<F>;
     }
-    @Component({ selector, template: template ?? "", ...(exportAs && { exportAs }) })
+    @Component({ selector, template: "", ...(exportAs && { exportAs }) })
     class MockComponent {
       static readonly mockOf = type;
 

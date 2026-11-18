@@ -182,13 +182,11 @@ export type MockClass<F extends object = object, K extends MethodName<F> = never
  * the others are left as they are.
  */
 export interface MockBuilder<F extends object> {
-  /** The template of the mock. Without one, the mock renders nothing. */
-  template(source: string): MockBuilder<F>;
   /** Inputs of `F` that the mock has too, so a parent template can bind them. */
   inputs<N extends InputName<F>>(...names: readonly N[]): MockBuilder<F>;
   /** Outputs of `F` that the mock has too, so a parent template can listen to them. */
   outputs<N extends OutputName<F>>(...names: readonly N[]): MockBuilder<F>;
-  /** Create the mock class. It keeps the selector and exportAs of `F`. */
+  /** Create the mock class. It keeps the selector and exportAs of `F`, and renders nothing. */
   build(): MockClass<F>;
 }
 

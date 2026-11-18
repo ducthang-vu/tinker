@@ -337,21 +337,7 @@ describe("registerCleanup", () => {
 });
 
 describe("ComponentBuilder.mock", () => {
-  test("keeps the selector, and renders its own template", () => {
-    const mock = ComponentBuilder.mock(Item)
-      .template("<i>stub</i>")
-      .build();
-    const ref = TestBed.override(Item, mock)
-      .component(List)
-      .build();
-    expect(ref.root.query("i").element.textContent)
-      .toBe("stub");
-    expect(ref.root.query(Item).instance)
-      .toBeInstanceOf(mock);
-    ref.destroy();
-  });
-
-  test("renders nothing without a template", () => {
+  test("keeps the selector, and renders nothing", () => {
     const mock = ComponentBuilder.mock(Item)
       .build();
     const ref = TestBed.override(Item, mock)
@@ -416,7 +402,6 @@ describe("ComponentBuilder.mock", () => {
 
   test("a component mock keeps exportAs too", () => {
     const mock = ComponentBuilder.mock(Card)
-      .template("<i>mock card</i>")
       .build();
     const Host = ComponentBuilder.template("<tk-card #c=\"card\"></tk-card>")
       .directives(Card)
@@ -424,16 +409,9 @@ describe("ComponentBuilder.mock", () => {
     const ref = TestBed.override(Card, mock)
       .component(Host)
       .build();
-    expect(ref.root.query("i").element.textContent)
-      .toBe("mock card");
+    expect(ref.root.query(Card).instance)
+      .toBeInstanceOf(mock);
     ref.destroy();
-  });
-
-  test("a mock of a directive has no template", () => {
-    expect(() => ComponentBuilder.mock(Mark)
-      .template("<b>x</b>")
-      .build())
-      .toThrow("is a directive: it has no template to mock");
   });
 
   test("refuses a class that is not a directive or component", () => {
