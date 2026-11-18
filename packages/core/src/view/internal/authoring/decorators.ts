@@ -68,19 +68,52 @@ const COMPONENT_METADATA: unique symbol = Symbol("component metadata");
 
 /** Class decorator: marks the class as a directive. */
 export function Directive(options: DirectiveMetadata) {
+  return function <C extends AbstractClass>(target: C, _context: ClassDecoratorContext<C>): void {
+    defineDirective(target, options);
+  };
+}
+
+/** Class decorator: marks the class as a component (and therefore a directive). */
+export function Component(options: ComponentMetadata) {
+  return function <C extends AbstractClass>(target: C, _context: ClassDecoratorContext<C>): void {
+    defineComponent(target, options);
+  };
+}
+
+/**
+ * Record the directive metadata of `target`, as `@Directive` does. Plain code can
+ * declare a class this way too, e.g. a mock built at runtime.
+ * @privateAPI Not in the public index, for the testing helpers only. Do not use it in an app,
+ * unless you accept that it may change without notice.
+ */
+export function defineDirective<C extends AbstractClass>(
+  target: C,
+  options: DirectiveMetadata,
+): void {
   const recorded: DirectiveMetadata = Object.freeze({
     selector: options.selector,
     ...(options.exportAs && { exportAs: options.exportAs }),
     ...(options.host && { host: Object.freeze({ ...options.host }) }),
     ...(options.providers && { providers: Object.freeze([...options.providers]) }),
   });
-  return function <C extends AbstractClass>(target: C, _context: ClassDecoratorContext<C>): void {
-    defineMetadata(target, DIRECTIVE_METADATA, recorded);
-  };
+  defineMetadata(target, DIRECTIVE_METADATA, recorded);
 }
 
-/** Class decorator: marks the class as a component (and therefore a directive). */
-export function Component(options: ComponentMetadata) {
+/**
+ * Record the component metadata of `target`, as `@Component` does, and the directive
+ * metadata a component has too.
+ * @privateAPI Not in the public index, for the testing helpers only. Do not use it in an app,
+ * unless you accept that it may change without notice.
+ */
+export function defineComponent<C extends AbstractClass>(
+  target: C,
+  options: ComponentMetadata,
+): void {
+  defineDirective(target, {
+    selector: options.selector,
+    host: options.host,
+    exportAs: options.exportAs,
+  });
   const recorded: ComponentMetadata = Object.freeze({
     selector: options.selector,
     template: options.template,
@@ -90,15 +123,7 @@ export function Component(options: ComponentMetadata) {
     ...(options.imports && { imports: Object.freeze([...options.imports]) }),
     ...(options.hostDirectives && { hostDirectives: Object.freeze([...options.hostDirectives]) }),
   });
-  const asDirective = Directive({
-    selector: options.selector,
-    host: options.host,
-    exportAs: options.exportAs,
-  });
-  return function <C extends AbstractClass>(target: C, context: ClassDecoratorContext<C>): void {
-    asDirective(target, context);
-    defineMetadata(target, COMPONENT_METADATA, recorded);
-  };
+  defineMetadata(target, COMPONENT_METADATA, recorded);
 }
 
 /** The directive metadata of `type` (components included), if it is a directive. */

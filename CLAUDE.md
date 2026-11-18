@@ -17,6 +17,7 @@ fails when it is out of date: regenerate it after changing exports or imports.
   `index.ts`. `packages/core/src/index.ts` re-exports them as `tinker`.
 - `packages/functional` (`@tinker/functional`): the functional helpers (Maybe, Either, Task,
   Stream, Emitter). Its public API is `src/public-api.ts`, and `src/index.ts` re-exports it.
+- `packages/testing` (`@tinker/testing`): helpers for testing Tinker apps. It has no API yet, and the core package's own tests do not use it.
 - `examples/basics` (`@tinker/example-basics`): the example app, its own package. It imports from `@tinker/core`, and `npm run dev` opens it.
 - `scripts/`: the repo-map generator and its tests.
 
@@ -34,6 +35,10 @@ fails when it is out of date: regenerate it after changing exports or imports.
 Read `CONVENTIONS.md` before writing code (DI and factories, no `any`,
 `Maybe`/`Either`, tests next to their files). `IMPROVEMENTS.md` lists known
 gaps and planned work; check it before adding something it already covers.
+
+Never import `@tinker/testing` in `packages/core`, not in its source and not in
+its tests: the testing package depends on core, so core must not depend on it.
+Core tests use only what is inside core.
 
 ## Agent instructions
 

@@ -9,7 +9,7 @@ import { signal } from "../../signals/index.ts";
 import { BrowserTemplateParser } from "./template/browser-parser.ts";
 import { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
-import { inject, Injector, provide, runInInjectionContext } from "../../di/index.ts";
+import { inject, InjectionToken, Injector, provide, runInInjectionContext } from "../../di/index.ts";
 import { ChangeDetection } from "./runtime/change-detection.ts";
 import { EffectScheduler } from "./runtime/schedulers/effect-scheduler.ts";
 import { Ticker } from "./runtime/ticker.ts";
@@ -464,5 +464,16 @@ describe("Engine.afterStable", () => {
     engine.flush();
     expect(ended)
       .toEqual([]);
+  });
+});
+
+describe("Engine.get", () => {
+  test("returns a service of the engine's root injector, providers first", () => {
+    const GREETING = new InjectionToken<string>("GREETING");
+    const engine = Engine.create({
+      providers: [provide(GREETING, { useValue: "given" })],
+    });
+    expect(engine.get(GREETING))
+      .toBe("given");
   });
 });

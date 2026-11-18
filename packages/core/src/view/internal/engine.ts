@@ -18,7 +18,7 @@
 // - `flush()`, to run a change detection tick now (see ChangeDetection);
 // - `afterStable()`, to know when the next tick has ended.
 
-import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext } from "../../di/index.ts";
+import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext, type Token } from "../../di/index.ts";
 import { Maybe, type Task } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { ElementContext } from "./runtime/element-context.ts";
@@ -175,5 +175,14 @@ export class Engine {
   /** What is on `element` (its directives and component), if anything. */
   getContext(element: Element): Maybe<ElementContext> {
     return this.contexts.get(element);
+  }
+
+  /**
+   * A service from the engine's root injector: your providers, then the defaults.
+   * @privateAPI Not in the public index, for the testing helpers only. Do not use it in an app,
+   * unless you accept that it may change without notice.
+   */
+  get<S>(token: Token<S>): S {
+    return runInInjectionContext(this.injector, () => inject(token));
   }
 }
