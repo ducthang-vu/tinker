@@ -16,7 +16,7 @@
 //   expect(ref.root.element.textContent).toBe("Hello Ada");
 //   ref.destroy();
 
-import type { OutputName, OutputValue, Provider, Stream } from "@tinker/core";
+import type { InputName, InputValue, OutputName, OutputValue, Provider, Stream } from "@tinker/core";
 
 /**
  * A builder for one test bed. Each method returns the builder, so the configuration
@@ -75,6 +75,14 @@ export interface ElementFixture {
 export interface Fixture<T extends object> extends ElementFixture {
   /** The component instance. */
   readonly instance: T;
+  /**
+   * The component's inputs, by name: each one's current value, as the component reads it.
+   * Reading an input that nothing has bound throws `InputNotBoundError`, as it does in
+   * the component.
+   */
+  readonly inputs: {
+    readonly [K in InputName<T>]: InputValue<T[K]>;
+  };
   /**
    * The component's outputs, by name. Subscribe to one to hear what it emits, from the
    * moment you subscribe, as a template would. A subscriber can be a spy.
