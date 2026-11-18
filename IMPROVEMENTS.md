@@ -10,7 +10,18 @@ same task (an event handler, a fetch callback) leads to one cycle, before the
 browser paints. That is the right default (Vue and Lit do the same), but it
 has these gaps.
 
-### 1. Parents before children
+### 1. Several cycles with `async` code
+
+**Problem.** Each `await` lets microtasks run, so
+`a.set(1); await x; b.set(2);` runs two cycles in one frame. The result is
+correct, the work is not minimal.
+
+**To do.** Nothing yet: the cost is not measured. If it shows up in profiles, try
+another strategy, e.g. Angular's zoneless race between `setTimeout` and
+`requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
+runs, so this is a change in one place.
+
+### 2. Parents before children
 
 **Problem.** Queued views run in the order they were scheduled. Once
 components nest, a child could update before its parent, then again after
