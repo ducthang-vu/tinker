@@ -1,30 +1,32 @@
 // The public API of @tinker/testing, as types. It is the contract for the helpers:
 // nothing here runs yet.
 //
-// `TestBed` is a builder for one fixture. Each configuration method exists twice: as a
-// static, which starts a new builder with that setting, and as an instance method, which
-// adds the setting to the builder it is called on. So the calls can come in any order:
+// `TestBed` is a builder. Each configuration method exists twice: as a static, which
+// starts a new builder with that setting, and as an instance method, which adds the
+// setting to the builder it is called on, so the calls can come in any order.
+// `build()` creates the bed and returns a `TestBedRef`, which hosts the component under
+// test (`root`) and drives the bed (change detection, services, cleanup).
 //
-//   const fixture = TestBed.providers(provide(API_URL, { useValue: "x" }))
+//   const ref = TestBed.providers(provide(API_URL, { useValue: "x" }))
 //     .component(Greeting)
 //     .build();
-//   expect(fixture.host.textContent).toBe("Hello");
-//   fixture.instance.name.set("Ada");
-//   fixture.detectChanges();
-//   expect(fixture.host.textContent).toBe("Hello Ada");
-//   fixture.destroy();
+//   expect(ref.root.element.textContent).toBe("Hello");
+//   ref.root.instance.name.set("Ada");
+//   ref.detectChanges();
+//   expect(ref.root.element.textContent).toBe("Hello Ada");
+//   ref.destroy();
 
 import type { Provider } from "@tinker/core";
 
 /**
- * A builder for one fixture. Each method returns the builder, so the configuration
- * reads as one chain, and `build()` returns the fixture.
+ * A builder for one test bed. Each method returns the builder, so the configuration
+ * reads as one chain, and `build()` creates the bed.
  */
 export interface TestBed<T extends object = object> {
-  /** The component under test: the fixture's instance is of this type. */
+  /** The component under test: `build()` creates it as the bed's root. */
   component<C extends object>(type: new () => C): TestBed<C>;
   /**
-   * Providers for the fixture's engine. They replace the defaults, as they do for
+   * Providers for the bed's engine. They replace the defaults, as they do for
    * `bootstrap`'s providers. Calling it again adds more.
    */
   providers(...providers: readonly Provider[]): TestBed<T>;
@@ -35,21 +37,38 @@ export interface TestBed<T extends object = object> {
    * throws `InputNotBoundError` when it is read.
    */
   inputs(values: Readonly<Record<string, unknown>>): TestBed<T>;
-  /** Create the component, with its own engine, and return its fixture. */
-  build(): Fixture<T>;
+  /**
+   * Create the bed and its component. Needs a component: `component(type)` first, or
+   * the static `TestBed.component(type)`.
+   */
+  build(): TestBedRef<T>;
 }
 
-/** A component a test has built: its instance, its element, and how to run it. */
+/** The component under test, as a test sees it. */
 export interface Fixture<T extends object> {
   /** The component instance. */
   readonly instance: T;
   /** The element the component is rendered into. */
-  readonly host: Element;
-  /** Run change detection now: effects, then views, until nothing is left to update. */
+  readonly element: Element;
+  /** The first element inside the component matching `selector`, or `null`. */
+  query(selector: string): Element | null;
+  /** Set one of the component's inputs, as a parent template would. */
+  setInput(name: string, value: unknown): void;
+  /** Emit one of the component's outputs, so the template's handler for it runs. */
+  emitOutput(name: string, value: unknown): void;
+}
+
+/** A built test bed: its component under test, and what drives it. */
+export interface TestBedRef<T extends object> {
+  /** The component under test. */
+  readonly root: Fixture<T>;
+  /** Run a change detection tick now: effects first, then views, until nothing is left. */
   detectChanges(): void;
   /** Resolve once the next change detection tick has ended. */
   whenStable(): Promise<void>;
-  /** Destroy the component, everything it owns, and its engine. Calling it again does nothing. */
+  /** A service from the bed's engine: its providers, then the defaults. */
+  get<S>(token: new () => S): S;
+  /** Destroy the component, and the bed's engine. Calling it again does nothing. */
   destroy(): void;
 }
 
