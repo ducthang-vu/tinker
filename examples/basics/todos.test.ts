@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { TestBed } from "@tinker/testing";
 import { Toggle, Todos } from "./todos.ts";
-import { buttonNamed, textOf } from "./testing-helpers.ts";
+import { buttonNamed, textOf, nth } from "./testing-helpers.ts";
 
 describe("Todos", () => {
   test("starts with three rows, one of them done", () => {
@@ -17,13 +17,13 @@ describe("Todos", () => {
   test("a row's button flips that row, and only that row", () => {
     const ref = TestBed.component(Todos)
       .build();
-    ref.root.queryAll(Toggle)[1]!.element.dispatchEvent(new MouseEvent("click"));
+    nth(ref.root.queryAll(Toggle), 1).element.dispatchEvent(new MouseEvent("click"));
     ref.detectChanges();
     expect(textOf(ref.root, "p"))
       .toContain("2 of 3 done");
-    expect(ref.root.queryAll("li")[1]!.element.classList.contains("done"))
+    expect(nth(ref.root.queryAll("li"), 1).element.classList.contains("done"))
       .toBe(true);
-    expect(ref.root.queryAll("li")[2]!.element.classList.contains("done"))
+    expect(nth(ref.root.queryAll("li"), 2).element.classList.contains("done"))
       .toBe(false);
     ref.destroy();
   });
@@ -38,7 +38,7 @@ describe("Todos", () => {
       .toHaveLength(4);
     expect(textOf(ref.root, "p"))
       .toContain("1 of 4 done");
-    expect(ref.root.query("ul")?.element.textContent)
+    expect(ref.root.query("ul").element.textContent)
       .toContain("Task 4");
     ref.destroy();
   });
@@ -49,7 +49,7 @@ describe("Todos", () => {
     buttonNamed(ref.root, "Clear")
       .click();
     ref.detectChanges();
-    expect(ref.root.query("ul")?.element.textContent)
+    expect(ref.root.query("ul").element.textContent)
       .toContain("Nothing to do");
     expect(textOf(ref.root, "p"))
       .toContain("0 of 0 done");
@@ -60,9 +60,11 @@ describe("Todos", () => {
     const ref = TestBed.component(Todos)
       .build();
     const rows = ref.root.queryAll("li");
-    expect(rows[0]!.query("em")?.element.textContent)
+    expect(nth(rows, 0)
+      .query("em").element.textContent)
       .toBe("first");
-    expect(rows[2]!.query("em")?.element.textContent)
+    expect(nth(rows, 2)
+      .query("em").element.textContent)
       .toBe("last");
     ref.destroy();
   });
@@ -70,7 +72,7 @@ describe("Todos", () => {
   test("the summary shows each title with a check when done", () => {
     const ref = TestBed.component(Todos)
       .build();
-    const summary = (ref.root.queryAll("ul")[1]!.element.textContent ?? "")
+    const summary = (nth(ref.root.queryAll("ul"), 1).element.textContent ?? "")
       .replace(/\s+/g, " ");
     expect(summary)
       .toContain("✓ Write the docs");

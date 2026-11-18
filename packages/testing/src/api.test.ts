@@ -19,9 +19,9 @@ class Other {}
 
 function queries(ref: TestBedRef<Button>): void {
   expectTypeOf(ref.root.query("p"))
-    .toEqualTypeOf<ElementFixture | null>();
+    .toEqualTypeOf<ElementFixture>();
   expectTypeOf(ref.root.query(Button))
-    .toEqualTypeOf<Fixture<Button> | null>();
+    .toEqualTypeOf<Fixture<Button>>();
   expectTypeOf(ref.root.queryAll(Button))
     .toEqualTypeOf<Fixture<Button>[]>();
   expectTypeOf(ref.root.inputs.label)

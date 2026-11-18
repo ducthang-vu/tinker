@@ -59,14 +59,15 @@ export interface ElementFixture {
   /** The element. */
   readonly element: Element;
   /**
-   * The first descendant of `element` that matches, in document order, or `null`: a
-   * fixture for a component or directive class, so it can be driven too; an element
-   * fixture for a CSS selector. Descendants include elements of nested components. A
-   * class also matches the class that overrides it (see `TestBed.override`).
+   * The first descendant of `element` that matches, in document order: a fixture for a
+   * component or directive class, so it can be driven too; an element fixture for a CSS
+   * selector. Descendants include elements of nested components. A class also matches
+   * the class that overrides it (see `TestBed.override`). Throws, naming what was looked
+   * for, when nothing matches. To check that something is absent, use `queryAll`.
    */
-  query(selector: string): ElementFixture | null;
-  query<C extends object>(type: new () => C): Fixture<C> | null;
-  /** Every match, as `query`, in document order. */
+  query(selector: string): ElementFixture;
+  query<C extends object>(type: new () => C): Fixture<C>;
+  /** Every match, as `query`, in document order. Empty when nothing matches. */
   queryAll(selector: string): ElementFixture[];
   queryAll<C extends object>(type: new () => C): Fixture<C>[];
 }

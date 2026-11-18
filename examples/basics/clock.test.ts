@@ -17,7 +17,7 @@ describe("Clock", () => {
   test("shows the time", () => {
     const ref = TestBed.component(Clock)
       .build();
-    expect(ref.root.query("p")?.element.textContent)
+    expect(ref.root.query("p").element.textContent)
       .toBe(START.toLocaleTimeString());
     ref.destroy();
   });
@@ -27,7 +27,7 @@ describe("Clock", () => {
       .build();
     vi.advanceTimersByTime(1000);
     ref.detectChanges();
-    expect(ref.root.query("p")?.element.textContent)
+    expect(ref.root.query("p").element.textContent)
       .toBe(new Date(2026, 0, 1, 10, 0, 1)
         .toLocaleTimeString());
     ref.destroy();

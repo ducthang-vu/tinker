@@ -15,11 +15,22 @@ export interface Scope {
   readonly replacements: ReadonlyMap<new () => object, new () => object>;
 }
 
+/** The query target as the test wrote it, for messages. */
+function describe(target: QueryTarget): string {
+  return typeof target === "string" ? `"${target}"` : target.name;
+}
+
 /** A fixture for an element: it can be queried, and has no instance to drive. */
 export function elementFixture(element: Element, scope: Scope): ElementFixture {
   return {
     element,
-    query: (target: QueryTarget) => queryAll(element, target, scope)[0] ?? null,
+    query: (target: QueryTarget) => {
+      const [first] = queryAll(element, target, scope);
+      if (!first) {
+        throw new Error(`No ${describe(target)} found under this element`);
+      }
+      return first;
+    },
     queryAll: (target: QueryTarget) => queryAll(element, target, scope),
   } as ElementFixture;
 }

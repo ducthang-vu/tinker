@@ -119,19 +119,41 @@ describe("TestBedRef.root", () => {
   });
 });
 
+describe("fixture query, when there is no match", () => {
+  test("returns the match", () => {
+    const ref = TestBed.component(List)
+      .build();
+    expect(ref.root.query("ul").element.tagName)
+      .toBe("UL");
+    expect(ref.root.query(Mark).instance)
+      .toBeInstanceOf(Mark);
+    ref.destroy();
+  });
+
+  test("throws, naming what was looked for, when there is no match", () => {
+    const ref = TestBed.component(List)
+      .build();
+    expect(() => ref.root.query("missing"))
+      .toThrow("No \"missing\" found under this element");
+    expect(() => ref.root.query(StubItem))
+      .toThrow("No StubItem found under this element");
+    ref.destroy();
+  });
+});
+
 describe("fixture queries", () => {
   test("a selector finds elements, and element fixtures can be queried further", () => {
     const ref = TestBed.component(List)
       .build();
-    expect(ref.root.query("li")?.element.textContent)
+    expect(ref.root.query("li").element.textContent)
       .toBe("a");
     expect(ref.root.queryAll("li"))
       .toHaveLength(2);
     expect(ref.root.query("ul")
-      ?.query("li")?.element.textContent)
+      .query("li").element.textContent)
       .toBe("a");
-    expect(ref.root.query("missing"))
-      .toBeNull();
+    expect(ref.root.queryAll("missing"))
+      .toHaveLength(0);
     ref.destroy();
   });
 
@@ -139,17 +161,17 @@ describe("fixture queries", () => {
     const ref = TestBed.component(List)
       .build();
     const first = ref.root.query(Mark);
-    expect(first?.instance)
+    expect(first.instance)
       .toBeInstanceOf(Mark);
-    expect(first?.element.textContent)
+    expect(first.element.textContent)
       .toBe("a");
     const all = ref.root.queryAll(Mark);
     expect(all.map((fixture) => fixture.element.textContent))
       .toEqual(["a", "x"]);
-    expect(ref.root.query(Item)?.instance)
+    expect(ref.root.query(Item).instance)
       .toBeInstanceOf(Item);
-    expect(ref.root.query(StubItem))
-      .toBeNull();
+    expect(ref.root.queryAll(StubItem))
+      .toHaveLength(0);
     ref.destroy();
   });
 
@@ -157,12 +179,12 @@ describe("fixture queries", () => {
     const ref = TestBed.component(List)
       .build();
     const mark = ref.root.query(Mark);
-    expect(mark?.inputs.label)
+    expect(mark.inputs.label)
       .toBe("m");
-    mark?.setInput("label", "changed");
-    expect(mark?.inputs.label)
+    mark.setInput("label", "changed");
+    expect(mark.inputs.label)
       .toBe("changed");
-    mark?.setInput("unknown", 1);
+    mark.setInput("unknown", 1);
     ref.destroy();
   });
 
@@ -170,7 +192,7 @@ describe("fixture queries", () => {
     const ref = TestBed.component(List)
       .build();
     const mark = ref.root.query(Mark);
-    expect(() => mark?.inputs.must)
+    expect(() => mark.inputs.must)
       .toThrow(InputNotBoundError);
     ref.destroy();
   });
@@ -183,9 +205,9 @@ describe("fixture queries", () => {
       .build();
     const pick = ref.root.query(Pick);
     const seen: number[] = [];
-    pick?.outputs.picked.run({ next: (value) => seen.push(value) });
-    pick?.emitOutput("picked", 3);
-    pick?.emitOutput("unknown", 4);
+    pick.outputs.picked.run({ next: (value) => seen.push(value) });
+    pick.emitOutput("picked", 3);
+    pick.emitOutput("unknown", 4);
     expect(seen)
       .toEqual([3]);
     ref.destroy();
@@ -199,7 +221,7 @@ describe("ComponentBuilder", () => {
       .build();
     const ref = TestBed.component(Host)
       .build();
-    expect(ref.root.query(Mark)?.instance)
+    expect(ref.root.query(Mark).instance)
       .toBeInstanceOf(Mark);
     ref.destroy();
   });
@@ -226,9 +248,9 @@ describe("TestBed.override", () => {
     const ref = TestBed.override(Item, StubItem)
       .component(List)
       .build();
-    expect(ref.root.query("i")?.element.textContent)
+    expect(ref.root.query("i").element.textContent)
       .toBe("stub");
-    expect(ref.root.query(Item)?.instance)
+    expect(ref.root.query(Item).instance)
       .toBeInstanceOf(StubItem);
     ref.destroy();
   });

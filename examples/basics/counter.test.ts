@@ -35,7 +35,7 @@ describe("Counter", () => {
     ref.detectChanges();
     expect(ref.root.element.textContent)
       .toContain("Count: -1 (odd)");
-    expect(ref.root.query("p")?.element.classList.contains("negative"))
+    expect(ref.root.query("p").element.classList.contains("negative"))
       .toBe(true);
     ref.destroy();
   });
@@ -68,7 +68,7 @@ describe("Counter", () => {
   test("hovering the count highlights it", () => {
     const ref = TestBed.component(Counter)
       .build();
-    const count = ref.root.query("p")!.element;
+    const count = ref.root.query("p").element;
     expect(count.classList.contains("highlighted"))
       .toBe(false);
     count.dispatchEvent(new MouseEvent("mouseenter"));

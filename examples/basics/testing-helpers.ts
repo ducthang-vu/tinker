@@ -14,5 +14,14 @@ export function buttonNamed(scope: ElementFixture, label: string): HTMLElement {
 
 /** The text of the first element under `scope` that matches `selector`. */
 export function textOf(scope: ElementFixture, selector: string): string {
-  return scope.query(selector)?.element.textContent ?? "";
+  return scope.query(selector).element.textContent ?? "";
+}
+
+/** The item at `index`. Throws, naming the index, when there is none. */
+export function nth<T>(items: readonly T[], index: number): T {
+  const item = items[index];
+  if (item === undefined) {
+    throw new Error(`No item ${index}: there are ${items.length}`);
+  }
+  return item;
 }
