@@ -19,6 +19,12 @@ import type { Provider } from "@tinker/core";
  */
 export interface TestBedBuilder {
   /**
+   * The root component the test bed's components live in. Each component created with
+   * `createComponent` is placed in the root's template, so it has an owner view as it
+   * does in an app. Without `root`, the test bed uses a generated root.
+   */
+  root(type: new () => object): TestBedBuilder;
+  /**
    * Add providers to the test bed's engine. They replace the defaults, as they do for
    * `bootstrap`'s providers. Calling it again adds more.
    */
@@ -47,8 +53,8 @@ export interface Fixture<T extends object> {
  */
 export interface TestBed {
   /**
-   * Create component `type`, rendered into `host`, or into a new detached element
-   * when there is no host.
+   * Create component `type` in the root's template. With a `host`, it is rendered
+   * there instead of in the root's template.
    */
   createComponent<T extends object>(type: new () => T, host?: Element): Fixture<T>;
   /** Destroy every component this test bed created. Calling it again does nothing. */
