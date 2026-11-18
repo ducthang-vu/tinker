@@ -33,21 +33,7 @@ first), e.g. by sorting each batch by view depth.
 
 ## Components
 
-### 1. A component cannot inject the container of its host element
-
-**Problem.** A directive injects its element's `ViewContainerRef`, and the
-components it adds sit at its element, under its injector, inside its view. A
-component cannot: it only has `engine.createViewContainer(anchor)`, whose
-components get the engine's injector wherever the anchor is. So the components
-a component adds at runtime cannot inject what surrounds the component (its
-providers, the directives next to it), and they are not part of its view, so
-they outlive it unless `container.clear()` is called by hand.
-
-**To do.** Let a component inject the container of its own host element, the
-same way a directive does, with a test that checks the injector and the owner
-view of the components it adds.
-
-### 2. Recursive components cannot be written, and are banned
+### 1. Recursive components cannot be written, and are banned
 
 **Problem.** `imports` is evaluated when the decorator runs, before the
 class exists: a component cannot import itself, nor two components each

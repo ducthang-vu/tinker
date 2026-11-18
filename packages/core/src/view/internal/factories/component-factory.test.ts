@@ -1,3 +1,4 @@
+import { ElementScope } from "../factories/element-scope.ts";
 import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, type Provider, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
@@ -34,6 +35,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
       RenderHookRegistry,
       ChangeDetection,
       DirectiveFactory,
+      ElementScope,
       ComponentViewFactory,
       BindingFactory,
       TemplateBuilderFactory,

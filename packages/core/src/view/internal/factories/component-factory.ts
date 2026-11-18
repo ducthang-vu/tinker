@@ -62,6 +62,8 @@ import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Selector } from "../template/selector.ts";
 import { RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
+import { ElementScope } from "./element-scope.ts";
+import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
@@ -105,6 +107,7 @@ export class ComponentFactory {
   private readonly contexts = inject(ElementContexts);
   private readonly directives = inject(DirectiveFactory);
   private readonly builders = inject(TemplateBuilderFactory);
+  private readonly elementScope = inject(ElementScope);
   private readonly views = inject(ComponentViewFactory);
   private readonly changeDetection = inject(ChangeDetection);
   private readonly injector = inject(Injector);
@@ -170,15 +173,21 @@ export class ComponentFactory {
     // (after, so they cannot replace the others).
     // The component is created in it, so its inject() calls resolve there first.
     const hostDirectives = this.hostDirectivesOf(type, metadata);
+    /** Cleanups of what a root component's element holds: run when its view is destroyed. */
+    const rootCleanups: (() => void)[] = [];
     const ownInjector = Injector.create({
       providers: [
         ...hostDirectives,
         type,
         ViewQueries,
         provide(ContentQueries, { useValue: child?.contentQueries ?? new ContentQueries() }),
-        provide(ElementRef, { useValue: new ElementRef(host) }),
-        Effects,
-        RenderHooks,
+        ...this.elementScope.providers(
+          new ElementPlacement(host),
+          () => ownInjector.injector,
+          // Inside a template, the containers go with the parent's view; a root component
+          // has none, so they go with its own view, which is made after its constructor.
+          child?.parentView ?? { addDestroyCallback: (callback) => rootCleanups.push(callback) },
+        ),
         ...(metadata.providers ?? []),
         ...hostDirectives.flatMap((directive) =>
           this.directives.metadataOf(directive).providers ?? []),
@@ -198,6 +207,7 @@ export class ComponentFactory {
 
     const view = this.views.create(host, instance, rendered);
     view.addDestroyCallback(() => ownInjector.destroy());
+    view.addDestroyCallback(() => rootCleanups.forEach((cleanup) => cleanup()));
     // Its outputs are over when it is: the templates subscribed to them are told.
     view.addDestroyCallback(partial(endOutputs, instance));
     // The component's inputs live on its own view: `view.setInput` binds them.

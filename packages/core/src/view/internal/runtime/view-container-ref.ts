@@ -20,6 +20,9 @@ import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
 
+/** What a container is disposed with: the one thing it needs is to hear that it is destroyed. */
+export type ContainerOwner = Pick<View, "addDestroyCallback">;
+
 /** Creates view containers, with the app's component factory and renderer. */
 @Injectable()
 export class ViewContainerRefFactory {
@@ -34,7 +37,7 @@ export class ViewContainerRefFactory {
   create(
     anchor: Node,
     parentInjector: Injector,
-    owner?: View,
+    owner?: ContainerOwner,
     ownsAnchor = true,
   ): ViewContainerRef {
     return new ViewContainerRef(
@@ -66,7 +69,7 @@ export class ViewContainerRef {
     private readonly components: ComponentFactory,
     private readonly renderer: Renderer,
     private readonly parentInjector: Injector,
-    owner?: View,
+    owner?: ContainerOwner,
     private readonly ownsAnchor = true,
   ) {
     owner?.addDestroyCallback(() => this.dispose());

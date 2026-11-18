@@ -14,7 +14,7 @@
 // A directive has no watch of its own: the watch of the view it belongs to
 // updates it (see ComponentFactory).
 
-import { inject, Injectable, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
+import { inject, Injectable, Injector, type InjectorRef, provide, runInInjectionContext } from "../../../di/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
@@ -23,9 +23,8 @@ import { partial } from "@tinker/functional";
 import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
-import { ElementRef } from "../runtime/element-ref.ts";
-import { ViewContainerRef, ViewContainerRefFactory } from "../runtime/view-container-ref.ts";
 import { ElementPlacement, type Placement } from "../runtime/placement.ts";
+import { ElementScope } from "./element-scope.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import { Scope } from "../template/scope.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
@@ -39,6 +38,7 @@ export class DirectiveFactory {
   private readonly renderer = inject(RENDERER);
   private readonly contexts = inject(ElementContexts);
   private readonly bindingFactory = inject(BindingFactory);
+  private readonly elementScope = inject(ElementScope);
   private readonly injector = inject(Injector);
   /** Parsed host bindings, per class: each `host` option is parsed only once. */
   private readonly hostBindings = new WeakMap<Class<unknown>, HostBindings>();
@@ -78,19 +78,10 @@ export class DirectiveFactory {
     /** The directives' host bindings, for the view's watch to update. */
     readonly bindings: readonly Binding[];
   } {
-    const elementInjector = Injector.create({
+    const elementInjector: InjectorRef = Injector.create({
       providers: [
         ...types,
-        ...(placement.kind === "element"
-          ? [provide(ElementRef, { useValue: new ElementRef(placement.element) })]
-          : []),
-        // Made when a directive first injects it: its anchor is added then, so an
-        // element without such a directive gets no extra node.
-        provide(ViewContainerRef, {
-          useFactory: () => this.containerFor(placement, elementInjector.injector, view),
-        }),
-        Effects,
-        RenderHooks,
+        ...this.elementScope.providers(placement, () => elementInjector.injector, view),
         ...types.flatMap((type) => this.metadataOf(type).providers ?? []),
       ],
       parent,
@@ -117,16 +108,6 @@ export class DirectiveFactory {
       .instances[0] as T;
   }
 
-  /** The view container of a placement: at the container's anchor, or after the element. */
-  private containerFor(placement: Placement, injector: Injector, owner: View): ViewContainerRef {
-    if (placement.kind === "container") {
-      // The anchor is one of the owner's nodes, so the owner removes it.
-      return inject(ViewContainerRefFactory)
-        .create(placement.anchor, injector, owner, false);
-    }
-    return this.containerAt(placement.element, injector, owner);
-  }
-
   /**
    * A directive on a `<tk-container>`: it has no element, so it cannot have host
    * bindings. Its outputs are over with it, and its inputs are its own.
@@ -138,25 +119,6 @@ export class DirectiveFactory {
     view.addDestroyCallback(partial(endOutputs, instance));
     view.addInputs(instance, inputsOf(instance));
     return [];
-  }
-
-  /**
-   * A view container at `element`: its anchor, a comment, is inserted right
-   * after the element, and its views are created under `injector` (the
-   * element's own), and disposed with `owner`.
-   */
-  private containerAt(
-    element: Element,
-    injector: Injector,
-    owner: View,
-  ): ViewContainerRef {
-    const anchor = this.renderer.createComment("");
-    const parent = element.parentNode;
-    if (parent) {
-      this.renderer.insertBefore(parent, anchor, element.nextSibling);
-    }
-    return inject(ViewContainerRefFactory)
-      .create(anchor, injector, owner);
   }
 
   /**

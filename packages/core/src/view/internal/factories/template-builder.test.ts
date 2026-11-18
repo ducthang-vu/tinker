@@ -1,3 +1,4 @@
+import { ElementScope } from "../factories/element-scope.ts";
 import { ViewQueries } from "../runtime/view-queries.ts";
 import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
@@ -26,6 +27,7 @@ function builderFactory(renderer = new DomRenderer()): TemplateBuilderFactory {
       BindingFactory,
       ElementContexts,
       DirectiveFactory,
+      ElementScope,
       TemplateBuilderFactory,
       EmbeddedViewFactory,
       ChangeDetection,

@@ -25,6 +25,7 @@ import type { ElementContext } from "./runtime/element-context.ts";
 import { ElementContexts } from "./runtime/element-contexts.ts";
 import { ComponentFactory } from "./factories/component-factory.ts";
 import { DirectiveFactory } from "./factories/directive-factory.ts";
+import { ElementScope } from "./factories/element-scope.ts";
 import { TemplateBuilderFactory } from "./factories/template-builder.ts";
 import { EmbeddedViewFactory } from "./factories/embedded-view-factory.ts";
 import { DomRenderer } from "./renderer.ts";
@@ -61,6 +62,7 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   ChangeDetection,
   RenderHooks,
   Effects,
+  ElementScope,
   DirectiveFactory,
   ComponentViewFactory,
   BindingFactory,
