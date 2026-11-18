@@ -12,6 +12,7 @@ import { computed, type ReadonlySignal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
+import { CLASS_REPLACEMENTS } from "../tokens.ts";
 
 /** Where a query looks: the component's own template, or the content it was given. */
 export type QuerySource = "view" | "content";
@@ -38,6 +39,15 @@ export class QueryMissingError extends Error {
 }
 
 /** The registry a query reads: its component's own, or the one of its content. */
+/**
+ * The class a query matches: a class replaced by an override is matched as its
+ * replacement, the one that is on the page, as the testing helpers do.
+ */
+function matchedBy<T extends object>(type: Class<T>): Class<T> {
+  return (inject(CLASS_REPLACEMENTS)
+    .get(type) ?? type) as Class<T>;
+}
+
 function registryOf(options: QueryOptions | undefined): ViewQueries {
   return options?.from === "content" ? inject(ContentQueries) : inject(ViewQueries);
 }
@@ -76,7 +86,9 @@ function optionalQuery(
     return namedOf(target);
   }
   const queries = registryOf(options);
-  return readsElements(options) ? queries.firstElement(target) : queries.first(target);
+  return readsElements(options)
+    ? queries.firstElement(matchedBy(target))
+    : queries.first(matchedBy(target));
 }
 
 /**
@@ -102,9 +114,9 @@ function requiredQuery(
     ? namedOf(target)
     : readsElements(options)
       ? registryOf(options)
-          .firstElement(target)
+          .firstElement(matchedBy(target))
       : registryOf(options)
-          .first(target);
+          .first(matchedBy(target));
   return computed(() => first()
     .getOrThrow(() => new QueryMissingError(written)));
 }
@@ -131,5 +143,5 @@ export function queryAll<T extends object>(
   options?: QueryOptions,
 ): ReadonlySignal<readonly T[] | readonly ElementRef[]> {
   const queries = registryOf(options);
-  return readsElements(options) ? queries.elementsOf(type) : queries.of(type);
+  return readsElements(options) ? queries.elementsOf(matchedBy(type)) : queries.of(matchedBy(type));
 }
