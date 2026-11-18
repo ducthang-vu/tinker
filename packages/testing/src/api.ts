@@ -131,8 +131,9 @@ export interface Fixture<T extends object> {
 }
 
 /**
- * A builder for a component class made from a template string. The class works anywhere
- * a component class does.
+ * A builder for a component class made from a template string. It is a testing helper,
+ * mainly a host for a directive under test, but the class it makes is an ordinary component
+ * and works anywhere one does.
  */
 export interface ComponentBuilder {
   /** The template of the component. */
