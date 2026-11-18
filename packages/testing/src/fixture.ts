@@ -29,6 +29,9 @@ function describe(target: QueryTarget): string {
 export function elementOf(element: Element, scope: Scope): TestingElement {
   return {
     element,
+    text: () => String(element.textContent)
+      .replace(/\s+/g, " ")
+      .trim(),
     getAttribute: (name: string) => element.getAttribute(name),
     dispatchEvent: (type: string, init?: EventInit) => {
       element.dispatchEvent(new Event(type, { bubbles: true, ...init }));

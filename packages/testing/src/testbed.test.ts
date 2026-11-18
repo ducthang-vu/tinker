@@ -486,3 +486,18 @@ describe("mock builders", () => {
       .toThrow("is not a directive");
   });
 });
+
+describe("text", () => {
+  test("collapses the template's whitespace, unlike textContent", () => {
+    const Host = ComponentBuilder.template("<p>\n    hello\n    <b>there</b>\n  </p>")
+      .build();
+    const ref = TestBed.component(Host)
+      .build();
+    const paragraph = ref.root.query("p");
+    expect(paragraph.text())
+      .toBe("hello there");
+    expect(paragraph.element.textContent)
+      .toContain("\n");
+    ref.destroy();
+  });
+});

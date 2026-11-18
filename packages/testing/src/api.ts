@@ -60,6 +60,13 @@ export interface TestBed<T extends object = object> {
 type ElementMembers = {
   /** The element. */
   readonly element: Element;
+  /**
+   * The text the element shows: its text with runs of whitespace collapsed to one space and
+   * the ends trimmed. It is not `element.textContent`, which keeps the line breaks and
+   * indentation of the template, so a test would have to match the source layout. Use
+   * `textContent` when the exact characters matter.
+   */
+  text(): string;
   /** The value of attribute `name` on the element, or `null` when it is not set. */
   getAttribute(name: string): string | null;
   /**
