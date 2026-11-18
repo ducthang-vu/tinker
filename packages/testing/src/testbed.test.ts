@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
   Component,
   Directive,
@@ -538,6 +538,84 @@ describe("whenStable", () => {
     await ref.whenStable();
     expect(ref.root.text())
       .toBe("after");
+    ref.destroy();
+  });
+});
+
+@Directive({ selector: "[bump]" })
+class Bumper {
+  readonly count: number = 0;
+
+  bump(n: number): number {
+    return n + 1;
+  }
+}
+
+describe("mock fields and methods", () => {
+  test("a field is set to the value the author gives", () => {
+    const mock = new MockDirectiveBuilder(Bumper)
+      .fields({ count: 5 })
+      .build();
+    const Host = ComponentBuilder.template("<p bump></p>")
+      .directives(Bumper)
+      .build();
+    const ref = TestBed.override(Bumper, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Bumper).instance.count)
+      .toBe(5);
+    ref.destroy();
+  });
+
+  test("a method passes its arguments to the implementation, and returns what it returns", () => {
+    const bump = vi.fn((n: number) => n * 10);
+    const mock = MockDirectiveBuilder.of(Bumper)
+      .methods({ bump })
+      .build();
+    const Host = ComponentBuilder.template("<p bump></p>")
+      .directives(Bumper)
+      .build();
+    const ref = TestBed.override(Bumper, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Bumper).instance.bump(2))
+      .toBe(20);
+    expect(bump)
+      .toHaveBeenCalledWith(2);
+    ref.destroy();
+  });
+
+  test("a component mock's method is an implementation too", () => {
+    const press = vi.fn();
+    const mock = MockComponentBuilder.of(Clicker)
+      .methods({ press })
+      .build();
+    const Host = ComponentBuilder.template("<tk-clicker></tk-clicker>")
+      .directives(Clicker)
+      .build();
+    const ref = TestBed.override(Clicker, mock)
+      .component(Host)
+      .build();
+    ref.root.query(Clicker).instance.press();
+    expect(press)
+      .toHaveBeenCalledTimes(1);
+    ref.destroy();
+  });
+});
+
+describe("component mock fields", () => {
+  test("a component mock's field is set to the value the author gives", () => {
+    const mock = MockComponentBuilder.of(Clicker)
+      .fields({ clicks: signal(5) })
+      .build();
+    const Host = ComponentBuilder.template("<tk-clicker></tk-clicker>")
+      .directives(Clicker)
+      .build();
+    const ref = TestBed.override(Clicker, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Clicker).instance.clicks())
+      .toBe(5);
     ref.destroy();
   });
 });

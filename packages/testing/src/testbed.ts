@@ -24,6 +24,7 @@ import type {
 import type {
   ComponentBuilder as ComponentBuilderApi,
   ComponentBuilderStatic,
+  MethodName,
   MockClass,
   TestBed as TestBedApi,
   Fixture,
@@ -184,12 +185,25 @@ export const ComponentBuilder: ComponentBuilderStatic = {
   template: (source) => new TemplateBuilder(source),
 };
 
-/** The members a mock declares: required inputs, optional inputs with defaults, outputs. */
+/** A method's implementation: the mock's method calls it with the same arguments. */
+type Implementation = (...args: readonly unknown[]) => unknown;
+
+/** The members a mock declares: inputs, outputs, fields and methods. */
 interface MockMembers {
   readonly required: readonly string[];
   readonly optional: Readonly<Record<string, unknown>>;
   readonly outputs: readonly string[];
+  readonly fields: Readonly<Record<string, unknown>>;
+  readonly methods: Readonly<Record<string, Implementation>>;
 }
+
+const NO_MEMBERS: MockMembers = {
+  required: [],
+  optional: {},
+  outputs: [],
+  fields: {},
+  methods: {},
+};
 
 /** The members of a mock instance: one input and one output per declared name. */
 function membersOf(members: MockMembers): object {
@@ -200,6 +214,8 @@ function membersOf(members: MockMembers): object {
         .map(([name, value]) => [name, input(value)]),
     ),
     ...Object.fromEntries(members.outputs.map((name) => [name, output()])),
+    ...members.fields,
+    ...members.methods,
   };
 }
 
@@ -218,7 +234,7 @@ export class MockComponentBuilder<F extends object> {
 
   constructor(
     private readonly type: new () => F,
-    private readonly members: MockMembers = { required: [], optional: {}, outputs: [] },
+    private readonly members: MockMembers = NO_MEMBERS,
   ) {
     const metadata = getComponentMetadata(type)
       .getOrThrow(() => new Error(`${type.name} is not a component: use MockDirectiveBuilder`));
@@ -241,6 +257,32 @@ export class MockComponentBuilder<F extends object> {
     return new MockComponentBuilder<F>(this.type, {
       ...this.members,
       optional: { ...this.members.optional, ...defaults },
+    });
+  }
+
+  /** Fields of the mock, with their values: the template reads them as the real class's. */
+  fields<K extends keyof F>(
+    values: { readonly [P in K]: F[P] },
+  ): MockComponentBuilder<F> {
+    return new MockComponentBuilder<F>(this.type, {
+      ...this.members,
+      fields: { ...this.members.fields, ...values },
+    });
+  }
+
+  /**
+   * Methods of the mock, each with its implementation: the mock's method has the real
+   * signature and passes its arguments to the implementation. A spy is an implementation.
+   */
+  methods<K extends MethodName<F>>(
+    implementations: { readonly [P in K]: F[P] },
+  ): MockComponentBuilder<F> {
+    return new MockComponentBuilder<F>(this.type, {
+      ...this.members,
+      methods: {
+        ...this.members.methods,
+        ...(implementations as unknown as Record<string, Implementation>),
+      },
     });
   }
 
@@ -282,7 +324,7 @@ export class MockDirectiveBuilder<F extends object> {
 
   constructor(
     private readonly type: new () => F,
-    private readonly members: MockMembers = { required: [], optional: {}, outputs: [] },
+    private readonly members: MockMembers = NO_MEMBERS,
   ) {
     if (getComponentMetadata(type)
       .isSome()) {
@@ -309,6 +351,32 @@ export class MockDirectiveBuilder<F extends object> {
     return new MockDirectiveBuilder<F>(this.type, {
       ...this.members,
       optional: { ...this.members.optional, ...defaults },
+    });
+  }
+
+  /** Fields of the mock, with their values: the template reads them as the real class's. */
+  fields<K extends keyof F>(
+    values: { readonly [P in K]: F[P] },
+  ): MockDirectiveBuilder<F> {
+    return new MockDirectiveBuilder<F>(this.type, {
+      ...this.members,
+      fields: { ...this.members.fields, ...values },
+    });
+  }
+
+  /**
+   * Methods of the mock, each with its implementation: the mock's method has the real
+   * signature and passes its arguments to the implementation. A spy is an implementation.
+   */
+  methods<K extends MethodName<F>>(
+    implementations: { readonly [P in K]: F[P] },
+  ): MockDirectiveBuilder<F> {
+    return new MockDirectiveBuilder<F>(this.type, {
+      ...this.members,
+      methods: {
+        ...this.members.methods,
+        ...(implementations as unknown as Record<string, Implementation>),
+      },
     });
   }
 

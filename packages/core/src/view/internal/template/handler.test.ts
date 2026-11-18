@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { parseHandler, requireMethod, runHandler } from "./handler.ts";
+import { Scope } from "./scope.ts";
 
 describe("parseHandler", () => {
   test("accepts a call of a method, with or without arguments, and spaces", () => {
@@ -17,8 +18,17 @@ describe("parseHandler", () => {
       .toBe("select");
   });
 
+  test("a call of a template variable's method is accepted, with its target", () => {
+    const handler = parseHandler("g.show(3)", "event handler")
+      .getOrThrow();
+    expect(handler.method)
+      .toBe("show");
+    expect(handler.target)
+      .toBe("g");
+  });
+
   test("rejects anything that is not a call of a method, naming what it was", () => {
-    for (const source of ["pick", "a.b()", "open = !open"]) {
+    for (const source of ["pick", "a.b.c()", "pick()()", "open = !open"]) {
       expect(parseHandler(source, "event handler")
         .match({
           left: (error) => error.message,
@@ -44,7 +54,7 @@ describe("runHandler", () => {
     const component = { pick };
     const event = { key: "Enter" };
     runHandler(parseHandler("pick($event)", "event handler")
-      .getOrThrow(), component, event);
+      .getOrThrow(), new Scope(component), event);
     expect(pick)
       .toHaveBeenCalledWith(event);
   });
@@ -53,7 +63,7 @@ describe("runHandler", () => {
     const select = vi.fn();
     const component = { select, id: 7 };
     runHandler(parseHandler("select(id, $event.key)", "event handler")
-      .getOrThrow(), component, { key: "a" });
+      .getOrThrow(), new Scope(component), { key: "a" });
     expect(select)
       .toHaveBeenCalledWith(7, "a");
   });
@@ -67,7 +77,7 @@ describe("runHandler", () => {
       },
     };
     runHandler(parseHandler("go()", "event handler")
-      .getOrThrow(), component, undefined);
+      .getOrThrow(), new Scope(component), undefined);
     expect(seen)
       .toEqual(["tinker"]);
   });

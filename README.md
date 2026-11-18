@@ -88,7 +88,10 @@ module; each module also lists its own in its `index.ts`.
   value of a directive's or component's output, and for each DOM event of that
   name on the element, whatever is on it: `(click)="go()"` needs no directive).
   A handler is a call of a method with any argument expressions, and `$event` is
-  the DOM event or the emitted value: `(keydown)="pick(id, $event.key)"`. Key
+  the DOM event or the emitted value: `(keydown)="pick(id, $event.key)"`. The
+  method belongs to the component, or to a template variable: `(click)="g.show(3)"`
+  calls `show` on the element or component named `#g`, or on an `@let` of that
+  name. Key
   modifiers filter a keyboard event: `(keydown.enter)`, `(keydown.esc)`,
   `(keydown.space)`. When both exist, both fire.
   A component's element can have content: the component shows it in its

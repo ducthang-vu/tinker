@@ -17,6 +17,7 @@
 import { Either, type EitherError, Maybe, pipe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
+import { Scope } from "../template/scope.ts";
 import { isEventAttribute } from "../runtime/url-safety.ts";
 import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
@@ -85,9 +86,11 @@ export class HostBindings {
    */
   attach(instance: object, element: Element, renderer: Renderer, view: View): void {
     for (const { event, handler, modifiers } of this.listeners) {
-      requireMethod(instance, handler.method, `host listener "(${event})"`);
+      if (handler.target === undefined) {
+        requireMethod(instance, handler.method, `host listener "(${event})"`);
+      }
       const stop = listenWithModifiers(renderer, element, { event, modifiers }, (e) =>
-        runHandler(handler, instance, e),
+        runHandler(handler, new Scope(instance), e),
       );
       view.addDestroyCallback(stop);
     }

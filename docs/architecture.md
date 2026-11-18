@@ -17,6 +17,7 @@ Client code sees a few objects. Everything else is internal.
 | `queryAll` | A signal of the instances of a type, in document order. `{ from: "content" }` reads the children the parent passes in instead of the component's own template; `{ read: ElementRef }` gives their elements. |
 | `query` | A signal of the first of those, as a `Maybe` (none when there is none). The same options apply. A string target (`query<Tab>("tab")`) reads the top-level template variable `#tab`, `#tab="exportAs"` or `##tab`: the element or instance it names. |
 | `query.required` | The same, as the instance itself. Reading it when there is no match throws `QueryMissingError`. |
+| replaced classes | A query for a class matches its replacement when one is set (`CLASS_REPLACEMENTS`), so a mock of a child is found by the child's class. |
 
 | Internal | What it is for |
 |---|---|

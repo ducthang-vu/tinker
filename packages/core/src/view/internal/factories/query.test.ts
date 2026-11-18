@@ -2,7 +2,10 @@ import { describe, expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component, ElementRef, input, QueryMissingError, query } from "../../index.ts";
+import { Component, ElementRef, input, QueryMissingError, query, queryAll } from "../../index.ts";
+import { Engine } from "../engine.ts";
+import { CLASS_REPLACEMENTS } from "../tokens.ts";
+import { provide } from "../../../di/index.ts";
 
 @Component({
   selector: "tk-first-item",
@@ -114,5 +117,38 @@ describe("query", () => {
     expect(() => app.root.instance.element())
       .toThrow(QueryMissingError);
     app.destroy();
+  });
+});
+
+describe("a query for a replaced class finds its replacement", () => {
+  test("query, query.required and queryAll match the replacement on the page", () => {
+    @Component({ selector: "tk-gauge", template: "" })
+    class Gauge {}
+    @Component({ selector: "tk-gauge", template: "" })
+    class GaugeStub {}
+    @Component({
+      selector: "tk-parent",
+      template: "<tk-gauge></tk-gauge>",
+      imports: [Gauge],
+    })
+    class Parent {
+      readonly first = query(Gauge);
+      readonly required = query.required(Gauge);
+      readonly all = queryAll(Gauge);
+    }
+    const el = document.createElement("section");
+    const engine = Engine.create({
+      providers: [provide(CLASS_REPLACEMENTS, { useValue: new Map([[Gauge, GaugeStub]]) })],
+    });
+    const parent = engine.bootstrap(Parent, el);
+    engine.flush();
+    expect(parent.instance.first()
+      .getOrThrow(() => new Error("no gauge")))
+      .toBeInstanceOf(GaugeStub);
+    expect(parent.instance.required())
+      .toBeInstanceOf(GaugeStub);
+    expect(parent.instance.all())
+      .toHaveLength(1);
+    engine.destroy();
   });
 });
