@@ -1,7 +1,9 @@
 // The public API of @tinker/testing, as types. It is the contract for the helpers:
 // nothing here runs yet, and a test uses these through TestBed.
 //
-//   const bed = TestBed.create({ providers: [provide(API_URL, { useValue: "x" })] });
+//   const bed = TestBed.builder()
+//     .providers(provide(API_URL, { useValue: "x" }))
+//     .build();
 //   const fixture = bed.createComponent(Greeting);
 //   expect(fixture.host.textContent).toBe("Hello");
 //   fixture.instance.name.set("Ada");
@@ -11,13 +13,18 @@
 
 import type { Provider } from "@tinker/core";
 
-/** What a test bed is created with. */
-export interface TestBedOptions {
+/**
+ * Configures a test bed before it is built. Each call returns the builder, so the
+ * configuration reads as one chain, and `build()` creates the test bed.
+ */
+export interface TestBedBuilder {
   /**
-   * Providers for the test bed's engine. They replace the defaults, as they do for
-   * `bootstrap`'s providers.
+   * Add providers to the test bed's engine. They replace the defaults, as they do for
+   * `bootstrap`'s providers. Calling it again adds more.
    */
-  readonly providers?: readonly Provider[];
+  providers(...providers: readonly Provider[]): TestBedBuilder;
+  /** Create the test bed, with its own engine. */
+  build(): TestBed;
 }
 
 /** A component a test has created: its instance, its element, and how to run it. */
@@ -48,8 +55,8 @@ export interface TestBed {
   destroy(): void;
 }
 
-/** Creates test beds. */
+/** Starts a test bed. */
 export declare const TestBed: {
-  /** A test bed with its own engine, built from `options`. */
-  create(options?: TestBedOptions): TestBed;
+  /** A builder for a test bed with its own engine. */
+  builder(): TestBedBuilder;
 };
