@@ -8,9 +8,9 @@ describe("Counter", () => {
   test("starts at zero, which is even, with no change yet", () => {
     const ref = TestBed.component(Counter)
       .build();
-    expect(ref.root.element.textContent)
+    expect(ref.root.text())
       .toContain("Count: 0 (even)");
-    expect(ref.root.element.textContent)
+    expect(ref.root.text())
       .toContain("no change yet");
     ref.destroy();
   });
@@ -21,9 +21,9 @@ describe("Counter", () => {
     buttonNamed(ref.root, "+10")
       .click();
     ref.detectChanges();
-    expect(ref.root.element.textContent)
+    expect(ref.root.text())
       .toContain("Count: 10 (even)");
-    expect(ref.root.element.textContent)
+    expect(ref.root.text())
       .toContain("last change: +10");
     ref.destroy();
   });
@@ -34,7 +34,7 @@ describe("Counter", () => {
     buttonNamed(ref.root, "-1")
       .click();
     ref.detectChanges();
-    expect(ref.root.element.textContent)
+    expect(ref.root.text())
       .toContain("Count: -1 (odd)");
     expect(ref.root.query("p").element.classList.contains("negative"))
       .toBe(true);
@@ -49,9 +49,9 @@ describe("Counter", () => {
     buttonNamed(first.root, "+1")
       .click();
     first.detectChanges();
-    expect(first.root.element.textContent)
+    expect(first.root.text())
       .toContain("Count: 1");
-    expect(second.root.element.textContent)
+    expect(second.root.text())
       .toContain("Count: 0");
     first.destroy();
     second.destroy();
