@@ -13,10 +13,28 @@ import type { Runnable, WatchScheduler } from "../../../../signals/index.ts";
 import { runAll } from "../../../../utils/run-all.ts";
 import { Ticker } from "../ticker.ts";
 
+/**
+ * A view's place in the view tree: a direct link to the node of the view that
+ * owns it (the view holding its host element, or the view a container was
+ * attached to). A root view has no owner.
+ */
+export interface ViewNode {
+  readonly owner?: ViewNode;
+}
+
+/** How many owners a view has, found by following its direct links. */
+function rankOf(node: ViewNode): number {
+  let rank = 0;
+  for (let owner = node.owner; owner !== undefined; owner = owner.owner) {
+    rank += 1;
+  }
+  return rank;
+}
+
 @Injectable()
 export class ViewScheduler implements WatchScheduler {
-  /** The queued updates, each with the depth of its view (0 is the root). */
-  private readonly queue = new Map<Runnable, number>();
+  /** The queued updates, each with the node of its view. */
+  private readonly queue = new Map<Runnable, ViewNode>();
 
   /** Asked for a tick whenever a view is queued. */
   private readonly ticker = inject(Ticker);
@@ -28,29 +46,29 @@ export class ViewScheduler implements WatchScheduler {
 
   /**
    * Queue a view's watch, once however often it is scheduled, and request a tick.
-   * `depth` is how far the view is from the root: a parent's update runs before the
-   * updates of the views it contains (see `flush`).
+   * `node` is the view's place in the view tree: a view's update runs after the
+   * updates of the views that own it (see `flush`).
    */
-  schedule(task: Runnable, depth = 0): void {
-    this.queue.set(task, depth);
+  schedule(task: Runnable, node: ViewNode = {}): void {
+    this.queue.set(task, node);
     this.ticker.requestTick();
   }
 
-  /** A watch scheduler for the views at `depth`, as the watches of those views need. */
-  forDepth(depth: number): WatchScheduler {
-    return { schedule: (task) => this.schedule(task, depth) };
+  /** A watch scheduler for the views of `node`, as the watches of those views need. */
+  forNode(node: ViewNode): WatchScheduler {
+    return { schedule: (task) => this.schedule(task, node) };
   }
 
   /**
    * Run the view updates queued now, as one batch, parents first: an update can
    * change the inputs of the views inside it, which then run after it. Updates of
-   * the same depth keep the order they were queued in. Updates scheduled meanwhile
+   * the same owner depth keep the order they were queued in. Updates scheduled meanwhile
    * stay queued for the next round of the tick. Every update runs even if one
    * throws; the first error is re-thrown at the end.
    */
   flush(): void {
     const tasks = [...this.queue]
-      .sort(([, left], [, right]) => left - right)
+      .sort(([, left], [, right]) => rankOf(left) - rankOf(right))
       .map(([task]) => task);
     this.queue.clear();
     runAll(tasks.map((task) => () => task.run()));

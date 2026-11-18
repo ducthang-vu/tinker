@@ -314,7 +314,7 @@ describe("ComponentFactory collaborators", () => {
     class RecordingViewFactory extends ComponentViewFactory {
       override create<T>(host: Element, component: T, nodes: readonly Node[]): ComponentView<T> {
         created.push(component);
-        return super.create(host, component, nodes);
+        return super.create(host, component, nodes, {});
       }
     }
     const { factory } = makeFactory([

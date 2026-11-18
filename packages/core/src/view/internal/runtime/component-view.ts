@@ -14,15 +14,17 @@ import type { InputBinding, InputName, InputValue } from "../authoring/input.ts"
 import type { Renderer } from "../renderer.ts";
 import { RENDERER } from "../tokens.ts";
 import type { View } from "./view.ts";
+import type { ViewNode } from "./schedulers/view-scheduler.ts";
 
 /** Creates views, with the app's renderer. */
 @Injectable()
+
 export class ComponentViewFactory {
   private readonly renderer = inject(RENDERER);
 
   /** A view of `component`, rendered as `nodes` into `host`. */
-  create<T>(host: Element, component: T, nodes: readonly Node[]): ComponentView<T> {
-    return new ComponentView(host, component, nodes, this.renderer);
+  create<T>(host: Element, component: T, nodes: readonly Node[], node: ViewNode): ComponentView<T> {
+    return new ComponentView(host, component, nodes, this.renderer, node);
   }
 }
 
@@ -44,6 +46,8 @@ export class ComponentView<T> implements View {
     readonly component: T,
     readonly nodes: readonly Node[],
     private readonly renderer: Renderer,
+    /** The view's place in the view tree, for the order of its updates. */
+    readonly node: ViewNode,
   ) {}
 
   /** Whether `destroy()` has been called. */

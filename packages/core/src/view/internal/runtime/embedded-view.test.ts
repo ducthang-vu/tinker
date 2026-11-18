@@ -8,7 +8,7 @@ describe("EmbeddedView", () => {
     const parent = document.createElement("section");
     const text = document.createTextNode("hi");
     parent.append(text);
-    const view = new EmbeddedView(parent, [text], new DomRenderer());
+    const view = new EmbeddedView(parent, [text], new DomRenderer(), {});
     expect(view.destroyed)
       .toBe(false);
     view.destroy();
@@ -20,7 +20,7 @@ describe("EmbeddedView", () => {
   });
 
   test("a callback added after destroy runs right away", () => {
-    const view = new EmbeddedView(document.createElement("div"), [], new DomRenderer());
+    const view = new EmbeddedView(document.createElement("div"), [], new DomRenderer(), {});
     view.destroy();
     const callback = vi.fn();
     view.addDestroyCallback(callback);
@@ -29,7 +29,7 @@ describe("EmbeddedView", () => {
   });
 
   test("records the inputs of its directives and its elements", () => {
-    const view = new EmbeddedView(document.createElement("div"), [], new DomRenderer());
+    const view = new EmbeddedView(document.createElement("div"), [], new DomRenderer(), {});
     const directive = {};
     view.addInputs(directive, new Map());
     view.addElement(new ElementContext(document.createElement("p")));

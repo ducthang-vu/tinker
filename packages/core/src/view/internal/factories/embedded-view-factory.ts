@@ -40,9 +40,9 @@ export class EmbeddedViewFactory {
     for (const node of nodes) {
       this.renderer.insertBefore(parent, node, anchor);
     }
-    const view = new EmbeddedView(parent, nodes, this.renderer);
+    const view = new EmbeddedView(parent, nodes, this.renderer, builder.node);
     builder.createDirectivesAndComponents(view, injector);
-    const firstRun = new RunFirstNow(this.changeDetection.views.forDepth(builder.depth));
+    const firstRun = new RunFirstNow(this.changeDetection.views.forNode(builder.node));
     const viewWatch = watch(() => builder.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
     firstRun.failure.ifSome((error) => {

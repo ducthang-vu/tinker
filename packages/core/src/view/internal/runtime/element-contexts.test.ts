@@ -28,7 +28,7 @@ describe("ElementContexts", () => {
     const contexts = new ElementContexts();
     const empty = contexts.getOrCreate(document.createElement("p"));
     const busy = contexts.getOrCreate(document.createElement("tk-x"));
-    busy.attachComponent(new ComponentView(busy.element, {}, [], new DomRenderer()));
+    busy.attachComponent(new ComponentView(busy.element, {}, [], new DomRenderer(), {}));
 
     contexts.forgetIfEmpty(empty);
     contexts.forgetIfEmpty(busy);

@@ -4,7 +4,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "./component-view.ts";
 
 const element = () => document.createElement("div");
-const view = () => new ComponentView(element(), {}, [], new DomRenderer());
+const view = () => new ComponentView(element(), {}, [], new DomRenderer(), {});
 
 describe("ElementContext", () => {
   test("starts empty", () => {
