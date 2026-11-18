@@ -1,6 +1,5 @@
-/* v8 ignore file -- types only, no runtime yet; remove with the runtime */
-// The public API of @tinker/testing, as types. It is the contract for the helpers:
-// nothing here runs yet.
+// The public API of @tinker/testing, as types. It is the contract for the helpers;
+// the runtime is in testbed.ts and fixture.ts.
 //
 // `TestBed` is a builder. Each configuration method exists twice: as a static, which
 // starts a new builder with that setting, and as an instance method, which adds the
@@ -17,7 +16,7 @@
 //   expect(ref.root.element.textContent).toBe("Hello Ada");
 //   ref.destroy();
 
-import type { InputName, InputValue, OutputName, OutputValue, Provider, Stream } from "@tinker/core";
+import type { InputName, InputValue, OutputName, OutputValue, Provider, Stream, Token } from "@tinker/core";
 
 /**
  * A builder for one test bed. Each method returns the builder, so the configuration
@@ -106,7 +105,7 @@ export interface TestBedRef<T extends object> {
   /** Resolve once the next change detection tick has ended. */
   whenStable(): Promise<void>;
   /** A service from the bed's engine: its providers, then the defaults. */
-  get<S>(token: new () => S): S;
+  get<S>(token: Token<S>): S;
   /** Destroy the component, and the bed's engine. Calling it again does nothing. */
   destroy(): void;
 }
@@ -174,21 +173,21 @@ export interface MockBuilder<F extends object, K extends MethodName<F> = never> 
 }
 
 /** The static starts: a builder for a component from a template, or a mock of a class. */
-export declare const ComponentBuilder: {
+export interface ComponentBuilderStatic {
   /** A builder for a component with that template. */
   template(source: string): ComponentBuilder;
   /** A builder for a mock of `type`. */
   mock<F extends object>(type: new () => F): MockBuilder<F>;
-};
+}
 
 /**
  * The static starts: each returns a new builder with that one setting, the same as
  * calling the instance method of the same name on a fresh builder.
  */
-export declare const TestBed: {
+export interface TestBedStatic {
   component<C extends object>(type: new () => C): TestBed<C>;
   providers(...providers: readonly Provider[]): TestBed;
   host(element: Element): TestBed;
   override<F extends object>(from: new () => F, to: MockClass<F>): TestBed;
   inputs(values: Readonly<Record<string, unknown>>): TestBed;
-};
+}
