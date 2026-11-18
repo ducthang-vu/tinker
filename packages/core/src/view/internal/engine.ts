@@ -111,20 +111,9 @@ export class Engine {
    * Start the app: render the root component `type` into `host`, or, without
    * a host, into the page element that matches its selector.
    */
-  bootstrap<T extends object>(
-    type: Class<T>,
-    host?: Element,
-    deferRender = false,
-  ): ComponentRef<T> {
+  bootstrap<T extends object>(type: Class<T>, host?: Element): ComponentRef<T> {
     const element = host ?? this.lookUp(type);
-    const view = this.components.create(
-      type,
-      element,
-      undefined,
-      undefined,
-      undefined,
-      deferRender,
-    );
+    const view = this.components.create(type, element);
     this.roots.push(view);
     return refOf(view);
   }
