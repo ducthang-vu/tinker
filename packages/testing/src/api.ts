@@ -1,3 +1,4 @@
+/* v8 ignore file -- types only, no runtime yet; remove with the runtime */
 // The public API of @tinker/testing, as types. It is the contract for the helpers:
 // nothing here runs yet.
 //
