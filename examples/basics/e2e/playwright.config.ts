@@ -2,6 +2,8 @@
 // They run only after a merge to main (see .github/workflows/e2e.yml); locally:
 //   npm run test:e2e --workspace @tinker/example-basics
 
+/// <reference types="node" />
+
 import { defineConfig } from "@playwright/test";
 
 const PORT = 4173;
