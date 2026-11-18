@@ -33,6 +33,12 @@ export interface TestBed<T extends object = object> {
   /** Render the component into `host`, instead of a new detached element. */
   host(element: Element): TestBed<T>;
   /**
+   * Replace the component or directive `from` with `to` wherever the bed's templates use
+   * it. Class queries for `from` then find `to`. Usually `to` is a mock from
+   * `ComponentBuilder.mock`. Calling it again for the same `from` replaces the earlier one.
+   */
+  override(from: new () => object, to: new () => object): TestBed<T>;
+  /**
    * Set the component's inputs before it is built, by name. An input left unset
    * throws `InputNotBoundError` when it is read.
    */
@@ -54,7 +60,8 @@ export interface ElementFixture {
   /**
    * The first descendant of `element` that matches, in document order, or `null`: a
    * fixture for a component or directive class, so it can be driven too; an element
-   * fixture for a CSS selector. Descendants include elements of nested components.
+   * fixture for a CSS selector. Descendants include elements of nested components. A
+   * class also matches the class that overrides it (see `TestBed.override`).
    */
   query(selector: string): ElementFixture | null;
   query<C extends object>(type: new () => C): Fixture<C> | null;
@@ -88,22 +95,34 @@ export interface TestBedRef<T extends object> {
 }
 
 /**
- * A builder for a component class made from a template string, for tests that need a
- * host for a directive. The class works anywhere a component class does.
+ * A builder for a component class made from a template string, or a mock of an existing
+ * component. The class works anywhere a component class does.
  */
 export interface ComponentBuilder {
+  /** The template of the component. A mock renders nothing unless this is set. */
+  template(source: string): ComponentBuilder;
   /**
    * The components and directives the template may use, as `imports` does for a
    * standalone component. Calling it again adds more.
    */
   directives(...types: readonly (new () => object)[]): ComponentBuilder;
-  /** Create the component class. A template that uses something not listed fails here. */
+  /**
+   * Create the component class. A template that uses something not listed fails here.
+   * The class is named `Mock<Name>` for a mock, and has a static `mockOf` naming the
+   * class it replaces, so a mock is easy to spot in a test and in a debugger.
+   */
   build(): new () => object;
 }
 
-/** The static start: a builder for a component with that template. */
+/** The static starts: a builder for a component from a template, or a mock of a class. */
 export declare const ComponentBuilder: {
+  /** A builder for a component with that template. */
   template(source: string): ComponentBuilder;
+  /**
+   * A builder for a mock of `type`: same selector, inputs and outputs, and the name
+   * `Mock<Name>`. It renders nothing until `template` is set.
+   */
+  mock(type: new () => object): ComponentBuilder;
 };
 
 /**
@@ -114,5 +133,6 @@ export declare const TestBed: {
   component<C extends object>(type: new () => C): TestBed<C>;
   providers(...providers: readonly Provider[]): TestBed;
   host(element: Element): TestBed;
+  override(from: new () => object, to: new () => object): TestBed;
   inputs(values: Readonly<Record<string, unknown>>): TestBed;
 };
