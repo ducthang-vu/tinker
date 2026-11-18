@@ -182,24 +182,11 @@ export type MockClass<F extends object = object, K extends MethodName<F> = never
  * keeps `F`'s selector, inputs and outputs. Only the methods named by `spy` get a spy;
  * the others are left as they are.
  */
-export interface MockBuilder<F extends object> {
-  /** Inputs of `F` that the mock has too, so a parent template can bind them. */
-  inputs<N extends InputName<F>>(...names: readonly N[]): MockBuilder<F>;
-  /** Outputs of `F` that the mock has too, so a parent template can listen to them. */
-  outputs<N extends OutputName<F>>(...names: readonly N[]): MockBuilder<F>;
-  /** Create the mock class. It keeps the selector and exportAs of `F`, and renders nothing. */
-  build(): MockClass<F>;
-}
 
 /** The static starts: a builder for a component from a template, or a mock of a class. */
 export interface ComponentBuilderStatic {
   /** A builder for a component with that template. */
   template(source: string): ComponentBuilder;
-}
-
-/** The static start of a mock builder: a builder for a mock of `type`. */
-export interface MockBuilderStatic {
-  of<F extends object>(type: new () => F): MockBuilder<F>;
 }
 
 /**

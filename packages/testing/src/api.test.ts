@@ -4,7 +4,7 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { input, output } from "@tinker/core";
 import type { Fixture, TestBed, TestingElement } from "./api.ts";
-import { ComponentBuilder, MockBuilder } from "./testbed.ts";
+import { ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder } from "./testbed.ts";
 
 class Button {
   readonly pressed = output<number>();
@@ -29,7 +29,7 @@ function queries(ref: Fixture<Button>): void {
 }
 
 function overrides(bed: TestBed<Button>): void {
-  const mock = MockBuilder.of(Button)
+  const mock = new MockDirectiveBuilder(Button)
     .inputs("label")
     .outputs("pressed")
     .build();

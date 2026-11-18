@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { MockBuilder, TestBed } from "@tinker/testing";
+import { MockComponentBuilder, MockDirectiveBuilder, TestBed } from "@tinker/testing";
 import { Counter, Step } from "./counter.ts";
 import { Highlight } from "./highlight.ts";
 import { buttonNamed } from "./testing-helpers.ts";
@@ -80,7 +80,7 @@ describe("Counter", () => {
   });
 
   test("with Highlight mocked, hovering the count does not highlight it", () => {
-    const mock = MockBuilder.of(Highlight)
+    const mock = new MockDirectiveBuilder(Highlight)
       .build();
     const ref = TestBed.override(Highlight, mock)
       .component(Counter)

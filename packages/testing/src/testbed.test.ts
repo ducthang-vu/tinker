@@ -9,7 +9,7 @@ import {
   output,
   provide,
 } from "@tinker/core";
-import { cleanup, ComponentBuilder, MockBuilder, registerCleanup, TestBed } from "./testbed.ts";
+import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
 class Greeting {
@@ -336,9 +336,9 @@ describe("registerCleanup", () => {
   });
 });
 
-describe("MockBuilder.of", () => {
+describe("mock builders", () => {
   test("keeps the selector, and renders nothing", () => {
-    const mock = MockBuilder.of(Item)
+    const mock = new MockComponentBuilder(Item)
       .build();
     const ref = TestBed.override(Item, mock)
       .component(List)
@@ -351,7 +351,7 @@ describe("MockBuilder.of", () => {
   });
 
   test("recreates the inputs it names, so a parent template can bind them", () => {
-    const mock = MockBuilder.of(Mark)
+    const mock = new MockDirectiveBuilder(Mark)
       .inputs("label")
       .build();
     const Host = ComponentBuilder.template("<p mark>x</p>")
@@ -368,7 +368,7 @@ describe("MockBuilder.of", () => {
   });
 
   test("recreates the outputs it names, so a parent template can listen", () => {
-    const mock = MockBuilder.of(Pick)
+    const mock = new MockDirectiveBuilder(Pick)
       .outputs("picked")
       .build();
     const Host = ComponentBuilder.template("<p pick>x</p>")
@@ -387,7 +387,7 @@ describe("MockBuilder.of", () => {
   });
 
   test("keeps exportAs, so a template can name the mock", () => {
-    const mock = MockBuilder.of(Named)
+    const mock = MockDirectiveBuilder.of(Named)
       .build();
     const Host = ComponentBuilder.template("<p named #n=\"named\">x</p>")
       .directives(Named)
@@ -401,7 +401,7 @@ describe("MockBuilder.of", () => {
   });
 
   test("a component mock keeps exportAs too", () => {
-    const mock = MockBuilder.of(Card)
+    const mock = new MockComponentBuilder(Card)
       .build();
     const Host = ComponentBuilder.template("<tk-card #c=\"card\"></tk-card>")
       .directives(Card)
@@ -414,8 +414,33 @@ describe("MockBuilder.of", () => {
     ref.destroy();
   });
 
-  test("refuses a class that is not a directive or component", () => {
-    expect(() => MockBuilder.of(class Plain {}))
-      .toThrow("is not a directive or component");
+  test("a component mock declares inputs, and of() starts the chain", () => {
+    const mock = MockComponentBuilder.of(Greeting)
+      .inputs("name")
+      .outputs()
+      .build();
+    const Host = ComponentBuilder.template("<tk-greeting></tk-greeting>")
+      .directives(Greeting)
+      .build();
+    const ref = TestBed.override(Greeting, mock)
+      .component(Host)
+      .build();
+    ref.root.query(Greeting)
+      .setInput("name", "Ada");
+    expect(ref.root.query(Greeting).inputs.name)
+      .toBe("Ada");
+    ref.destroy();
+  });
+
+  test("a component builder refuses a class that is not a component", () => {
+    expect(() => new MockComponentBuilder(class Plain {}))
+      .toThrow("is not a component");
+  });
+
+  test("a directive builder refuses a component, and a plain class", () => {
+    expect(() => new MockDirectiveBuilder(Item))
+      .toThrow("is a component");
+    expect(() => new MockDirectiveBuilder(class Plain {}))
+      .toThrow("is not a directive");
   });
 });
