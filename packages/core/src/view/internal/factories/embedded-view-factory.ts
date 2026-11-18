@@ -42,7 +42,7 @@ export class EmbeddedViewFactory {
     }
     const view = new EmbeddedView(parent, nodes, this.renderer);
     builder.createDirectivesAndComponents(view, injector);
-    const firstRun = new RunFirstNow(this.changeDetection.views);
+    const firstRun = new RunFirstNow(this.changeDetection.views.forDepth(builder.depth));
     const viewWatch = watch(() => builder.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
     firstRun.failure.ifSome((error) => {

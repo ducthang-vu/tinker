@@ -77,6 +77,8 @@ const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 export interface ParentContext {
   readonly parentInjector: Injector;
   readonly parentView: View;
+  /** How far the parent view is from the root: the child's view is one level deeper. */
+  readonly depth: number;
   readonly attributes: readonly AttributeNode[];
   /**
    * Takes the child's host bindings (its own and its host directives'): its
@@ -185,12 +187,14 @@ export class ComponentFactory {
       ],
       parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });
+    const depth = child === undefined ? 0 : child.depth + 1;
     const { instance, hostInstances, rendered, template } = this.createAndBuild(
       type,
       metadata,
       hostDirectives,
       ownInjector,
       child?.projected ?? new Map(),
+      depth,
     );
     for (const node of rendered) {
       this.renderer.appendChild(host, node);
@@ -230,7 +234,7 @@ export class ComponentFactory {
     // The view's one watch: updates the bindings (the template's, then the
     // host bindings of its template's directives, and its own if it is a
     // root). Its first run happens now, so the view is complete when it is returned.
-    const firstRun = new RunFirstNow(this.changeDetection.views);
+    const firstRun = new RunFirstNow(this.changeDetection.views.forDepth(depth));
     const viewWatch = watch(() => template.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
     firstRun.failure.ifSome((error) => {
@@ -262,6 +266,7 @@ export class ComponentFactory {
     hostDirectives: readonly Class<object>[],
     ownInjector: InjectorRef,
     projected: ReadonlyMap<string, Node[]>,
+    depth: number,
   ): { instance: T; hostInstances: object[]; rendered: Node[]; template: TemplateBuilder } {
     try {
       // Host directives first, in order, so the component can inject them.
@@ -273,7 +278,7 @@ export class ComponentFactory {
       }));
       // The builder creates the template's child components with this factory.
       const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
-      const template = this.builders.create(instance, this, queries);
+      const template = this.builders.create(instance, this, queries, undefined, true, depth);
       const rendered = template.build(this.templateOf(type, metadata), projected);
       return { instance, hostInstances, rendered, template };
     } catch (error) {

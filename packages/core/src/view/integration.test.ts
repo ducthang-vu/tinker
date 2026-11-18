@@ -271,3 +271,50 @@ describe("a computed built from functional values, shown in the view", () => {
       .toEqual([1]);
   });
 });
+
+describe("a parent updates before the child it contains", () => {
+  @Injectable()
+  class Level {
+    readonly level = signal(1);
+  }
+
+  let childRenders = 0;
+
+  @Component({
+    selector: "tk-child",
+    template: `<p>{{ shown() }}</p>`,
+  })
+  class Child {
+    readonly value = input(0);
+    private readonly levelStore = inject(Level);
+    /** Reads the shared signal and the input, so it renders when either changes. */
+    shown(): string {
+      childRenders += 1;
+      return `${this.value()} at ${this.levelStore.level()}`;
+    }
+  }
+
+  @Component({
+    selector: "tk-parent",
+    providers: [Level],
+    imports: [Child],
+    template: `<tk-child [value]="level.level() * 10"></tk-child>`,
+  })
+  class Parent {
+    readonly level = inject(Level);
+  }
+
+  test("the child renders once for one change, after the parent has passed it its new input", async () => {
+    childRenders = 0;
+    const { app, el } = mount(Parent);
+    expect(childRenders)
+      .toBe(1);
+    app.root.instance.level.level.set(2);
+    await tick();
+    expect(el.querySelector("p")!.textContent)
+      .toBe("20 at 2");
+    expect(childRenders)
+      .toBe(2);
+    app.destroy();
+  });
+});
