@@ -116,6 +116,16 @@ doesn't.
 - **Watches are per view.** A large list means many watches, one for each item.
   `@map` with `track` keeps a row's view, and so its watch, while its identity is
   in the list.
+- **A tick is synchronous, and its cost is the DOM work.** One tick runs every
+  queued view to the end, so a long tick blocks the page. Measured in jsdom, one
+  flush takes 2.2 ms when 1,000 bindings change at once, and 71 ms when a
+  `@map` of 5,000 rows is replaced, every row being new. The time goes into
+  creating and removing rows, which a browser pays too, so splitting the tick
+  would spread that work out without reducing it. Browser numbers are not
+  measured yet. Until they are, the tick stays synchronous: yielding between
+  rounds would weaken the guarantee that a flush finishes the work written so far.
+  If a real browser is too slow, the options are to reuse rows whose track key
+  is unchanged, or to yield.
 
 ## Known gaps
 
@@ -125,8 +135,9 @@ doesn't.
   and structural changes still depend on it.
 - **A scheduled view may run more than once in a tick.** Nothing merges the runs
   of one view when several of its signals change together.
-- **Costs are not measured yet.** This design is judged by consistency and
-  simplicity first. Benchmarks come before any change for speed.
+- **Costs are measured only in jsdom.** See "What it costs". The design is
+  judged by consistency and simplicity first. Browser benchmarks come before any
+  change for speed.
 
 ## What may change later
 

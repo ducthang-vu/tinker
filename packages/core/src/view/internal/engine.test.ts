@@ -453,54 +453,6 @@ describe("Engine collaborators", () => {
   });
 });
 
-describe("Engine.afterStable", () => {
-  test("completes once the tick ended: effects ran and views rendered", async () => {
-    const log: string[] = [];
-    @Component({ selector: "tk-a", template: "<p>{{ doubled() }}</p>" })
-    class A {
-      readonly count = signal(1);
-      readonly doubled = signal(0);
-      constructor() {
-        inject(Effects)
-          .create(() => this.doubled.set(this.count() * 2));
-      }
-    }
-    const engine = Engine.create();
-    const view = engine.createComponent(A);
-
-    view.instance.count.set(5);
-    await engine.afterStable()
-      .toPromise();
-    log.push(view.host.nativeElement.textContent!);
-
-    await tick();
-
-    expect(log)
-      .toEqual(["10"]);
-  });
-
-  test("completes even when nothing changed", async () => {
-    await expect(Engine.create()
-      .afterStable()
-      .toPromise()).resolves.toBeUndefined();
-  });
-
-  test("is lazy and cancellable", async () => {
-    const engine = Engine.create();
-    const ended: string[] = [];
-    const stable = engine.afterStable();
-    engine.flush();
-    await tick();
-    expect(ended)
-      .toEqual([]); // not run yet
-    const cancel = stable.run({ ok: () => ended.push("stable") });
-    cancel();
-    engine.flush();
-    expect(ended)
-      .toEqual([]);
-  });
-});
-
 describe("Engine.get", () => {
   test("returns a service of the engine's root injector, providers first", async () => {
     const GREETING = new InjectionToken<string>("GREETING");
@@ -549,5 +501,32 @@ describe("Engine.bootstrap renders on the next tick", () => {
     engine.flush();
     expect(document.querySelector("p")?.textContent)
       .toBe("first");
+  });
+});
+
+describe("a failed first render", () => {
+  test("stays in place, and the view renders again when its signals change", () => {
+    document.body.innerHTML = "<tk-app></tk-app>";
+    @Component({ selector: "tk-app", template: "<p>{{ value() }}</p>" })
+    class App {
+      readonly fail = signal(true);
+      readonly value = (): string => {
+        if (this.fail()) {
+          throw new Error("not yet");
+        }
+        return "ok";
+      };
+    }
+    const engine = Engine.create();
+    const app = engine.bootstrap(App);
+    expect(() => engine.flush())
+      .toThrow("not yet");
+    expect(document.querySelector("tk-app p"))
+      .not.toBeNull();
+    app.instance.fail.set(false);
+    engine.flush();
+    expect(document.querySelector("tk-app p")?.textContent)
+      .toBe("ok");
+    engine.destroy();
   });
 });

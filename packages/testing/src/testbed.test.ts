@@ -523,3 +523,21 @@ describe("inputs set before the first render", () => {
     ref.destroy();
   });
 });
+
+@Component({ selector: "tk-promised", template: "<p>{{ text() }}</p>" })
+class Promised {
+  readonly text = signal("before");
+}
+
+describe("whenStable", () => {
+  test("renders a write made by a promise before it resolves", async () => {
+    const ref = TestBed.component(Promised)
+      .build();
+    Promise.resolve()
+      .then(() => ref.root.instance.text.set("after"));
+    await ref.whenStable();
+    expect(ref.root.text())
+      .toBe("after");
+    ref.destroy();
+  });
+});

@@ -16,7 +16,6 @@
 // - `createViewContainer(anchor)`, for views added and removed at runtime;
 // - `getContext(element)`, to answer "what is on this element?";
 // - `flush()`, to run a change detection tick now (see ChangeDetection);
-// - `afterStable()`, to know when the next tick has ended.
 
 import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext, type Token } from "../../di/index.ts";
 import { Maybe, type Task } from "@tinker/functional";
@@ -160,19 +159,6 @@ export class Engine {
   /** Run a change detection tick now, instead of waiting for the microtask. */
   flush(): void {
     this.changeDetection.tick();
-  }
-
-  /**
-   * The end of the next change detection tick, as a Task: once it completes,
-   * effects have run and views are rendered. Lazy (nothing happens until it
-   * is run) and cancellable; running it requests a tick, so it completes
-   * even when nothing is pending. See ChangeDetection.afterStable.
-   *
-   *   count.set(2);
-   *   await engine.afterStable().toPromise();   // the DOM shows 2
-   */
-  afterStable(): Task<void> {
-    return this.changeDetection.afterStable();
   }
 
   /** What is on `element` (its directives and component), if anything. */
