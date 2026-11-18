@@ -30,10 +30,11 @@ function queries(ref: Fixture<Button>): void {
 
 function overrides(bed: TestBed<Button>): void {
   const mock = ComponentBuilder.mock(Button)
-    .spy("press")
+    .inputs("label")
+    .outputs("pressed")
     .build();
-  expectTypeOf(new mock().press.calls)
-    .toEqualTypeOf<readonly [number][]>();
+  expectTypeOf(mock.mockOf)
+    .toEqualTypeOf<new () => Button>();
   bed.override(Button, mock);
   // @ts-expect-error only a mock of the class it replaces is accepted
   bed.override(Button, Other);

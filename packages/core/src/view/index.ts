@@ -35,5 +35,5 @@ export { BrowserTemplateParser } from "./internal/template/browser-parser.ts";
 export { Engine, type EngineOptions } from "./internal/engine.ts";
 export { inputsOf } from "./internal/authoring/input.ts";
 export { outputsOf } from "./internal/authoring/output.ts";
-export { defineComponent, defineDirective } from "./internal/authoring/decorators.ts";
+export { getComponentMetadata, getDirectiveMetadata } from "./internal/authoring/decorators.ts";
 export { CLASS_REPLACEMENTS } from "./internal/tokens.ts";

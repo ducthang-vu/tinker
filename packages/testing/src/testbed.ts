@@ -4,7 +4,12 @@
 
 import {
   CLASS_REPLACEMENTS,
-  defineComponent,
+  Component,
+  Directive,
+  getComponentMetadata,
+  getDirectiveMetadata,
+  input,
+  output,
   Engine,
   type Provider,
   provide,
@@ -12,8 +17,13 @@ import {
 } from "@tinker/core";
 import { testingElementOf, type Scope } from "./fixture.ts";
 import type {
+  InputName,
+  OutputName,
+} from "@tinker/core";
+import type {
   ComponentBuilder as ComponentBuilderApi,
   ComponentBuilderStatic,
+  MockBuilder as MockBuilderApi,
   MockClass,
   TestBed as TestBedApi,
   Fixture,
@@ -158,20 +168,90 @@ class TemplateBuilder implements ComponentBuilderApi {
   }
 
   build(): new () => object {
+    const { source, imports } = this;
+    @Component({ selector: "tk-test-component", template: source, imports })
     class TestComponent {}
-    defineComponent(TestComponent, {
-      selector: "tk-test-component",
-      template: this.source,
-      imports: this.imports,
-    });
     return TestComponent;
+  }
+}
+
+/** What a mock is built from: the class it replaces, and the metadata and members it keeps. */
+interface MockConfig<F> {
+  readonly type: new () => F;
+  /** Whether the class is a component (it has a template), or only a directive. */
+  readonly isComponent: boolean;
+  readonly selector: string;
+  readonly exportAs?: string;
+  readonly template?: string;
+  readonly inputs: readonly string[];
+  readonly outputs: readonly string[];
+}
+
+/** The members a mock has: one input or output per name, created in its constructor. */
+function membersOf(inputs: readonly string[], outputs: readonly string[]): object {
+  return {
+    ...Object.fromEntries(inputs.map((name) => [name, input()])),
+    ...Object.fromEntries(outputs.map((name) => [name, output()])),
+  };
+}
+
+class MockBuilderImpl<F extends object> implements MockBuilderApi<F> {
+  constructor(private readonly config: MockConfig<F>) {}
+
+  template(source: string): MockBuilderApi<F> {
+    return new MockBuilderImpl<F>({ ...this.config, template: source });
+  }
+
+  inputs<N extends InputName<F>>(...names: readonly N[]): MockBuilderApi<F> {
+    return new MockBuilderImpl<F>({ ...this.config, inputs: [...this.config.inputs, ...names] });
+  }
+
+  outputs<N extends OutputName<F>>(...names: readonly N[]): MockBuilderApi<F> {
+    return new MockBuilderImpl<F>({ ...this.config, outputs: [...this.config.outputs, ...names] });
+  }
+
+  build(): MockClass<F> {
+    const { type, isComponent, selector, exportAs, template, inputs, outputs } = this.config;
+    if (!isComponent) {
+      if (template !== undefined) {
+        throw new Error(`${type.name} is a directive: it has no template to mock`);
+      }
+      @Directive({ selector, ...(exportAs && { exportAs }) })
+      class MockDirective {
+        static readonly mockOf = type;
+
+        constructor() {
+          Object.assign(this, membersOf(inputs, outputs));
+        }
+      }
+      return MockDirective as unknown as MockClass<F>;
+    }
+    @Component({ selector, template: template ?? "", ...(exportAs && { exportAs }) })
+    class MockComponent {
+      static readonly mockOf = type;
+
+      constructor() {
+        Object.assign(this, membersOf(inputs, outputs));
+      }
+    }
+    return MockComponent as unknown as MockClass<F>;
   }
 }
 
 /** The static starts: a builder for a component with a template, or a mock of a class. */
 export const ComponentBuilder: ComponentBuilderStatic = {
   template: (source) => new TemplateBuilder(source),
-  mock: () => {
-    throw new Error("ComponentBuilder.mock is not implemented yet");
+  mock: (type) => {
+    const metadata = getDirectiveMetadata(type)
+      .getOrThrow(() => new Error(`${type.name} is not a directive or component: nothing to mock`));
+    return new MockBuilderImpl({
+      type,
+      isComponent: getComponentMetadata(type)
+        .isSome(),
+      selector: metadata.selector,
+      exportAs: metadata.exportAs,
+      inputs: [],
+      outputs: [],
+    });
   },
 };

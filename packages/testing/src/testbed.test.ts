@@ -22,6 +22,12 @@ class Mark {
   readonly must = input<string>();
 }
 
+@Directive({ selector: "[named]", exportAs: "named" })
+class Named {}
+
+@Component({ selector: "tk-card", template: "<b>card</b>", exportAs: "card" })
+class Card {}
+
 @Directive({ selector: "[pick]" })
 class Pick {
   readonly picked = output<number>();
@@ -237,11 +243,6 @@ describe("ComponentBuilder", () => {
       .toBe("second");
     ref.destroy();
   });
-
-  test("mocks are not implemented yet", () => {
-    expect(() => ComponentBuilder.mock(Greeting))
-      .toThrow("not implemented yet");
-  });
 });
 
 describe("TestBed.override", () => {
@@ -332,5 +333,111 @@ describe("registerCleanup", () => {
   test("registers nothing without one", () => {
     expect(() => registerCleanup(undefined))
       .not.toThrow();
+  });
+});
+
+describe("ComponentBuilder.mock", () => {
+  test("keeps the selector, and renders its own template", () => {
+    const mock = ComponentBuilder.mock(Item)
+      .template("<i>stub</i>")
+      .build();
+    const ref = TestBed.override(Item, mock)
+      .component(List)
+      .build();
+    expect(ref.root.query("i").element.textContent)
+      .toBe("stub");
+    expect(ref.root.query(Item).instance)
+      .toBeInstanceOf(mock);
+    ref.destroy();
+  });
+
+  test("renders nothing without a template", () => {
+    const mock = ComponentBuilder.mock(Item)
+      .build();
+    const ref = TestBed.override(Item, mock)
+      .component(List)
+      .build();
+    expect(ref.root.queryAll("b"))
+      .toHaveLength(0);
+    expect(ref.root.queryAll(Item))
+      .toHaveLength(1);
+    ref.destroy();
+  });
+
+  test("recreates the inputs it names, so a parent template can bind them", () => {
+    const mock = ComponentBuilder.mock(Mark)
+      .inputs("label")
+      .build();
+    const Host = ComponentBuilder.template("<p mark>x</p>")
+      .directives(Mark)
+      .build();
+    const ref = TestBed.override(Mark, mock)
+      .component(Host)
+      .build();
+    ref.root.query(Mark)
+      .setInput("label", "x");
+    expect(ref.root.query(Mark).inputs.label)
+      .toBe("x");
+    ref.destroy();
+  });
+
+  test("recreates the outputs it names, so a parent template can listen", () => {
+    const mock = ComponentBuilder.mock(Pick)
+      .outputs("picked")
+      .build();
+    const Host = ComponentBuilder.template("<p pick>x</p>")
+      .directives(Pick)
+      .build();
+    const ref = TestBed.override(Pick, mock)
+      .component(Host)
+      .build();
+    const seen: number[] = [];
+    ref.root.query(Pick).outputs.picked.run({ next: (value) => seen.push(value) });
+    ref.root.query(Pick)
+      .emitOutput("picked", 3);
+    expect(seen)
+      .toEqual([3]);
+    ref.destroy();
+  });
+
+  test("keeps exportAs, so a template can name the mock", () => {
+    const mock = ComponentBuilder.mock(Named)
+      .build();
+    const Host = ComponentBuilder.template("<p named #n=\"named\">x</p>")
+      .directives(Named)
+      .build();
+    const ref = TestBed.override(Named, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query("p").element.textContent)
+      .toBe("x");
+    ref.destroy();
+  });
+
+  test("a component mock keeps exportAs too", () => {
+    const mock = ComponentBuilder.mock(Card)
+      .template("<i>mock card</i>")
+      .build();
+    const Host = ComponentBuilder.template("<tk-card #c=\"card\"></tk-card>")
+      .directives(Card)
+      .build();
+    const ref = TestBed.override(Card, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query("i").element.textContent)
+      .toBe("mock card");
+    ref.destroy();
+  });
+
+  test("a mock of a directive has no template", () => {
+    expect(() => ComponentBuilder.mock(Mark)
+      .template("<b>x</b>")
+      .build())
+      .toThrow("is a directive: it has no template to mock");
+  });
+
+  test("refuses a class that is not a directive or component", () => {
+    expect(() => ComponentBuilder.mock(class Plain {}))
+      .toThrow("is not a directive or component");
   });
 });

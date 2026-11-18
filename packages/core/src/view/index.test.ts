@@ -37,8 +37,8 @@ test("the public API exports exactly these values", () => {
         "inputsOf",
         "outputsOf",
         "CLASS_REPLACEMENTS",
-        "defineComponent",
-        "defineDirective",
+        "getComponentMetadata",
+        "getDirectiveMetadata",
       ].sort(),
     );
 });
