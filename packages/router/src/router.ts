@@ -15,6 +15,15 @@ import { ActivatedRoute } from "./activated-route.ts";
 import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
+import { pathOf, resolveUrl } from "./resolve-url.ts";
+
+/** The options of `navigate`. */
+export interface NavigateOptions {
+  /** The state of the new history entry, `null` when none is given. */
+  readonly state?: unknown;
+  /** The activated route that a relative URL is resolved against. */
+  readonly relativeTo?: ActivatedRoute;
+}
 
 /** Runs a watch at once: the activated routes follow the URL as soon as it changes. */
 const immediately = { schedule: (task: Runnable) => task.run() };
@@ -53,14 +62,27 @@ export class Router {
   }
 
   /**
-   * Go to `url` as a new history entry, with `state`. A URL no route matches is rejected with a
-   * `NoRouteError`, and nothing changes; declare a `**` route to catch those URLs.
+   * Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of
+   * one: `["todos", "7"]` is `"todos/7"`, and the query and hash then go in the last segment. A
+   * relative URL is resolved against the path of `options.relativeTo` (the root when none is
+   * given); see `resolveUrl`. The resolved URL is what must match: a URL no route matches is
+   * rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch those URLs.
    */
-  navigate(url: string, state: unknown = null): Either<NoRouteError, void> {
-    if (matchRoute(this.root, url) === undefined) {
-      return Either.left(new NoRouteError(url));
+  navigate(
+    url: string | readonly string[],
+    options: NavigateOptions = {},
+  ): Either<NoRouteError, void> {
+    const path = typeof url === "string" ? url : url.join("/");
+    const base = Maybe.from(options.relativeTo)
+      .match({
+        some: (route) => pathOf(route),
+        none: () => [],
+      });
+    const target = resolveUrl(path, base);
+    if (matchRoute(this.root, target) === undefined) {
+      return Either.left(new NoRouteError(target));
     }
-    this.location.go(url, state);
+    this.location.go(target, options.state ?? null);
     return Either.right(undefined);
   }
 }
