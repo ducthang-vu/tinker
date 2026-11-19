@@ -27,7 +27,8 @@ export class Router {
   readonly activated: ReadonlySignal<readonly ActivatedRoute[]>;
   private readonly root: Route;
   private readonly location: Location;
-  private readonly rootRoute: ActivatedRoute;
+  /** The activated route of the root: the first of the list, which never changes. */
+  readonly rootRoute: ActivatedRoute;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
 
   constructor(root: Route, location: Location) {
