@@ -1,7 +1,7 @@
 // A route: a path, and the component it shows. A list of routes is the route table the router
 // matches a URL against; the component of the first match is the one shown.
 
-import type { Class } from "../utils/types.ts";
+import type { Class } from "@tinker/core";
 
 export interface Route {
   /**
