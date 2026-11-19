@@ -14,4 +14,9 @@ export interface Route {
   readonly component: Class<object>;
   /** Static data of the route, read from the `ActivatedRoute` of the component it shows. */
   readonly data?: Readonly<Record<string, unknown>>;
+  /**
+   * The routes under this one, matched against the segments after this route's path. A child's
+   * component is shown by an outlet inside this route's component.
+   */
+  readonly children?: readonly Route[];
 }
