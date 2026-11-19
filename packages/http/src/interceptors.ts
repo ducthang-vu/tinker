@@ -5,11 +5,11 @@
 //   const auth: HttpInterceptor = (request, next) =>
 //     next({ ...request, headers: { ...request.headers, authorization: token() } });
 //
-// HTTP_BACKEND is the one entry point: it runs the interceptors, outermost first, around the
-// transport. Every request goes through it, so an interceptor sees all of them.
+// FetchBackend runs the interceptors, outermost first, around the send. Every request goes
+// through it, so an interceptor sees all of them.
 
-import { inject, Injectable, InjectionToken, Task } from "@tinker/core";
-import { HTTP_TRANSPORT, type HttpBackend, type HttpError } from "./backend.ts";
+import { InjectionToken, Task } from "@tinker/core";
+import type { HttpError } from "./backend.ts";
 import type { HttpRequest, HttpResponse } from "./request.ts";
 
 /** What a request ends with: a response, or a failure. */
@@ -23,24 +23,3 @@ export type HttpInterceptor = (
 
 /** The interceptors, outermost first, in the order their providers give them. */
 export const HTTP_INTERCEPTORS = InjectionToken.multi<HttpInterceptor>("HTTP_INTERCEPTORS");
-
-/**
- * The entry point: every request is sent through it. HTTP_PROVIDERS provides
- * InterceptingBackend.
- */
-export const HTTP_BACKEND = new InjectionToken<HttpBackend>("HTTP_BACKEND");
-
-/** The backend every request goes through: the interceptors around the transport. */
-@Injectable()
-export class InterceptingBackend implements HttpBackend {
-  private readonly transport = inject(HTTP_TRANSPORT);
-  private readonly interceptors = inject(HTTP_INTERCEPTORS);
-
-  handle(request: HttpRequest): HttpOutcome {
-    const send = this.interceptors.reduceRight<(request: HttpRequest) => HttpOutcome>(
-      (next, interceptor) => (current) => interceptor(current, next),
-      (current) => this.transport.handle(current),
-    );
-    return send(request);
-  }
-}

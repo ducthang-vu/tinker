@@ -1,8 +1,7 @@
 # HTTP with `@tinker/http`
 
-Every request goes through one entry point, `HTTP_BACKEND`. It runs the interceptors,
-outermost first, around the transport, which sends the request. The default transport is
-`FetchBackend`, which uses `fetch`.
+Every request goes through one backend, `HTTP_BACKEND`, which is `FetchBackend`. It runs the
+interceptors, outermost first, around the send, which is `fetch`.
 
 ## Sending a request
 
@@ -46,17 +45,15 @@ providers: [provide(HTTP_INTERCEPTORS, { useValue: auth })];
 
 ## Testing
 
-`HTTP_TRANSPORT` is what sends. A test provides a fake transport, so no request leaves the
-test, and the interceptors still run in front of it:
+`FETCH` is the one function that touches the network. A test provides a fake `fetch`, so no
+request leaves the test, and the interceptors still run in front of it:
 
 ```ts
-const fake: HttpBackend = {
-  handle: () => Task.succeed({ status: 200, headers: {}, body: { id: 1 } }),
-};
-providers: [provide(HTTP_TRANSPORT, { useValue: fake })];
+const fakeFetch: FetchFunction = async () =>
+  new Response(JSON.stringify({ id: 1 }), { headers: { "content-type": "application/json" } });
+providers: [provide(FETCH, { useValue: fakeFetch })];
 ```
 
-To test `FetchBackend` itself, provide a fake `fetch` under `FETCH`.
 
 ## What is not built yet
 

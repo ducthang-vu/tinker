@@ -1,34 +1,35 @@
-import { describe, expect, test, vi } from "vitest";
-import { Injector, provide, runInInjectionContext, inject, Task, type Provider } from "@tinker/core";
+import { describe, expect, test } from "vitest";
+import { Injector, inject, provide, runInInjectionContext, Task, type Provider } from "@tinker/core";
 import {
+  FETCH,
+  FetchBackend,
   HTTP_BACKEND,
   HTTP_INTERCEPTORS,
-  HTTP_TRANSPORT,
   HttpError,
-  InterceptingBackend,
+  type FetchFunction,
   type HttpBackend,
   type HttpInterceptor,
-  type HttpRequest,
   type HttpResponse,
 } from "./index.ts";
 
-/** A transport that records each request it sends, and answers with `body`. */
-function fakeTransport(body: unknown = "ok") {
-  const sent: HttpRequest[] = [];
-  const transport: HttpBackend = {
-    handle: (request) => {
-      sent.push(request);
-      return Task.succeed({ status: 200, headers: {}, body });
-    },
+/** A fetch that answers with `body` as JSON, and records each call. */
+function fakeFetch(body: unknown = "ok", status = 200) {
+  const calls: { url: string; init: RequestInit }[] = [];
+  const fetch: FetchFunction = async (url, init) => {
+    calls.push({ url, init });
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    });
   };
-  return { sent, transport };
+  return { calls, fetch };
 }
 
-/** The entry point, with `interceptors` and `transport`. */
-function entryWith(transport: HttpBackend, interceptors: readonly HttpInterceptor[]): HttpBackend {
+/** The backend, with `interceptors` and `fetch`. */
+function backendWith(fetch: FetchFunction, interceptors: readonly HttpInterceptor[]): HttpBackend {
   const providers: Provider[] = [
-    provide(HTTP_BACKEND, { useClass: InterceptingBackend }),
-    provide(HTTP_TRANSPORT, { useValue: transport }),
+    provide(HTTP_BACKEND, { useClass: FetchBackend }),
+    provide(FETCH, { useValue: fetch }),
     ...interceptors.map((interceptor) => provide(HTTP_INTERCEPTORS, { useValue: interceptor })),
   ];
   const { injector } = Injector.create({ providers });
@@ -42,86 +43,78 @@ function run<T, E>(task: Task<T, E>): Promise<T> {
   });
 }
 
-describe("the entry point", () => {
-  test("with no interceptors, a request goes straight to the transport", async () => {
-    const { sent, transport } = fakeTransport({ id: 1 });
-    const response = await run(entryWith(transport, [])
+describe("the backend's interceptors", () => {
+  test("with no interceptors, a request is sent with fetch and its body is parsed", async () => {
+    const { calls, fetch } = fakeFetch({ id: 1 });
+    const response = await run(backendWith(fetch, [])
       .handle({ method: "GET", url: "/a" }));
-    expect(sent)
-      .toEqual([{ method: "GET", url: "/a" }]);
+    expect(calls[0]!.url)
+      .toBe("/a");
+    expect(calls[0]!.init.method)
+      .toBe("GET");
     expect(response.body)
       .toEqual({ id: 1 });
   });
 
-  test("interceptors run outermost first, around the transport, on the way out and back", async () => {
-    const { transport } = fakeTransport();
+  test("interceptors run outermost first, around the send, on the way out and back", async () => {
     const log: string[] = [];
-    const outer: HttpInterceptor = (request, next) => {
-      log.push("outer in");
+    const logged = (name: string): HttpInterceptor => (request, next) => {
+      log.push(`${name} in`);
       return Task.map(next(request), (response) => {
-        log.push("outer out");
+        log.push(`${name} out`);
         return response;
       });
     };
-    const inner: HttpInterceptor = (request, next) => {
-      log.push("inner in");
-      return Task.map(next(request), (response) => {
-        log.push("inner out");
-        return response;
-      });
+    const { fetch } = fakeFetch();
+    const sending = async (url: string, init: RequestInit) => {
+      log.push("send");
+      return fetch(url, init);
     };
-    const transportSpy = vi.spyOn(transport, "handle");
-    transportSpy.mockImplementation((request) => {
-      log.push("transport");
-      return Task.succeed({ status: 200, headers: {}, body: request.url });
-    });
-    await run(entryWith(transport, [outer, inner])
-      .handle({ method: "GET", url: "/o" }));
+    const backend = backendWith(sending, [logged("outer"), logged("inner")]);
+    await run(backend.handle({ method: "GET", url: "/o" }));
     expect(log)
-      .toEqual(["outer in", "inner in", "transport", "inner out", "outer out"]);
+      .toEqual(["outer in", "inner in", "send", "inner out", "outer out"]);
   });
 
   test("an interceptor can change the request before it is sent", async () => {
-    const { sent, transport } = fakeTransport();
+    const { calls, fetch } = fakeFetch();
     const auth: HttpInterceptor = (request, next) =>
       next({ ...request, headers: { ...request.headers, authorization: "token" } });
-    await run(entryWith(transport, [auth])
+    await run(backendWith(fetch, [auth])
       .handle({ method: "POST", url: "/p", body: 1 }));
-    expect(sent[0]!.headers)
-      .toEqual({ authorization: "token" });
+    expect(calls[0]!.init.headers)
+      .toEqual({ "authorization": "token", "content-type": "application/json" });
   });
 
   test("an interceptor can change the response it gets back", async () => {
-    const { transport } = fakeTransport({ raw: 1 });
+    const { fetch } = fakeFetch({ raw: 1 });
     const unwrap: HttpInterceptor = (request, next) =>
       Task.map(next(request), (response: HttpResponse) => ({
         ...response,
         body: (response.body as { raw: number }).raw,
       }));
-    const response = await run(entryWith(transport, [unwrap])
+    const response = await run(backendWith(fetch, [unwrap])
       .handle({ method: "GET", url: "/u" }));
     expect(response.body)
       .toBe(1);
   });
 
-  test("an interceptor can answer without calling next: the transport is not called", async () => {
-    const { sent, transport } = fakeTransport();
+  test("an interceptor can answer without calling next: fetch is not called", async () => {
+    const { calls, fetch } = fakeFetch();
     const cached: HttpInterceptor = () =>
       Task.succeed({ status: 200, headers: {}, body: "from cache" });
-    const response = await run(entryWith(transport, [cached])
+    const response = await run(backendWith(fetch, [cached])
       .handle({ method: "GET", url: "/c" }));
-    expect(sent)
+    expect(calls)
       .toEqual([]);
     expect(response.body)
       .toBe("from cache");
   });
 
-  test("a failure of the transport reaches the caller, through the interceptors", async () => {
-    const transport: HttpBackend = {
-      handle: () => Task.fail(new HttpError({ status: 500, headers: {}, body: "down" })),
-    };
+  test("a status that is not 2xx reaches the caller, through the interceptors, as an HttpError", async () => {
+    const { fetch } = fakeFetch({ error: "down" }, 500);
     const passing: HttpInterceptor = (request, next) => next(request);
-    await expect(run(entryWith(transport, [passing])
+    await expect(run(backendWith(fetch, [passing])
       .handle({ method: "GET", url: "/f" })))
       .rejects.toBeInstanceOf(HttpError);
   });

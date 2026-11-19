@@ -1,19 +1,18 @@
-// The transport is what actually sends a request. Every request goes through HTTP_BACKEND
-// (see interceptors.ts), which runs the interceptors and then the transport. The default
-// transport is FetchBackend, which uses fetch; a test provides a fake one under
-// HTTP_TRANSPORT, so no request leaves the test.
+// The backend: one entry point for every request. It runs the interceptors (see
+// interceptors.ts) around the send, and the send is fetch. A test replaces FETCH, the one
+// function that touches the network, so the interceptors still run in the test.
 
-import { InjectionToken, Injectable, inject } from "@tinker/core";
-import { Task } from "@tinker/core";
+import { inject, Injectable, InjectionToken, Task } from "@tinker/core";
+import { HTTP_INTERCEPTORS, type HttpOutcome } from "./interceptors.ts";
 import type { HttpRequest, HttpResponse } from "./request.ts";
 
-/** Sends a request. A task that fails with an HttpError for a status that is not 2xx. */
+/** Handles a request: runs it through the interceptors, and sends it. */
 export interface HttpBackend {
-  handle(request: HttpRequest): Task<HttpResponse, HttpError | Error>;
+  handle(request: HttpRequest): HttpOutcome;
 }
 
-/** What actually sends a request: FetchBackend by default. */
-export const HTTP_TRANSPORT = new InjectionToken<HttpBackend>("HTTP_TRANSPORT");
+/** The backend every request goes through. HTTP_PROVIDERS provides FetchBackend. */
+export const HTTP_BACKEND = new InjectionToken<HttpBackend>("HTTP_BACKEND");
 
 /** The fetch function FetchBackend calls. The default is the global fetch. */
 export type FetchFunction = (url: string, init: RequestInit) => Promise<Response>;
@@ -29,25 +28,36 @@ export class HttpError extends Error {
   }
 }
 
-/** The default transport: the request is sent with fetch, and cancelling aborts it. */
+/** The backend: the interceptors run in order around the send, which uses fetch. */
 @Injectable()
 export class FetchBackend implements HttpBackend {
   private readonly fetch = inject(FETCH);
+  private readonly interceptors = inject(HTTP_INTERCEPTORS);
 
-  handle(request: HttpRequest): Task<HttpResponse, HttpError | Error> {
-    const sent = Task.fromPromise(async (signal) => {
-      const init = serialize(request);
-      const response = await this.fetch(request.url, { ...init, signal });
-      return {
-        status: response.status,
-        headers: Object.fromEntries(response.headers),
-        body: await readBody(response),
-      } satisfies HttpResponse;
-    });
-    return Task.flatMap(sent, (response) =>
-      response.status >= 200 && response.status < 300
-        ? Task.succeed(response)
-        : Task.fail(new HttpError(response)),
+  handle(request: HttpRequest): HttpOutcome {
+    const chain = this.interceptors.reduceRight<(request: HttpRequest) => HttpOutcome>(
+      (next, interceptor) => (current) => interceptor(current, next),
+      (current) => this.send(current),
+    );
+    return chain(request);
+  }
+
+  /** Sends the request with fetch: cancelling the task aborts it. */
+  private send(request: HttpRequest): HttpOutcome {
+    return Task.flatMap(
+      Task.fromPromise(async (signal) => {
+        const init = serialize(request);
+        const response = await this.fetch(request.url, { ...init, signal });
+        return {
+          status: response.status,
+          headers: Object.fromEntries(response.headers),
+          body: await readBody(response),
+        } satisfies HttpResponse;
+      }),
+      (response) =>
+        response.status >= 200 && response.status < 300
+          ? Task.succeed(response)
+          : Task.fail(new HttpError(response)),
     );
   }
 }
