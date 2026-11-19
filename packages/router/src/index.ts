@@ -2,6 +2,7 @@
 
 export type { Route } from "./route.ts";
 export { NoRouteError, Router } from "./router.ts";
+export type { NavigateOptions } from "./router.ts";
 export { ActivatedRoute } from "./activated-route.ts";
 export { RouterOutlet } from "./router-outlet.ts";
 export { ChildActivatedRoute } from "./child-activated-route.ts";
