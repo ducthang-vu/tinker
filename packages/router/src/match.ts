@@ -1,6 +1,7 @@
 // Matches a URL against the route table. A route matches when every segment of its path is
-// either the same as the URL's segment, or a param (`:name`) that takes it. The query and the
-// hash are not part of the path, and empty segments are ignored, so "/todos/" is "/todos".
+// either the same as the URL's segment, or a param (`:name`) that takes it. The path "**" matches
+// any URL, so it is a catch-all, to be declared last. The query and the hash are not part of the
+// path, and empty segments are ignored, so "/todos/" is "/todos".
 
 import type { Route } from "./route.ts";
 
@@ -27,6 +28,9 @@ export function matchRoute(routes: readonly Route[], url: string): RouteMatch | 
 
 /** The params of `pattern` for the URL's `segments`, or undefined when it does not match. */
 function paramsOf(pattern: string, segments: readonly string[]): RouteParams | undefined {
+  if (pattern === "**") {
+    return {};
+  }
   const parts = segmentsOf(pattern);
   if (parts.length !== segments.length) {
     return undefined;

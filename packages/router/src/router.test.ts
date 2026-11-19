@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "@tinker/core";
 import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
-import { Router } from "./router.ts";
+import { NoRouteError, Router } from "./router.ts";
 import type { Route } from "./route.ts";
 
 /** A platform location that starts at `url`, and records the entries the router adds. */
@@ -73,11 +73,48 @@ test("navigate with a state gives the state to the history entry", () => {
     .toEqual({ scroll: 320 });
 });
 
-test("a URL no route matches has no match, but the URL still changes", () => {
-  const { router } = routerAt("/todos");
-  router.navigate("/nowhere");
+test("a URL no route matches is rejected, and the URL does not change", () => {
+  const { router, fake } = routerAt("/todos");
+  const result = router.navigate("/nowhere", { scroll: 1 });
+  result.match({
+    left: (failure) => {
+      expect(failure)
+        .toBeInstanceOf(NoRouteError);
+      expect(failure.message)
+        .toBe("Cannot match any route: /nowhere");
+    },
+    right: () => {
+      throw new Error("expected a rejection");
+    },
+  });
   expect(router.url())
-    .toBe("/nowhere");
-  expect(router.match())
-    .toBeUndefined();
+    .toBe("/todos");
+  expect(fake.state())
+    .toBeNull();
+});
+
+test("a navigation to a matched URL succeeds", () => {
+  const { router } = routerAt("/todos");
+  const result = router.navigate("/todos/7");
+  expect(result.match({ left: () => false, right: () => true }))
+    .toBe(true);
+});
+
+test("a ** route catches the URLs no other route matches", () => {
+  const fake = fakePlatform("/todos");
+  const NotFound = class {};
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router([...ROUTES, { path: "**", component: NotFound }], inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  router.navigate("/nowhere");
+  expect(router.match()?.route.component)
+    .toBe(NotFound);
+  destroy();
 });

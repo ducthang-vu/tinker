@@ -6,7 +6,8 @@ import type { Class } from "@tinker/core";
 export interface Route {
   /**
    * The path the route matches, e.g. `"/todos"`. A segment that starts with `:` is a param,
-   * so `"/todos/:id"` matches `"/todos/7"` with `id` set to `"7"`.
+   * so `"/todos/:id"` matches `"/todos/7"` with `id` set to `"7"`. The path `"**"` matches any
+   * URL, for a page shown when nothing else matches.
    */
   readonly path: string;
   /** The component shown when the route matches. */

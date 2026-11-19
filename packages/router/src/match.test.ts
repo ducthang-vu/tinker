@@ -42,6 +42,14 @@ test("a literal segment must be the same", () => {
     .toBeUndefined();
 });
 
+test("** matches any URL, and comes last in practice", () => {
+  const notFound = { path: "**", component: class {} };
+  expect(matchRoute([TODOS, notFound], "/anything/at/all"))
+    .toEqual({ route: notFound, params: {} });
+  expect(matchRoute([TODOS, notFound], "/todos"))
+    .toEqual({ route: TODOS, params: {} });
+});
+
 test("the first route that matches wins", () => {
   const first = { path: "/todos/new", component: class {} };
   expect(matchRoute([first, TODO], "/todos/new"))
