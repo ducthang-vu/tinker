@@ -1,7 +1,6 @@
-// A route: a path, and the component it shows. The route table, ROUTES, is a list of routes the
-// router matches a URL against; the component of the first match is the one shown.
+// A route: a path, and the component it shows. A list of routes is the route table the router
+// matches a URL against; the component of the first match is the one shown.
 
-import { InjectionToken } from "../di/index.ts";
 import type { Class } from "../utils/types.ts";
 
 export interface Route {
@@ -15,6 +14,3 @@ export interface Route {
   /** Static data of the route, read from the `ActivatedRoute` of the component it shows. */
   readonly data?: Readonly<Record<string, unknown>>;
 }
-
-/** The route table: the routes the router matches a URL against, in order. */
-export const ROUTES = new InjectionToken<readonly Route[]>("ROUTES");
