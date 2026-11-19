@@ -15,13 +15,7 @@ import { ActivatedRoute } from "./activated-route.ts";
 import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
-import { AdaptArgument } from "./adapt-argument.ts";
 import { pathOf, resolveUrl } from "./resolve-url.ts";
-
-/** The URL of a list of segments: `["todos", "7"]` is `"todos/7"`. */
-function joinSegments(url: string | readonly string[]): string {
-  return typeof url === "string" ? url : url.join("/");
-}
 
 /** The options of `navigate`. */
 export interface NavigateOptions {
@@ -74,10 +68,11 @@ export class Router {
    * given); see `resolveUrl`. The resolved URL is what must match: a URL no route matches is
    * rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch those URLs.
    */
-  navigate(url: string | readonly string[], options?: NavigateOptions): Either<NoRouteError, void>;
-  @AdaptArgument(0, joinSegments)
-  navigate(url: string, options: NavigateOptions = {}): Either<NoRouteError, void> {
-    const path = url;
+  navigate(
+    url: string | readonly string[],
+    options: NavigateOptions = {},
+  ): Either<NoRouteError, void> {
+    const path = typeof url === "string" ? url : url.join("/");
     const base = Maybe.from(options.relativeTo)
       .match({
         some: (route) => pathOf(route),
