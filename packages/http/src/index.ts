@@ -10,6 +10,8 @@ export type { HttpTransport } from "./backend.ts";
 export { HTTP_INTERCEPTORS } from "./interceptors.ts";
 export { httpResource } from "./resource.ts";
 export type { HttpResourceOptions } from "./resource.ts";
+export { httpDelete, httpPatch, httpPost, httpPut } from "./mutation.ts";
+export type { HttpMutationOptions, HttpUrl } from "./mutation.ts";
 export type { HttpInterceptor, HttpOutcome } from "./interceptors.ts";
 export type { HttpRequest, HttpResponse, RequestOptions } from "./request.ts";
 

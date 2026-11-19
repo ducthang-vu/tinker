@@ -213,3 +213,41 @@ describe("resource set and reload", () => {
       .toBe("second");
   });
 });
+
+describe("resource that skips its load", () => {
+  test("a loader that returns undefined runs nothing, and the state is idle", async () => {
+    const loader = vi.fn((): undefined => undefined);
+    const res = resource(loader, { default: "kept" });
+    await tick();
+    expect(loader)
+      .toHaveBeenCalledTimes(1);
+    expect(res.state())
+      .toBe("idle");
+    expect(res.value())
+      .toBe("kept");
+    expect(res.sourced())
+      .toBe(false);
+  });
+
+  test("a skip after a success keeps the value and aborts the run in progress", async () => {
+    const id = signal(1);
+    const first = deferred<string>();
+    const res = resource((signal) => {
+      const current = id();
+      if (current === 2) {
+        return undefined;
+      }
+      return current === 1 ? first.promise : Task.succeed("never");
+    }, { default: "none" });
+    first.ok("one");
+    await tick();
+    expect(res.value())
+      .toBe("one");
+    id.set(2);
+    await tick();
+    expect(res.state())
+      .toBe("idle");
+    expect(res.value())
+      .toBe("one");
+  });
+});

@@ -84,3 +84,34 @@ describe("httpResource", () => {
       .toEqual(["/later"]);
   });
 });
+
+describe("httpResource that skips its request", () => {
+  test("a request that is undefined sends nothing, and the state is idle", async () => {
+    const { urls, transport } = transportWith(() => json({}));
+    const res = inBackend(transport, () =>
+      httpResource(() => undefined, { default: { name: "" } }));
+    await tick();
+    expect(urls)
+      .toEqual([]);
+    expect(res.state())
+      .toBe("idle");
+    expect(res.value())
+      .toEqual({ name: "" });
+  });
+
+  test("a signal that makes the request undefined stops the sending, and keeps the value", async () => {
+    const { urls, transport } = transportWith((url) => json({ url }));
+    const id = signal<number | undefined>(1);
+    const res = inBackend(transport, () =>
+      httpResource(() => (id() === undefined ? undefined : { method: "GET", url: `/users/${id()}` }), { default: {} }));
+    await tick();
+    id.set(undefined);
+    await tick();
+    expect(urls)
+      .toEqual(["/users/1"]);
+    expect(res.state())
+      .toBe("idle");
+    expect(res.value())
+      .toEqual({ url: "/users/1" });
+  });
+});

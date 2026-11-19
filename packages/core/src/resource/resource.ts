@@ -10,6 +10,7 @@
 // The loader's reads are tracked: when a signal it read changes, it runs again, and the run
 // in progress is aborted through its AbortSignal, so an older result cannot overwrite a newer
 // one. A loader returns a promise or a Task; a Task's cancellation runs when it is superseded.
+// A loader that returns `undefined` skips the load: nothing runs, and the state is "idle".
 
 import { Either, Task } from "@tinker/functional";
 import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watch } from "../signals/index.ts";
@@ -17,8 +18,11 @@ import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watc
 /** What the resource is doing, or what it last did. */
 export type ResourceState = "idle" | "loading" | "fetched" | "failed" | "written";
 
-/** Runs the load: its reads are tracked, and it returns a promise or a task of the value. */
-export type Loader<T, E> = (signal: AbortSignal) => PromiseLike<T> | Task<T, E>;
+/**
+ * Runs the load: its reads are tracked, and it returns a promise or a task of the value. Returning
+ * `undefined` skips the load: the value is kept and the state is "idle".
+ */
+export type Loader<T, E> = (signal: AbortSignal) => PromiseLike<T> | Task<T, E> | undefined;
 
 export interface ResourceOptions<T> {
   /** The value before the first success. */
@@ -101,11 +105,16 @@ export function resource<T, E = Error>(
     const controller = new AbortController();
     abortRun = controller;
     untracked(() => state.set("loading"));
-    let pending: PromiseLike<T> | Task<T, E>;
+    let pending: PromiseLike<T> | Task<T, E> | undefined;
     try {
       pending = loader(controller.signal);
     } catch (thrown) {
       settle(id, Either.left(asError(thrown) as E));
+      return;
+    }
+    if (pending === undefined) {
+      cancelTask = undefined;
+      untracked(() => state.set("idle"));
       return;
     }
     if (pending instanceof Task) {
