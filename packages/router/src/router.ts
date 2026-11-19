@@ -44,6 +44,16 @@ export class Router {
   }
 
   /**
+   * The activated route after `own` in the list, or undefined when there is none, or when `own` is
+   * no longer in it. Reads the list, so a caller in an effect runs again when the list changes.
+   */
+  childOf(own: ActivatedRoute): ActivatedRoute | undefined {
+    const list = this.activated();
+    const index = list.indexOf(own);
+    return index === -1 ? undefined : list[index + 1];
+  }
+
+  /**
    * Go to `url` as a new history entry, with `state`. A URL no route matches is rejected with a
    * `NoRouteError`, and nothing changes; declare a `**` route to catch those URLs.
    */

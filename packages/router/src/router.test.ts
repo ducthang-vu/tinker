@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "@tinker/core";
 import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
+import { ActivatedRoute } from "./activated-route.ts";
 import { NoRouteError, Router } from "./router.ts";
 import type { Route } from "./route.ts";
 
@@ -219,5 +220,33 @@ test("a level under a changed parent is made again, though its own params are th
     .not.toBe(before);
   expect(router.activated()[2]?.route)
     .toBe(team);
+  destroy();
+});
+
+test("childOf gives the activated route after the given one", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const [root, level] = router.activated();
+  expect(root)
+    .toBeDefined();
+  expect(router.childOf(root as ActivatedRoute))
+    .toBe(level);
+  destroy();
+});
+
+test("childOf is undefined for the last activated route", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const last = router.activated()[1];
+  expect(router.childOf(last as ActivatedRoute))
+    .toBeUndefined();
+  destroy();
+});
+
+test("childOf is undefined for a route no longer in the list", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const gone = router.activated()[1];
+  router.navigate("/nowhere");
+  router.navigate("/todos");
+  expect(router.childOf(gone as ActivatedRoute))
+    .toBeUndefined();
   destroy();
 });
