@@ -8,5 +8,8 @@
   },
   "peerDependencies": {
     "@tinker/core": "*"
+  },
+  "devDependencies": {
+    "@tinker/testing": "*"
   }
 }
