@@ -27,8 +27,7 @@ export class Router {
   readonly activated: ReadonlySignal<readonly ActivatedRoute[]>;
   private readonly root: Route;
   private readonly location: Location;
-  /** The activated route of the root: the first of the list, which never changes. */
-  readonly rootRoute: ActivatedRoute;
+  private readonly rootRoute: ActivatedRoute;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
 
   constructor(root: Route, location: Location) {
@@ -42,16 +41,6 @@ export class Router {
       const chain = matchChain(root, location.url());
       untracked(() => this.list.set(activatedFor(this.rootRoute, this.list(), chain)));
     }, immediately);
-  }
-
-  /**
-   * The activated route after `own` in the list, or undefined when there is none, or when `own` is
-   * no longer in it. Reads the list, so a caller in an effect runs again when the list changes.
-   */
-  childOf(own: ActivatedRoute): ActivatedRoute | undefined {
-    const list = this.activated();
-    const index = list.indexOf(own);
-    return index === -1 ? undefined : list[index + 1];
   }
 
   /**
