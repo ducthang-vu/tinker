@@ -65,5 +65,34 @@ a failure is in `error`. See [`resource.md`](resource.md) for the state, `set`, 
 const user = httpResource(() => ({ method: "GET", url: `/users/${id()}` }), { default: emptyUser });
 ```
 
-A mutation (a write as signals) is not built yet. It will go through the entry point, so the
-interceptors apply to it too.
+When the request function returns `undefined`, nothing is sent: the value is kept and the state is
+`"idle"`. This is how a request waits for its inputs, e.g. `() => id() === undefined ? undefined : …`.
+
+## Mutations
+
+There is one factory per verb: `httpPost`, `httpPut`, `httpPatch` and `httpDelete`. Each returns
+a `mutation` (see [`resource.md`](resource.md)) whose calls go through `HTTP_BACKEND`, so the
+interceptors apply. The input of a call is the JSON body for POST, PUT and PATCH. DELETE sends no
+body, and its input only builds the URL.
+
+```ts
+const create = httpPost<NewTodo, Todo, Todo[]>("/todos", {
+  resource: todos,
+  onSuccess: (current, made) => [...current, made],
+});
+create.mutate({ title: "write docs" });
+
+const remove = httpDelete<number>((id) => `/todos/${id}`, { resource: todos });
+remove.mutate(todo.id);
+```
+
+- **The URL** is a string, or a function of the input. A function that returns `undefined` skips
+  the call.
+- **`headers`** are sent with every call of the mutation.
+- **The result** is the response body. A status that is not 2xx is the error, and it leaves the
+  resource alone.
+- **The options** are the mutation's: `resource`, `onSuccess`. Calls run in parallel, as they do
+  for any mutation.
+
+The verbs are separate functions because each one has a different body rule. A verb that is not
+listed is not built in yet.

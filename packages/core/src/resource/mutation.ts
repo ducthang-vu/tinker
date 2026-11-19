@@ -41,7 +41,7 @@ function asError(value: unknown): Error {
 }
 
 export function mutation<I, T, E = Error, U = unknown>(
-  mutator: (input: I) => PromiseLike<T> | Task<T, E>,
+  mutator: (input: I) => PromiseLike<T> | Task<T, E> | undefined,
   options: MutationOptions<T, U> = {},
 ): Mutation<I, T, E> {
   const pending = signal(0);
@@ -76,14 +76,16 @@ export function mutation<I, T, E = Error, U = unknown>(
     result: () => result(),
     error: () => error(),
     mutate(input: I): void {
-      pending.update((count) => count + 1);
-      let started: PromiseLike<T> | Task<T, E>;
+      let started: PromiseLike<T> | Task<T, E> | undefined;
       try {
         started = mutator(input);
       } catch (thrown) {
-        fail(asError(thrown) as E);
+        started = Task.fail(asError(thrown) as E);
+      }
+      if (started === undefined) {
         return;
       }
+      pending.update((count) => count + 1);
       if (started instanceof Task) {
         started.run({ ok: succeed, error: fail });
         return;
