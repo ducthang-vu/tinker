@@ -3,3 +3,5 @@
 
 export { resource } from "./resource.ts";
 export type { Loader, Resource, ResourceOptions, ResourceState } from "./resource.ts";
+export { mutation } from "./mutation.ts";
+export type { Mutation, MutationOptions, MutationOutcome } from "./mutation.ts";

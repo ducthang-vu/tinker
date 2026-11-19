@@ -29,3 +29,32 @@ user.reload();       // run the loader again
 
 `httpResource` is a resource whose loader is a request, in `@tinker/http`: see
 [`http.md`](http.md).
+
+## Mutations
+
+A `mutation` is a write to the server: a call that changes data, not one that reads it.
+It is not a resource: it is always ready, and each call is independent.
+
+```ts
+const save = mutation(
+  (draft: Draft) => http.post("/todos", draft),
+  { resource: todos, onSuccess: (current, created) => [...current, created] },
+);
+
+save.mutate(draft);  // starts a call; it does not wait
+save.pending();      // how many calls are in flight
+save.outcome();      // "none" | "succeeded" | "failed": the last call to finish
+save.result();       // the last successful response, or undefined
+save.error();        // the last failure, cleared by a success
+save.reset();        // forget the outcome, result and error (not the calls in flight)
+```
+
+- **Calls run in parallel.** A call is not cancelled by another one. If a caller wants to
+  prevent that, it checks `pending()` itself.
+- **The outcome** is set by the last call to finish, whichever it was started by.
+- **A failure** is a value: a mutator that throws synchronously, or rejects, sets `error`
+  and `outcome` instead of throwing.
+- **With `resource`**, a success updates it. With `onSuccess`, the resource takes
+  `onSuccess(current, result)`; without it, the resource reloads from its loader.
+  A failure leaves the resource alone.
+- **The mutator** returns a promise or a `Task`, as a loader does.
