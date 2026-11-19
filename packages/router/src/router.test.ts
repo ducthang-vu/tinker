@@ -221,3 +221,49 @@ test("a level under a changed parent is made again, though its own params are th
     .toBe(team);
   destroy();
 });
+
+test("the root has no parent, and each level's parent is the level above it", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const [root, leaf] = router.activated();
+  expect(root?.parent.isNone())
+    .toBe(true);
+  expect(leaf?.parent.getOrThrow(() => new Error("no parent")))
+    .toBe(root);
+  destroy();
+});
+
+test("a deeper level's parent chain reaches the root", () => {
+  const team = { path: "teams/:team", component: class {} };
+  const org = { path: "/orgs/:org", component: class {}, children: [team] };
+  const fake = fakePlatform("/orgs/acme/teams/x");
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router({ path: "", component: Root, children: [org] }, inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const [root, orgLevel, teamLevel] = router.activated();
+  expect(teamLevel?.parent.getOrThrow(() => new Error("no parent")))
+    .toBe(orgLevel);
+  expect(orgLevel?.parent.getOrThrow(() => new Error("no parent")))
+    .toBe(root);
+  destroy();
+});
+
+test("a kept level keeps its parent, and a made level gets the kept one as its parent", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const [root, leafBefore] = router.activated();
+  router.navigate("/todos/7?tab=done");
+  expect(router.activated()[1]?.parent.getOrThrow(() => new Error("no parent")))
+    .toBe(root);
+  router.navigate("/todos/8");
+  expect(router.activated()[1]?.parent.getOrThrow(() => new Error("no parent")))
+    .toBe(root);
+  expect(router.activated()[1])
+    .not.toBe(leafBefore);
+  destroy();
+});

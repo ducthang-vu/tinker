@@ -1,7 +1,9 @@
 // ActivatedRoute: one level of the route tree as the router matched it, for the current URL: the
-// route, the params it read, and the URL segments it consumed. The router keeps a list of them,
-// root first. The first one is the root and is never replaced; the others are made per navigation.
+// route, the params it read, the URL segments it consumed, and the level above it. The router keeps
+// a list of them, root first. The first one is the root and is never replaced; the others are made
+// per navigation.
 
+import { Maybe } from "@tinker/core";
 import type { RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 
@@ -13,5 +15,7 @@ export class ActivatedRoute {
     readonly params: RouteParams,
     /** The URL segments this level consumed. */
     readonly segments: readonly string[],
+    /** The level above this one, or None for the root. */
+    readonly parent: Maybe<ActivatedRoute>,
   ) {}
 }

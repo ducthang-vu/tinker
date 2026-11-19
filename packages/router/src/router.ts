@@ -1,7 +1,16 @@
 // The router: the current URL, the matched route and params, the list of activated routes, and
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
-import { computed, Either, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
+import {
+  computed,
+  Either,
+  Maybe,
+  type ReadonlySignal,
+  type Runnable,
+  signal,
+  untracked,
+  watch,
+} from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
 import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
@@ -34,7 +43,7 @@ export class Router {
     this.root = root;
     this.location = location;
     this.url = location.url;
-    this.rootRoute = new ActivatedRoute(root, {}, []);
+    this.rootRoute = new ActivatedRoute(root, {}, [], Maybe.none());
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
     watch(() => {
@@ -71,11 +80,18 @@ function activatedFor(
   }
   const levels = chain.slice(1);
   const kept = keptPrefix(previous.slice(1), levels);
-  return [
-    rootRoute,
-    ...levels.map((level, index) =>
-      kept[index] ?? new ActivatedRoute(level.route, level.params, level.segments)),
-  ];
+  return levels.reduce<readonly ActivatedRoute[]>(
+    (made, level, index) => [
+      ...made,
+      kept[index] ?? new ActivatedRoute(level.route, level.params, level.segments, lastOf(made)),
+    ],
+    [rootRoute],
+  );
+}
+
+/** The last activated route of a non-empty list, which is the parent of the next level. */
+function lastOf(made: readonly ActivatedRoute[]): Maybe<ActivatedRoute> {
+  return Maybe.from(made[made.length - 1]);
 }
 
 /** The previous instances of the leading levels that are still the same, in order. */
