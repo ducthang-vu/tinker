@@ -55,6 +55,10 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
   `// eslint-disable-next-line @typescript-eslint/no-explicit-any -- why`.
   Every disable comment must name its rules and give a reason; unused ones
   are errors.
+- Members are `private readonly` by default. Make a member public, or drop
+  `readonly`, only when it is proven necessary: something outside the class
+  uses it, or it is part of the API. Check each new member for this when you
+  add it, not later.
 - Lookups that may find nothing return `Maybe`, not `T | undefined`.
   Operations that may fail return `Either` / `EitherError` where the caller
   should handle the error; `getOrThrow` goes back to exceptions.
