@@ -18,7 +18,7 @@ fails when it is out of date: regenerate it after changing exports or imports.
 - `packages/functional` (`@tinker/functional`): the functional helpers (Maybe, Either, Task,
   Stream, Emitter). Its public API is `src/public-api.ts`, and `src/index.ts` re-exports it.
 - `packages/testing` (`@tinker/testing`): helpers for testing Tinker apps. It has no API yet, and the core package's own tests do not use it.
-- `packages/http` (`@tinker/http`): `HttpClient` (any verb through `request`, and shorthands) and `HttpBackend` (`FetchBackend` by default, a fake in tests). Interceptors will go between the client and the backend.
+- `packages/http` (`@tinker/http`): HTTP. Every request goes through `HTTP_BACKEND`, which runs the interceptors around the transport (`HTTP_TRANSPORT`, `fetch` by default).
 - `examples/basics` (`@tinker/example-basics`): the example app, its own package. It imports from `@tinker/core`, and `npm run dev` opens it.
 - `scripts/`: the repo-map generator and its tests.
 

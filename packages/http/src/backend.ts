@@ -1,6 +1,7 @@
-// The backend turns a request into a response. HttpClient calls one; the app chooses
-// which: the default sends the request with fetch (FetchBackend), and a test provides a
-// fake one under HTTP_BACKEND, so no request leaves the test.
+// The transport is what actually sends a request. Every request goes through HTTP_BACKEND
+// (see interceptors.ts), which runs the interceptors and then the transport. The default
+// transport is FetchBackend, which uses fetch; a test provides a fake one under
+// HTTP_TRANSPORT, so no request leaves the test.
 
 import { InjectionToken, Injectable, inject } from "@tinker/core";
 import { Task } from "@tinker/core";
@@ -11,8 +12,8 @@ export interface HttpBackend {
   handle(request: HttpRequest): Task<HttpResponse, HttpError | Error>;
 }
 
-/** The backend HttpClient uses. The app provides one; HTTP_PROVIDERS provides FetchBackend. */
-export const HTTP_BACKEND = new InjectionToken<HttpBackend>("HTTP_BACKEND");
+/** What actually sends a request: FetchBackend by default. */
+export const HTTP_TRANSPORT = new InjectionToken<HttpBackend>("HTTP_TRANSPORT");
 
 /** The fetch function FetchBackend calls. The default is the global fetch. */
 export type FetchFunction = (url: string, init: RequestInit) => Promise<Response>;
@@ -28,7 +29,7 @@ export class HttpError extends Error {
   }
 }
 
-/** The default backend: the request is sent with fetch, and cancelling aborts it. */
+/** The default transport: the request is sent with fetch, and cancelling aborts it. */
 @Injectable()
 export class FetchBackend implements HttpBackend {
   private readonly fetch = inject(FETCH);
