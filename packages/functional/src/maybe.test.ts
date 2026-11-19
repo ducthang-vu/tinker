@@ -160,3 +160,33 @@ describe("Maybe", () => {
     });
   });
 });
+
+describe("isEqual compares the content", () => {
+  test("two None are equal, and None is not equal to a Some", () => {
+    expect(Maybe.none()
+      .isEqual(Maybe.none()))
+      .toBe(true);
+    expect(Maybe.none<number>()
+      .isEqual(Maybe.some(1)))
+      .toBe(false);
+    expect(Maybe.some(1)
+      .isEqual(Maybe.none<number>()))
+      .toBe(false);
+  });
+
+  test("two Some are equal when their values are equal, by === unless a comparator is given", () => {
+    expect(Maybe.some(1)
+      .isEqual(Maybe.some(1)))
+      .toBe(true);
+    expect(Maybe.some(1)
+      .isEqual(Maybe.some(2)))
+      .toBe(false);
+    const byId = (a: { id: number }, b: { id: number }) => a.id === b.id;
+    expect(Maybe.some({ id: 1 })
+      .isEqual(Maybe.some({ id: 1 }), byId))
+      .toBe(true);
+    expect(Maybe.some({ id: 1 })
+      .isEqual(Maybe.some({ id: 1 })))
+      .toBe(false);
+  });
+});

@@ -96,6 +96,17 @@ export class Either<E, T> {
     return !this.isRightSide;
   }
 
+  /**
+   * Whether both are on the same side with equal payloads. `equal` compares the payloads; the
+   * default is `===`.
+   */
+  isEqual(
+    other: Either<E, T>,
+    equal: (a: E | T, b: E | T) => boolean = (a, b) => a === b,
+  ): boolean {
+    return this.isRightSide === other.isRightSide && equal(this.payload, other.payload);
+  }
+
   /** Transform the success, if it is one. */
   private map<U>(f: (value: T) => U): Either<E, U> {
     return this.isRightSide
