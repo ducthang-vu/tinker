@@ -108,8 +108,9 @@ module; each module also lists its own in its `index.ts`.
 - **Host bindings** on directives and components: listeners
   (`"(click)": "toggle()"`), and class, style and attribute bindings
   (`"[class.open]": "isOpen()"`, `"[style.opacity]": "opacity()"`,
-  `"[attr.role]": "role()"`). A template binding on an element wins over a
-  host binding of the same class, style or attribute.
+  `"[attr.role]": "role()"`, or `"[attr.href]": "url()"`, whose URL is checked
+  as in templates). A template binding on an element wins over a host binding
+  of the same class, style or attribute.
 - **Directives** on an element share an element injector, so they can inject
   each other and their ancestors. A directive can also inject its element's
   `ViewContainerRef`: the components it adds sit after the element, are created

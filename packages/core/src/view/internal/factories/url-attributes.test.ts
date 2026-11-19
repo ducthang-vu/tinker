@@ -3,7 +3,8 @@ import { Engine } from "../engine.ts";
 import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
-import { Component } from "../authoring/decorators.ts";
+import { Component, Directive } from "../authoring/decorators.ts";
+import { Maybe } from "@tinker/functional";
 import { HostBindings } from "./host-bindings.ts";
 
 /** Render `<a [attr.name]="value()">` for `value`, and return the attribute `attribute`. */
@@ -42,6 +43,53 @@ describe("URL attributes", () => {
   test("a non-URL attribute is set as it is", () => {
     expect(attributeFor("title", "javascript:not-a-link"))
       .toBe("javascript:not-a-link");
+  });
+});
+
+describe("host attribute bindings to URL attributes", () => {
+  test("a directive's [attr.href] follows its signal, and an unsafe URL removes it", () => {
+    @Directive({ selector: "[link]", host: { "[attr.href]": "url()" } })
+    class Link {
+      readonly url = signal<string | undefined>("https://example.com/");
+    }
+    @Component({ selector: "tk-links", template: "<a link>x</a>", imports: [Link] })
+    class Links {}
+    const engine = Engine.create();
+    const view = engine.createComponent(Links);
+    const a = view.host.nativeElement.querySelector("a")!;
+    engine.flush();
+    expect(a.getAttribute("href"))
+      .toBe("https://example.com/");
+
+    const [link] = Maybe.map(engine.getContext(a), (context) => context.directives)
+      .getOrElse([]) as [Link];
+    link!.url.set("javascript:alert(1)");
+    engine.flush();
+    expect(a.hasAttribute("href"))
+      .toBe(false);
+
+    link!.url.set("/relative");
+    engine.flush();
+    expect(a.getAttribute("href"))
+      .toBe("/relative");
+  });
+
+  test("a component's [attr.href] on its own host element is checked the same way", () => {
+    @Component({
+      selector: "tk-card",
+      template: "<p>x</p>",
+      host: { "[attr.href]": "url()" },
+    })
+    class Card {
+      readonly url = signal("javascript:alert(1)");
+    }
+    const el = document.createElement("section");
+    const engine = Engine.create();
+    const app = engine.bootstrap(Card, el);
+    engine.flush();
+    expect(el.hasAttribute("href"))
+      .toBe(false);
+    app.destroy();
   });
 });
 
