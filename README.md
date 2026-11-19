@@ -65,6 +65,7 @@ module; each module also lists its own in its `index.ts`.
 | [`packages/core/src/view`](packages/core/src/view/index.ts) | `bootstrap`, `@Component`, `@Directive`, `input()`, `model()`, `query` / `queryAll`, `ElementRef`, `Effects`, `RenderHooks`, `RENDERER`: the component model and its change detection |
 | [`packages/functional/src`](packages/functional/src/index.ts) | `Maybe`, `Either`, a lazy, cancellable `Task`, `Stream` / `Emitter`, and `pipe` / `flow` for composing steps (many values over time; a `Task` is a `Stream` with no items), used across the codebase |
 | [`packages/core/src/utils`](packages/core/src/utils) | small shared helpers (context variables, metadata, `runAll`) |
+| [`packages/http/src`](packages/http/src/index.ts) | HTTP: `HTTP_BACKEND` (`FetchHttpBackend`) runs the interceptors (`HTTP_INTERCEPTORS`) around `HTTP_TRANSPORT` (native `fetch`); see [docs/http.md](docs/http.md) |
 | [`packages/testing/src`](packages/testing/src/index.ts) | the test bed (`TestBed`), testing elements, `ComponentBuilder`, and mocks (`MockComponentBuilder`, `MockDirectiveBuilder`); see [docs/testing.md](docs/testing.md) |
 
 ### The view, in short
