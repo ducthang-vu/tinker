@@ -27,7 +27,8 @@ test("ChildActivatedRoute is the activated route after the root, as a signal", (
   window.history.replaceState(null, "", "/todos");
   const { injector, destroy } = Injector.create({ providers: provideRouter(ROOT) });
   const child = runInInjectionContext(injector, () => inject(ChildActivatedRoute));
-  expect(child()?.route.component)
+  expect(child()
+    .getOrThrow(() => new Error("no child")).route.component)
     .toBe(TodoList);
   destroy();
   window.history.replaceState(null, "", "/");
