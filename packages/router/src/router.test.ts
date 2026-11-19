@@ -198,3 +198,26 @@ test("a ** level is made again when its segments change", () => {
     .not.toBe(before);
   destroy();
 });
+
+test("a level under a changed parent is made again, though its own params are the same", () => {
+  const team = { path: "teams/:team", component: class {} };
+  const org = { path: "/orgs/:org", component: class {}, children: [team] };
+  const fake = fakePlatform("/orgs/acme/teams/x");
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router({ path: "", component: Root, children: [org] }, inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const before = router.activated()[2];
+  router.navigate("/orgs/beta/teams/x");
+  expect(router.activated()[2])
+    .not.toBe(before);
+  expect(router.activated()[2]?.route)
+    .toBe(team);
+  destroy();
+});

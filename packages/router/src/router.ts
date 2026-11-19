@@ -57,8 +57,9 @@ export class Router {
 }
 
 /**
- * The activated routes for `chain`, root first. A level keeps its previous instance when its route,
- * params and segments are the same, so only the levels that changed are made again.
+ * The activated routes for `chain`, root first. The levels that keep their previous instance are
+ * the leading ones that are unchanged: a level under a changed level is made again too, since its
+ * component sits inside the view of the one above.
  */
 function activatedFor(
   rootRoute: ActivatedRoute,
@@ -68,16 +69,29 @@ function activatedFor(
   if (chain === undefined) {
     return [rootRoute];
   }
+  const levels = chain.slice(1);
+  const kept = keptPrefix(previous.slice(1), levels);
   return [
     rootRoute,
-    ...chain.slice(1)
-      .map((level, index) => {
-        const kept = previous[index + 1];
-        return kept !== undefined && sameLevel(kept, level)
-          ? kept
-          : new ActivatedRoute(level.route, level.params, level.segments);
-      }),
+    ...levels.map((level, index) =>
+      kept[index] ?? new ActivatedRoute(level.route, level.params, level.segments)),
   ];
+}
+
+/** The previous instances of the leading levels that are still the same, in order. */
+function keptPrefix(
+  previous: readonly ActivatedRoute[],
+  levels: readonly LevelMatch[],
+): readonly ActivatedRoute[] {
+  const kept: ActivatedRoute[] = [];
+  for (const [index, level] of levels.entries()) {
+    const candidate = previous[index];
+    if (candidate === undefined || !sameLevel(candidate, level)) {
+      break;
+    }
+    kept.push(candidate);
+  }
+  return kept;
 }
 
 /** Whether an activated route is still the level it was made for. */
