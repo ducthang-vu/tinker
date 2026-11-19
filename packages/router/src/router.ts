@@ -19,14 +19,14 @@ export class Router {
   readonly url: ReadonlySignal<string>;
   /** The route that matches the current URL and its params, or undefined when none does. */
   readonly match: ReadonlySignal<RouteMatch | undefined>;
-  private readonly routes: readonly Route[];
+  private readonly root: Route;
   private readonly location: Location;
 
-  constructor(routes: readonly Route[], location: Location) {
-    this.routes = routes;
+  constructor(root: Route, location: Location) {
+    this.root = root;
     this.location = location;
     this.url = location.url;
-    this.match = computed(() => matchRoute(routes, location.url()));
+    this.match = computed(() => matchRoute(root, location.url()));
   }
 
   /**
@@ -34,7 +34,7 @@ export class Router {
    * `NoRouteError`, and nothing changes; declare a `**` route to catch those URLs.
    */
   navigate(url: string, state: unknown = null): Either<NoRouteError, void> {
-    if (matchRoute(this.routes, url) === undefined) {
+    if (matchRoute(this.root, url) === undefined) {
       return Either.left(new NoRouteError(url));
     }
     this.location.go(url, state);

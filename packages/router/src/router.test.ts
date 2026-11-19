@@ -22,21 +22,23 @@ function fakePlatform(url: string) {
   return { platform, state: () => current.state };
 }
 
+class Root {}
 class TodoList {}
 class TodoDetail {}
-const ROUTES: readonly Route[] = [
+const CHILDREN: readonly Route[] = [
   { path: "/todos", component: TodoList },
   { path: "/todos/:id", component: TodoDetail },
 ];
+const ROOT: Route = { path: "", component: Root, children: CHILDREN };
 
-/** A router over `ROUTES`, in the context of a fake platform that starts at `url`. */
+/** A router over `ROOT`, in the context of a fake platform that starts at `url`. */
 function routerAt(url: string) {
   const fake = fakePlatform(url);
   const { injector, destroy } = Injector.create({
     providers: [
       provide(PLATFORM_LOCATION, { useValue: fake.platform }),
       provide(Location, { useClass: Location }),
-      provide(Router, { useFactory: () => new Router(ROUTES, inject(Location)) }),
+      provide(Router, { useFactory: () => new Router(ROOT, inject(Location)) }),
     ],
   });
   const router = runInInjectionContext(injector, () => inject(Router));
@@ -108,7 +110,10 @@ test("a ** route catches the URLs no other route matches", () => {
       provide(PLATFORM_LOCATION, { useValue: fake.platform }),
       provide(Location, { useClass: Location }),
       provide(Router, {
-        useFactory: () => new Router([...ROUTES, { path: "**", component: NotFound }], inject(Location)),
+        useFactory: () => new Router(
+          { path: "", component: Root, children: [...CHILDREN, { path: "**", component: NotFound }] },
+          inject(Location),
+        ),
       }),
     ],
   });

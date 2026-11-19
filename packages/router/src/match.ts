@@ -1,49 +1,73 @@
-// Matches a URL against the route table. A route matches when every segment of its path is
-// either the same as the URL's segment, or a param (`:name`) that takes it. The path "**" matches
-// any URL, so it is a catch-all, to be declared last. The query and the hash are not part of the
-// path, and empty segments are ignored, so "/todos/" is "/todos".
+// Matches a URL against the route tree, from its root. A route consumes the segments of its path:
+// a `:name` segment takes any one segment, and "**" takes all the rest and matches any URL. A route
+// with children gives the segments it did not consume to them, and the first child that matches
+// wins. A route without children must consume every segment. The query and the hash are not part
+// of the path, and empty segments are ignored, so "/todos/" is "/todos".
 
 import type { Route } from "./route.ts";
 
 /** The params a path read, by name. */
 export type RouteParams = Readonly<Record<string, string>>;
 
-/** A route that matches the URL, and the params it read from the path. */
+/** The route that matches the URL, and the params read along the way from the root. */
 export interface RouteMatch {
   readonly route: Route;
   readonly params: RouteParams;
 }
 
-/** The first route of `routes` that matches `url`, or undefined when none does. */
-export function matchRoute(routes: readonly Route[], url: string): RouteMatch | undefined {
-  const segments = segmentsOf(url.replace(/[?#].*$/, ""));
-  for (const route of routes) {
-    const params = paramsOf(route.path, segments);
-    if (params !== undefined) {
-      return { route, params };
+/** The route of the tree under `root` that matches `url`, or undefined when none does. */
+export function matchRoute(root: Route, url: string): RouteMatch | undefined {
+  return matchFrom(root, segmentsOf(url.replace(/[?#].*$/, "")), {});
+}
+
+/** The match of `route` for `segments`, with the params `inherited` from the routes above it. */
+function matchFrom(
+  route: Route,
+  segments: readonly string[],
+  inherited: RouteParams,
+): RouteMatch | undefined {
+  if (route.path === "**") {
+    return { route, params: inherited };
+  }
+  const consumed = consume(route.path, segments);
+  if (consumed === undefined) {
+    return undefined;
+  }
+  const params = { ...inherited, ...consumed.params };
+  const rest = segments.slice(consumed.count);
+  if (route.children === undefined) {
+    return rest.length === 0 ? { route, params } : undefined;
+  }
+  for (const child of route.children) {
+    const match = matchFrom(child, rest, params);
+    if (match !== undefined) {
+      return match;
     }
   }
   return undefined;
 }
 
-/** The params of `pattern` for the URL's `segments`, or undefined when it does not match. */
-function paramsOf(pattern: string, segments: readonly string[]): RouteParams | undefined {
-  if (pattern === "**") {
-    return {};
-  }
+/** The params of `pattern` for the leading segments, and how many segments it takes. */
+function consume(
+  pattern: string,
+  segments: readonly string[],
+): { params: RouteParams; count: number } | undefined {
   const parts = segmentsOf(pattern);
-  if (parts.length !== segments.length) {
+  if (parts.length > segments.length) {
     return undefined;
   }
   const pairs = parts.map((part, index) => [part, segments[index] as string] as const);
   if (!pairs.every(([part, segment]) => part.startsWith(":") || part === segment)) {
     return undefined;
   }
-  return Object.fromEntries(
-    pairs
-      .filter(([part]) => part.startsWith(":"))
-      .map(([part, segment]) => [part.slice(1), segment]),
-  );
+  return {
+    params: Object.fromEntries(
+      pairs
+        .filter(([part]) => part.startsWith(":"))
+        .map(([part, segment]) => [part.slice(1), segment]),
+    ),
+    count: parts.length,
+  };
 }
 
 /** The non-empty segments of a path: "/todos/7" is ["todos", "7"]. */
