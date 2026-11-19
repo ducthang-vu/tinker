@@ -5,11 +5,8 @@
 import { inject, Task, type Mutation, type MutationOptions, mutation } from "@tinker/core";
 import { HTTP_BACKEND, type HttpError } from "./backend.ts";
 
-/**
- * The URL of a call: fixed, or built from the input of the call. When the function returns
- * `undefined`, the call is not sent.
- */
-export type HttpUrl<I> = string | ((input: I) => string | undefined);
+/** The URL of a call: fixed, or built from the input of the call. */
+export type HttpUrl<I> = string | ((input: I) => string);
 
 export interface HttpMutationOptions<T, U> extends MutationOptions<T, U> {
   /** Headers sent with every call of the mutation. */
@@ -61,21 +58,16 @@ function httpMutation<I, T, U>(
   const backend = inject(HTTP_BACKEND);
   const { headers, ...mutationOptions } = options;
   return mutation<I, T, HttpError | Error, U>(
-    (input) => {
-      const target = typeof url === "string" ? url : url(input);
-      if (target === undefined) {
-        return undefined;
-      }
-      return Task.map(
+    (input) =>
+      Task.map(
         backend.handle({
           method,
-          url: target,
+          url: typeof url === "string" ? url : url(input),
           ...(headers && { headers }),
           body: bodyOf(input),
         }),
         (response) => response.body as T,
-      );
-    },
+      ),
     mutationOptions,
   );
 }

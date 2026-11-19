@@ -86,8 +86,7 @@ const remove = httpDelete<number>((id) => `/todos/${id}`, { resource: todos });
 remove.mutate(todo.id);
 ```
 
-- **The URL** is a string, or a function of the input. A function that returns `undefined` skips
-  the call.
+- **The URL** is a string, or a function of the input.
 - **`headers`** are sent with every call of the mutation.
 - **The result** is the response body. A status that is not 2xx is the error, and it leaves the
   resource alone.

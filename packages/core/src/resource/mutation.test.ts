@@ -151,32 +151,3 @@ describe("mutation and its resource", () => {
       .not.toHaveBeenCalled();
   });
 });
-
-/** A mutator that skips the call for an undefined input, and succeeds with the input otherwise. */
-function sendUnlessUndefined(input: number | undefined): Task<number, Error> | undefined {
-  return input === undefined ? undefined : Task.succeed(input);
-}
-
-describe("mutation that skips its call", () => {
-  test("a mutator that returns undefined starts nothing", () => {
-    const save = mutation(sendUnlessUndefined);
-    save.mutate(undefined);
-    expect(save.pending())
-      .toBe(0);
-    expect(save.outcome())
-      .toBe("none");
-  });
-
-  test("a skipped call leaves the outcome of the last real call", async () => {
-    const save = mutation(sendUnlessUndefined);
-    save.mutate(4);
-    save.mutate(undefined);
-    await tick();
-    expect(save.outcome())
-      .toBe("succeeded");
-    expect(save.result())
-      .toBe(4);
-    expect(save.pending())
-      .toBe(0);
-  });
-});

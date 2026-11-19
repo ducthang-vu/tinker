@@ -59,5 +59,4 @@ save.reset();        // forget the outcome, result and error (not the calls in f
 - **With `resource`**, a success updates it. With `onSuccess`, the resource takes
   `onSuccess(current, result)`; without it, the resource reloads from its loader.
   A failure leaves the resource alone.
-- **The mutator** returns a promise or a `Task`, as a loader does. A mutator that returns
-  `undefined` skips the call: nothing is pending, and the outcome is unchanged.
+- **The mutator** returns a promise or a `Task`, as a loader does.
