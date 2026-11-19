@@ -1,13 +1,13 @@
 import { describe, expect, test } from "vitest";
 import { Injector, inject, provide, runInInjectionContext, Task, type Provider } from "@tinker/core";
 import {
-  FETCH,
-  FetchBackend,
+  HTTP_TRANSPORT,
+  FetchHttpBackend,
   HTTP_BACKEND,
   HTTP_INTERCEPTORS,
   HttpError,
-  type FetchFunction,
-  type HttpBackend,
+  type HttpTransport,
+
   type HttpInterceptor,
   type HttpResponse,
 } from "./index.ts";
@@ -15,7 +15,7 @@ import {
 /** A fetch that answers with `body` as JSON, and records each call. */
 function fakeFetch(body: unknown = "ok", status = 200) {
   const calls: { url: string; init: RequestInit }[] = [];
-  const fetch: FetchFunction = async (url, init) => {
+  const fetch: HttpTransport = async (url, init) => {
     calls.push({ url, init });
     return new Response(JSON.stringify(body), {
       status,
@@ -26,10 +26,13 @@ function fakeFetch(body: unknown = "ok", status = 200) {
 }
 
 /** The backend, with `interceptors` and `fetch`. */
-function backendWith(fetch: FetchFunction, interceptors: readonly HttpInterceptor[]): HttpBackend {
+function backendWith(
+  fetch: HttpTransport,
+  interceptors: readonly HttpInterceptor[],
+): FetchHttpBackend {
   const providers: Provider[] = [
-    provide(HTTP_BACKEND, { useClass: FetchBackend }),
-    provide(FETCH, { useValue: fetch }),
+    provide(HTTP_BACKEND, { useClass: FetchHttpBackend }),
+    provide(HTTP_TRANSPORT, { useValue: fetch }),
     ...interceptors.map((interceptor) => provide(HTTP_INTERCEPTORS, { useValue: interceptor })),
   ];
   const { injector } = Injector.create({ providers });

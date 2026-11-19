@@ -1,23 +1,23 @@
 import { describe, expect, test } from "vitest";
 import { Injector, runInInjectionContext, Task } from "@tinker/core";
-import { FETCH, FetchBackend, HttpError, type FetchFunction, type HttpRequest } from "./index.ts";
+import { HTTP_TRANSPORT, FetchHttpBackend, HttpError, type HttpTransport, type HttpRequest } from "./index.ts";
 
 /** A fetch that answers with `response` and records each call. */
 function fakeFetch(response: () => Response | Promise<Response>) {
   const calls: { url: string; init: RequestInit }[] = [];
-  const fetch: FetchFunction = async (url, init) => {
+  const fetch: HttpTransport = async (url, init) => {
     calls.push({ url, init });
     return response();
   };
   return { calls, fetch };
 }
 
-/** A FetchBackend with `fetch` provided under FETCH. */
-function backendWith(fetch: FetchFunction): FetchBackend {
+/** A FetchHttpBackend with `fetch` provided under HTTP_TRANSPORT. */
+function backendWith(fetch: HttpTransport): FetchHttpBackend {
   const { injector } = Injector.create({
-    providers: [FetchBackend, { provide: FETCH, useValue: fetch }] as never,
+    providers: [FetchHttpBackend, { provide: HTTP_TRANSPORT, useValue: fetch }] as never,
   });
-  return runInInjectionContext(injector, () => new FetchBackend());
+  return runInInjectionContext(injector, () => new FetchHttpBackend());
 }
 
 function run<T, E>(task: Task<T, E>): Promise<T> {
@@ -29,7 +29,7 @@ function run<T, E>(task: Task<T, E>): Promise<T> {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-describe("FetchBackend responses", () => {
+describe("FetchHttpBackend responses", () => {
   test("a JSON response is parsed, with its status and headers", async () => {
     const { fetch } = fakeFetch(() => json({ id: 1 }));
     const response = await run(backendWith(fetch)
@@ -74,7 +74,7 @@ describe("FetchBackend responses", () => {
   });
 });
 
-describe("FetchBackend bodies and headers", () => {
+describe("FetchHttpBackend bodies and headers", () => {
   test("a content type the author gives for an object body is kept, whatever its case", async () => {
     const { calls, fetch } = fakeFetch(() => json({}));
     await run(backendWith(fetch)
@@ -96,7 +96,7 @@ describe("FetchBackend bodies and headers", () => {
   });
 });
 
-describe("FetchBackend requests", () => {
+describe("FetchHttpBackend requests", () => {
   test("an object body is sent as JSON, with the JSON content type", async () => {
     const { calls, fetch } = fakeFetch(() => json({}));
     const request: HttpRequest = { method: "POST", url: "/p", body: { a: 1 } };

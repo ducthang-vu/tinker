@@ -5,7 +5,7 @@
 //   const auth: HttpInterceptor = (request, next) =>
 //     next({ ...request, headers: { ...request.headers, authorization: token() } });
 //
-// FetchBackend runs the interceptors, outermost first, around the send. Every request goes
+// FetchHttpBackend runs the interceptors, outermost first, around the send. Every request goes
 // through it, so an interceptor sees all of them.
 
 import { InjectionToken, Task } from "@tinker/core";

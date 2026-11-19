@@ -1,18 +1,18 @@
-// The public entry point for HTTP. A request is a plain object, sent through HTTP_BACKEND:
-// the interceptors (HTTP_INTERCEPTORS) run around the send, which is fetch (FETCH) by
-// default. A test replaces FETCH, so no request leaves the test.
+// The public entry point for HTTP. Callers inject HTTP_BACKEND, which runs the interceptors
+// (HTTP_INTERCEPTORS) around the transport (HTTP_TRANSPORT: native fetch). A test replaces the
+// transport, so no request leaves the test.
 
 import { type Provider, provide } from "@tinker/core";
-import { FETCH, FetchBackend, HTTP_BACKEND } from "./backend.ts";
+import { FetchHttpBackend, HTTP_BACKEND, HTTP_TRANSPORT } from "./backend.ts";
 
-export { FETCH, FetchBackend, HTTP_BACKEND, HttpError } from "./backend.ts";
-export type { FetchFunction, HttpBackend } from "./backend.ts";
+export { FetchHttpBackend, HTTP_BACKEND, HTTP_TRANSPORT, HttpError } from "./backend.ts";
+export type { HttpTransport } from "./backend.ts";
 export { HTTP_INTERCEPTORS } from "./interceptors.ts";
 export type { HttpInterceptor, HttpOutcome } from "./interceptors.ts";
 export type { HttpRequest, HttpResponse, RequestOptions } from "./request.ts";
 
-/** The defaults: FetchBackend as the backend, and the global fetch under FETCH. */
+/** The defaults: the backend, and native fetch as the transport. */
 export const HTTP_PROVIDERS: readonly Provider[] = [
-  provide(HTTP_BACKEND, { useClass: FetchBackend }),
-  provide(FETCH, { useFactory: () => (url, init) => globalThis.fetch(url, init) }),
+  provide(HTTP_BACKEND, { useClass: FetchHttpBackend }),
+  provide(HTTP_TRANSPORT, { useValue: (url, init) => globalThis.fetch(url, init) }),
 ];

@@ -1,24 +1,16 @@
-// The backend: one entry point for every request. It runs the interceptors (see
-// interceptors.ts) around the send, and the send is fetch. A test replaces FETCH, the one
-// function that touches the network, so the interceptors still run in the test.
+// The backend: what callers inject to send a request. It runs the interceptors (see
+// interceptors.ts) around the transport, and the transport is one instance: native fetch,
+// under HTTP_TRANSPORT. A test replaces the transport, and the interceptors still run.
 
 import { inject, Injectable, InjectionToken, Task } from "@tinker/core";
 import { HTTP_INTERCEPTORS, type HttpOutcome } from "./interceptors.ts";
 import type { HttpRequest, HttpResponse } from "./request.ts";
 
-/** Handles a request: runs it through the interceptors, and sends it. */
-export interface HttpBackend {
-  handle(request: HttpRequest): HttpOutcome;
-}
+/** The transport: what sends one request. Native fetch is the one instance. */
+export type HttpTransport = (url: string, init: RequestInit) => Promise<Response>;
 
-/** The backend every request goes through. HTTP_PROVIDERS provides FetchBackend. */
-export const HTTP_BACKEND = new InjectionToken<HttpBackend>("HTTP_BACKEND");
-
-/** The fetch function FetchBackend calls. The default is the global fetch. */
-export type FetchFunction = (url: string, init: RequestInit) => Promise<Response>;
-
-/** The fetch function, a token so a test can replace it. */
-export const FETCH = new InjectionToken<FetchFunction>("FETCH");
+/** The transport, a token so a test can replace it. */
+export const HTTP_TRANSPORT = new InjectionToken<HttpTransport>("HTTP_TRANSPORT");
 
 /** A response whose status is not 2xx: the request was sent, and the server refused it. */
 export class HttpError extends Error {
@@ -28,12 +20,19 @@ export class HttpError extends Error {
   }
 }
 
-/** The backend: the interceptors run in order around the send, which uses fetch. */
+/**
+ * The backend every request goes through: the interceptors run in order around the transport.
+ * Callers inject HTTP_BACKEND, which is this class.
+ */
+/** The token callers inject to send a request: the backend, FetchHttpBackend. */
+export const HTTP_BACKEND = new InjectionToken<FetchHttpBackend>("HTTP_BACKEND");
+
 @Injectable()
-export class FetchBackend implements HttpBackend {
-  private readonly fetch = inject(FETCH);
+export class FetchHttpBackend {
+  private readonly transport = inject(HTTP_TRANSPORT);
   private readonly interceptors = inject(HTTP_INTERCEPTORS);
 
+  /** Send `request` through the interceptors. Cancelling the task aborts the transport. */
   handle(request: HttpRequest): HttpOutcome {
     const chain = this.interceptors.reduceRight<(request: HttpRequest) => HttpOutcome>(
       (next, interceptor) => (current) => interceptor(current, next),
@@ -42,12 +41,11 @@ export class FetchBackend implements HttpBackend {
     return chain(request);
   }
 
-  /** Sends the request with fetch: cancelling the task aborts it. */
   private send(request: HttpRequest): HttpOutcome {
     return Task.flatMap(
       Task.fromPromise(async (signal) => {
         const init = serialize(request);
-        const response = await this.fetch(request.url, { ...init, signal });
+        const response = await this.transport(request.url, { ...init, signal });
         return {
           status: response.status,
           headers: Object.fromEntries(response.headers),
