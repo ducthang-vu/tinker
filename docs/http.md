@@ -55,7 +55,15 @@ providers: [provide(HTTP_TRANSPORT, { useValue: fakeTransport })];
 ```
 
 
-## What is not built yet
+## Resources
 
-Resources (a read as signals) and mutations (a write as signals) will call the entry point,
-so they go through the interceptors too. They are not built yet.
+`httpResource(request, { default })` is a resource whose loader is a request. The request is
+a function, so a signal it reads sends the request again. Its value is the response body, and
+a failure is in `error`. See [`resource.md`](resource.md) for the state, `set`, and `reload`.
+
+```ts
+const user = httpResource(() => ({ method: "GET", url: `/users/${id()}` }), { default: emptyUser });
+```
+
+A mutation (a write as signals) is not built yet. It will go through the entry point, so the
+interceptors apply to it too.

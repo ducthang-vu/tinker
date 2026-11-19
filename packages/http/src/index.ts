@@ -8,6 +8,8 @@ import { FetchHttpBackend, HTTP_BACKEND, HTTP_TRANSPORT } from "./backend.ts";
 export { FetchHttpBackend, HTTP_BACKEND, HTTP_TRANSPORT, HttpError } from "./backend.ts";
 export type { HttpTransport } from "./backend.ts";
 export { HTTP_INTERCEPTORS } from "./interceptors.ts";
+export { httpResource } from "./resource.ts";
+export type { HttpResourceOptions } from "./resource.ts";
 export type { HttpInterceptor, HttpOutcome } from "./interceptors.ts";
 export type { HttpRequest, HttpResponse, RequestOptions } from "./request.ts";
 
