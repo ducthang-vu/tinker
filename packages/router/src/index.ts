@@ -4,7 +4,6 @@ export type { Route } from "./route.ts";
 export { NoRouteError, Router } from "./router.ts";
 export type { RouteMatch, RouteParams } from "./match.ts";
 export { provideRouter } from "./provide-router.ts";
-export { RouterOutlet } from "./router-outlet.ts";
 export { Location } from "./location.ts";
 export { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
 export type { PlatformLocation } from "./platform-location.ts";
