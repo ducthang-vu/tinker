@@ -9,7 +9,7 @@
 
 import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
-import { inject, Injectable, type Injector } from "../../../di/index.ts";
+import { inject, Injectable, Injector, type Provider } from "../../../di/index.ts";
 import { ComponentFactory } from "../factories/component-factory.ts";
 import { ComponentRef, refOf } from "../component-ref.ts";
 import type { Renderer } from "../renderer.ts";
@@ -95,16 +95,22 @@ export class ViewContainerRef {
 
   /**
    * Create component `type` (in a new host element) and insert it at `index`
-   * (default: the end).
+   * (default: the end). `providers` are provided to the component and what it
+   * contains, on top of the container's injector; they are destroyed with it.
    */
-  createComponent<T extends object>(type: Class<T>, index: number = this.length): ComponentRef<T> {
+  createComponent<T extends object>(
+    type: Class<T>,
+    index: number = this.length,
+    providers: readonly Provider[] = [],
+  ): ComponentRef<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
+    const scope = Injector.create({ providers, parent: this.parentInjector });
     const view = this.components.create(
       type,
       undefined,
       undefined,
-      this.parentInjector,
+      scope.injector,
       this.owner?.node,
     );
     const ref = refOf(view);
@@ -114,6 +120,7 @@ export class ViewContainerRef {
       this.refs.splice(this.refs.indexOf(ref), 1);
       this.renderer.removeChild(parent, ref.host.nativeElement);
     });
+    view.addDestroyCallback(() => scope.destroy());
     return ref;
   }
 

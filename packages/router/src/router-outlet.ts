@@ -1,8 +1,8 @@
 // RouterOutlet: where the routed component is shown. It shows the activated route that its owner
 // provides as ChildActivatedRoute, and replaces the component when that route changes.
 
-import { Directive, Effect, inject, Maybe, ViewContainerRef } from "@tinker/core";
-import type { ActivatedRoute } from "./activated-route.ts";
+import { Directive, Effect, inject, Maybe, provide, ViewContainerRef } from "@tinker/core";
+import { ActivatedRoute } from "./activated-route.ts";
 import { ChildActivatedRoute } from "./child-activated-route.ts";
 
 @Directive({ selector: "router-outlet" })
@@ -21,7 +21,10 @@ export class RouterOutlet {
     this.container.clear();
     this.shown = next;
     next.ifSome((route) => {
-      this.container.createComponent(route.route.component);
+      // The component injects its own ActivatedRoute, which is the route it is shown for.
+      this.container.createComponent(route.route.component, this.container.length, [
+        provide(ActivatedRoute, { useValue: route }),
+      ]);
     });
   }
 }

@@ -3,6 +3,7 @@ import { Component, getDirectiveMetadata, inject } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
 import { provideRouter } from "./provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
+import { ActivatedRoute } from "./activated-route.ts";
 import { Router } from "./router.ts";
 
 /** How many instances of each routed component were made, to tell a replacement from a keep. */
@@ -15,8 +16,9 @@ class TodoList {
   }
 }
 
-@Component({ selector: "tk-todo-detail", template: "<p>Todo</p>" })
+@Component({ selector: "tk-todo-detail", template: "<p>Todo {{ id }}</p>" })
 class TodoDetail {
+  readonly id = inject(ActivatedRoute).params["id"];
   constructor() {
     made.detail++;
   }
@@ -63,12 +65,12 @@ test("the outlet shows the component of the URL it starts at", () => {
   fixture.destroy();
 });
 
-test("navigating to another route shows its component", () => {
+test("navigating to another route shows its component, which reads its own params", () => {
   const fixture = appAt("/todos");
   fixture.root.instance.router.navigate("/todos/7");
   fixture.detectChanges();
   expect(fixture.root.text())
-    .toBe("Todo");
+    .toBe("Todo 7");
   fixture.destroy();
 });
 
