@@ -2,7 +2,7 @@
 // relations, `not`, `present`, an object with an absent key, bound names, and
 // array patterns. Each button moves the value to the next one in its list.
 
-import { signal } from "@tinker/core";
+import { Either, Maybe, signal } from "@tinker/core";
 import { Component } from "@tinker/core";
 
 type Status = "idle" | "loading" | "saving" | "failed";
@@ -53,6 +53,18 @@ function next<T>(values: readonly T[], current: T): T {
       @case [first, ...rest] { <p>{{ first }}, and {{ rest.length }} more</p> }
     }
 
+    <h3>Maybe and Either</h3>
+    <p><button (click)="toggleFound()">Toggle found</button></p>
+    @match found() {
+      @case some(name) { <p>Found {{ name }}</p> }
+      @case none { <p>Nobody found</p> }
+    }
+    <p><button (click)="toggleReply()">Toggle reply</button></p>
+    @match reply() {
+      @case ok(n) { <p>Reply {{ n }}</p> }
+      @case error(message) { <p>Failed: {{ message }}</p> }
+    }
+
     <h3>Present</h3>
     <p><button (click)="nextName()">Next name</button></p>
     @match name() {
@@ -67,6 +79,16 @@ export class Patterns {
   readonly outcome = signal<Outcome>({ value: 42 });
   readonly items = signal<readonly string[]>(ITEM_SETS[0]!);
   readonly name = signal<string | null>(null);
+  readonly found = signal<Maybe<string>>(Maybe.some("Ada"));
+  readonly reply = signal<Either<string, number>>(Either.right(3));
+
+  toggleFound(): void {
+    this.found.update((found) => (found.isSome() ? Maybe.none() : Maybe.some("Grace")));
+  }
+
+  toggleReply(): void {
+    this.reply.update((reply) => (reply.isRight() ? Either.left("timeout") : Either.right(4)));
+  }
 
   nextStatus(): void {
     this.status.set(next(STATUSES, this.status()));

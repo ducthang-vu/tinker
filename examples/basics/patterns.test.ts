@@ -90,3 +90,31 @@ describe("Patterns", () => {
     ref.destroy();
   });
 });
+
+describe("Patterns with Maybe and Either", () => {
+  test("some shows the value, none shows that nothing is found, and the button toggles them", () => {
+    const ref = TestBed.component(Patterns)
+      .build();
+    expect(ref.root.text())
+      .toContain("Found Ada");
+    buttonNamed(ref.root, "Toggle found")
+      .click();
+    ref.detectChanges();
+    expect(ref.root.text())
+      .toContain("Nobody found");
+    ref.destroy();
+  });
+
+  test("ok shows the value, error shows the message, and the button toggles them", () => {
+    const ref = TestBed.component(Patterns)
+      .build();
+    expect(ref.root.text())
+      .toContain("Reply 3");
+    buttonNamed(ref.root, "Toggle reply")
+      .click();
+    ref.detectChanges();
+    expect(ref.root.text())
+      .toContain("Failed: timeout");
+    ref.destroy();
+  });
+});

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { Either, Maybe } from "@tinker/functional";
 import { parsePattern } from "../template/pattern.ts";
 import { match } from "./match-binding.ts";
 
@@ -66,5 +67,61 @@ describe("match", () => {
       .toBe(false);
     expect(matches("[first, ...rest]", "x"))
       .toBe(false);
+  });
+});
+
+describe("match: Maybe and Either", () => {
+  test("some matches a Maybe with a value, and binds its payload", () => {
+    const bound = match(parsePattern("some(name)")
+      .getOrThrow(), Maybe.some("Ada"));
+    expect(bound)
+      .toEqual(new Map([["name", "Ada"]]));
+    expect(matches("some(_)", Maybe.none()))
+      .toBe(false);
+  });
+
+  test("none matches an empty Maybe, and not a value", () => {
+    expect(matches("none", Maybe.none()))
+      .toBe(true);
+    expect(matches("none", Maybe.some(1)))
+      .toBe(false);
+    expect(matches("none", null))
+      .toBe(false);
+  });
+
+  test("the payload of some must match its pattern", () => {
+    expect(matches("some(1)", Maybe.some(1)))
+      .toBe(true);
+    expect(matches("some(1)", Maybe.some(2)))
+      .toBe(false);
+  });
+
+  test("ok matches a Right and binds its value; error matches a Left and binds its error", () => {
+    expect(match(parsePattern("ok(n)")
+      .getOrThrow(), Either.right(3)))
+      .toEqual(new Map([["n", 3]]));
+    expect(match(parsePattern("error(e)")
+      .getOrThrow(), Either.left("down")))
+      .toEqual(new Map([["e", "down"]]));
+    expect(matches("ok(_)", Either.left("down")))
+      .toBe(false);
+    expect(matches("error(_)", Either.right(3)))
+      .toBe(false);
+  });
+
+  test("a wrapper matches only its own kind, not a plain value", () => {
+    expect(matches("some(_)", "text"))
+      .toBe(false);
+    expect(matches("ok(_)", Maybe.some(1)))
+      .toBe(false);
+  });
+
+  test("a wrapper binds names, so they can be alternatives' only if none", () => {
+    expect(() => parsePattern("some(a) | none")
+      .getOrThrow())
+      .toThrow("Alternatives cannot bind names");
+    expect(() => parsePattern("not ok(a)")
+      .getOrThrow())
+      .toThrow("\"not\" cannot bind names");
   });
 });

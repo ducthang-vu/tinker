@@ -114,6 +114,10 @@ and `" "` (a space).
 | Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | done |
 | Alternatives | any of several patterns (they bind no names) | `@case "loading" \| "saving"` | done |
 | Range | a number from the smaller bound to the larger, both included | `@case 0..12` | done |
+| `some(pattern)` | a `Maybe` with a value that matches the pattern; the value is bound by the names in it | `@case some(name)` | done |
+| `none` | a `Maybe` with no value | `@case none` | done |
+| `ok(pattern)` | an `Either` that is a Right whose value matches the pattern | `@case ok(n)` | done |
+| `error(pattern)` | an `Either` that is a Left whose error matches the pattern | `@case error(message)` | done |
 | `not` | anything the inner pattern does not match (it binds no names) | `@case not "guest"` | done |
 
 Type names (`number`, `string`, `boolean`, `object`, `function`, `undefined`)

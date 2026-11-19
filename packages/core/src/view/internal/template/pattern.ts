@@ -6,6 +6,7 @@
 //   string  number  …           a type, checked with typeof
 //   status                      anything, bound to that name in the branch
 //   { status, index: number }   an object with those keys, each matching its pattern
+//   some(x)  none  ok(x)  error(e)   a Maybe or an Either: the payload matches x or e
 //
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
@@ -21,6 +22,7 @@ const LITERAL_WORDS: readonly string[] = ["true", "false", "null", "undefined"];
 const RELATION = /^(!==|<=|>=|<|>)\s*([\s\S]+)$/;
 const RANGE = /^(-?\d+(?:\.\d+)?)\.\.(-?\d+(?:\.\d+)?)$/;
 const NOT = /^not\s+([\s\S]+)$/;
+const WRAPPED = /^(some|ok|error)\s*\(([\s\S]*)\)$/;
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const FIELD = /^([A-Za-z_$][\w$]*)\s*(?::([\s\S]*))?$/;
 
@@ -39,7 +41,11 @@ export type Pattern
     | { readonly kind: "alt"; readonly options: readonly Pattern[] }
     | { readonly kind: "not"; readonly pattern: Pattern }
     | { readonly kind: "range"; readonly min: number; readonly max: number }
-    | { readonly kind: "absent" };
+    | { readonly kind: "absent" }
+    | { readonly kind: "some"; readonly pattern: Pattern }
+    | { readonly kind: "none" }
+    | { readonly kind: "ok"; readonly pattern: Pattern }
+    | { readonly kind: "error"; readonly pattern: Pattern };
 
 export type RelationOperator = "<" | "<=" | ">" | ">=" | "!==";
 
@@ -99,6 +105,18 @@ function patternOf(text: string): Pattern {
     }
     return { kind: "not", pattern };
   }
+  const wrapped = WRAPPED.exec(text);
+  if (wrapped) {
+    const pattern = patternOf(wrapped[2]!.trim());
+    switch (wrapped[1]) {
+      case "some":
+        return { kind: "some", pattern };
+      case "ok":
+        return { kind: "ok", pattern };
+      default:
+        return { kind: "error", pattern };
+    }
+  }
   const range = RANGE.exec(text);
   if (range) {
     const min = Number(range[1]);
@@ -117,6 +135,8 @@ function patternOf(text: string): Pattern {
       return { kind: "any" };
     case "present":
       return { kind: "present" };
+    case "none":
+      return { kind: "none" };
     case "absent":
       throw new Error(`"absent" is the pattern of a key, as in { error: absent }`);
     default:
@@ -225,6 +245,10 @@ export function namesOf(pattern: Pattern): string[] {
         ...pattern.items.flatMap(namesOf),
         ...(pattern.rest === undefined ? [] : [pattern.rest]),
       ];
+    case "some":
+    case "ok":
+    case "error":
+      return namesOf(pattern.pattern);
     default:
       return [];
   }
