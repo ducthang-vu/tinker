@@ -24,6 +24,8 @@ user.reload();       // run the loader again
 - **A write** with `set` replaces `value`, aborts the run in progress, and makes the state
   `"written"`.
 - **A lazy resource** (`lazy: true`) is `"idle"` and runs its loader only on `reload()`.
+- **A loader that returns `undefined`** skips the load: nothing runs, the value is kept, and the
+  state is `"idle"`.
 - **`sourced`** is the fact that a load or a write has supplied a value. `state` is the last
   thing that happened, so the two answer different questions.
 
@@ -57,4 +59,5 @@ save.reset();        // forget the outcome, result and error (not the calls in f
 - **With `resource`**, a success updates it. With `onSuccess`, the resource takes
   `onSuccess(current, result)`; without it, the resource reloads from its loader.
   A failure leaves the resource alone.
-- **The mutator** returns a promise or a `Task`, as a loader does.
+- **The mutator** returns a promise or a `Task`, as a loader does. A mutator that returns
+  `undefined` skips the call: nothing is pending, and the outcome is unchanged.

@@ -141,3 +141,32 @@ describe("httpDelete", () => {
       .toBe("succeeded");
   });
 });
+
+describe("HTTP mutation that skips its call", () => {
+  test("a URL that is undefined sends nothing", async () => {
+    const { sent, transport } = transportWith(() => json({}));
+    const save = inBackend(transport, () =>
+      httpPost<{ id?: number }>((input) => (input.id === undefined ? undefined : `/todos/${input.id}`)));
+    save.mutate({});
+    await tick();
+    expect(sent)
+      .toEqual([]);
+    expect(save.pending())
+      .toBe(0);
+    expect(save.outcome())
+      .toBe("none");
+  });
+
+  test("a URL that is defined sends the call as usual", async () => {
+    const { sent, transport } = transportWith(() => json({ ok: true }));
+    const remove = inBackend(transport, () =>
+      httpDelete<number | undefined>((id) => (id === undefined ? undefined : `/todos/${id}`)));
+    remove.mutate(undefined);
+    remove.mutate(8);
+    await tick();
+    expect(sent.map((call) => call.url))
+      .toEqual(["/todos/8"]);
+    expect(remove.outcome())
+      .toBe("succeeded");
+  });
+});

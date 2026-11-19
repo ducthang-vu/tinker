@@ -65,6 +65,9 @@ a failure is in `error`. See [`resource.md`](resource.md) for the state, `set`, 
 const user = httpResource(() => ({ method: "GET", url: `/users/${id()}` }), { default: emptyUser });
 ```
 
+When the request function returns `undefined`, nothing is sent: the value is kept and the state is
+`"idle"`. This is how a request waits for its inputs, e.g. `() => id() === undefined ? undefined : …`.
+
 ## Mutations
 
 There is one factory per verb: `httpPost`, `httpPut`, `httpPatch` and `httpDelete`. Each returns
@@ -83,7 +86,8 @@ const remove = httpDelete<number>((id) => `/todos/${id}`, { resource: todos });
 remove.mutate(todo.id);
 ```
 
-- **The URL** is a string, or a function of the input.
+- **The URL** is a string, or a function of the input. A function that returns `undefined` skips
+  the call.
 - **`headers`** are sent with every call of the mutation.
 - **The result** is the response body. A status that is not 2xx is the error, and it leaves the
   resource alone.
