@@ -2,8 +2,7 @@
 // entry, as signals. `go` and `replace` change the browser and this view together; a back or
 // forward move updates the view from the browser.
 
-import { inject, Injectable } from "../di/index.ts";
-import { computed, type ReadonlySignal, signal } from "../signals/index.ts";
+import { computed, inject, Injectable, type ReadonlySignal, signal } from "@tinker/core";
 import { PLATFORM_LOCATION } from "./platform-location.ts";
 
 interface Entry {

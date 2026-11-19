@@ -3,12 +3,11 @@ import * as di from "./di/index.ts";
 import * as functional from "@tinker/functional";
 import * as tinker from "./index.ts";
 import * as resource from "./resource/index.ts";
-import * as router from "./router/index.ts";
 import * as signals from "./signals/index.ts";
 import * as view from "./view/index.ts";
 
 test("the package exports exactly the public APIs of its modules", () => {
-  const modules = [signals, di, view, resource, router, functional];
+  const modules = [signals, di, view, resource, functional];
   const expected = modules.flatMap((module) => Object.keys(module))
     .sort();
   expect(Object.keys(tinker)

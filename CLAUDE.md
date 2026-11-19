@@ -19,6 +19,7 @@ fails when it is out of date: regenerate it after changing exports or imports.
   Stream, Emitter). Its public API is `src/public-api.ts`, and `src/index.ts` re-exports it.
 - `packages/testing` (`@tinker/testing`): helpers for testing Tinker apps. It has no API yet, and the core package's own tests do not use it.
 - `packages/http` (`@tinker/http`): HTTP. Callers inject `HTTP_BACKEND` (`FetchHttpBackend`), which runs the interceptors around `HTTP_TRANSPORT` (native `fetch`).
+- `packages/router` (`@tinker/router`): routing. `Route` (path, component, data), `Location` (the URL and history state as signals), and `PlatformLocation`, the browser behind an interface.
 - `examples/basics` (`@tinker/example-basics`): the example app, its own package. It imports from `@tinker/core`, and `npm run dev` opens it.
 - `scripts/`: the repo-map generator and its tests.
 

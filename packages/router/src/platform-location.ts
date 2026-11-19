@@ -1,7 +1,7 @@
 // The one place the router touches the browser's location and history. The router talks to this
 // interface; the browser implementation below is the default, and a test provides a fake.
 
-import { InjectionToken } from "../di/index.ts";
+import { InjectionToken } from "@tinker/core";
 
 export interface PlatformLocation {
   /** The current path, query and hash, e.g. `"/todos/7?tab=done#top"`. */
