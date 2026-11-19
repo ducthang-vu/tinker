@@ -15,15 +15,21 @@ export interface HttpResourceOptions<T> {
 
 /**
  * A resource of the body of a request. Call it where the injector is available (a field of a
- * component, or a service), since it takes HTTP_BACKEND from there.
+ * component, or a service), since it takes HTTP_BACKEND from there. When `request` returns
+ * `undefined`, nothing is sent: the value is kept and the state is "idle".
  */
 export function httpResource<T = unknown>(
-  request: () => HttpRequest,
+  request: () => HttpRequest | undefined,
   options: HttpResourceOptions<T>,
 ): Resource<T, HttpError | Error> {
   const backend = inject(HTTP_BACKEND);
   return resource<T, HttpError | Error>(
-    () => Task.map(backend.handle(request()), (response) => response.body as T),
+    () => {
+      const current = request();
+      return current === undefined
+        ? undefined
+        : Task.map(backend.handle(current), (response) => response.body as T);
+    },
     options,
   );
 }

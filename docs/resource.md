@@ -24,6 +24,8 @@ user.reload();       // run the loader again
 - **A write** with `set` replaces `value`, aborts the run in progress, and makes the state
   `"written"`.
 - **A lazy resource** (`lazy: true`) is `"idle"` and runs its loader only on `reload()`.
+- **A loader that returns `undefined`** skips the load: nothing runs, the value is kept, and the
+  state is `"idle"`.
 - **`sourced`** is the fact that a load or a write has supplied a value. `state` is the last
   thing that happened, so the two answer different questions.
 

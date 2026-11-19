@@ -76,14 +76,13 @@ export function mutation<I, T, E = Error, U = unknown>(
     result: () => result(),
     error: () => error(),
     mutate(input: I): void {
-      pending.update((count) => count + 1);
       let started: PromiseLike<T> | Task<T, E>;
       try {
         started = mutator(input);
       } catch (thrown) {
-        fail(asError(thrown) as E);
-        return;
+        started = Task.fail(asError(thrown) as E);
       }
+      pending.update((count) => count + 1);
       if (started instanceof Task) {
         started.run({ ok: succeed, error: fail });
         return;
