@@ -157,3 +157,44 @@ test("with no match, the activated routes are the root alone", () => {
     .toBe(ROOT);
   destroy();
 });
+
+test("a level keeps its instance when only the query changes", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const before = router.activated()[1];
+  router.navigate("/todos/7?tab=done");
+  expect(router.activated()[1])
+    .toBe(before);
+  destroy();
+});
+
+test("a level is made again when its params change, and the root stays", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const root = router.activated()[0];
+  const before = router.activated()[1];
+  router.navigate("/todos/8");
+  expect(router.activated()[1])
+    .not.toBe(before);
+  expect(router.activated()[0])
+    .toBe(root);
+  destroy();
+});
+
+test("a ** level is made again when its segments change", () => {
+  const notFound = { path: "**", component: class {} };
+  const fake = fakePlatform("/anything/a");
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router({ path: "", component: Root, children: [notFound] }, inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const before = router.activated()[1];
+  router.navigate("/anything/b");
+  expect(router.activated()[1])
+    .not.toBe(before);
+  destroy();
+});
