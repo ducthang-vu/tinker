@@ -68,6 +68,17 @@ export class Maybe<T> {
     return !this.present;
   }
 
+  /**
+   * Whether both are None, or both are Some with equal values. `equal` compares the values; the
+   * default is `===`.
+   */
+  isEqual(other: Maybe<T>, equal: (a: T, b: T) => boolean = (a, b) => a === b): boolean {
+    if (this.present !== other.present) {
+      return false;
+    }
+    return !this.present || equal(this.value, other.value);
+  }
+
   /** Transform the value, if there is one. */
   private map<U>(f: (value: T) => U): Maybe<U> {
     return this.present ? Maybe.some(f(this.value)) : Maybe.none();

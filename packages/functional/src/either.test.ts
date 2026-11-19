@@ -172,3 +172,31 @@ describe("EitherError", () => {
     void call;
   });
 });
+
+describe("isEqual compares the content", () => {
+  test("the same side with equal payloads is equal", () => {
+    expect(Either.right(1)
+      .isEqual(Either.right(1)))
+      .toBe(true);
+    expect(Either.left("no")
+      .isEqual(Either.left("no")))
+      .toBe(true);
+    expect(Either.right(1)
+      .isEqual(Either.right(2)))
+      .toBe(false);
+  });
+
+  test("a left and a right are never equal", () => {
+    const right: Either<number, number> = Either.right(1);
+    expect(right
+      .isEqual(Either.left(1)))
+      .toBe(false);
+  });
+
+  test("the payloads are compared with the comparator, when one is given", () => {
+    const byLength = (a: unknown, b: unknown) => String(a).length === String(b).length;
+    expect(Either.right("ab")
+      .isEqual(Either.right("cd"), byLength))
+      .toBe(true);
+  });
+});
