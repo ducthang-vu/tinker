@@ -5,10 +5,11 @@ import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
 
 class TodoList {}
-const ROUTES: readonly Route[] = [{ path: "/todos", component: TodoList }];
+class Root {}
+const ROOT: Route = { path: "", component: Root, children: [{ path: "/todos", component: TodoList }] };
 
 test("provideRouter gives a router over the browser's address bar", () => {
-  const { injector, destroy } = Injector.create({ providers: provideRouter(ROUTES) });
+  const { injector, destroy } = Injector.create({ providers: provideRouter(ROOT) });
   const router = runInInjectionContext(injector, () => inject(Router));
   router.navigate("/todos?tab=open");
   expect(router.url())

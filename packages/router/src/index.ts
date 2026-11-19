@@ -2,6 +2,7 @@
 
 export type { Route } from "./route.ts";
 export { NoRouteError, Router } from "./router.ts";
+export { ActivatedRoute } from "./activated-route.ts";
 export type { RouteMatch, RouteParams } from "./match.ts";
 export { provideRouter } from "./provide-router.ts";
 export { Location } from "./location.ts";

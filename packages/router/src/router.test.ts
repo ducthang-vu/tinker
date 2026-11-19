@@ -22,21 +22,23 @@ function fakePlatform(url: string) {
   return { platform, state: () => current.state };
 }
 
+class Root {}
 class TodoList {}
 class TodoDetail {}
-const ROUTES: readonly Route[] = [
+const CHILDREN: readonly Route[] = [
   { path: "/todos", component: TodoList },
   { path: "/todos/:id", component: TodoDetail },
 ];
+const ROOT: Route = { path: "", component: Root, children: CHILDREN };
 
-/** A router over `ROUTES`, in the context of a fake platform that starts at `url`. */
+/** A router over `ROOT`, in the context of a fake platform that starts at `url`. */
 function routerAt(url: string) {
   const fake = fakePlatform(url);
   const { injector, destroy } = Injector.create({
     providers: [
       provide(PLATFORM_LOCATION, { useValue: fake.platform }),
       provide(Location, { useClass: Location }),
-      provide(Router, { useFactory: () => new Router(ROUTES, inject(Location)) }),
+      provide(Router, { useFactory: () => new Router(ROOT, inject(Location)) }),
     ],
   });
   const router = runInInjectionContext(injector, () => inject(Router));
@@ -108,7 +110,10 @@ test("a ** route catches the URLs no other route matches", () => {
       provide(PLATFORM_LOCATION, { useValue: fake.platform }),
       provide(Location, { useClass: Location }),
       provide(Router, {
-        useFactory: () => new Router([...ROUTES, { path: "**", component: NotFound }], inject(Location)),
+        useFactory: () => new Router(
+          { path: "", component: Root, children: [...CHILDREN, { path: "**", component: NotFound }] },
+          inject(Location),
+        ),
       }),
     ],
   });
@@ -116,5 +121,103 @@ test("a ** route catches the URLs no other route matches", () => {
   router.navigate("/nowhere");
   expect(router.match()?.route.component)
     .toBe(NotFound);
+  destroy();
+});
+
+test("activated starts with the root, then one entry per matched level", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const [first, second] = router.activated();
+  expect(first?.route)
+    .toBe(ROOT);
+  expect(second?.route)
+    .toBe(CHILDREN[1]);
+  expect(second?.params)
+    .toEqual({ id: "7" });
+  expect(second?.segments)
+    .toEqual(["todos", "7"]);
+  expect(router.activated())
+    .toHaveLength(2);
+  destroy();
+});
+
+test("the root activated route is the same instance across navigations", () => {
+  const { router, destroy } = routerAt("/todos");
+  const before = router.activated()[0];
+  router.navigate("/todos/7");
+  expect(router.activated()[0])
+    .toBe(before);
+  destroy();
+});
+
+test("with no match, the activated routes are the root alone", () => {
+  const { router, destroy } = routerAt("/nowhere");
+  expect(router.activated())
+    .toHaveLength(1);
+  expect(router.activated()[0]?.route)
+    .toBe(ROOT);
+  destroy();
+});
+
+test("a level keeps its instance when only the query changes", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const before = router.activated()[1];
+  router.navigate("/todos/7?tab=done");
+  expect(router.activated()[1])
+    .toBe(before);
+  destroy();
+});
+
+test("a level is made again when its params change, and the root stays", () => {
+  const { router, destroy } = routerAt("/todos/7");
+  const root = router.activated()[0];
+  const before = router.activated()[1];
+  router.navigate("/todos/8");
+  expect(router.activated()[1])
+    .not.toBe(before);
+  expect(router.activated()[0])
+    .toBe(root);
+  destroy();
+});
+
+test("a ** level is made again when its segments change", () => {
+  const notFound = { path: "**", component: class {} };
+  const fake = fakePlatform("/anything/a");
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router({ path: "", component: Root, children: [notFound] }, inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const before = router.activated()[1];
+  router.navigate("/anything/b");
+  expect(router.activated()[1])
+    .not.toBe(before);
+  destroy();
+});
+
+test("a level under a changed parent is made again, though its own params are the same", () => {
+  const team = { path: "teams/:team", component: class {} };
+  const org = { path: "/orgs/:org", component: class {}, children: [team] };
+  const fake = fakePlatform("/orgs/acme/teams/x");
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router({ path: "", component: Root, children: [org] }, inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const before = router.activated()[2];
+  router.navigate("/orgs/beta/teams/x");
+  expect(router.activated()[2])
+    .not.toBe(before);
+  expect(router.activated()[2]?.route)
+    .toBe(team);
   destroy();
 });
