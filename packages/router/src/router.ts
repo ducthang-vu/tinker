@@ -15,7 +15,13 @@ import { ActivatedRoute } from "./activated-route.ts";
 import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
+import { AdaptArgument } from "./adapt-argument.ts";
 import { pathOf, resolveUrl } from "./resolve-url.ts";
+
+/** The URL of a list of segments: `["todos", "7"]` is `"todos/7"`. */
+function joinSegments(url: string | readonly string[]): string {
+  return typeof url === "string" ? url : url.join("/");
+}
 
 /** The options of `navigate`. */
 export interface NavigateOptions {
@@ -62,18 +68,22 @@ export class Router {
   }
 
   /**
-   * Go to `url` as a new history entry, with `options.state`. A relative `url` is resolved against
-   * the path of `options.relativeTo` (the root when none is given); see `resolveUrl`. The resolved
-   * URL is what must match: a URL no route matches is rejected with a `NoRouteError`, and nothing
-   * changes. Declare a `**` route to catch those URLs.
+   * Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of
+   * one: `["todos", "7"]` is `"todos/7"`, and the query and hash then go in the last segment. A
+   * relative URL is resolved against the path of `options.relativeTo` (the root when none is
+   * given); see `resolveUrl`. The resolved URL is what must match: a URL no route matches is
+   * rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch those URLs.
    */
+  navigate(url: string | readonly string[], options?: NavigateOptions): Either<NoRouteError, void>;
+  @AdaptArgument(0, joinSegments)
   navigate(url: string, options: NavigateOptions = {}): Either<NoRouteError, void> {
+    const path = url;
     const base = Maybe.from(options.relativeTo)
       .match({
         some: (route) => pathOf(route),
         none: () => [],
       });
-    const target = resolveUrl(url, base);
+    const target = resolveUrl(path, base);
     if (matchRoute(this.root, target) === undefined) {
       return Either.left(new NoRouteError(target));
     }

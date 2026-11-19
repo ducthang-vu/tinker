@@ -308,3 +308,38 @@ test("a relative URL that matches no route is rejected with its resolved URL", (
     .toBe("/todos/7");
   destroy();
 });
+
+test("navigate takes the segments of a URL as an array", () => {
+  const { router, destroy } = routerAt("/todos");
+  router.navigate(["todos", "7"]);
+  expect(router.url())
+    .toBe("/todos/7");
+  router.navigate(["todos", "8?tab=done"]);
+  expect(router.url())
+    .toBe("/todos/8?tab=done");
+  destroy();
+});
+
+test("an array of segments is resolved against relativeTo, with '..'", () => {
+  const team = { path: "teams/:team", component: class {} };
+  const org = { path: "/orgs/:org", component: class {}, children: [team] };
+  const fake = fakePlatform("/orgs/acme/teams/x");
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: fake.platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, {
+        useFactory: () => new Router({ path: "", component: Root, children: [org] }, inject(Location)),
+      }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const [, orgLevel, teamLevel] = router.activated();
+  router.navigate(["teams", "z"], { relativeTo: orgLevel });
+  expect(router.url())
+    .toBe("/orgs/acme/teams/z");
+  router.navigate(["..", "y"], { relativeTo: teamLevel });
+  expect(router.url())
+    .toBe("/orgs/acme/teams/y");
+  destroy();
+});
