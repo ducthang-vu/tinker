@@ -15,6 +15,7 @@ import type { Provider } from "../../../di/index.ts";
 import type { Maybe } from "@tinker/functional";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";
 import type { AbstractClass, Class } from "../../../utils/types.ts";
+import type { CompiledNode } from "../template/compile.ts";
 
 /** What a directive declares about itself. */
 export interface DirectiveMetadata {
@@ -41,8 +42,11 @@ export interface DirectiveMetadata {
 
 /** What a component declares about itself. */
 export interface ComponentMetadata extends DirectiveMetadata {
-  /** The component's template. */
-  readonly template: string;
+  /**
+   * The component's template: its source, parsed and compiled on first use. Or the
+   * compiled tree a build step wrote (see @tinker/core/compiler), which is used as it is.
+   */
+  readonly template: string | readonly CompiledNode[];
   /**
    * The component's CSS. Its selectors match only the elements of its own template
    * (and its host, with `:host`): styles of one component do not leak to others.
