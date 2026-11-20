@@ -26,6 +26,24 @@ describe("event modifiers in templates and host listeners", () => {
       .toBe(1);
   });
 
+  test("(click.!ctrl) in a template: the handler runs only without Ctrl", () => {
+    let calls = 0;
+    @Component({ selector: "tk-a", template: `<button (click.!ctrl)="go()">x</button>` })
+    class A {
+      go() {
+        calls += 1;
+      }
+    }
+    const host = document.createElement("div");
+    Engine.create()
+      .createComponent(A, host);
+    const button = host.querySelector("button")!;
+    button.dispatchEvent(new MouseEvent("click", { ctrlKey: true }));
+    button.dispatchEvent(new MouseEvent("click"));
+    expect(calls)
+      .toBe(1);
+  });
+
   test("\"(click.self)\" in a host option: a click on a child does not reach the handler", () => {
     let calls = 0;
     @Directive({
