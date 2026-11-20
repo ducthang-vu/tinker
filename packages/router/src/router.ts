@@ -1,11 +1,10 @@
 // The router: the current URL, the matched route and params, the list of activated routes, and
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 //
-// A navigation runs the pipeline in pipeline.ts before it changes anything: the guards decide, the
-// resolvers load what the routes show, and only a plan that passes is committed (the URL and the
-// activated routes). Back and forward moves run the same pipeline after the browser has moved; when
-// one is rejected, the router puts the previous URL back. A newer navigation cancels the one
-// running.
+// A navigation runs the pipeline in pipeline.ts before it changes anything: the guards decide, and
+// only a plan that passes is committed (the URL and the activated routes). Back and forward moves
+// run the same pipeline after the browser has moved; when one is rejected, the router puts the
+// previous URL back. A newer navigation cancels the one running.
 
 import {
   computed,
@@ -99,7 +98,7 @@ export class Router {
   }
 
   /**
-   * Go to `url` as a new history entry, with `options.state`, once its guards and resolvers pass.
+   * Go to `url` as a new history entry, with `options.state`, once its guards pass.
    * `url` is a URL, or the segments of one: `["todos", "7"]` is `"todos/7"`, and the query and hash
    * then go in the last segment. A relative URL is resolved against the path of
    * `options.relativeTo` (the root when none is given); see `UrlBuilder.resolve`.
@@ -191,7 +190,7 @@ export class Router {
       }
     });
     this.committed = Maybe.some({ url: plan.url, state: plan.state });
-    this.list.set(activatedFor(this.rootRoute, plan.kept, plan.chain.slice(1), plan.resolved));
+    this.list.set(activatedFor(this.rootRoute, plan.kept, plan.chain.slice(1)));
   }
 
   /** After a back or forward move that did not commit, shows the URL the router was at again. */

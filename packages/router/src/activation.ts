@@ -1,9 +1,9 @@
-// The activated routes of a navigation. A level that is still the same as before keeps its instance
-// (and the values its resolvers gave it); a level that changed is made again, and so is every level
-// under it, since its component sits inside the view of the one above.
+// The activated routes of a navigation. A level that is still the same as before keeps its
+// instance; a level that changed is made again, and so is every level under it, since its component
+// sits inside the view of the one above.
 
 import { Maybe } from "@tinker/core";
-import { ActivatedRoute, type ResolvedData } from "./activated-route.ts";
+import { ActivatedRoute } from "./activated-route.ts";
 import type { LevelMatch, RouteParams } from "./match.ts";
 
 /**
@@ -27,25 +27,17 @@ export function keptLevels(
 
 /**
  * The activated routes for a navigation, root first: `rootRoute`, then one per level of `levels`.
- * A level in `kept` keeps its instance. Any other level is made with its resolved values,
- * `resolved[i]` for the i-th of `levels`.
+ * A level in `kept` keeps its instance. Any other level is made again.
  */
 export function activatedFor(
   rootRoute: ActivatedRoute,
   kept: readonly ActivatedRoute[],
   levels: readonly LevelMatch[],
-  resolved: readonly ResolvedData[],
 ): readonly ActivatedRoute[] {
   return levels.reduce<readonly ActivatedRoute[]>(
     (made, level, index) => [
       ...made,
-      kept[index] ?? new ActivatedRoute(
-        level.route,
-        level.params,
-        level.segments,
-        lastOf(made),
-        resolved[index],
-      ),
+      kept[index] ?? new ActivatedRoute(level.route, level.params, level.segments, lastOf(made)),
     ],
     [rootRoute],
   );

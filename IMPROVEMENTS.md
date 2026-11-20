@@ -345,9 +345,10 @@ with the `$`-prefixed implicit names, as the other names already are. The matche
 (`match` in `runtime/match-binding.ts`) already handles the kind, so only the block
 builder changes.
 
+
 ## Router (`packages/router/src/pipeline.ts`, `router.ts`)
 
-Navigation runs guards and resolvers before it commits; see
+Navigation runs its guards before it commits; see
 [docs/router.md](docs/router.md) for how it works.
 
 ### 1. A deactivation guard is missing
@@ -364,35 +365,10 @@ the navigation, in the same pipeline before the activation guards.
 matched route again, though nothing about the route changed. An expensive or
 asynchronous guard repeats its work.
 
-**To do.** Add a `runGuards` option per route, like Angular's
-`runGuardsAndResolvers`, with the default kept as "every navigation", since an
-auth guard must not be skipped.
+**To do.** Add a `runGuards` option per route, with the default kept as "every
+navigation", since an auth guard must not be skipped.
 
-### 3. Resolvers run one after another
-
-**Problem.** Two slow resolvers take the sum of their times, not the longer.
-
-**To do.** Run a route's resolvers in parallel when they are independent: a
-`Task` that joins several tasks. The plan in `pipeline.ts` (`resolveRoute`)
-is the one place to change.
-
-### 4. Resolved data is untyped
-
-**Problem.** `ActivatedRoute.data` is `Record<string, unknown>`, so a reader
-must cast, and a wrong name is found only at run time.
-
-**To do.** Infer the value types from the `resolve` object of the route, so
-`data` is typed per route.
-
-### 5. The root route's resolvers do not run
-
-**Problem.** The root `ActivatedRoute` is made once and never replaced, so a
-resolver on the root would never run again. The route type still allows one.
-
-**To do.** Either reject a root `resolve` when the router is created, or make
-the root's activated route replaceable. The first is simpler.
-
-### 6. Redirects must be absolute
+### 3. Redirects must be absolute
 
 **Problem.** A guard returns a URL string that is taken as absolute. A relative
 redirect (`"../login"`) has no base to resolve against.
@@ -400,7 +376,7 @@ redirect (`"../login"`) has no base to resolve against.
 **To do.** Resolve a redirect against the route that returned it, with
 `UrlBuilder`, as `navigate` does with `relativeTo`.
 
-### 7. A rejected back move replaces the history entry
+### 4. A rejected back move replaces the history entry
 
 **Problem.** When a back or forward move is rejected, the router replaces the
 entry it landed on with the URL it was at. The forward history beyond it is

@@ -259,48 +259,20 @@ test("a guard sees the URL the navigation comes from, and checks every navigatio
   destroy();
 });
 
-test("the data of a route holds its resolved values, by name, and a level that stays keeps them", async () => {
-  const counted: string[] = [];
-  const todos: Route = {
-    ...TODOS_ROUTE,
-    resolve: {
-      title: () => {
-        counted.push("title");
-        return "Todos";
-      },
-    },
-  };
-  const { router, destroy } = routerAt("/home", {
+test("the data of a route is its static data", () => {
+  const todos: Route = { ...TODOS_ROUTE, data: { title: "Todos" } };
+  const { router, destroy } = routerAt("/todos", {
     root: { path: "", component: Root, children: [todos, { path: "/home", component: Home }] },
   });
-  await router.navigate("/todos");
   expect(router.activated()[1]?.data)
     .toEqual({ title: "Todos" });
-  await router.navigate("/todos?tab=done");
-  expect(router.activated()[1]?.data)
-    .toEqual({ title: "Todos" });
-  expect(counted)
-    .toEqual(["title"]);
   destroy();
 });
 
-test("a resolver that fails keeps the page as it was", async () => {
-  const todos: Route = {
-    ...TODOS_ROUTE,
-    resolve: {
-      list: () => {
-        throw new Error("offline");
-      },
-    },
-  };
-  const { router, destroy } = routerAt("/home", {
-    root: { path: "", component: Root, children: [todos, { path: "/home", component: Home }] },
-  });
-  const result = await router.navigate("/todos");
-  expect(result.isLeft())
-    .toBe(true);
-  expect(router.url())
-    .toBe("/home");
+test("a route with no static data has empty data", () => {
+  const { router, destroy } = routerAt("/todos");
+  expect(router.activated()[1]?.data)
+    .toEqual({});
   destroy();
 });
 

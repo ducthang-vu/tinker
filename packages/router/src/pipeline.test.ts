@@ -99,8 +99,6 @@ describe("matching and the plan", () => {
       .toBe("/todos/7?tab=done");
     expect(plan?.chain.map((level) => level.route.component))
       .toEqual([Root, Todos, TodoDetail]);
-    expect(plan?.resolved)
-      .toEqual([{}, {}]);
     expect(plan?.kept)
       .toEqual([]);
   });
@@ -254,106 +252,6 @@ describe("guards", () => {
       providers: [provide(TOKEN, { useValue: "signed-in" })],
     });
     expect("ok" in planNow(context, "/todos"))
-      .toBe(true);
-  });
-});
-
-describe("resolvers", () => {
-  test("a resolver's value is planned for its level, by name", () => {
-    const root = treeWith({
-      todos: { resolve: { count: () => 3 } },
-    });
-    const plan = planNow(contextFor(root), "/todos");
-    expect("ok" in plan && plan.ok.resolved)
-      .toEqual([{ count: 3 }, {}]);
-  });
-
-  test("resolvers run one after another, and a resolver's Task is waited for", () => {
-    const log: string[] = [];
-    const root = treeWith({
-      todos: {
-        resolve: {
-          first: () => {
-            log.push("first");
-            return 1;
-          },
-          second: () => {
-            log.push("second");
-            return Task.succeed(2);
-          },
-        },
-      },
-    });
-    const plan = planNow(contextFor(root), "/todos");
-    expect(log)
-      .toEqual(["first", "second"]);
-    expect("ok" in plan && plan.ok.resolved[0])
-      .toEqual({ first: 1, second: 2 });
-  });
-
-  test("a resolver that throws fails the navigation", () => {
-    const root = treeWith({
-      todos: {
-        resolve: {
-          list: () => {
-            throw new Error("offline");
-          },
-        },
-      },
-    });
-    expect(errorOf(planNow(contextFor(root), "/todos")))
-      .toBeInstanceOf(NavigationFailedError);
-  });
-
-  test("a resolver gets the navigation, with the params of the URL", () => {
-    const seen: unknown[] = [];
-    const root = treeWith({
-      todos: {
-        resolve: {
-          id: (navigation) => {
-            seen.push(navigation.match.params);
-            return navigation.match.params["id"];
-          },
-        },
-      },
-    });
-    const plan = planNow(contextFor(root), "/todos/7");
-    expect("ok" in plan && plan.ok.resolved)
-      .toEqual([{ id: "7" }, {}]);
-    expect(seen)
-      .toEqual([{ id: "7" }]);
-  });
-
-  test("a level that stays is not resolved again: its resolvers do not run", () => {
-    const calls: string[] = [];
-    const root = treeWith({
-      todos: {
-        resolve: {
-          list: () => {
-            calls.push("list");
-            return 1;
-          },
-        },
-      },
-    });
-    const rootRoute = new ActivatedRoute(root, {}, [], Maybe.none());
-    const kept = new ActivatedRoute(root.children?.[0] as Route, {}, ["todos"], Maybe.some(rootRoute), { list: 0 });
-    const plan = planNow(contextFor(root, { activated: [rootRoute, kept] }), "/todos?tab=done");
-    expect(calls)
-      .toEqual([]);
-    expect("ok" in plan && plan.ok.kept)
-      .toEqual([kept]);
-    expect("ok" in plan && plan.ok.resolved)
-      .toEqual([{}, {}]);
-  });
-
-  test("the root route's resolvers do not run", () => {
-    const root = treeWith({
-      root: { resolve: { never: () => {
-        throw new Error("the root is never made again");
-      } } },
-    });
-    expect("ok" in planNow(contextFor(root), "/home"))
       .toBe(true);
   });
 });

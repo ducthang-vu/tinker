@@ -1,13 +1,12 @@
-// The vocabulary of the navigation pipeline: what a guard and a resolver receive and return, and
-// the ways a navigation can end without reaching its URL. A navigation matches its URL, runs the
-// guards of the matched routes, follows redirects, runs the resolvers of the levels that are made
-// again, and only then commits (see pipeline.ts). Until it commits, nothing in the browser or the
-// router has changed.
+// The vocabulary of the navigation pipeline: what a guard receives and returns, and the ways a
+// navigation can end without reaching its URL. A navigation matches its URL, runs the guards of the
+// matched routes, follows redirects, and only then commits (see pipeline.ts). Until it commits,
+// nothing in the browser or the router has changed.
 
 import type { Either, Task } from "@tinker/core";
 import type { RouteMatch } from "./match.ts";
 
-/** What a guard or a resolver is told about the navigation it runs for. */
+/** What a guard is told about the navigation it runs for. */
 export interface Navigation {
   /** The URL being checked. After a redirect, the guards run again for the target. */
   readonly url: string;
@@ -32,14 +31,6 @@ export type GuardResult = boolean | string;
  * `NavigationFailedError`.
  */
 export type Guard = (navigation: Navigation) => GuardResult | Task<GuardResult, unknown>;
-
-/**
- * A resolver of a route: the value a route shows, computed before the navigation commits, and read
- * from `ActivatedRoute.data` under its name. A resolver may return a `Task` of its value, which is
- * waited for. It runs in the injection context of the router, and fails the navigation like a
- * guard.
- */
-export type Resolver = (navigation: Navigation) => unknown;
 
 /** A URL no route matches. The URL does not change. */
 export class NoRouteError extends Error {
@@ -66,7 +57,7 @@ export class NavigationCancelledError extends Error {
 }
 
 /**
- * A guard or a resolver failed (threw, or its task failed), or the redirects did not end. The
+ * A guard failed (threw, or its task failed), or the redirects did not end. The
  * failure that caused it is its `cause`.
  */
 export class NavigationFailedError extends Error {

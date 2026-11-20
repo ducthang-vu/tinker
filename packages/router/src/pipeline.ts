@@ -1,15 +1,14 @@
 // The navigation pipeline: the work between a navigation's URL and its commit. Given a URL, it
 // matches the URL, runs the guards of every matched route (root first, each route's in order) until
-// one says something other than `true` (a chain of responsibility), follows a redirect from the
-// start, and runs the resolvers of the levels that are made again. Its result is a Plan, which the
-// router commits. The pipeline never touches the browser or the router's state: a failed plan
-// changes nothing.
+// one says something other than `true` (a chain of responsibility), and follows a redirect from the
+// start. Its result is a Plan, which the router commits. The pipeline never touches the browser or
+// the router's state: a failed plan changes nothing.
 //
 // Each step is a Task, so a guard may be asynchronous, and cancelling the Task stops the step that
-// runs. A guard or a resolver is called in the router's injection context, so it can `inject`.
+// runs. A guard is called in the router's injection context, so it can `inject`.
 
 import { Injector, runInInjectionContext, Task } from "@tinker/core";
-import type { ActivatedRoute, ResolvedData } from "./activated-route.ts";
+import type { ActivatedRoute } from "./activated-route.ts";
 import { keptLevels } from "./activation.ts";
 import {
   type GuardResult,
@@ -18,7 +17,6 @@ import {
   NavigationFailedError,
   NavigationRejectedError,
   NoRouteError,
-  type Resolver,
 } from "./navigation.ts";
 import { type LevelMatch, matchChain, matchOf } from "./match.ts";
 import type { Route } from "./route.ts";
@@ -50,8 +48,6 @@ export interface Plan {
   readonly chain: readonly LevelMatch[];
   /** The leading activated routes that stay as they are. */
   readonly kept: readonly ActivatedRoute[];
-  /** The resolved values of each level below the root, in order: `{}` for a kept level. */
-  readonly resolved: readonly ResolvedData[];
 }
 
 /**
@@ -92,10 +88,7 @@ function planAt(
       if (typeof verdict === "string") {
         return redirect(context, verdict, state, redirects);
       }
-      return Task.map(
-        resolveLevels(context.injector, navigation, levels, kept.length),
-        (resolved): Plan => ({ url, state, chain, kept, resolved }),
-      );
+      return Task.succeed({ url, state, chain, kept });
     },
   );
 }
@@ -136,49 +129,7 @@ function runGuards(
 }
 
 /**
- * The resolved values of each level below the root, in order. A level in the first `keptCount`
- * keeps its instance, so it gets no values: `{}`. The others run their resolvers, one after
- * another.
- */
-function resolveLevels(
-  injector: Injector,
-  navigation: Navigation,
-  levels: readonly LevelMatch[],
-  keptCount: number,
-): Outcome<readonly ResolvedData[]> {
-  return levels.reduce<Outcome<readonly ResolvedData[]>>(
-    (previous, level, index) =>
-      Task.flatMap(previous, (done): Outcome<readonly ResolvedData[]> =>
-        index < keptCount
-          ? Task.succeed([...done, {}])
-          : Task.map(
-              resolveRoute(injector, navigation, level.route.resolve ?? {}),
-              (data) => [...done, data],
-            )),
-    Task.succeed([]),
-  );
-}
-
-/** The values of one route's resolvers, by name, one resolver after another. */
-function resolveRoute(
-  injector: Injector,
-  navigation: Navigation,
-  resolvers: Readonly<Record<string, Resolver>>,
-): Outcome<ResolvedData> {
-  return Object.entries(resolvers)
-    .reduce<Outcome<ResolvedData>>(
-      (previous, [name, resolver]) =>
-        Task.flatMap(previous, (data): Outcome<ResolvedData> =>
-          Task.map(
-            step(injector, navigation, () => resolver(navigation)),
-            (value): ResolvedData => ({ ...data, [name]: value }),
-          )),
-      Task.succeed({}),
-    );
-}
-
-/**
- * One call of a guard or a resolver, as a task: run in the injection context, and waited for when
+ * One call of a guard, as a task: run in the injection context, and waited for when
  * it returns a task. A throw or a failing task fails the navigation with a NavigationFailedError.
  */
 function step<T>(

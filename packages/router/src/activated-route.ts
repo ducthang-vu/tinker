@@ -7,13 +7,10 @@ import { Maybe } from "@tinker/core";
 import type { RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 
-/** The values a route's resolvers produced, by name. */
-export type ResolvedData = Readonly<Record<string, unknown>>;
-
 export class ActivatedRoute {
-  /** The static data of the route, with the values its resolvers produced over it. */
-  get data(): ResolvedData {
-    return { ...this.route.data, ...this.resolved };
+  /** The static data of the route. */
+  get data(): Readonly<Record<string, unknown>> {
+    return this.route.data ?? {};
   }
 
   /** The path of this level: the segments of every level from the root down to it. */
@@ -34,7 +31,5 @@ export class ActivatedRoute {
     readonly segments: readonly string[],
     /** The level above this one, or None for the root. */
     readonly parent: Maybe<ActivatedRoute>,
-    /** The values the route's resolvers produced for this level. */
-    readonly resolved: ResolvedData = {},
   ) {}
 }

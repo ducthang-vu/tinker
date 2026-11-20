@@ -15,10 +15,8 @@ export type {
   Navigation,
   NavigationError,
   NavigationResult,
-  Resolver,
 } from "./navigation.ts";
 export { ActivatedRoute } from "./activated-route.ts";
-export type { ResolvedData } from "./activated-route.ts";
 export { RouterOutlet } from "./router-outlet.ts";
 export { RouterLink } from "./router-link.ts";
 export { UrlBuilder } from "./url-builder.ts";
