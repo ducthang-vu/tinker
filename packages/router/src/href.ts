@@ -1,13 +1,15 @@
-// The href of a routerlink: a string is the path as it is; an array is the segments of a path,
-// each encoded, so "todos" and "7" give "/todos/7". Nothing to link to gives undefined.
+// The href of a routerlink: the URL a click on the link navigates to, so the href and the click
+// agree. The destination is resolved against the path of the route the link sits in (see
+// resolveUrl). Nothing to link to gives undefined.
 
-export function hrefOf(to: string | readonly string[] | undefined): string | undefined {
+import { resolveUrl } from "./resolve-url.ts";
+
+export function hrefOf(
+  to: string | readonly string[] | undefined,
+  base: readonly string[],
+): string | undefined {
   if (to === undefined) {
     return undefined;
   }
-  if (typeof to === "string") {
-    return to;
-  }
-  return `/${to.map((segment) => encodeURIComponent(segment))
-    .join("/")}`;
+  return resolveUrl(typeof to === "string" ? to : to.join("/"), base);
 }

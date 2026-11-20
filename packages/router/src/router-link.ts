@@ -3,13 +3,15 @@
 // that opens elsewhere (a target other than this tab, or a modifier or middle click) is left to the
 // browser.
 
-import { Directive, input, inject } from "@tinker/core";
+import { computed, Directive, input, inject } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
+import { hrefOf } from "./href.ts";
+import { pathOf } from "./resolve-url.ts";
 import { Router } from "./router.ts";
 
 @Directive({
   selector: "a[routerlink]",
-  host: { "(click)": "navigateTo($event)", "[attr.target]": "target()" },
+  host: { "(click)": "navigateTo($event)", "[attr.href]": "href()", "[attr.target]": "target()" },
 })
 export class RouterLink {
   /** The destination: a path, or the segments of one, e.g. `"/todos"` or `["todos", "7"]`. */
@@ -19,6 +21,8 @@ export class RouterLink {
   private readonly router = inject(Router);
   /** The activated route of the component this link sits in: a relative destination's base. */
   private readonly own = inject(ActivatedRoute);
+  /** The URL a click navigates to: the href of the link. */
+  private readonly href = computed(() => hrefOf(this.routerlink(), pathOf(this.own)));
 
   /** Navigates to the destination, and stops the browser from following the href. */
   private navigateTo(event: MouseEvent): void {

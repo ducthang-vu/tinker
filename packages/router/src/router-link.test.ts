@@ -8,7 +8,7 @@ import { Router } from "./router.ts";
 
 @Component({
   selector: "tk-todo-list",
-  template: "<a routerlink=\"7\">open</a><a class=\"nothing\" [routerlink]=\"nowhere\">none</a><a class=\"plain\">plain</a><a class=\"blank\" routerlink=\"7\" target=\"_blank\">new tab</a><a class=\"self\" routerlink=\"7\" target=\"_self\">self</a>",
+  template: "<a routerlink=\"7\">open</a><a class=\"nothing\" [routerlink]=\"nowhere\">none</a><a class=\"plain\">plain</a><a class=\"blank\" routerlink=\"7\" target=\"_blank\">new tab</a><a class=\"self\" routerlink=\"7\" target=\"_self\">self</a><a class=\"href\" routerlink=\"7\">href</a>",
   imports: [RouterLink],
 })
 class TodoList {
@@ -117,5 +117,16 @@ test("a modifier or middle click is left to the browser", () => {
     .toBe(false);
   expect(fixture.root.instance.router.url())
     .toBe("/todos");
+  fixture.destroy();
+});
+
+test("the href is the URL a click navigates to, and an anchor with no destination has none", () => {
+  const fixture = appAt("/todos");
+  expect(fixture.root.query("a.href")
+    .getAttribute("href"))
+    .toBe("/todos/7");
+  expect(fixture.root.query("a.nothing")
+    .getAttribute("href"))
+    .toBeNull();
   fixture.destroy();
 });
