@@ -57,6 +57,15 @@ describe("parsePattern: the remaining patterns", () => {
       .toBe(true);
   });
 
+  test("alternatives that bind the same names parse, and share those names", () => {
+    expect(namesOf(parsePattern(`{ status: "ok", value } | { status: "cached", value }`)
+      .getOrThrow()))
+      .toEqual(["value"]);
+    expect(parsePattern(`{ status: "ok", value } | { status: "cached", value: x }`)
+      .isLeft())
+      .toBe(true);
+  });
+
   test("a range takes two numbers, the smaller first", () => {
     expect(parsePattern("0..12")
       .getOrThrow())
@@ -65,6 +74,21 @@ describe("parsePattern: the remaining patterns", () => {
       .getOrThrow())
       .toEqual({ kind: "range", min: -1.5, max: 2 });
     expect(parsePattern("5..1")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("an open range has one bound, and no key for the missing one", () => {
+    expect(parsePattern("18..")
+      .getOrThrow())
+      .toEqual({ kind: "range", min: 18 });
+    expect(parsePattern("..100")
+      .getOrThrow())
+      .toEqual({ kind: "range", max: 100 });
+    expect(Object.keys(parsePattern("18..")
+      .getOrThrow()))
+      .toEqual(["kind", "min"]);
+    expect(parsePattern("..")
       .isLeft())
       .toBe(true);
   });

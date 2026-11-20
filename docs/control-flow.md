@@ -112,8 +112,8 @@ and `" "` (a space).
 | Empty array | an empty list | `@case []` | done |
 | Array, fixed length or with rest | a list of that shape | `@case [first, ...rest]` | done |
 | Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | done |
-| Alternatives | any of several patterns (they bind no names) | `@case "loading" \| "saving"` | done |
-| Range | a number from the smaller bound to the larger, both included | `@case 0..12` | done |
+| Alternatives | any of several patterns. Each option binds the same names (or none), and the names are bound from the option that matched | `@case "loading" \| "saving"`, `@case { status: "ok", value } \| { status: "cached", value }` | done |
+| Range | a number from the smaller bound to the larger, both included. A bound may be left open: `18..` is 18 and above, `..100` is 100 and below | `@case 0..12`, `@case 18..` | done |
 | `some(pattern)` | a `Maybe` with a value that matches the pattern; the value is bound by the names in it | `@case some(name)` | done |
 | `none` | a `Maybe` with no value | `@case none` | done |
 | `ok(pattern)` | an `Either` that is a Right whose value matches the pattern | `@case ok(n)` | done |

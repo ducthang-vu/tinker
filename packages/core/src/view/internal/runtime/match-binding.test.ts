@@ -39,6 +39,39 @@ describe("match", () => {
       .toBe(false);
   });
 
+  test("an open range has one end: 18.. is 18 and above, ..100 is 100 and below", () => {
+    expect(matches("18..", 18))
+      .toBe(true);
+    expect(matches("18..", 17))
+      .toBe(false);
+    expect(matches("18..", 1e9))
+      .toBe(true);
+    expect(matches("..100", 100))
+      .toBe(true);
+    expect(matches("..100", -5))
+      .toBe(true);
+    expect(matches("..100", 101))
+      .toBe(false);
+    expect(matches("..100", "5"))
+      .toBe(false);
+  });
+
+  test("alternatives that bind the same names bind them from the option that matched", () => {
+    const ok = match(parsePattern(`{ status: "ok", value } | { status: "cached", value }`)
+      .getOrThrow(), { status: "cached", value: 3 });
+    expect(ok)
+      .toEqual(new Map<string, unknown>([["value", 3]]));
+    expect(matches(`{ status: "ok", value } | { status: "cached", value }`, { status: "saving", value: 1 }))
+      .toBe(false);
+  });
+
+  test("an alias over alternatives binds the whole value, and the shared names", () => {
+    const bound = match(parsePattern(`{ id } | { key: id } as item`)
+      .getOrThrow(), { key: 9 });
+    expect(bound)
+      .toEqual(new Map<string, unknown>([["id", 9], ["item", { key: 9 }]]));
+  });
+
   test("not matches what its pattern does not", () => {
     expect(matches(`not "guest"`, "ana"))
       .toBe(true);
@@ -116,10 +149,13 @@ describe("match: Maybe and Either", () => {
       .toBe(false);
   });
 
-  test("a wrapper binds names, so they can be alternatives' only if none", () => {
+  test("alternatives must bind the same names, or none", () => {
     expect(() => parsePattern("some(a) | none")
       .getOrThrow())
-      .toThrow("Alternatives cannot bind names");
+      .toThrow("Alternatives must bind the same names, or none");
+    expect(() => parsePattern("{ a } | { b }")
+      .getOrThrow())
+      .toThrow("Alternatives must bind the same names, or none");
     expect(() => parsePattern("not ok(a)")
       .getOrThrow())
       .toThrow("\"not\" cannot bind names");

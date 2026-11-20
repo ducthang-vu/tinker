@@ -21,7 +21,7 @@ export type TypeName = "string" | "number" | "boolean" | "object" | "function";
 const TYPES: readonly string[] = ["string", "number", "boolean", "object", "function"];
 const LITERAL_WORDS: readonly string[] = ["true", "false", "null", "undefined"];
 const RELATION = /^(!==|<=|>=|<|>)\s*([\s\S]+)$/;
-const RANGE = /^(-?\d+(?:\.\d+)?)\.\.(-?\d+(?:\.\d+)?)$/;
+const RANGE = /^(-?\d+(?:\.\d+)?)?\.\.(-?\d+(?:\.\d+)?)?$/;
 const NOT = /^not\s+([\s\S]+)$/;
 const WRAPPED = /^(some|ok|error)\s*\(([\s\S]*)\)$/;
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
@@ -43,7 +43,7 @@ export type Pattern
     | { readonly kind: "present" }
     | { readonly kind: "alt"; readonly options: readonly Pattern[] }
     | { readonly kind: "not"; readonly pattern: Pattern }
-    | { readonly kind: "range"; readonly min: number; readonly max: number }
+    | { readonly kind: "range"; readonly min?: number; readonly max?: number }
     | { readonly kind: "absent" }
     | { readonly kind: "some"; readonly pattern: Pattern }
     | { readonly kind: "none" }
@@ -127,13 +127,8 @@ function patternOf(text: string): Pattern {
     }
   }
   const range = RANGE.exec(text);
-  if (range) {
-    const min = Number(range[1]);
-    const max = Number(range[2]);
-    if (min > max) {
-      throw new Error(`A range goes from the smaller number to the larger: "${text}"`);
-    }
-    return { kind: "range", min, max };
+  if (range && (range[1] !== undefined || range[2] !== undefined)) {
+    return rangeOf(range[1], range[2], text);
   }
   switch (text) {
     case "truthy":
@@ -220,13 +215,41 @@ function isTopLevel(text: string, index: number): boolean {
   return depth === 0 && quote === undefined;
 }
 
-/** Alternatives match when one of them does; they bind no names, since only one can. */
+/**
+ * `min..max`, `min..` or `..max`: the numbers from min to max, both included. A
+ * missing bound is open. The bounds are written as numbers, so a range never has
+ * an undefined bound (the key is left out).
+ */
+function rangeOf(low: string | undefined, high: string | undefined, text: string): Pattern {
+  const min = low === undefined ? undefined : Number(low);
+  const max = high === undefined ? undefined : Number(high);
+  if (min !== undefined && max !== undefined && min > max) {
+    throw new Error(`A range goes from the smaller number to the larger: "${text}"`);
+  }
+  return {
+    kind: "range",
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  };
+}
+
+/**
+ * Alternatives match when one of them does. Each option must bind the same names,
+ * so the names mean the same thing whichever option matched: `{ status: "ok", value }
+ * | { status: "cached", value }` binds `value` either way.
+ */
 function alternatives(options: readonly string[], text: string): Pattern {
   const patterns = options.map((option) => patternOf(option));
-  if (patterns.some((pattern) => namesOf(pattern).length > 0)) {
-    throw new Error(`Alternatives cannot bind names: "${text}"`);
+  const [first, ...rest] = patterns.map((pattern) => sortedNames(pattern));
+  if (rest.some((names) => names.join() !== first!.join())) {
+    throw new Error(`Alternatives must bind the same names, or none: "${text}"`);
   }
   return { kind: "alt", options: patterns };
+}
+
+/** The names a pattern binds, sorted, without duplicates. */
+function sortedNames(pattern: Pattern): string[] {
+  return [...new Set(namesOf(pattern))].sort();
 }
 
 /** `{ key, key: pattern, … }`: each key must exist, and its value must match its pattern. */
@@ -304,6 +327,9 @@ export function namesOf(pattern: Pattern): string[] {
       return namesOf(pattern.pattern);
     case "as":
       return [...namesOf(pattern.pattern), pattern.name];
+    case "alt":
+      // Every option binds the same names (see alternatives), so the first one's are the names.
+      return namesOf(pattern.options[0]!);
     default:
       return [];
   }

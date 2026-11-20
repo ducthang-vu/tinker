@@ -146,13 +146,20 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
     case "present":
       return value === null || value === undefined ? undefined : new Map();
     case "alt":
-      return pattern.options.some((option) => match(option, value) !== undefined)
-        ? new Map()
-        : undefined;
+      // The first option that matches gives the names: every option binds the same ones.
+      for (const option of pattern.options) {
+        const bound = match(option, value);
+        if (bound !== undefined) {
+          return bound;
+        }
+      }
+      return undefined;
     case "not":
       return match(pattern.pattern, value) === undefined ? new Map() : undefined;
     case "range":
-      return typeof value === "number" && value >= pattern.min && value <= pattern.max
+      return typeof value === "number"
+        && (pattern.min === undefined || value >= pattern.min)
+        && (pattern.max === undefined || value <= pattern.max)
         ? new Map()
         : undefined;
     case "absent":
