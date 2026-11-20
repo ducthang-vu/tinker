@@ -8,7 +8,7 @@ import { Router } from "./router.ts";
 
 @Component({
   selector: "tk-todo-list",
-  template: "<a routerlink=\"7\">open</a><a class=\"nothing\" [routerlink]=\"nowhere\">none</a><a class=\"plain\">plain</a><a class=\"blank\" routerlink=\"7\" target=\"_blank\">new tab</a><a class=\"self\" routerlink=\"7\" target=\"_self\">self</a><a class=\"href\" routerlink=\"7\">href</a>",
+  template: "<a class=\"open\" routerlink=\"7\">open</a><a class=\"nothing\" [routerlink]=\"nowhere\">none</a><a class=\"plain\">plain</a><a class=\"blank\" routerlink=\"7\" target=\"_blank\">new tab</a><a class=\"self\" routerlink=\"7\" target=\"_self\">self</a><a class=\"href\" routerlink=\"7\">href</a>",
   imports: [RouterLink],
 })
 class TodoList {
@@ -18,7 +18,11 @@ class TodoList {
 @Component({ selector: "tk-root", template: "<p>Root</p>" })
 class Root {}
 
-@Component({ selector: "tk-app", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
+@Component({
+  selector: "tk-app",
+  template: "<a class=\"root\" routerlink=\"/todos\">root</a><router-outlet></router-outlet>",
+  imports: [RouterLink, RouterOutlet],
+})
 class App {
   readonly router = inject(Router);
 }
@@ -35,7 +39,7 @@ const ROOT = {
 /** Clicks the anchor with the mouse init given; tells whether the default was stopped. */
 function clickFirstLink(
   fixture: ReturnType<typeof appAt>,
-  anchor = "a",
+  anchor = "a.open",
   init: MouseEventInit = {},
 ): boolean {
   const element = fixture.root.query(anchor).element;
@@ -128,5 +132,15 @@ test("the href is the URL a click navigates to, and an anchor with no destinatio
   expect(fixture.root.query("a.nothing")
     .getAttribute("href"))
     .toBeNull();
+  fixture.destroy();
+});
+
+test("a link in the root component navigates from the root", () => {
+  const fixture = appAt("/nowhere");
+  window.history.replaceState(null, "", "/todos");
+  expect(clickFirstLink(fixture, "a.root"))
+    .toBe(true);
+  expect(fixture.root.instance.router.url())
+    .toBe("/todos");
   fixture.destroy();
 });

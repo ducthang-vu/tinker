@@ -11,7 +11,7 @@ import { Router } from "./router.ts";
 
 @Directive({
   selector: "a[routerlink]",
-  host: { "(click)": "navigateTo($event)", "[attr.href]": "href()", "[attr.target]": "target()" },
+  host: { "(click.plain)": "navigateTo($event)", "[attr.href]": "href()", "[attr.target]": "target()" },
 })
 export class RouterLink {
   /** The destination: a path, or the segments of one, e.g. `"/todos"` or `["todos", "7"]`. */
@@ -24,9 +24,14 @@ export class RouterLink {
   /** The URL a click navigates to: the href of the link. */
   private readonly href = computed(() => hrefOf(this.routerlink(), pathOf(this.own)));
 
-  /** Navigates to the destination, and stops the browser from following the href. */
+  /**
+   * Navigates to the destination, and stops the browser from following the href. A plain click
+   * only reaches here (see the host listener). A link that opens elsewhere, or a middle click, is
+   * left to the browser.
+   */
   private navigateTo(event: MouseEvent): void {
-    if (this.opensElsewhere(event)) {
+    const target = this.target();
+    if ((target !== undefined && target !== "_self") || event.button !== 0) {
       return;
     }
     event.preventDefault();
@@ -35,16 +40,5 @@ export class RouterLink {
       return;
     }
     this.router.navigate(to, { relativeTo: this.own });
-  }
-
-  /** Whether the click asks the browser to open the link elsewhere: a target, or a modifier. */
-  private opensElsewhere(event: MouseEvent): boolean {
-    const target = this.target();
-    return (target !== undefined && target !== "_self")
-      || event.button !== 0
-      || event.ctrlKey
-      || event.metaKey
-      || event.shiftKey
-      || event.altKey;
   }
 }
