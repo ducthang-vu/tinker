@@ -260,14 +260,6 @@ mistakes reports one of them per build.
 **To do.** Collect errors and continue after a bad closing tag, when a build
 step needs all of them at once.
 
-### 5. `BrowserTemplateParser` is still exported
-
-**Problem.** It is no longer used by the engine, but it stays in the public
-API, and its test is the reference the new parser is checked against.
-
-**To do.** Remove it from `view/index.ts` in a later release, along with its
-test, once the new parser is the only one.
-
 ## Precompiled templates (`packages/core/src/view/internal/factories/component-factory.ts`)
 
 A component's template can be a compiled tree a build step wrote, which the engine
