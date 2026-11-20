@@ -44,6 +44,11 @@ export interface ComponentMetadata extends DirectiveMetadata {
   /** The component's template. */
   readonly template: string;
   /**
+   * The component's CSS. Its selectors match only the elements of its own template
+   * (and its host, with `:host`): styles of one component do not leak to others.
+   */
+  readonly styles?: string;
+  /**
    * Services for this component and what it contains: provided in the
    * component's own injector, so each instance of the component gets its
    * own, destroyed with it.
@@ -117,6 +122,7 @@ export function defineComponent<C extends AbstractClass>(
   const recorded: ComponentMetadata = Object.freeze({
     selector: options.selector,
     template: options.template,
+    ...(options.styles !== undefined && { styles: options.styles }),
     ...(options.exportAs && { exportAs: options.exportAs }),
     ...(options.host && { host: Object.freeze({ ...options.host }) }),
     ...(options.providers && { providers: Object.freeze([...options.providers]) }),

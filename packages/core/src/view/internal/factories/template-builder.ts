@@ -48,6 +48,7 @@ import type { EmbeddedView } from "../runtime/embedded-view.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
 import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
+import { type StyleScope, scopeOfComponent } from "../runtime/component-styles.ts";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -145,6 +146,8 @@ export class TemplateBuilder {
    */
   /** The names this template's expressions read: its component's fields and its `@let`s. */
   private readonly scope: Scope;
+  /** Set when the component has styles: each element it creates gets its attribute. */
+  private readonly styleScope: StyleScope | undefined;
 
   constructor(
     private readonly component: object,
@@ -162,6 +165,7 @@ export class TemplateBuilder {
     readonly node: ViewNode,
   ) {
     this.scope = scope;
+    this.styleScope = scopeOfComponent(component.constructor as Class<object>);
   }
 
   /**
@@ -540,6 +544,9 @@ export class TemplateBuilder {
       return text;
     }
     const element = this.renderer.createElement(node.name);
+    if (this.styleScope !== undefined) {
+      this.renderer.setAttribute(element, this.styleScope.attribute, "");
+    }
     for (const attribute of node.attributes) {
       this.renderer.setAttribute(element, attribute.name, attribute.value);
     }

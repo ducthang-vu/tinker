@@ -67,6 +67,7 @@ import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
+import { applyComponentStyles } from "../runtime/component-styles.ts";
 import type { View } from "../runtime/view.ts";
 
 /**
@@ -165,6 +166,7 @@ export class ComponentFactory {
   ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
+    applyComponentStyles(this.renderer, type, host);
     if (Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
       .isSome()) {
       throw new Error(`The host element of ${type.name} already holds a component`);
