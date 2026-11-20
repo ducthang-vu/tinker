@@ -4,7 +4,7 @@
 import { computed, inject, Maybe, provide, type Provider } from "@tinker/core";
 import { Location } from "./location.ts";
 import { ActivatedRoute } from "./activated-route.ts";
-import { ChildActivatedRoute } from "./child-activated-route.ts";
+import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
@@ -20,7 +20,10 @@ export function provideRouter(root: Route): readonly Provider[] {
       useFactory: () => {
         const router = inject(Router);
         // Readers run only when the shown route changes, by the content of the Maybe.
-        return computed(() => Maybe.from(router.activated()[1]), (a, b) => a.isEqual(b));
+        return computed(
+          () => nextAfter(router.activated(), router.rootRoute),
+          (a, b) => a.isEqual(b),
+        );
       },
     }),
   ];
