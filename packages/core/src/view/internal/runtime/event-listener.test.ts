@@ -113,6 +113,15 @@ describe("listenWithModifiers", () => {
       .toHaveLength(1);
   });
 
+  test("modified runs the handler only while Ctrl, Shift, Alt or Meta is held", () => {
+    const { button, calls } = setup(["modified"]);
+    button.dispatchEvent(new MouseEvent("click"));
+    button.dispatchEvent(new MouseEvent("click", { altKey: true }));
+    button.dispatchEvent(new MouseEvent("click", { metaKey: true }));
+    expect(calls)
+      .toHaveLength(2);
+  });
+
   test("the returned function removes the listener", () => {
     const { button, calls, stop } = setup([]);
     stop();

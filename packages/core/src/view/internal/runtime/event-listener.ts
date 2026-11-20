@@ -3,6 +3,7 @@
 
 import type { Renderer } from "../renderer.ts";
 import {
+  anySystemKeyHeld,
   type EventModifier,
   type EventName,
   keyOf,
@@ -33,6 +34,9 @@ export function listenWithModifiers(
       return;
     }
     if (keys.length > 0 && !keys.includes((domEvent as KeyboardEvent).key)) {
+      return;
+    }
+    if (has("modified") && !anySystemKeyHeld(domEvent as KeyboardEvent)) {
       return;
     }
     if (systems.some(({ flag, held }) => ((domEvent as KeyboardEvent)[flag] === true) !== held)) {

@@ -12,6 +12,10 @@
 // `prevent` and `stop` change the event (they can come in any order). `once`
 // counts only events that passed the guards, and ends the listener after the
 // first of them.
+//
+// Aliases stand for a list of modifiers, written once here: `plain` is a click
+// with no modifier key held, `submit` is Enter without Shift, and `modified`
+// needs at least one of Ctrl, Shift, Alt or Meta held (its complement is `plain`).
 
 import { Either, type EitherError } from "@tinker/functional";
 
@@ -45,9 +49,20 @@ export type SystemModifier = keyof typeof SYSTEM_KEYS;
 /** A system modifier with `!` in front: the key must not be held. */
 export type NegatedSystemModifier = `!${SystemModifier}`;
 
+/** A guard that passes when at least one of Ctrl, Shift, Alt or Meta is held. */
+export type AnyModifier = "modified";
+
 /** The modifiers Tinker supports. */
 export type EventModifier = "prevent" | "stop" | "self" | "once"
-  | SystemModifier | NegatedSystemModifier | KeyModifier;
+  | SystemModifier | NegatedSystemModifier | AnyModifier | KeyModifier;
+
+/** A name standing for several modifiers, expanded when the event name is parsed. */
+export type AliasName = "plain" | "submit";
+
+const ALIASES: Readonly<Record<AliasName, readonly EventModifier[]>> = {
+  plain: ["!ctrl", "!shift", "!alt", "!meta"],
+  submit: ["enter", "!shift"],
+};
 
 type SystemFlag = "ctrlKey" | "shiftKey" | "altKey" | "metaKey";
 
@@ -59,6 +74,8 @@ const SUPPORTED: readonly string[] = [
   "self",
   "once",
   ...Object.keys(SYSTEM_KEYS),
+  "modified",
+  ...Object.keys(ALIASES),
   ...Object.keys(KEY_VALUES),
 ];
 
@@ -81,6 +98,12 @@ export function systemRequirementOf(modifier: EventModifier): SystemRequirement 
   return flag === undefined ? undefined : { flag, held: !negated };
 }
 
+/** Whether a mouse or keyboard event has Ctrl, Shift, Alt or Meta held. */
+export function anySystemKeyHeld(event: KeyboardEvent): boolean {
+  return (["ctrlKey", "shiftKey", "altKey", "metaKey"] as const)
+    .some((flag) => event[flag] === true);
+}
+
 /** A DOM event name with its modifiers, in the order written. */
 export interface EventName {
   /** The DOM event, e.g. `"click"`. */
@@ -88,9 +111,14 @@ export interface EventName {
   readonly modifiers: readonly EventModifier[];
 }
 
-export function isModifier(name: string): name is EventModifier {
+export function isModifier(name: string): name is EventModifier | AliasName {
   return SUPPORTED.includes(name)
     || (name.startsWith("!") && SYSTEM_NAMES.includes(name.slice(1)));
+}
+
+/** The modifiers a name stands for: an alias its list, any other modifier itself. */
+export function expandModifier(name: EventModifier | AliasName): readonly EventModifier[] {
+  return Object.hasOwn(ALIASES, name) ? ALIASES[name as AliasName] : [name as EventModifier];
 }
 
 /**
@@ -110,5 +138,9 @@ export function parseEventName(source: string, what: string): EitherError<EventN
         .join(", ")}`,
     ));
   }
-  return Either.right({ event, modifiers: names.filter(isModifier) });
+  return Either.right({
+    event,
+    modifiers: names.filter(isModifier)
+      .flatMap(expandModifier),
+  });
 }
