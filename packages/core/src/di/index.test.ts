@@ -19,6 +19,7 @@ test("exports exactly the public runtime symbols", () => {
       "Injectable",
       "InjectionToken",
       "Injector",
+      "classToken",
       "inject",
       "provide",
       "runInInjectionContext",

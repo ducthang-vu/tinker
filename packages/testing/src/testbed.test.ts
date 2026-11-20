@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import {
+  classToken,
   Component,
   Directive,
   Effect,
@@ -93,6 +94,19 @@ describe("TestBed.build", () => {
     expect(ref.get(TOKEN))
       .toBe("given");
     ref.destroy();
+  });
+
+  test("get takes a service's class as well as its token", () => {
+    class Clock {}
+    const clock = new Clock();
+    const fixture = TestBed.providers(provide(Clock, { useValue: clock }))
+      .component(Greeting)
+      .build();
+    expect(fixture.get(Clock))
+      .toBe(clock);
+    expect(fixture.get(classToken(Clock)))
+      .toBe(clock);
+    fixture.destroy();
   });
 
   test("destroy can be called twice", () => {

@@ -4,6 +4,7 @@
 
 // Tokens
 export { InjectionToken } from "./internal/inject.ts";
+export { classToken } from "./adapter.ts";
 export type { MultiToken, Token } from "./internal/inject.ts";
 
 // Injecting
