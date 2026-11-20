@@ -271,3 +271,15 @@ describe("relations and object patterns", () => {
       .toEqual({ kind: "object", fields: [{ key: "a", pattern: { kind: "bind", name: "a" } }] });
   });
 });
+
+describe("the body of a case with a parenthesized pattern", () => {
+  test("braces inside the parentheses are part of the pattern, not the body", () => {
+    const match = onlyMatch("@match v { @case some({ id }) { X } @case (a, { id }) { Y } @default { Z } }");
+    expect(match.cases)
+      .toHaveLength(2);
+    expect(match.cases[0]!.body)
+      .toHaveLength(1);
+    expect(match.cases[0]!.body[0]!.kind)
+      .toBe("text");
+  });
+});

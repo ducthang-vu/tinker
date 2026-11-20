@@ -188,3 +188,16 @@ describe("match: as-patterns", () => {
       .toEqual(new Map<string, unknown>([["x", 3], ["m", Maybe.some(3)]]));
   });
 });
+
+describe("match: tuples", () => {
+  test("a tuple matches an array of exactly its length", () => {
+    expect(matches("(a, b)", [1, 2]))
+      .toBe(true);
+    expect(matches("(a, b)", [1]))
+      .toBe(false);
+    expect(matches("(a, b)", [1, 2, 3]))
+      .toBe(false);
+    expect(matches("(a, { id })", [1, { id: 4 }]))
+      .toBe(true);
+  });
+});

@@ -391,6 +391,26 @@ describe("@match", () => {
     app2.destroy();
   });
 
+  test("a tuple matches a pair of exactly that length, and binds its items", async () => {
+    @Component({
+      selector: "tk-tuple",
+      template: "@match pair() { @case (a, { id }) { {{ a }}-{{ id }} } @default { other } }",
+    })
+    class TupleMatch {
+      readonly pair = signal<unknown[]>(["x", { id: 2 }]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(TupleMatch, { host: el });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("x-2");
+    app.root.instance.pair.set(["x"]);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("other");
+    app.destroy();
+  });
+
   test("an as-pattern shows the whole value under its alias, and its names too", async () => {
     @Component({
       selector: "tk-alias",

@@ -187,3 +187,52 @@ describe("parsePattern: as-patterns", () => {
       .toEqual(["id", "u"]);
   });
 });
+
+describe("parsePattern: tuples", () => {
+  test("(a, b) is the array pattern [a, b]", () => {
+    expect(parsePattern("(a, b)")
+      .getOrThrow())
+      .toEqual(parsePattern("[a, b]")
+        .getOrThrow());
+    expect(namesOf(parsePattern("(x, y, z)")
+      .getOrThrow()))
+      .toEqual(["x", "y", "z"]);
+  });
+
+  test("a tuple takes a rest, an empty tuple is the empty array, and a trailing comma keeps a tuple of one", () => {
+    expect(namesOf(parsePattern("(first, ...rest)")
+      .getOrThrow()))
+      .toEqual(["first", "rest"]);
+    expect(parsePattern("()")
+      .getOrThrow())
+      .toEqual({ kind: "array", items: [] });
+    expect(parsePattern("(1,)")
+      .getOrThrow())
+      .toEqual({ kind: "array", items: [{ kind: "value", value: 1 }] });
+  });
+
+  test("one pattern in parentheses, with no comma, is that pattern", () => {
+    expect(parsePattern("(a)")
+      .getOrThrow())
+      .toEqual({ kind: "bind", name: "a" });
+    expect(parsePattern("(1 | 2)")
+      .getOrThrow())
+      .toEqual(parsePattern("1 | 2")
+        .getOrThrow());
+  });
+
+  test("a parenthesis inside a string does not close the group", () => {
+    expect(namesOf(parsePattern(`(")", b)`)
+      .getOrThrow()))
+      .toEqual(["b"]);
+  });
+
+  test("a tuple takes objects and arrays inside, and an alias names the whole tuple", () => {
+    expect(namesOf(parsePattern("({ id }, [x]) as pair")
+      .getOrThrow()))
+      .toEqual(["id", "x", "pair"]);
+    expect(parsePattern("(1, 2")
+      .isLeft())
+      .toBe(true);
+  });
+});
