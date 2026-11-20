@@ -242,17 +242,7 @@ hold a `<` as text, as HTML allows.
 **To do.** Add them to `RAW_TEXT_ELEMENTS`, with their RCDATA rule (entities
 decoded, no tags) for `textarea` and `title`.
 
-### 3. Errors in block structure have no location
-
-**Problem.** Nodes carry their spans now, and a compile error in a text or an element
-says where it is. An error found while the blocks are sorted (an `@else` with no `@if`,
-a `@case` outside a `@match`) is raised before any node is compiled, so it has no
-location.
-
-**To do.** Give the block tokens their spans as well, and wrap the sorting the same
-way compileItems wraps each item.
-
-### 4. Parsing has no recovery
+### 3. Parsing has no recovery
 
 **Problem.** The parser stops at the first error. A template with several
 mistakes reports one of them per build.
