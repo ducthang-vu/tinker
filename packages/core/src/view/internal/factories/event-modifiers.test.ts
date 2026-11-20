@@ -62,6 +62,24 @@ describe("event modifiers in templates and host listeners", () => {
       .toBe(1);
   });
 
+  test("(mousedown.secondary) in a template: a right-button press runs the handler", () => {
+    let calls = 0;
+    @Component({ selector: "tk-a", template: `<div (mousedown.secondary)="go()">x</div>` })
+    class A {
+      go() {
+        calls += 1;
+      }
+    }
+    const host = document.createElement("div");
+    Engine.create()
+      .createComponent(A, host);
+    const box = host.querySelector("div")!;
+    box.dispatchEvent(new MouseEvent("mousedown", { button: 0 }));
+    box.dispatchEvent(new MouseEvent("mousedown", { button: 2 }));
+    expect(calls)
+      .toBe(1);
+  });
+
   test("\"(click.self)\" in a host option: a click on a child does not reach the handler", () => {
     let calls = 0;
     @Directive({

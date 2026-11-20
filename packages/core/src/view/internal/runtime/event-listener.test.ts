@@ -122,6 +122,23 @@ describe("listenWithModifiers", () => {
       .toHaveLength(2);
   });
 
+  test("primary runs the handler for the left button only", () => {
+    const { button, calls } = setup(["primary"]);
+    button.dispatchEvent(new MouseEvent("click", { button: 0 }));
+    button.dispatchEvent(new MouseEvent("click", { button: 2 }));
+    expect(calls)
+      .toHaveLength(1);
+  });
+
+  test("secondary runs the handler for the right button, and ignores keyboard events", () => {
+    const { button, calls } = setup(["secondary"]);
+    button.dispatchEvent(new MouseEvent("click", { button: 2 }));
+    button.dispatchEvent(new MouseEvent("click", { button: 0 }));
+    button.dispatchEvent(new KeyboardEvent("click", { key: "Enter" }));
+    expect(calls)
+      .toHaveLength(1);
+  });
+
   test("the returned function removes the listener", () => {
     const { button, calls, stop } = setup([]);
     stop();
