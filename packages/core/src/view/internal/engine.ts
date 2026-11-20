@@ -17,7 +17,7 @@
 // - `getContext(element)`, to answer "what is on this element?";
 // - `flush()`, to run a change detection tick now (see ChangeDetection);
 
-import { inject, Injectable, Injector, provide, type Provider, runInInjectionContext, type Token } from "../../di/index.ts";
+import { inject, Injectable, Injector, provide, type Provider, type ProviderToken, runInInjectionContext, type Token } from "../../di/index.ts";
 import { Maybe, type Task } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { ElementContext } from "./runtime/element-context.ts";
@@ -171,7 +171,7 @@ export class Engine {
    * @privateAPI Not in the public index, for the testing helpers only. Do not use it in an app,
    * unless you accept that it may change without notice.
    */
-  get<S>(token: Token<S>): S {
+  get<S>(token: ProviderToken<S>): S {
     return runInInjectionContext(this.injector, () => inject(token));
   }
 }

@@ -16,7 +16,16 @@
 //   expect(ref.root.element.textContent).toBe("Hello Ada");
 //   ref.destroy();
 
-import type { InputName, InputValue, OutputName, OutputValue, Provider, Stream, Token } from "@tinker/core";
+import type {
+  InputName,
+  InputValue,
+  OutputName,
+  OutputValue,
+  Provider,
+  ProviderToken,
+  Stream,
+  Token,
+} from "@tinker/core";
 
 /**
  * A builder for one test bed. Each method returns the builder, so the configuration
@@ -135,8 +144,8 @@ export interface Fixture<T extends object> {
    * in the test.
    */
   whenStable(): Promise<void>;
-  /** A service from the bed's engine: its providers, then the defaults. */
-  get<S>(token: Token<S>): S;
+  /** A service from the bed's engine, by its token or class: its providers, then the defaults. */
+  get<S>(target: ProviderToken<S>): S;
   /** Destroy the component, and the bed's engine. Calling it again does nothing. */
   destroy(): void;
 }

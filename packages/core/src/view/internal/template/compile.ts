@@ -14,7 +14,7 @@
 import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { type Handler, parseHandler } from "./handler.ts";
-import { type EventModifier, isModifier, parseEventName } from "./event-modifiers.ts";
+import { type EventModifier, expandModifier, isModifier, parseEventName } from "./event-modifiers.ts";
 import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
@@ -572,7 +572,11 @@ function splitOwner(text: string | undefined): {
   const [second] = more;
   if (more.length === 1 && second !== undefined && isModifier(second)) {
     // `pick.enter`: the output `enter` of `pick`, or the DOM event `pick` with `.enter`.
-    return { owner: first, rest: second, domFallback: { event: first!, modifiers: [second] } };
+    return {
+      owner: first,
+      rest: second,
+      domFallback: { event: first!, modifiers: expandModifier(second) },
+    };
   }
   if (more.length > 0 && !isModifier(more[0]!)) {
     return { owner: first, rest: more.join(".") };
