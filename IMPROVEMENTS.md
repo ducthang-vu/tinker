@@ -316,6 +316,25 @@ app must be able to resolve them, which the example does through its alias.
 
 **To do.** Document the two dependencies for apps, and check them at build time.
 
+## Checking a library without Vite (`packages/compiler/src/check.ts`)
+
+The `tinker-check` command checks each file it is given, as the plugin does: pass
+`--strict` to fail on a component that cannot be checked. It changes no file.
+
+### 1. The command only checks
+
+**Problem.** It cannot write compiled output, so a library cannot ship its templates
+compiled. The name `tinker-check` says what it does today.
+
+**To do.** Add emission (`tinker-compile`), and write the output with declaration files.
+
+### 2. Only relative imports are followed
+
+**Problem.** An import from a package, or from a path alias, is not read: a component
+whose directive is imported that way is skipped (an error in strict mode).
+
+**To do.** Resolve packages with Node's resolution, and the aliases a project declares.
+
 ## Testing: concurrent tests
 
 `cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only

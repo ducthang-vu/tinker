@@ -17,5 +17,8 @@
   },
   "scripts": {
     "build": "vite build"
+  },
+  "bin": {
+    "tinker-check": "./dist/bin.js"
   }
 }

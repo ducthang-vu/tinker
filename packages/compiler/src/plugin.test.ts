@@ -165,13 +165,49 @@ describe("compileComponents", () => {
       .toEqual([]);
   });
 
-  test("skips a component with a template that is not a literal, without a warning", async () => {
+  test("warns about a component whose template is not a literal, and checks nothing", async () => {
     const { host, errors, warnings } = recordingHost();
     await compileComponents(`@Component({ template: html }) class A {}`, "/app/a.ts", host);
     expect(errors)
       .toEqual([]);
     expect(warnings)
-      .toEqual([]);
+      .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
+  });
+
+  test("in strict mode, a component that cannot be checked is an error", async () => {
+    const { host, errors } = recordingHost();
+    await expect(compileComponents(`@Component({ template: html }) class A {}`, "/app/a.ts", host, {
+      emit: false,
+      strict: true,
+    }))
+      .rejects
+      .toThrow();
+    expect(errors)
+      .toEqual(["a.ts: <A> cannot be checked: its template is not a literal"]);
+  });
+
+  test("in strict mode, imports that are not a list of names are an error", async () => {
+    const { host, errors } = recordingHost();
+    await expect(compileComponents(`@Component({ template: "<p></p>", imports: list }) class A {}`, "/app/a.ts", host, {
+      emit: false,
+      strict: true,
+    }))
+      .rejects
+      .toThrow();
+    expect(errors)
+      .toEqual(["a.ts: <A> cannot be checked: its imports are not a list of names"]);
+  });
+
+  test("in strict mode, an import that is not found is an error", async () => {
+    const { host, errors } = recordingHost();
+    await expect(compileComponents(`@Component({ template: "<p></p>", imports: [Nowhere] }) class A {}`, "/app/a.ts", host, {
+      emit: false,
+      strict: true,
+    }))
+      .rejects
+      .toThrow();
+    expect(errors)
+      .toEqual(["a.ts: <A> cannot be checked: Nowhere has no literal selector, or is not found"]);
   });
 
   test("skips a component whose imports are not a list of names, with a warning", async () => {
