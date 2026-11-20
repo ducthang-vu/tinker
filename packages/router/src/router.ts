@@ -15,7 +15,7 @@ import { ActivatedRoute } from "./activated-route.ts";
 import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
-import { pathOf, resolveUrl } from "./resolve-url.ts";
+import { UrlBuilder } from "./url-builder.ts";
 
 /** The options of `navigate`. */
 export interface NavigateOptions {
@@ -66,20 +66,22 @@ export class Router {
    * Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of
    * one: `["todos", "7"]` is `"todos/7"`, and the query and hash then go in the last segment. A
    * relative URL is resolved against the path of `options.relativeTo` (the root when none is
-   * given); see `resolveUrl`. The resolved URL is what must match: a URL no route matches is
-   * rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch those URLs.
+   * given); see `UrlBuilder.resolve`. The resolved URL is what must match: a URL no route
+   * matches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch
+   * those URLs.
    */
   navigate(
     url: string | readonly string[],
     options: NavigateOptions = {},
   ): Either<NoRouteError, void> {
-    const path = typeof url === "string" ? url : url.join("/");
     const base = Maybe.from(options.relativeTo)
       .match({
-        some: (route) => pathOf(route),
+        some: (route) => route.path,
         none: () => [],
       });
-    const target = resolveUrl(path, base);
+    const target = UrlBuilder.from(url)
+      .resolve(base)
+      .build();
     if (matchRoute(this.root, target) === undefined) {
       return Either.left(new NoRouteError(target));
     }
