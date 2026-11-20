@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
-import { type CompiledElement, compileTemplate } from "./compile.ts";
+import { type CompiledElement, compileTemplate, TemplateCompileError } from "./compile.ts";
 import { Selector } from "./selector.ts";
 import { Maybe } from "@tinker/functional";
 import { ExpressionParser } from "./expression.ts";
@@ -437,5 +437,22 @@ describe("[class] object on a container", () => {
       children: [],
     }]))
       .toThrow("a container has no element");
+  });
+});
+
+describe("a compile error in a tree built by hand", () => {
+  test("has no span, so it is a plain error", () => {
+    const error = (() => {
+      try {
+        compileTemplate([{ kind: "text", value: "{{ a + }}" }]);
+      } catch (caught) {
+        return caught as Error;
+      }
+      throw new Error("no error");
+    })();
+    expect(error)
+      .not.toBeInstanceOf(TemplateCompileError);
+    expect(error.message)
+      .toContain("Missing a name at the end");
   });
 });

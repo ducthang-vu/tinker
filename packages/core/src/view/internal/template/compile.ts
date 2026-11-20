@@ -11,7 +11,7 @@
 // expressions parsed. Other binding syntax (`[style.x]`, `[attr.x]`,
 // `(event)`) is reported as not supported yet.
 
-import type { AttributeNode, ElementNode, TemplateNode } from "./ast.ts";
+import type { AttributeNode, ElementNode, Span, TemplateNode } from "./ast.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { type Handler, parseHandler } from "./handler.ts";
 import { type EventModifier, expandModifier, isModifier, parseEventName } from "./event-modifiers.ts";
@@ -217,16 +217,44 @@ export function compileTemplate(
   return compileItems(itemsOf(nodes), candidates);
 }
 
+/** A template that does not compile, with the span of the text or element it is in, when known. */
+export class TemplateCompileError extends Error {
+  constructor(message: string, readonly span: Span) {
+    super(message);
+    this.name = "TemplateCompileError";
+  }
+}
+
 function compileItems(
   items: readonly Item[],
   candidates: readonly DirectiveCandidate[],
 ): CompiledNode[] {
-  return items.flatMap((item) => {
+  return items.flatMap((item) => locatedAt(spanOf(item), () => {
     if ("keyword" in item) {
       return [compileBlock(item, candidates)];
     }
     return item.kind === "text" ? compileText(item.value) : [compileNode(item, candidates)];
-  });
+  }));
+}
+
+/** The span of a text or element; a block has none. */
+function spanOf(item: Item): Span | undefined {
+  return "span" in item ? item.span : undefined;
+}
+
+/**
+ * Runs `compile` for the item at `span`. An error it throws gets that span, unless an
+ * inner item already gave it one (the innermost place is the useful one).
+ */
+function locatedAt<T>(span: Span | undefined, compile: () => T): T {
+  try {
+    return compile();
+  } catch (error) {
+    if (span === undefined || error instanceof TemplateCompileError) {
+      throw error;
+    }
+    throw new TemplateCompileError((error as Error).message, span);
+  }
 }
 
 /** `@if` and `@else if` are a match with one truthy case; `@match` is a match with its cases. */

@@ -18,7 +18,7 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { Class } from "@tinker/core";
-import { compileSource, type ImportedSelector, emitCompiled } from "@tinker/core/compiler";
+import { compileSource, emitCompiled, type ImportedSelector, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import type { Plugin } from "vite";
 import { type Declaration, readSource, type SourceInfo, type TemplateSource } from "./declarations.ts";
@@ -172,11 +172,26 @@ async function replacementFor(
   });
   return compileSource(template.text, list)
     .match({
-      left: (error) => host.error(`${where}: ${error.message}`),
+      left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
       right: (nodes) => mode.emit
         ? { start: template.start, end: template.end, text: emitCompiled(nodes, classes, HELPERS) }
         : undefined,
     });
+}
+
+/**
+ * The message for a compile error. A compile error gets its line and column in the
+ * template; a syntax error already has them in its message.
+ */
+function describe(error: Error, text: string): string {
+  if (!(error instanceof TemplateCompileError)) {
+    return error.message;
+  }
+  const before = text.slice(0, error.span.start)
+    .split("\n");
+  const line = before.length;
+  const column = before[before.length - 1]!.length + 1;
+  return `${error.message}, at line ${line}, column ${column} of the template`;
 }
 
 function placeholderFor(name: string): Class<object> {

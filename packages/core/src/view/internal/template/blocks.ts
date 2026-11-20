@@ -11,7 +11,7 @@
 //
 // `{{ }}` is skipped when looking for braces, since interpolations contain them.
 
-import type { TemplateNode } from "./ast.ts";
+import type { Span, TemplateNode, TextNode } from "./ast.ts";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
@@ -47,10 +47,20 @@ function tokenize(node: TemplateNode): Token[] {
     return [{ kind: "node", node }];
   }
   const tokens: Token[] = [];
+  // The text being collected, and the offset (in the text node's value) where it starts.
   let text = "";
-  const flush = () => {
+  let segment = 0;
+  const append = (chunk: string, from: number) => {
+    if (text === "") {
+      segment = from;
+    }
+    text += chunk;
+  };
+  // Pushes the collected text, which runs up to offset `end`.
+  const flush = (end: number) => {
     if (text !== "") {
-      tokens.push({ kind: "node", node: { kind: "text", value: text } });
+      const span = spanWithin(node, segment, end);
+      tokens.push({ kind: "node", node: { kind: "text", value: text, span } });
       text = "";
     }
   };
@@ -59,14 +69,14 @@ function tokenize(node: TemplateNode): Token[] {
     if (node.value.startsWith("{{", i)) {
       const end = node.value.indexOf("}}", i + 2);
       const stop = end === -1 ? node.value.length : end + 2;
-      text += node.value.slice(i, stop);
+      append(node.value.slice(i, stop), i);
       i = stop;
       continue;
     }
     BLOCK_START.lastIndex = i;
     const start = BLOCK_START.exec(node.value);
     if (start) {
-      flush();
+      flush(i);
       const keyword = start[1]!.replace(/\s+/, "") as BlockKeyword;
       const brace = bodyBrace(node.value, BLOCK_START.lastIndex, keyword);
       if (brace === -1) {
@@ -78,15 +88,23 @@ function tokenize(node: TemplateNode): Token[] {
       continue;
     }
     if (node.value[i] === "}") {
-      flush();
+      flush(i);
       tokens.push({ kind: "close" });
     } else {
-      text += node.value[i];
+      append(node.value[i]!, i);
     }
     i++;
   }
-  flush();
+  flush(node.value.length);
   return tokens;
+}
+
+/** The span of `from` to `to` in a text node's value, given the node's own span (if it has one). */
+function spanWithin(node: TextNode, from: number, to: number): Span | undefined {
+  if (node.span === undefined) {
+    return undefined;
+  }
+  return { start: node.span.start + from, end: node.span.start + to };
 }
 
 /**

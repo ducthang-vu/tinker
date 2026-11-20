@@ -51,7 +51,9 @@ describe("checkFiles", () => {
     expect(code)
       .toBe(1);
     expect(output.errors)
-      .toEqual(["broken.ts: <Broken>: Missing a name at the end (at column 6 in \" a + \")"]);
+      .toEqual([
+        "broken.ts: <Broken>: Missing a name at the end (at column 6 in \" a + \"), at line 1, column 4 of the template",
+      ]);
     expect(output.logs)
       .toEqual(["The check failed."]);
   });

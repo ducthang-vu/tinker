@@ -242,15 +242,15 @@ hold a `<` as text, as HTML allows.
 **To do.** Add them to `RAW_TEXT_ELEMENTS`, with their RCDATA rule (entities
 decoded, no tags) for `textarea` and `title`.
 
-### 3. Nodes carry no source positions
+### 3. Errors in block structure have no location
 
-**Problem.** Only the parse errors have a line and column. A compile error
-found later (an unknown `{{ }}`, a second component on one element) cannot
-point at the place in the template.
+**Problem.** Nodes carry their spans now, and a compile error in a text or an element
+says where it is. An error found while the blocks are sorted (an `@else` with no `@if`,
+a `@case` outside a `@match`) is raised before any node is compiled, so it has no
+location.
 
-**To do.** Record the start offset on each node in `ast.ts`, and report
-positions in `compileTemplate` errors. Positions are not in the tree yet
-because that would change every test that compares trees.
+**To do.** Give the block tokens their spans as well, and wrap the sorting the same
+way compileItems wraps each item.
 
 ### 4. Parsing has no recovery
 
