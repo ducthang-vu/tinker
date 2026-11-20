@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
   "dependencies": {
     "@babel/core": "^8.1.2",
@@ -13,5 +13,8 @@
   },
   "peerDependencies": {
     "vite": "*"
+  },
+  "scripts": {
+    "build": "vite build"
   }
 }

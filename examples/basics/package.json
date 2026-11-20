@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
-    "test:e2e": "playwright test -c e2e/playwright.config.ts"
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "predev": "npm run build -w @tinker/compiler",
+    "prebuild": "npm run build -w @tinker/compiler"
   },
   "dependencies": {
     "@tinker/core": "*"
@@ -15,6 +17,7 @@
   "devDependencies": {
     "@tinker/testing": "*",
     "@playwright/test": "1.63.0",
-    "@types/node": "^22.10.2"
+    "@types/node": "^22.10.2",
+    "@tinker/compiler": "*"
   }
 }
