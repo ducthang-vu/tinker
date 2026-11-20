@@ -136,3 +136,52 @@ describe("precedence: a template binding on the element wins over a host binding
       .toEqual(["t", "listitem"]);
   });
 });
+
+describe("null and undefined attribute values render nothing", () => {
+  test("a host [attr.x] bound to null or undefined sets no attribute, and removes one that was set", () => {
+    @Directive({
+      selector: "[toggle]",
+      host: { "[attr.disabled]": "disabled()" },
+    })
+    class Toggle {
+      readonly disabled = signal<string | null | undefined>(undefined);
+    }
+    @Component({ selector: "tk-a", template: "<button toggle>x</button>", imports: [Toggle] })
+    class A {}
+    const engine = Engine.create();
+    const view = engine.createComponent(A);
+    const button = view.host.nativeElement.querySelector("button")!;
+    engine.flush();
+    expect(button.hasAttribute("disabled"))
+      .toBe(false);
+    expect(button.outerHTML)
+      .toBe(`<button toggle="">x</button>`);
+
+    const [toggle] = Maybe.map(engine.getContext(button), (context) => context.directives)
+      .getOrElse([]) as [Toggle];
+    toggle!.disabled.set("");
+    engine.flush();
+    expect(button.hasAttribute("disabled"))
+      .toBe(true);
+
+    toggle!.disabled.set(null);
+    engine.flush();
+    expect(button.hasAttribute("disabled"))
+      .toBe(false);
+  });
+
+  test("a template [attr.x] bound to null or undefined sets no attribute", () => {
+    @Component({
+      selector: "tk-b",
+      template: `<button [attr.disabled]="value()">x</button>`,
+    })
+    class B {
+      readonly value = signal<string | null | undefined>(undefined);
+    }
+    const engine = Engine.create();
+    const view = engine.createComponent(B);
+    engine.flush();
+    expect(view.host.nativeElement.querySelector("button")!.outerHTML)
+      .toBe("<button>x</button>");
+  });
+});
