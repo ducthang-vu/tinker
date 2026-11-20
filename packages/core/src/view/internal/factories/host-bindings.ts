@@ -9,10 +9,14 @@
 //   host: { "(click)": "select(item.id, $event)" }
 //   host: { "[class.open]": "isOpen()" }
 //
-// Anything else is rejected with a clear error. Property and attribute
-// bindings (`[prop]`, `[attr.x]`) and `[style.x]` can be added here later.
-// Class names keep their case: unlike templates, host bindings are not read
-// by the browser's HTML parser.
+// Attribute bindings set any attribute, URLs included, with the same checks
+// as in templates (see runtime/attribute-binding.ts):
+//
+//   host: { "[attr.href]": "url()" }
+//
+// Anything else is rejected with a clear error. Property bindings (`[prop]`)
+// can be added here later. Class names keep their case: unlike templates,
+// host bindings are not read by the browser's HTML parser.
 
 import { Either, type EitherError, Maybe, pipe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
