@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { inject, Injector, provide, runInInjectionContext } from "@tinker/core";
+import { inject, Injector, Maybe, provide, runInInjectionContext } from "@tinker/core";
+import { ActivatedRoute } from "./activated-route.ts";
 import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
 import { NoRouteError, Router } from "./router.ts";
@@ -341,5 +342,26 @@ test("an array of segments is resolved against relativeTo, with '..'", () => {
   router.navigate(["..", "y"], { relativeTo: teamLevel });
   expect(router.url())
     .toBe("/orgs/acme/teams/y");
+  destroy();
+});
+
+test("childOf is the activated route after the given one, and None for the last or an unknown one", () => {
+  const { router, destroy } = routerAt("/todos");
+  const [root, level] = router.activated();
+  const child = router.childOf(root as ActivatedRoute);
+  expect(child()
+    .getOrThrow(() => new Error("none")))
+    .toBe(level);
+  router.navigate("/todos/7");
+  expect(child()
+    .getOrThrow(() => new Error("none")))
+    .not.toBe(level);
+  expect(router.childOf(level as ActivatedRoute)()
+    .isNone())
+    .toBe(true);
+  const stranger = new ActivatedRoute(ROOT, {}, [], Maybe.none());
+  expect(router.childOf(stranger)()
+    .isNone())
+    .toBe(true);
   destroy();
 });

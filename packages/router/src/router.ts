@@ -70,6 +70,18 @@ export class Router {
    * matches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch
    * those URLs.
    */
+  /**
+   * The activated route after `route` in the list: a Some, or None when `route` is not in it or is
+   * the last one. Reading it follows the list, and it changes by the content of the Maybe.
+   */
+  childOf(route: ActivatedRoute): ReadonlySignal<Maybe<ActivatedRoute>> {
+    return computed(() => {
+      const list = this.activated();
+      const index = list.indexOf(route);
+      return index === -1 ? Maybe.none() : Maybe.from(list[index + 1]);
+    }, (a, b) => a.isEqual(b));
+  }
+
   navigate(
     url: string | readonly string[],
     options: NavigateOptions = {},
