@@ -111,6 +111,7 @@ and `" "` (a space).
 | Type check in an object | a field of a runtime type | `@case { id: number, name: string }` | done |
 | Empty array | an empty list | `@case []` | done |
 | Array, fixed length or with rest | a list of that shape | `@case [first, ...rest]` | done |
+| Tuple | the same as the array of its items: `(a, b)` is `[a, b]`. One pattern in parentheses with no comma only groups it | `@case (x, y, z)` | done |
 | Nested object | a field that is itself an object pattern | `@case { customer: { country: "FR" } }` | done |
 | Alternatives | any of several patterns. Each option binds the same names (or none), and the names are bound from the option that matched | `@case "loading" \| "saving"`, `@case { status: "ok", value } \| { status: "cached", value }` | done |
 | Range | a number from the smaller bound to the larger, both included. A bound may be left open: `18..` is 18 and above, `..100` is 100 and below | `@case 0..12`, `@case 18..` | done |

@@ -106,6 +106,9 @@ function patternOf(text: string): Pattern {
   if (text.startsWith("[")) {
     return arrayPattern(text);
   }
+  if (isWholeGroup(text)) {
+    return tupleOf(text);
+  }
   const negated = NOT.exec(text);
   if (negated) {
     const pattern = patternOf(negated[1]!.trim());
@@ -274,6 +277,48 @@ function objectPattern(text: string): Pattern {
     fields.push({ key, pattern });
   }
   return { kind: "object", fields };
+}
+
+/**
+ * `(a, b)` is the array pattern `[a, b]`: a tuple. Parentheses around one pattern
+ * with no comma only group it, so `(1 | 2)` is the alternatives, and `(a,)` is a
+ * tuple of one.
+ */
+function tupleOf(text: string): Pattern {
+  const inner = text.slice(1, -1);
+  if (inner.trim() === "") {
+    return arrayPattern("[]");
+  }
+  const entries = splitTopLevel(inner);
+  const single = entries.length === 1 && entries[0]!.trim() !== "";
+  return single ? patternOf(entries[0]!.trim()) : arrayPattern(`[${inner}]`);
+}
+
+/** Whether the text is one parenthesized group: its first `(` closes at the end. */
+function isWholeGroup(text: string): boolean {
+  if (!text.startsWith("(")) {
+    return false;
+  }
+  let depth = 0;
+  let quote: string | undefined;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index]!;
+    if (quote) {
+      if (char === quote) {
+        quote = undefined;
+      }
+    } else if (char === "\"" || char === "'") {
+      quote = char;
+    } else if (char === "(" || char === "{" || char === "[") {
+      depth++;
+    } else if (char === ")" || char === "}" || char === "]") {
+      depth--;
+      if (depth === 0) {
+        return index === text.length - 1;
+      }
+    }
+  }
+  return false;
 }
 
 /**

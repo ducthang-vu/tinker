@@ -112,11 +112,16 @@ function caseBodyBrace(value: string, from: number): number {
   let search = from;
   for (;;) {
     const open = value.slice(search)
-      .search(/[{[]/);
+      .search(/[{[(]/);
     if (open === -1) {
       return -1;
     }
     const at = search + open;
+    if (value[at] === "(") {
+      // A parenthesized pattern (`some({ id })`, a tuple) can hold braces: skip it whole.
+      search = matchingBrace(value, at) + 1;
+      continue;
+    }
     const before = value.slice(from, at)
       .trimEnd();
     if (before === "" || /(\||\bnot)$/.test(before)) {
@@ -159,7 +164,7 @@ function mapBodyBrace(value: string, from: number): number {
  */
 function matchingBrace(value: string, open: number): number {
   const opener = value[open]!;
-  const closer = opener === "[" ? "]" : "}";
+  const closer = { "[": "]", "(": ")", "{": "}" }[opener]!;
   let depth = 0;
   let quote: string | undefined;
   for (let i = open; i < value.length; i++) {
