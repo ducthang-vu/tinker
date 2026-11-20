@@ -17,12 +17,12 @@
 //   ref.destroy();
 
 import type {
-  AbstractClass,
   InputName,
   InputValue,
   OutputName,
   OutputValue,
   Provider,
+  ProviderToken,
   Stream,
   Token,
 } from "@tinker/core";
@@ -145,7 +145,7 @@ export interface Fixture<T extends object> {
    */
   whenStable(): Promise<void>;
   /** A service from the bed's engine, by its token or class: its providers, then the defaults. */
-  get<S>(target: Token<S> | AbstractClass<S>): S;
+  get<S>(target: ProviderToken<S>): S;
   /** Destroy the component, and the bed's engine. Calling it again does nothing. */
   destroy(): void;
 }

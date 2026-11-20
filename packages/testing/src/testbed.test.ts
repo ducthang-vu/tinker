@@ -1,6 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
 import {
-  classToken,
   Component,
   Directive,
   Effect,
@@ -103,8 +102,6 @@ describe("TestBed.build", () => {
       .component(Greeting)
       .build();
     expect(fixture.get(Clock))
-      .toBe(clock);
-    expect(fixture.get(classToken(Clock)))
       .toBe(clock);
     fixture.destroy();
   });

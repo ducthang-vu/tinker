@@ -4,7 +4,6 @@
 
 import {
   CLASS_REPLACEMENTS,
-  classToken,
   Component,
   Directive,
   getComponentMetadata,
@@ -13,12 +12,12 @@ import {
   output,
   Engine,
   type Provider,
+  type ProviderToken,
   provide,
   type Token,
 } from "@tinker/core";
 import { testingElementOf, type Scope } from "./fixture.ts";
 import type {
-  AbstractClass,
   InputName,
   InputValue,
   OutputName,
@@ -51,11 +50,6 @@ const EMPTY: BedState = { providers: [], inputs: {}, replacements: new Map(), ma
 
 /** The fixtures not yet destroyed: `cleanup()` destroys whatever is left here. */
 const live = new Set<{ destroy(): void }>();
-
-/** The token a `get` target stands for: a class is looked up by its class token. */
-function tokenOf<S>(target: Token<S> | AbstractClass<S>): Token<S> {
-  return typeof target === "function" ? classToken(target) : target;
-}
 
 /** Destroy every fixture still alive, e.g. the ones a test left behind. */
 export function cleanup(): void {
@@ -133,7 +127,7 @@ class Bed<T extends object> implements TestBedApi<T> {
         await new Promise((resolve) => setTimeout(resolve));
         engine.flush();
       },
-      get: <S>(target: Token<S> | AbstractClass<S>): S => engine.get(tokenOf(target)),
+      get: <S>(target: ProviderToken<S>): S => engine.get(target),
       destroy: () => {
         if (!destroyed) {
           destroyed = true;
