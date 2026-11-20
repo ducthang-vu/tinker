@@ -219,6 +219,55 @@ wrong type is not converted, and a string bound to a number input is not caught.
 type errors at bind time are wanted, check the value against the input's adapter, or
 add a dev-mode check next to the other development warnings.
 
+## Template syntax (`packages/core/src/view/internal/template/tinker-parser.ts`)
+
+The engine's parser is `TinkerTemplateParser`, which reads without a DOM and
+reports malformed markup as a `TemplateSyntaxError` with its line and column.
+Its limits:
+
+### 1. Only a few named entities are decoded
+
+**Problem.** `&amp; &lt; &gt; &quot; &apos; &nbsp;` and numeric references are
+decoded. Any other name (`&copy;`, `&hellip;`) is kept as written, where the
+browser's parser would decode it.
+
+**To do.** Add the entities an app needs to the table in the parser, or the
+HTML entity list if apps need all of them.
+
+### 2. Only `script` and `style` are raw text
+
+**Problem.** `textarea` and `title` are read as markup, so `<textarea>` cannot
+hold a `<` as text, as HTML allows.
+
+**To do.** Add them to `RAW_TEXT_ELEMENTS`, with their RCDATA rule (entities
+decoded, no tags) for `textarea` and `title`.
+
+### 3. Nodes carry no source positions
+
+**Problem.** Only the parse errors have a line and column. A compile error
+found later (an unknown `{{ }}`, a second component on one element) cannot
+point at the place in the template.
+
+**To do.** Record the start offset on each node in `ast.ts`, and report
+positions in `compileTemplate` errors. Positions are not in the tree yet
+because that would change every test that compares trees.
+
+### 4. Parsing has no recovery
+
+**Problem.** The parser stops at the first error. A template with several
+mistakes reports one of them per build.
+
+**To do.** Collect errors and continue after a bad closing tag, when a build
+step needs all of them at once.
+
+### 5. `BrowserTemplateParser` is still exported
+
+**Problem.** It is no longer used by the engine, but it stays in the public
+API, and its test is the reference the new parser is checked against.
+
+**To do.** Remove it from `view/index.ts` in a later release, along with its
+test, once the new parser is the only one.
+
 ## Testing: concurrent tests
 
 `cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only

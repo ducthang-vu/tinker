@@ -31,6 +31,7 @@ export { DomRenderer, type Renderer } from "./internal/renderer.ts";
 export type { TemplateParser } from "./internal/template/parser.ts";
 export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./internal/template/ast.ts";
 export { BrowserTemplateParser } from "./internal/template/browser-parser.ts";
+export { TemplateSyntaxError, TinkerTemplateParser } from "./internal/template/tinker-parser.ts";
 
 // Private API: for the testing helpers only. Each is marked @privateAPI in its doc:
 // do not use it in an app, unless you accept that it may change without notice.

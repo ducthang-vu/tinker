@@ -7,7 +7,7 @@ import { Component } from "../authoring/decorators.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
-import { BrowserTemplateParser } from "../template/browser-parser.ts";
+import { TinkerTemplateParser } from "../template/tinker-parser.ts";
 import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ComponentFactory } from "./component-factory.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
@@ -29,7 +29,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
     providers: [
       ...overrides,
       provide(RENDERER, { useValue: new DomRenderer() }),
-      provide(TEMPLATE_PARSER, { useValue: new BrowserTemplateParser() }),
+      provide(TEMPLATE_PARSER, { useValue: new TinkerTemplateParser() }),
       provide(CLASS_REPLACEMENTS, { useValue: new Map() }),
       ElementContexts,
       Ticker,

@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
-import { BrowserTemplateParser } from "../template/browser-parser.ts";
+import { TinkerTemplateParser } from "../template/tinker-parser.ts";
 import { compileTemplate } from "../template/compile.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { RENDERER } from "../tokens.ts";
@@ -53,7 +53,7 @@ function build(source: string, component: object) {
   const template = builderFactory()
     .create(component, noComponents, new ViewQueries());
   const root = document.createElement("div");
-  root.append(...template.build(compileTemplate(new BrowserTemplateParser()
+  root.append(...template.build(compileTemplate(new TinkerTemplateParser()
     .parse(source))));
   return { template, root };
 }

@@ -36,7 +36,7 @@ describe("class bindings in templates", () => {
       .toBe("todo urgent");
   });
 
-  test("class names are lowercased by the browser's parser", async () => {
+  test("class names keep their case, as written", async () => {
     @Component({ selector: "tk-a", template: `<p [class.isOpen]="open">x</p>` })
     class A {
       readonly open = true;
@@ -45,7 +45,7 @@ describe("class bindings in templates", () => {
     const view = engine.createComponent(A);
     engine.flush();
     expect(view.host.nativeElement.querySelector("p")!.className)
-      .toBe("isopen");
+      .toBe("isOpen");
   });
 
   test("on a child component's element, they are evaluated against the parent", async () => {

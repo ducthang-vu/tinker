@@ -1,4 +1,5 @@
-// A TemplateParser that uses the browser's own HTML parser.
+// A TemplateParser that uses the browser's own HTML parser. The engine no longer
+// uses it (see TinkerTemplateParser); it stays as a reference for the tests.
 //
 // The source is parsed by a <template> element (whose content is never
 // rendered or run), then the resulting DOM is converted into Tinker's tree.
