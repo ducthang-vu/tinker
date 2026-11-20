@@ -3,6 +3,7 @@
 
 import { computed, inject, Maybe, provide, type Provider } from "@tinker/core";
 import { Location } from "./location.ts";
+import { ActivatedRoute } from "./activated-route.ts";
 import { ChildActivatedRoute } from "./child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
 import { Router } from "./router.ts";
@@ -14,6 +15,7 @@ export function provideRouter(root: Route): readonly Provider[] {
     provide(PLATFORM_LOCATION, { useValue: browserPlatformLocation }),
     provide(Location, { useClass: Location }),
     provide(Router, { useFactory: () => new Router(root, inject(Location)) }),
+    provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
     provide(ChildActivatedRoute, {
       useFactory: () => {
         const router = inject(Router);
