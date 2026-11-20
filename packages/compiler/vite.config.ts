@@ -18,7 +18,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       // index.js is the plugin; bin.js is the tinker-check command.
-      input: { index: "src/index.ts", bin: "src/bin.ts" },
+      input: { index: "src/index.ts", bin: "bin/tinker-check.ts" },
       output: {
         format: "es",
         entryFileNames: "[name].js",

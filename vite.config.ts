@@ -14,12 +14,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts"],
-      exclude: [
-        "packages/*/src/**/*.test.ts",
-        // The command's entry point: it reads the arguments and sets the exit code, and
-        // nothing else. check.ts, which does the work, is tested in full.
-        "packages/compiler/src/bin.ts",
-      ],
+      exclude: ["packages/*/src/**/*.test.ts"],
       reporter: ["text", "html"],
       thresholds: {
         lines: 100,
