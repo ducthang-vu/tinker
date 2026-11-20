@@ -119,6 +119,10 @@ and `" "` (a space).
 | `ok(pattern)` | an `Either` that is a Right whose value matches the pattern | `@case ok(n)` | done |
 | `error(pattern)` | an `Either` that is a Left whose error matches the pattern | `@case error(message)` | done |
 | `not` | anything the inner pattern does not match (it binds no names) | `@case not "guest"` | done |
+| `pattern as name` | the pattern matches; the whole value is also bound to `name` (in the branch and in the guard). The alias covers the whole pattern, alternatives included, and may not repeat a name the pattern binds | `@case { id, name } as user` | done |
+
+An alias does not bind names inside `@map`'s `let` yet, and a `@case` without a
+subject takes only `_`, so `_ as x` is refused there. See `IMPROVEMENTS.md`.
 
 Type names (`number`, `string`, `boolean`, `object`, `function`, `undefined`)
 are reserved words in patterns, so a field named `number` cannot be bound by a

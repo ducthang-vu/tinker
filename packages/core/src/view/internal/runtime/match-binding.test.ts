@@ -125,3 +125,30 @@ describe("match: Maybe and Either", () => {
       .toThrow("\"not\" cannot bind names");
   });
 });
+
+describe("match: as-patterns", () => {
+  test("an alias binds the whole value, and the pattern's names too", () => {
+    const user = { id: 7, name: "Ada" };
+    expect(match(parsePattern("{ id, name } as user")
+      .getOrThrow(), user))
+      .toEqual(new Map<string, unknown>([["id", 7], ["name", "Ada"], ["user", user]]));
+  });
+
+  test("an alias matches only when its pattern does", () => {
+    expect(matches("{ id } as user", { name: "Ada" }))
+      .toBe(false);
+    expect(matches("[first, ...rest] as list", []))
+      .toBe(false);
+    expect(matches("[first, ...rest] as list", [1, 2]))
+      .toBe(true);
+  });
+
+  test("an alias binds the value of an alias that matches nothing else", () => {
+    expect(match(parsePattern("_ as any")
+      .getOrThrow(), 5))
+      .toEqual(new Map([["any", 5]]));
+    expect(match(parsePattern("some(x) as m")
+      .getOrThrow(), Maybe.some(3)))
+      .toEqual(new Map<string, unknown>([["x", 3], ["m", Maybe.some(3)]]));
+  });
+});

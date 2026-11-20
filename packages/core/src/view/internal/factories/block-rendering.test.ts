@@ -353,6 +353,30 @@ describe("@match", () => {
     app.destroy();
   });
 
+  test("an as-pattern shows the whole value under its alias, and its names too", async () => {
+    @Component({
+      selector: "tk-alias",
+      template: "@match user() { @case { id, name } as u { {{ name }}#{{ u.id }} } @default { none } }",
+    })
+    class AliasMatch {
+      readonly user = signal<{ id: number; name: string } | null>({ id: 4, name: "Ada" });
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(AliasMatch, { host: el });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("Ada#4");
+    app.root.instance.user.set({ id: 5, name: "Grace" });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("Grace#5");
+    app.root.instance.user.set(null);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("none");
+    app.destroy();
+  });
+
   test("an object pattern fails on a missing key, a wrong type, or a non-object", async () => {
     @Component({
       selector: "tk-shape",

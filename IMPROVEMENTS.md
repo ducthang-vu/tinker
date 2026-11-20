@@ -330,3 +330,17 @@ Ideas to choose from:
   destroys only that test's fixtures.
 - Fail loudly when a fixture is built inside a concurrent test without `manualCleanup()`,
   if the runner exposes that the test is concurrent.
+
+## Template patterns: `as` (`packages/core/src/view/internal/template/pattern.ts`)
+
+### 1. `as` is not accepted by `@map`'s `let`
+
+**Problem.** `@case { id, name } as user` binds the whole value next to the pattern's
+names, but `@map (items) let { id } as row` is refused: `let` takes a name or a
+destructuring pattern, and the rule in `itemOf` does not yet accept an alias. A row
+that wants both its fields and the whole item must name the item, then read its fields.
+
+**To do.** Allow the `as` kind in `itemOf`, and check that its alias does not clash
+with the `$`-prefixed implicit names, as the other names already are. The matcher
+(`match` in `runtime/match-binding.ts`) already handles the kind, so only the block
+builder changes.

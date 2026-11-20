@@ -7,6 +7,7 @@
 //   status                      anything, bound to that name in the branch
 //   { status, index: number }   an object with those keys, each matching its pattern
 //   some(x)  none  ok(x)  error(e)   a Maybe or an Either: the payload matches x or e
+//   { id, name } as user             a pattern, plus the whole value bound to `user`
 //
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
@@ -25,6 +26,8 @@ const NOT = /^not\s+([\s\S]+)$/;
 const WRAPPED = /^(some|ok|error)\s*\(([\s\S]*)\)$/;
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const FIELD = /^([A-Za-z_$][\w$]*)\s*(?::([\s\S]*))?$/;
+// ` as name` at the end of a pattern. Only one such suffix can match, since the name has no spaces.
+const ALIAS = /\s+as\s+([A-Za-z_$][\w$]*)$/;
 
 /** What a case tests. */
 export type Pattern
@@ -45,7 +48,8 @@ export type Pattern
     | { readonly kind: "some"; readonly pattern: Pattern }
     | { readonly kind: "none" }
     | { readonly kind: "ok"; readonly pattern: Pattern }
-    | { readonly kind: "error"; readonly pattern: Pattern };
+    | { readonly kind: "error"; readonly pattern: Pattern }
+    | { readonly kind: "as"; readonly pattern: Pattern; readonly name: string };
 
 export type RelationOperator = "<" | "<=" | ">" | ">=" | "!==";
 
@@ -86,7 +90,12 @@ function patternOf(text: string): Pattern {
   if (text === "") {
     throw new Error("A pattern is needed");
   }
-  // Alternatives first: a leading `{` or `[` may open the first option only.
+  // `as` comes first: it names the whole pattern, alternatives included.
+  const alias = aliasOf(text);
+  if (alias) {
+    return aliasPattern(alias.pattern, alias.name, text);
+  }
+  // Alternatives next: a leading `{` or `[` may open the first option only.
   const options = splitTopLevel(text, "|");
   if (options.length > 1) {
     return alternatives(options.map((option) => option.trim()), text);
@@ -165,6 +174,50 @@ function literalOf(text: string, message: string): Literal {
     throw new Error(message);
   }
   return expression.value;
+}
+
+/**
+ * `pattern as name`: the pattern, and the whole value bound to `name`. The ` as `
+ * counts only outside braces, brackets, parentheses and quotes, so `{ as }` is a key.
+ */
+function aliasOf(text: string): { pattern: string; name: string } | undefined {
+  const match = ALIAS.exec(text);
+  if (!match || !isTopLevel(text, match.index)) {
+    return undefined;
+  }
+  return { pattern: text.slice(0, match.index), name: match[1]! };
+}
+
+function aliasPattern(text: string, name: string, whole: string): Pattern {
+  if (LITERAL_WORDS.includes(name)) {
+    throw new Error(`"${name}" cannot be a name: "${whole}"`);
+  }
+  const pattern = patternOf(text.trim());
+  const names = namesOf(pattern);
+  if (names.includes(name)) {
+    throw new Error(`The name "${name}" is bound twice in "${whole}"`);
+  }
+  return { kind: "as", pattern, name };
+}
+
+/** Whether `index` in `text` is outside every brace, bracket, parenthesis and quote. */
+function isTopLevel(text: string, index: number): boolean {
+  let depth = 0;
+  let quote: string | undefined;
+  for (const char of text.slice(0, index)) {
+    if (quote) {
+      if (char === quote) {
+        quote = undefined;
+      }
+    } else if (char === "\"" || char === "'") {
+      quote = char;
+    } else if (char === "{" || char === "(" || char === "[") {
+      depth++;
+    } else if (char === "}" || char === ")" || char === "]") {
+      depth--;
+    }
+  }
+  return depth === 0 && quote === undefined;
 }
 
 /** Alternatives match when one of them does; they bind no names, since only one can. */
@@ -249,6 +302,8 @@ export function namesOf(pattern: Pattern): string[] {
     case "ok":
     case "error":
       return namesOf(pattern.pattern);
+    case "as":
+      return [...namesOf(pattern.pattern), pattern.name];
     default:
       return [];
   }
