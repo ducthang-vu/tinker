@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { describe, expect, test, vi } from "vitest";
 import type { Plugin } from "vite";
-import { compileComponents, type CheckHost, tinkerCompiler } from "./plugin.ts";
+import { compileComponents, type CheckHost, type CompilerOptions, tinkerCompiler } from "./plugin.ts";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
 
@@ -23,8 +23,13 @@ function recordingHost(files: Record<string, string> = {}) {
 }
 
 /** Runs the plugin's transform as Vite would, with a context that resolves `files`. */
-function transform(code: string, id: string, files: Record<string, string> = {}) {
-  const plugin = tinkerCompiler();
+function transform(
+  code: string,
+  id: string,
+  files: Record<string, string> = {},
+  options: CompilerOptions = {},
+) {
+  const plugin = tinkerCompiler(options);
   const hook = plugin.transform as (
     this: unknown,
     code: string,
@@ -50,8 +55,20 @@ describe("tinkerCompiler", () => {
       .toBe("pre");
   });
 
-  test("replaces a template that compiles with its compiled expression, and adds the helpers", async () => {
+  test("leaves a template that compiles as it is, by default", async () => {
     const { result } = transform(`@Component({ selector: "tk-a", template: "<p>ok</p>" }) class A {}`, "/app/a.ts");
+    await expect(result)
+      .resolves
+      .toBeNull();
+  });
+
+  test("with emit, replaces a template that compiles with its compiled expression, and adds the helpers", async () => {
+    const { result } = transform(
+      `@Component({ selector: "tk-a", template: "<p>ok</p>" }) class A {}`,
+      "/app/a.ts",
+      {},
+      { emit: true },
+    );
     const output = (await result) as { code: string; map: unknown };
     expect(output.code)
       .toContain(`import { Maybe as __tinkerMaybe } from "@tinker/functional";`);
@@ -86,9 +103,9 @@ describe("tinkerCompiler", () => {
       @Component({ selector: "tk-a", template: "<div item>ok</div>", imports: [Item] }) class A {}
     `;
     const { result } = transform(code, "/app/a.tsx", { "./item.ts": fixture("item.ts") });
-    const output = (await result) as { code: string };
-    expect(output.code)
-      .toContain("Item");
+    await expect(result)
+      .resolves
+      .toBeNull();
   });
 
   test("warns, and does not check, when an import cannot be resolved", async () => {

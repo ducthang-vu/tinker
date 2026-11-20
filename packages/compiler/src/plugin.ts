@@ -3,10 +3,13 @@
 // For each file that declares a component, it reads the component's template and
 // the directives its `imports` list gives. It runs compileSource on them: a template
 // that does not compile fails the build, with the file, the component and the error.
-// A template that compiles is replaced in the file by the expression that rebuilds
-// its compiled tree (emitCompiled), so the component skips the parser and the
-// compiler at run time. The file's helper imports are added at its top, under names
-// that cannot clash with its own.
+//
+// By default that is all: the source is unchanged, and the templates stay strings.
+// With `emit: true`, a template that compiles is also replaced in the file by the
+// expression that rebuilds its compiled tree (emitCompiled), so the component skips
+// the parser and the compiler at run time. That costs bundle size (see
+// IMPROVEMENTS.md), so it is for an app that measures a gain. The file's helper
+// imports are added at its top, under names that cannot clash with its own.
 //
 // A component is skipped, with a warning, when something it needs is not written as
 // a literal (its template, its `imports` or a directive's selector), or when an
@@ -44,8 +47,15 @@ const HELPER_IMPORTS = [
   "",
 ].join("\n");
 
+/** The plugin's options. */
+export interface CompilerOptions {
+  /** Replace each compiled template with its emitted tree. Off by default. */
+  readonly emit?: boolean;
+}
+
 /** The plugin: compiles the templates of components in each source file it transforms. */
-export function tinkerCompiler(): Plugin {
+export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
+  const emit = options.emit ?? false;
   return {
     name: "tinker:compile-templates",
     enforce: "pre",
@@ -57,7 +67,7 @@ export function tinkerCompiler(): Plugin {
         resolve: async (source, importer) => (await this.resolve(source, importer))?.id ?? null,
         error: (message) => this.error(message),
         warn: (message) => this.warn(message),
-      });
+      }, emit);
       if (replacements.length === 0) {
         return null;
       }
@@ -81,11 +91,15 @@ function isSourceWithComponents(code: string, id: string): boolean {
     && /@(Component|Directive)\b/.test(code);
 }
 
-/** Compiles every component declared in `code`. Fails through `host` on the first error. */
+/**
+ * Compiles every component declared in `code`. Fails through `host` on the first error.
+ * Gives the replacements for the templates to emit: none unless `emit` is set.
+ */
 export async function compileComponents(
   code: string,
   filename: string,
   host: CheckHost,
+  emit = false,
 ): Promise<Replacement[]> {
   const source = readSource(code, filename);
   const replacements: Replacement[] = [];
@@ -97,6 +111,7 @@ export async function compileComponents(
         source,
         filename,
         host,
+        emit,
       );
       if (replacement !== undefined) {
         replacements.push(replacement);
@@ -112,6 +127,7 @@ async function replacementFor(
   source: SourceInfo,
   filename: string,
   host: CheckHost,
+  emit: boolean,
 ): Promise<Replacement | undefined> {
   const where = `${basename(filename)}: <${declaration.name}>`;
   const imports = await importedSelectors(declaration.imports, source, filename, host);
@@ -130,11 +146,9 @@ async function replacementFor(
   return compileSource(template.text, list)
     .match({
       left: (error) => host.error(`${where}: ${error.message}`),
-      right: (nodes) => ({
-        start: template.start,
-        end: template.end,
-        text: emitCompiled(nodes, classes, HELPERS),
-      }),
+      right: (nodes) => emit
+        ? { start: template.start, end: template.end, text: emitCompiled(nodes, classes, HELPERS) }
+        : undefined,
     });
 }
 
