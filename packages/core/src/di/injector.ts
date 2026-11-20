@@ -21,6 +21,8 @@ export interface CreateInjectorOptions {
   readonly providers?: readonly Provider[];
   /** The parent: tokens not provided here are looked up there. */
   readonly parent?: Injector;
+  /** Set by the framework on a component's injector: an `inject(…, { host: true })` stops here. */
+  readonly hostBoundary?: boolean;
 }
 
 /**
@@ -60,6 +62,7 @@ export abstract class Injector {
     const internal = new InternalInjector(
       (options.providers ?? []).map(adaptProvider),
       options.parent && toInternal(options.parent),
+      { hostBoundary: options.hostBoundary },
     );
     return { injector: toPublic(internal), destroy: () => internal.destroy() };
   }

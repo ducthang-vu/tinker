@@ -42,6 +42,7 @@ import {
   Injector,
   type InjectorRef,
   provide,
+  type Provider,
   runInInjectionContext,
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
@@ -142,6 +143,7 @@ export class ComponentFactory {
     child?: ParentContext,
     parentInjector?: Injector,
     owner?: ViewNode,
+    providers: readonly Provider[] = [],
   ): ComponentView<T> {
     const start = this.creating.indexOf(type);
     if (start !== -1) {
@@ -151,7 +153,7 @@ export class ComponentFactory {
     }
     this.creating.push(type);
     try {
-      return this.createView(type, host, child, parentInjector, owner);
+      return this.createView(type, host, child, parentInjector, owner, providers);
     } finally {
       this.creating.pop();
     }
@@ -163,6 +165,7 @@ export class ComponentFactory {
     child?: ParentContext,
     parentInjector?: Injector,
     owner?: ViewNode,
+    providers: readonly Provider[] = [],
   ): ComponentView<T> {
     const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
@@ -185,6 +188,7 @@ export class ComponentFactory {
     // Owned by the parent view of the element, or by the view a container was attached to.
     const node: ViewNode = { owner: child?.node ?? owner };
     const ownInjector = Injector.create({
+      hostBoundary: true,
       providers: [
         ...hostDirectives,
         type,
@@ -203,6 +207,8 @@ export class ComponentFactory {
         ...(metadata.providers ?? []),
         ...hostDirectives.flatMap((directive) =>
           this.directives.metadataOf(directive).providers ?? []),
+        // Given by the component's owner (e.g. a RouterOutlet's route), after the rest.
+        ...providers,
       ],
       parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });

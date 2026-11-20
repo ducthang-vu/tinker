@@ -105,13 +105,13 @@ export class ViewContainerRef {
   ): ComponentRef<T> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
-    const scope = Injector.create({ providers, parent: this.parentInjector });
     const view = this.components.create(
       type,
       undefined,
       undefined,
-      scope.injector,
+      this.parentInjector,
       this.owner?.node,
+      providers,
     );
     const ref = refOf(view);
     this.refs.splice(index, 0, ref);
@@ -120,7 +120,6 @@ export class ViewContainerRef {
       this.refs.splice(this.refs.indexOf(ref), 1);
       this.renderer.removeChild(parent, ref.host.nativeElement);
     });
-    view.addDestroyCallback(() => scope.destroy());
     return ref;
   }
 

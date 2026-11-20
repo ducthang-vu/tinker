@@ -62,19 +62,16 @@ test("a routed component with an outlet shows the next level inside it", () => {
   window.history.replaceState(null, "", "/");
 });
 
-// Known gap: host boundaries are not set by core yet, so this does not fail. Change to `test`
-// when they are.
-test.fails("an outlet in a component its owner does not provide for fails loudly", () => {
+test("an outlet in a component its owner does not provide for fails loudly", () => {
   window.history.replaceState(null, "", "/parent/child");
   const lostRoot = {
     path: "",
     component: Lost,
     children: [{ path: "/parent", component: Parent, children: [{ path: "child", component: Child }] }],
   };
-  const fixture = TestBed.providers(...provideRouter(lostRoot))
+  expect(() => TestBed.providers(...provideRouter(lostRoot))
     .component(Lost)
-    .build();
-  expect(() => fixture.detectChanges())
-    .toThrow();
+    .build())
+    .toThrow(/No provider for ChildActivatedRoute/);
   window.history.replaceState(null, "", "/");
 });
