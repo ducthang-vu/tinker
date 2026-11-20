@@ -1,0 +1,61 @@
+name: GitHub Pages site
+
+# Rebuilds the example app from main and commits it to the gh-pages branch, which
+# GitHub Pages serves. Runs after each merge into main, and by hand.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One update at a time: a newer run waits for the one running.
+concurrency:
+  group: gh-pages-site
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: source
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+
+      - name: Build the example
+        working-directory: source
+        run: |
+          npm ci
+          npm run build:example
+
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+
+      - name: Replace the site and push it
+        working-directory: site
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git rm -r -q --ignore-unmatch assets index.html
+          cp -r ../source/dist/example/. .
+          touch .nojekyll
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The site is already up to date."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Publish the example build from main ($SOURCE_SHA)"
+          git push
