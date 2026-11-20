@@ -19,7 +19,8 @@ export function provideRouter(root: Route): readonly Provider[] {
     provide(ChildActivatedRoute, {
       useFactory: () => {
         const router = inject(Router);
-        return computed(() => Maybe.from(router.activated()[1]));
+        // Readers run only when the shown route changes, by the content of the Maybe.
+        return computed(() => Maybe.from(router.activated()[1]), (a, b) => a.isEqual(b));
       },
     }),
   ];
