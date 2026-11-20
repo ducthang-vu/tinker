@@ -19,6 +19,8 @@ test("the public API exports exactly these values", () => {
         "numberAdapter",
         "RENDERER",
         "TEMPLATE_PARSER",
+        "TemplateSyntaxError",
+        "TinkerTemplateParser",
         "ComponentRef",
         "ViewContainerRef",
         "ChangeDetectionLoopError",

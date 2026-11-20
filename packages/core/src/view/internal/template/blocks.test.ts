@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { BrowserTemplateParser } from "./browser-parser.ts";
+import { TinkerTemplateParser } from "./tinker-parser.ts";
 import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compile.ts";
 import { ExpressionParser } from "./expression.ts";
 
 function compile(source: string): readonly CompiledNode[] {
-  return compileTemplate(new BrowserTemplateParser(document)
+  return compileTemplate(new TinkerTemplateParser()
     .parse(source));
 }
 

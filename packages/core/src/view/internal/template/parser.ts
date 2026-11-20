@@ -1,6 +1,6 @@
 // The parser abstraction. The engine depends only on this interface, so the
-// parser can be swapped: today the browser's own HTML parser
-// (BrowserTemplateParser), later a parser written for Tinker's syntax.
+// parser can be swapped. The engine uses TinkerTemplateParser (tinker-parser.ts),
+// which runs without a DOM.
 
 import type { TemplateNode } from "./ast.ts";
 

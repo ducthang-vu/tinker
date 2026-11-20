@@ -128,10 +128,11 @@ it is on purpose.
 
 ### Where Tinker differs
 
-- **No compiler.** Templates are strings parsed at runtime by the browser's
-  HTML parser, and expressions by a small parser of Tinker's own (no `eval`,
-  so it works under a strict Content Security Policy). The cost: templates
-  are not type-checked, and the browser lowercases names.
+- **No compiler.** Templates are strings parsed at runtime by Tinker's own
+  parser, which reads HTML's syntax without a DOM and reports malformed markup
+  with its line and column, instead of repairing it. Expressions have a small
+  parser of their own (no `eval`, so it works under a strict Content Security
+  Policy). The cost: templates are not type-checked.
 - **Pattern matching in templates.** `@match` tests a value against patterns
   (literals, `truthy` and `falsy`, objects, arrays, guards), and `@if` is the
   simplest case of it. `@map` renders one row per item, keyed by `track`. Angular's
@@ -164,7 +165,7 @@ it is on purpose.
 - **`[name]` binds inputs only.** It sets the input `name` of the directives
   and component on the element, never a DOM property: `[title]` on a plain
   `<p>` is an error, not a write to `p.title`. Input names match
-  case-insensitively, since the browser's parser lowercases them.
+  case-insensitively, as HTML attribute names are.
 - **Input options** name an input for templates and convert its plain
   attribute. `input(0, { name: "size", adapter: numberAdapter })` is set by
   `size="3"` (the code reads a number, `3`), and `[size]="n()"` sets it as the

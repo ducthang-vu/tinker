@@ -9,7 +9,7 @@ import type { Class } from "../../utils/types.ts";
 import { Engine } from "./engine.ts";
 import { DomRenderer } from "./renderer.ts";
 import { signal } from "../../signals/index.ts";
-import { BrowserTemplateParser } from "./template/browser-parser.ts";
+import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { inject, InjectionToken, Injector, provide, runInInjectionContext } from "../../di/index.ts";
@@ -144,7 +144,7 @@ describe("Engine.bootstrap", () => {
     document.body.innerHTML = "<tk-app></tk-app>";
     @Component({ selector: "tk-app", template: "<p>hi</p>" })
     class App {}
-    const parser = new BrowserTemplateParser();
+    const parser = new TinkerTemplateParser();
     const parse = vi.spyOn(parser, "parse");
     const engine = Engine.create({ providers: [provide(TEMPLATE_PARSER, { useValue: parser })] });
 

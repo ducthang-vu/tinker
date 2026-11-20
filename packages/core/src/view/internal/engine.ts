@@ -28,7 +28,7 @@ import { ElementScope } from "./factories/element-scope.ts";
 import { TemplateBuilderFactory } from "./factories/template-builder.ts";
 import { EmbeddedViewFactory } from "./factories/embedded-view-factory.ts";
 import { DomRenderer } from "./renderer.ts";
-import { BrowserTemplateParser } from "./template/browser-parser.ts";
+import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ComponentView, ComponentViewFactory } from "./runtime/component-view.ts";
 import { ComponentRef, refOf } from "./component-ref.ts";
@@ -52,7 +52,7 @@ export interface EngineOptions {
 const DEFAULT_PROVIDERS: readonly Provider[] = [
   provide(DOCUMENT, { useFactory: () => globalThis.document }),
   provide(RENDERER, { useFactory: () => new DomRenderer(inject(DOCUMENT)) }),
-  provide(TEMPLATE_PARSER, { useFactory: () => new BrowserTemplateParser(inject(DOCUMENT)) }),
+  provide(TEMPLATE_PARSER, { useFactory: () => new TinkerTemplateParser() }),
   provide(CLASS_REPLACEMENTS, { useFactory: () => new Map() }),
   ElementContexts,
   Ticker,
