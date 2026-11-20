@@ -166,6 +166,7 @@ it is on purpose.
   and component on the element, never a DOM property: `[title]` on a plain
   `<p>` is an error, not a write to `p.title`. Input names match
   case-insensitively, as HTML attribute names are.
+  Class names keep their case: `[class.isOpen]` adds the class `isOpen`.
 - **Input options** name an input for templates and convert its plain
   attribute. `input(0, { name: "size", adapter: numberAdapter })` is set by
   `size="3"` (the code reads a number, `3`), and `[size]="n()"` sets it as the
