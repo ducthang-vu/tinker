@@ -297,14 +297,17 @@ cover it.
 **To do.** Resolve such values when they are simple (a constant in the same file), and
 report the rest as errors in a strict mode for libraries.
 
-### 2. A compiled template is larger than its string
+### 2. An emitted tree is about 2.2 times the gzipped size of its template
 
-**Problem.** The example's bundle grew from 188.65 kB to 216.58 kB (gzip 36.1 kB to
-37.2 kB). The tree is written as JavaScript objects, so it is bigger than the source it
-replaces.
+**Problem.** Measured on the example's components: the templates are 3,446 B (1,554 B
+gzipped), and their emitted trees are 43,136 B (3,816 B gzipped). Leaving out the
+default fields saves only about 10% of that. The tree's shape, the expressions and the
+nested objects, is the cost. The emitted form is therefore off by default
+(`tinkerCompiler({ emit: true })`), and the check alone keeps the bundle unchanged.
 
-**To do.** Measure the cost per template, then choose: keep the strings for large
-templates, or write the tree in a shorter form the engine reads.
+**To do.** Measure the start-up time a precompiled tree saves before recommending
+`emit` for an app. A shorter encoding would need the expressions kept as source and
+parsed at run time, which the template string already allows.
 
 ### 3. The helper imports need `@tinker/functional` and `@tinker/core/compiler`
 
