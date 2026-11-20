@@ -12,6 +12,8 @@
 export interface Renderer {
   // Creating nodes
   createElement(name: string): Element;
+  /** Add a stylesheet, once per `id`: a later call with the same id adds nothing. */
+  addStyleSheet(id: string, css: string): void;
   createText(value: string): Text;
   createComment(value: string): Comment;
 
@@ -44,6 +46,16 @@ export class DomRenderer implements Renderer {
 
   createElement(name: string): Element {
     return this.document.createElement(name);
+  }
+
+  addStyleSheet(id: string, css: string): void {
+    if (this.document.head.querySelector(`style[data-tk-style="${id}"]`) !== null) {
+      return;
+    }
+    const style = this.document.createElement("style");
+    style.setAttribute("data-tk-style", id);
+    style.textContent = css;
+    this.document.head.append(style);
   }
 
   createText(value: string): Text {
