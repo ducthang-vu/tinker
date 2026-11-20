@@ -82,10 +82,13 @@ test("an anchor without routerlink is not handled, so the browser's default stan
   fixture.destroy();
 });
 
-test("a link that targets another tab is left to the browser", () => {
+test("a link that targets another tab is left to the browser, and keeps its target attribute", () => {
   const fixture = appAt("/todos");
   expect(clickFirstLink(fixture, "a.blank"))
     .toBe(false);
+  expect(fixture.root.query("a.blank")
+    .getAttribute("target"))
+    .toBe("_blank");
   expect(fixture.root.instance.router.url())
     .toBe("/todos");
   fixture.destroy();
