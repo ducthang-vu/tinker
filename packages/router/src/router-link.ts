@@ -37,7 +37,7 @@ export class RouterLink {
     const to = this.routerlink();
     return to === undefined
       ? undefined
-      : (typeof to === "string" ? UrlBuilder.from(to) : UrlBuilder.segments(to))
+      : UrlBuilder.from(to)
           .withQuery(this.queryParams() ?? {})
           .withFragment(this.fragment())
           .build();

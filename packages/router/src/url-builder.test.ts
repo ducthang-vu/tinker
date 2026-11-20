@@ -52,8 +52,8 @@ test("each step returns a new builder, so a builder can be shared", () => {
     .toBe("/todos?tab=done");
 });
 
-test("segments are joined into a path, and the query and hash go in the last one", () => {
-  expect(UrlBuilder.segments(["todos", "7"])
+test("a path given as segments is joined, and the query and hash go in the last one", () => {
+  expect(UrlBuilder.from(["todos", "7"])
     .withQuery({ tab: "done" })
     .build())
     .toBe("todos/7?tab=done");
