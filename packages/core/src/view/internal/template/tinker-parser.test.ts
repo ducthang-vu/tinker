@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { ElementNode } from "./ast.ts";
-import { BrowserTemplateParser } from "./browser-parser.ts";
+import type { ElementNode, TemplateNode } from "./ast.ts";
 import { TemplateSyntaxError, TinkerTemplateParser } from "./tinker-parser.ts";
 
 const parser = new TinkerTemplateParser();
@@ -43,23 +42,213 @@ describe("TinkerTemplateParser", () => {
       .toEqual(["text", "element", "text"]);
   });
 
-  test("gives the same tree as the browser parser for well-formed templates", () => {
-    const browser = new BrowserTemplateParser();
-    const templates = [
-      "<p>Hi <b>you</b></p>",
-      `<button (click)="inc()" [disabled]="busy()" tooltip title="Save">x</button>`,
-      "<p>Count: {{ count() }}</p>",
-      "@if (ok()) { <p>yes</p> } @else { <p>no</p> }",
-      "<tr><td>cell</td></tr>",
-      "<template><span>inside</span></template>",
-      `<tk-counter start="1"></tk-counter>`,
-      `<input [value]="name()">`,
-      "<p>a &amp; b &lt;c&gt;</p>",
-      "<p>x<!-- note -->y</p>",
+  // The trees the browser's HTML parser gave for these well-formed templates, recorded
+  // before it was removed. The parser must keep giving them.
+  test("gives the trees the browser's HTML parser gave for well-formed templates", () => {
+    const cases: readonly [string, readonly TemplateNode[]][] = [
+      ["<p>Hi <b>you</b></p>", [
+        {
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [
+            {
+              kind: "text",
+              value: "Hi ",
+            },
+            {
+              kind: "element",
+              name: "b",
+              attributes: [],
+              children: [
+                {
+                  kind: "text",
+                  value: "you",
+                },
+              ],
+            },
+          ],
+        },
+      ]],
+      ["<button (click)=\"inc()\" [disabled]=\"busy()\" tooltip title=\"Save\">x</button>", [
+        {
+          kind: "element",
+          name: "button",
+          attributes: [
+            {
+              name: "(click)",
+              value: "inc()",
+            },
+            {
+              name: "[disabled]",
+              value: "busy()",
+            },
+            {
+              name: "tooltip",
+              value: "",
+            },
+            {
+              name: "title",
+              value: "Save",
+            },
+          ],
+          children: [
+            {
+              kind: "text",
+              value: "x",
+            },
+          ],
+        },
+      ]],
+      ["<p>Count: {{ count() }}</p>", [
+        {
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [
+            {
+              kind: "text",
+              value: "Count: {{ count() }}",
+            },
+          ],
+        },
+      ]],
+      ["@if (ok()) { <p>yes</p> } @else { <p>no</p> }", [
+        {
+          kind: "text",
+          value: "@if (ok()) { ",
+        },
+        {
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [
+            {
+              kind: "text",
+              value: "yes",
+            },
+          ],
+        },
+        {
+          kind: "text",
+          value: " } @else { ",
+        },
+        {
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [
+            {
+              kind: "text",
+              value: "no",
+            },
+          ],
+        },
+        {
+          kind: "text",
+          value: " }",
+        },
+      ]],
+      ["<tr><td>cell</td></tr>", [
+        {
+          kind: "element",
+          name: "tr",
+          attributes: [],
+          children: [
+            {
+              kind: "element",
+              name: "td",
+              attributes: [],
+              children: [
+                {
+                  kind: "text",
+                  value: "cell",
+                },
+              ],
+            },
+          ],
+        },
+      ]],
+      ["<template><span>inside</span></template>", [
+        {
+          kind: "element",
+          name: "template",
+          attributes: [],
+          children: [
+            {
+              kind: "element",
+              name: "span",
+              attributes: [],
+              children: [
+                {
+                  kind: "text",
+                  value: "inside",
+                },
+              ],
+            },
+          ],
+        },
+      ]],
+      ["<tk-counter start=\"1\"></tk-counter>", [
+        {
+          kind: "element",
+          name: "tk-counter",
+          attributes: [
+            {
+              name: "start",
+              value: "1",
+            },
+          ],
+          children: [],
+        },
+      ]],
+      ["<input [value]=\"name()\">", [
+        {
+          kind: "element",
+          name: "input",
+          attributes: [
+            {
+              name: "[value]",
+              value: "name()",
+            },
+          ],
+          children: [],
+        },
+      ]],
+      ["<p>a &amp; b &lt;c&gt;</p>", [
+        {
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [
+            {
+              kind: "text",
+              value: "a & b <c>",
+            },
+          ],
+        },
+      ]],
+      ["<p>x<!-- note -->y</p>", [
+        {
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [
+            {
+              kind: "text",
+              value: "x",
+            },
+            {
+              kind: "text",
+              value: "y",
+            },
+          ],
+        },
+      ]],
     ];
-    for (const source of templates) {
+    for (const [source, tree] of cases) {
       expect(parser.parse(source), source)
-        .toEqual(browser.parse(source));
+        .toEqual(tree);
     }
   });
 

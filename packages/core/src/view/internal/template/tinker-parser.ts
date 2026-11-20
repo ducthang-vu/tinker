@@ -2,7 +2,7 @@
 // so it runs in Node as well as in the browser (the build step that compiles
 // templates needs that).
 //
-// For a well-formed template it gives the same tree as BrowserTemplateParser.
+// For a well-formed template it gives the tree the browser's HTML parser gave.
 // Where the browser guesses, this parser reports an error, or keeps what was written:
 // - Names keep their case: `[ariaLabel]` stays `[ariaLabel]`.
 // - Any element can be closed by `/>`, not only the HTML void elements (`<input>`,

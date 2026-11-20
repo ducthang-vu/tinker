@@ -6,7 +6,6 @@ test("the public API exports exactly these values", () => {
     .sort())
     .toEqual(
       [
-        "BrowserTemplateParser",
         "Component",
         "DOCUMENT",
         "ElementRef",
