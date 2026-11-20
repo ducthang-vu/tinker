@@ -1,0 +1,204 @@
+import { resolve } from "node:path";
+import { describe, expect, test, vi } from "vitest";
+import type { Plugin } from "vite";
+import { checkComponents, type CheckHost, tinkerCompiler } from "./plugin.ts";
+
+const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
+
+/** A host that records what it is told, and fails the build like Vite does. */
+function recordingHost(files: Record<string, string> = {}) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const host: CheckHost = {
+    resolve: async (source) => files[source] ?? null,
+    error: (message) => {
+      errors.push(message);
+      throw new Error(message);
+    },
+    warn: (message) => {
+      warnings.push(message);
+    },
+  };
+  return { host, errors, warnings };
+}
+
+/** Runs the plugin's transform as Vite would, with a context that resolves `files`. */
+function transform(code: string, id: string, files: Record<string, string> = {}) {
+  const plugin = tinkerCompiler();
+  const hook = plugin.transform as (
+    this: unknown,
+    code: string,
+    id: string,
+  ) => Promise<unknown>;
+  const context = {
+    resolve: vi.fn(async (source: string) =>
+      (files[source] === undefined ? null : { id: files[source] })),
+    error: (message: string): never => {
+      throw new Error(message);
+    },
+    warn: vi.fn(),
+  };
+  return { result: hook.call(context, code, id), context };
+}
+
+describe("tinkerCompiler", () => {
+  test("is a pre-stage plugin named for the check", () => {
+    const plugin = tinkerCompiler() as Plugin & { enforce?: string };
+    expect(plugin.name)
+      .toBe("tinker:compile-check");
+    expect(plugin.enforce)
+      .toBe("pre");
+  });
+
+  test("passes a source that compiles, and returns nothing", async () => {
+    const { result } = transform(`@Component({ selector: "tk-a", template: "<p>ok</p>" }) class A {}`, "/app/a.ts");
+    await expect(result)
+      .resolves
+      .toBeNull();
+  });
+
+  test("ignores files that are not TypeScript, that are in node_modules, or with no component", async () => {
+    const broken = `@Component({ template: "<p>{{ a + }}</p>" }) class A {}`;
+    for (const id of ["/app/style.css", "/app/node_modules/lib/a.ts", "/app/plain.ts"]) {
+      const code = id.endsWith("plain.ts") ? "export const x = 1;" : broken;
+      await expect(transform(code, id).result)
+        .resolves
+        .toBeNull();
+    }
+  });
+
+  test("fails the build with the file, the component and the error", async () => {
+    const { result } = transform(`@Component({ selector: "tk-a", template: "<p>{{ a + }}</p>" }) class A {}`, "/app/a.ts");
+    await expect(result)
+      .rejects
+      .toThrow("a.ts: <A>: ");
+  });
+
+  test("checks a template with an imported directive, found through resolve", async () => {
+    const code = `
+      import { Item } from "./item.ts";
+      @Component({ selector: "tk-a", template: "<div item>ok</div>", imports: [Item] }) class A {}
+    `;
+    const { result } = transform(code, "/app/a.tsx", { "./item.ts": fixture("item.ts") });
+    await expect(result)
+      .resolves
+      .toBeNull();
+  });
+
+  test("warns, and does not check, when an import cannot be resolved", async () => {
+    const code = `
+      import { Missing } from "./missing.ts";
+      @Component({ template: "<p>{{ a + }}</p>", imports: [Missing] }) class A {}
+    `;
+    const { result, context } = transform(code, "/app/a.ts");
+    await expect(result)
+      .resolves
+      .toBeNull();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("Missing has no literal selector, or is not found"));
+  });
+});
+
+describe("checkComponents", () => {
+  test("passes a component whose template and directives compile", async () => {
+    const { host, errors, warnings } = recordingHost({ "./item.ts": fixture("item.ts") });
+    await checkComponents(`
+      import { Item } from "./item.ts";
+      @Component({ selector: "tk-a", template: "<p item>{{ x() }}</p>", imports: [Item] }) class A {}
+    `, "/app/a.ts", host);
+    expect(errors)
+      .toEqual([]);
+    expect(warnings)
+      .toEqual([]);
+  });
+
+  test("fails for a template that does not parse", async () => {
+    const { host, errors } = recordingHost();
+    await expect(checkComponents(`@Component({ template: "<div>" }) class A {}`, "/app/a.ts", host))
+      .rejects
+      .toThrow();
+    expect(errors[0])
+      .toBe("a.ts: <A>: 1:1: <div> is never closed");
+  });
+
+  test("checks a directive declared in the same file, by its name", async () => {
+    const { host, errors } = recordingHost();
+    await checkComponents(`
+      @Directive({ selector: "[local]" }) class Local {}
+      @Component({ template: "<p local>{{ a + }}</p>", imports: [Local] }) class A {}
+    `, "/app/a.ts", host)
+      .catch(() => undefined);
+    expect(errors)
+      .toHaveLength(1);
+  });
+
+  test("passes a component that imports a component, as a child", async () => {
+    const { host, errors } = recordingHost({ "./item.ts": fixture("item.ts") });
+    await checkComponents(`
+      import { Card } from "./item.ts";
+      @Component({ template: "<tk-card></tk-card>", imports: [Card] }) class A {}
+    `, "/app/a.ts", host);
+    expect(errors)
+      .toEqual([]);
+  });
+
+  test("skips a component with a template that is not a literal, without a warning", async () => {
+    const { host, errors, warnings } = recordingHost();
+    await checkComponents(`@Component({ template: html }) class A {}`, "/app/a.ts", host);
+    expect(errors)
+      .toEqual([]);
+    expect(warnings)
+      .toEqual([]);
+  });
+
+  test("skips a component whose imports are not a list of names, with a warning", async () => {
+    const { host, warnings } = recordingHost();
+    await checkComponents(`@Component({ template: "<p></p>", imports: list }) class A {}`, "/app/a.ts", host);
+    expect(warnings)
+      .toEqual(["a.ts: <A> is not checked: its imports are not a list of names"]);
+  });
+
+  test("warns when an imported name is not imported or declared here", async () => {
+    const { host, warnings } = recordingHost();
+    await checkComponents(`@Component({ template: "<p></p>", imports: [Nowhere] }) class A {}`, "/app/a.ts", host);
+    expect(warnings)
+      .toEqual(["a.ts: <A> is not checked: Nowhere has no literal selector, or is not found"]);
+  });
+
+  test("warns when the imported file does not declare the name", async () => {
+    const { host, warnings } = recordingHost({ "./item.ts": fixture("item.ts") });
+    await checkComponents(`
+      import { Nothing } from "./item.ts";
+      @Component({ template: "<p></p>", imports: [Nothing] }) class A {}
+    `, "/app/a.ts", host);
+    expect(warnings)
+      .toHaveLength(1);
+  });
+
+  test("warns when a directive's selector is not a literal", async () => {
+    const { host, warnings } = recordingHost({ "./no-selector.ts": fixture("no-selector.ts") });
+    await checkComponents(`
+      import { Computed } from "./no-selector.ts";
+      @Component({ template: "<p></p>", imports: [Computed] }) class A {}
+    `, "/app/a.ts", host);
+    expect(warnings)
+      .toHaveLength(1);
+  });
+
+  test("warns when a local directive has no literal selector", async () => {
+    const { host, warnings } = recordingHost();
+    await checkComponents(`
+      @Directive({ selector: sel }) class Local {}
+      @Component({ template: "<p></p>", imports: [Local] }) class A {}
+    `, "/app/a.ts", host);
+    expect(warnings)
+      .toHaveLength(1);
+  });
+
+  test("does not check a directive as a component", async () => {
+    const { host, errors } = recordingHost();
+    await checkComponents(`@Directive({ selector: "[a]", template: "<p>{{ a + }}</p>" }) class A {}`, "/app/a.ts", host);
+    expect(errors)
+      .toEqual([]);
+  });
+});

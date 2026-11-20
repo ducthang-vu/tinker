@@ -17,6 +17,9 @@
     "rewriteRelativeImportExtensions": true,
     "noEmit": true,
     "paths": {
+      "@tinker/core/compiler": [
+        "./packages/core/src/view/compiler/index.ts"
+      ],
       "@tinker/*": [
         "./packages/*/src/index.ts"
       ]

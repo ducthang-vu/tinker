@@ -1,0 +1,17 @@
+{
+  "name": "@tinker/compiler",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@babel/core": "^8.1.2",
+    "@babel/types": "^8.1.2",
+    "@tinker/core": "*"
+  },
+  "peerDependencies": {
+    "vite": "*"
+  }
+}
