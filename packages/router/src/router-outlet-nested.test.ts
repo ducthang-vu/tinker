@@ -3,6 +3,7 @@ import { Component } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
 import { provideRouter } from "./provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
+import { Router } from "./router.ts";
 
 @Component({ selector: "tk-child", template: "<p>Child</p>" })
 class Child {}
@@ -34,6 +35,11 @@ test("a routed component with an outlet shows the next level inside it", () => {
   const fixture = TestBed.providers(...provideRouter(ROOT))
     .component(App)
     .build();
+  expect(fixture.root.text())
+    .toBe("ParentChild");
+  fixture.get(Router)
+    .navigate("/parent/child?tab=done");
+  fixture.detectChanges();
   expect(fixture.root.text())
     .toBe("ParentChild");
   fixture.destroy();

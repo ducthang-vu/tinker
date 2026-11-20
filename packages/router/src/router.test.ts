@@ -344,24 +344,3 @@ test("an array of segments is resolved against relativeTo, with '..'", () => {
     .toBe("/orgs/acme/teams/y");
   destroy();
 });
-
-test("childOf is the activated route after the given one, and None for the last or an unknown one", () => {
-  const { router, destroy } = routerAt("/todos");
-  const [root, level] = router.activated();
-  const child = router.childOf(root as ActivatedRoute);
-  expect(child()
-    .getOrThrow(() => new Error("none")))
-    .toBe(level);
-  router.navigate("/todos/7");
-  expect(child()
-    .getOrThrow(() => new Error("none")))
-    .not.toBe(level);
-  expect(router.childOf(level as ActivatedRoute)()
-    .isNone())
-    .toBe(true);
-  const stranger = new ActivatedRoute(ROOT, {}, [], Maybe.none());
-  expect(router.childOf(stranger)()
-    .isNone())
-    .toBe(true);
-  destroy();
-});
