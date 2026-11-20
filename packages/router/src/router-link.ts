@@ -9,11 +9,6 @@ import { pathOf, resolveUrl } from "./resolve-url.ts";
 import { Router } from "./router.ts";
 import { UrlBuilder } from "./url-builder.ts";
 
-/** The path a `routerlink` names: a string as it is, or its segments joined. */
-function pathOfTo(to: string | readonly string[]): string {
-  return typeof to === "string" ? to : to.join("/");
-}
-
 @Directive({
   selector: "a[routerlink]",
   host: {
@@ -42,7 +37,7 @@ export class RouterLink {
     const to = this.routerlink();
     return to === undefined
       ? undefined
-      : UrlBuilder.from(pathOfTo(to))
+      : (typeof to === "string" ? UrlBuilder.from(to) : UrlBuilder.segments(to))
           .withQuery(this.queryParams() ?? {})
           .withFragment(this.fragment())
           .build();

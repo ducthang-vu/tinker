@@ -23,6 +23,11 @@ export class UrlBuilder {
     );
   }
 
+  /** The builder of a path given as segments: `["todos", "7"]` is `"todos/7"`. */
+  static segments(segments: readonly string[]): UrlBuilder {
+    return UrlBuilder.from(segments.join("/"));
+  }
+
   /** The same URL with `params` set over its query: a param replaces the same key. */
   withQuery(params: Readonly<Record<string, string>>): UrlBuilder {
     const query = new URLSearchParams(this.query);
