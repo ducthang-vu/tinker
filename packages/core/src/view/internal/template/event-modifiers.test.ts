@@ -20,10 +20,26 @@ describe("parseEventName", () => {
       .toEqual({ event: "click", modifiers: ["self", "prevent", "stop", "once"] });
   });
 
+  test("ctrl, shift, alt, meta and cmd are modifiers", () => {
+    expect(parseEventName("click.ctrl.shift.alt.meta.cmd", "x")
+      .getOrThrow())
+      .toEqual({ event: "click", modifiers: ["ctrl", "shift", "alt", "meta", "cmd"] });
+  });
+
+  test("a ! in front of a system modifier is a modifier; ! in front of anything else is not", () => {
+    expect(parseEventName("click.!ctrl.!cmd", "x")
+      .getOrThrow())
+      .toEqual({ event: "click", modifiers: ["!ctrl", "!cmd"] });
+    expect(messageOf(parseEventName("click.!enter", "x")))
+      .toContain(`Unknown modifier ".!enter"`);
+    expect(messageOf(parseEventName("click.!toString", "x")))
+      .toContain(`Unknown modifier ".!toString"`);
+  });
+
   test("an unknown modifier is an error naming it and the supported ones", () => {
     const message = messageOf(parseEventName("click.prevnt", "event binding"));
     expect(message)
-      .toBe(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once, .enter, .esc, .escape, .space, .tab, .up, .down, .left, .right`);
+      .toBe(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once, .ctrl, .shift, .alt, .meta, .cmd, .enter, .esc, .escape, .space, .tab, .up, .down, .left, .right`);
   });
 
   test("a missing event name is an error", () => {
