@@ -443,3 +443,23 @@ describe("a :not(...) selector in directive metadata", () => {
       .toBe(false);
   });
 });
+
+describe("a comma list of selectors in directive metadata", () => {
+  test("applies to the elements any of its selectors matches", () => {
+    @Directive({ selector: "button, [tooltip]", host: { "[attr.data-marked]": "'yes'" } })
+    class Marked {}
+    @Component({
+      selector: "tk-list-of-selectors",
+      template: `<button>a</button><i tooltip>b</i><span>c</span>`,
+      imports: [Marked],
+    })
+    class ListOfSelectors {}
+    const engine = Engine.create();
+    const view = engine.createComponent(ListOfSelectors);
+    engine.flush();
+    const marked = (tag: string) => view.host.nativeElement.querySelector(tag)!
+      .hasAttribute("data-marked");
+    expect([marked("button"), marked("i"), marked("span")])
+      .toEqual([true, true, false]);
+  });
+});

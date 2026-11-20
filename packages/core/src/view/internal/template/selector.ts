@@ -8,11 +8,12 @@
 //   .class               .primary
 //   :not(...)            button:not([disabled]), div:not(.a, .b)
 //   and combinations:    button[tooltip].primary
+//   lists:               button, [tooltip].primary, a:not(.x)
 //
-// `:not(...)` holds a simple selector (no tag-less `:not` inside it, and no
-// nested `:not`) or a comma list of them: the element matches when it matches
-// none. Names are compared case-insensitively: the browser's parser lowercases
-// tag and attribute names. Top-level lists (`"[a], [b]"`) are not supported yet.
+// A list matches when any of its selectors does. `:not(...)` holds simple
+// selectors (no nested `:not`) or a comma list of them: the element matches
+// when it matches none. Names are compared case-insensitively: the browser's
+// parser lowercases tag and attribute names.
 
 import { Either, type EitherError } from "@tinker/functional";
 import type { AttributeNode } from "./ast.ts";
@@ -34,15 +35,12 @@ const ATTRIBUTE = /^\[\s*([^\s\]=]+)\s*(?:=\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]*))
 const CLASS = /^\.([\w-]+)/;
 const NOT = /^:not\(([^()]*)\)/;
 
+/** A selector list, as written: it matches an element that any of its selectors matches. */
 export class Selector {
   private constructor(
     /** The source, for error messages. */
     readonly source: string,
-    private readonly tag: string | undefined,
-    private readonly attributes: readonly AttributeCondition[],
-    private readonly classes: readonly string[],
-    /** The selectors from `:not(...)`: the element must match none of them. */
-    private readonly negations: readonly Selector[],
+    private readonly alternatives: readonly Compound[],
   ) {}
 
   /** Parse `source`, or the error explaining what is not supported. */
@@ -50,33 +48,66 @@ export class Selector {
     return Either.from(() => Selector.parseOrThrow(source));
   }
 
-  /**
-   * Whether `element` matches: its tag, every attribute and class required, and
-   * none of the `:not(...)` selectors matching it.
-   */
+  /** Whether `element` matches any of the selectors of the list. */
   matches(element: SelectableElement): boolean {
-    const attributes = new Map(element.attributes.map((a) => [a.name.toLowerCase(), a.value]));
-    const classes = new Set((attributes.get("class") ?? "").split(/\s+/)
-      .filter(Boolean));
-    return (
-      (this.tag === undefined || this.tag === element.name.toLowerCase())
-      && this.attributes.every(({ name, value }) =>
-        attributes.has(name) && (value === undefined || attributes.get(name) === value))
-      && this.classes.every((name) => classes.has(name))
-      && this.negations.every((negation) => !negation.matches(element))
-    );
+    return this.alternatives.some((alternative) => alternative.matches(element));
   }
 
   private static parseOrThrow(source: string): Selector {
-    let rest = source.trim();
-    if (rest === "") {
+    if (source.trim() === "") {
       throw new Error(`Empty selector: write e.g. "[tooltip]" or "tk-card"`);
     }
+    const parts = splitList(source);
+    if (parts.some((part) => part.trim() === "")) {
+      throw new Error(`Empty part in selector list "${source}": write e.g. "[tooltip], tk-card"`);
+    }
+    return new Selector(source, parts.map((part) => Compound.parse(part, source)));
+  }
+}
+
+/** Splits `source` at its commas, except those inside quotes or parentheses. */
+function splitList(source: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let quote: string | undefined;
+  let start = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i]!;
+    if (quote !== undefined) {
+      quote = char === quote ? undefined : quote;
+    } else if (char === "\"" || char === "'") {
+      quote = char;
+    } else if (char === "(") {
+      depth += 1;
+    } else if (char === ")") {
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      parts.push(source.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(source.slice(start));
+  return parts;
+}
+
+/** One selector of a list: a tag, attributes, classes and `:not(...)`s, all required. */
+class Compound {
+  private constructor(
+    private readonly tag: string | undefined,
+    private readonly attributes: readonly AttributeCondition[],
+    private readonly classes: readonly string[],
+    /** The selectors from `:not(...)`: the element must match none of them. */
+    private readonly negations: readonly Compound[],
+  ) {}
+
+  /** Parse one selector of the list `source`, for error messages. `part` is not empty. */
+  static parse(part: string, source: string): Compound {
+    let rest = part.trim();
     const tag = TAG.exec(rest)?.[0];
     rest = rest.slice(tag?.length ?? 0);
     const attributes: AttributeCondition[] = [];
     const classes: string[] = [];
-    const negations: Selector[] = [];
+    const negations: Compound[] = [];
     while (rest !== "") {
       const attribute = ATTRIBUTE.exec(rest);
       const className = CLASS.exec(rest);
@@ -90,10 +121,8 @@ export class Selector {
         classes.push(className[1]!);
         rest = rest.slice(className[0].length);
       } else if (negation) {
-        negations.push(...Selector.parseNegation(source, negation[1]!));
+        negations.push(...Compound.parseNegation(source, negation[1]!));
         rest = rest.slice(negation[0].length);
-      } else if (rest.startsWith(",")) {
-        throw new Error(`Selector lists are not supported yet: "${source}"`);
       } else {
         throw new Error(
           `Unsupported selector "${source}" at "${rest}": `
@@ -101,11 +130,25 @@ export class Selector {
         );
       }
     }
-    return new Selector(source, tag?.toLowerCase(), attributes, classes, negations);
+    return new Compound(tag?.toLowerCase(), attributes, classes, negations);
+  }
+
+  /** Whether `element` matches: its tag, every attribute and class, and no negation. */
+  matches(element: SelectableElement): boolean {
+    const attributes = new Map(element.attributes.map((a) => [a.name.toLowerCase(), a.value]));
+    const classes = new Set((attributes.get("class") ?? "").split(/\s+/)
+      .filter(Boolean));
+    return (
+      (this.tag === undefined || this.tag === element.name.toLowerCase())
+      && this.attributes.every(({ name, value }) =>
+        attributes.has(name) && (value === undefined || attributes.get(name) === value))
+      && this.classes.every((name) => classes.has(name))
+      && this.negations.every((negation) => !negation.matches(element))
+    );
   }
 
   /** The selectors of a `:not(...)` body: a comma list, each part a simple selector. */
-  private static parseNegation(source: string, body: string): Selector[] {
+  private static parseNegation(source: string, body: string): Compound[] {
     return body.split(",")
       .map((part) => {
         if (part.trim() === "") {
@@ -113,7 +156,7 @@ export class Selector {
             `Empty part in ":not(${body})" of "${source}": write e.g. ":not([disabled])"`,
           );
         }
-        return Selector.parseOrThrow(part);
+        return Compound.parse(part, source);
       });
   }
 }
