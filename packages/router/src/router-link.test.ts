@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { Component, inject } from "@tinker/core";
+import { Component } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
 import { provideRouter } from "./provide-router.ts";
 import { RouterLink } from "./router-link.ts";
@@ -8,11 +8,25 @@ import { Router } from "./router.ts";
 
 @Component({
   selector: "tk-todo-list",
-  template: "<a class=\"open\" routerlink=\"7\">open</a><a class=\"nothing\" [routerlink]=\"nowhere\">none</a><a class=\"plain\">plain</a><a class=\"blank\" routerlink=\"7\" target=\"_blank\">new tab</a><a class=\"self\" routerlink=\"7\" target=\"_self\">self</a><a class=\"href\" routerlink=\"7\">href</a>",
+  template: [
+    "<a class=\"open\" routerlink=\"7\">open</a>",
+    "<a class=\"nothing\" [routerlink]=\"nowhere\">none</a>",
+    "<a class=\"plain\">plain</a>",
+    "<a class=\"blank\" routerlink=\"7\" target=\"_blank\">new tab</a>",
+    "<a class=\"self\" routerlink=\"7\" target=\"_self\">self</a>",
+    "<a class=\"href\" routerlink=\"7\">href</a>",
+    "<a class=\"query\" routerlink=\"7\" [queryParams]=\"tab\">query</a>",
+    "<a class=\"fragment\" routerlink=\"7\" fragment=\"top\">fragment</a>",
+    "<a class=\"stateful\" routerlink=\"7\" [state]=\"stash\">state</a>",
+    "<a class=\"segments\" [routerlink]=\"segments\">segments</a>",
+  ].join(""),
   imports: [RouterLink],
 })
 class TodoList {
   readonly nowhere = undefined;
+  readonly tab = { tab: "done" };
+  readonly stash = { scroll: 320 };
+  readonly segments = ["7"];
 }
 
 @Component({ selector: "tk-root", template: "<p>Root</p>" })
@@ -23,9 +37,7 @@ class Root {}
   template: "<a class=\"root\" routerlink=\"/todos\">root</a><router-outlet></router-outlet>",
   imports: [RouterLink, RouterOutlet],
 })
-class App {
-  readonly router = inject(Router);
-}
+class App {}
 
 const ROOT = {
   path: "",
@@ -37,7 +49,7 @@ const ROOT = {
 };
 
 /** Clicks the anchor with the mouse init given; tells whether the default was stopped. */
-function clickFirstLink(
+function clickLink(
   fixture: ReturnType<typeof appAt>,
   anchor = "a.open",
   init: MouseEventInit = {},
@@ -48,7 +60,7 @@ function clickFirstLink(
   return event.defaultPrevented;
 }
 
-/** An app with the router over ROOT, starting at `/todos`. */
+/** An app with the router over ROOT, starting at `url`. */
 function appAt(url: string) {
   window.history.replaceState(null, "", url);
   return TestBed.providers(...provideRouter(ROOT))
@@ -58,68 +70,71 @@ function appAt(url: string) {
 
 test("a click navigates to the relative destination, and stops the browser's default", () => {
   const fixture = appAt("/todos");
-  const prevented = clickFirstLink(fixture);
-  expect(prevented)
+  expect(clickLink(fixture))
     .toBe(true);
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos/7");
   fixture.destroy();
 });
 
 test("a link whose destination is undefined stops the default and navigates nowhere", () => {
   const fixture = appAt("/todos");
-  const prevented = clickFirstLink(fixture, "a.nothing");
-  expect(prevented)
+  expect(clickLink(fixture, "a.nothing"))
     .toBe(true);
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos");
   fixture.destroy();
 });
 
 test("an anchor without routerlink is not handled, so the browser's default stands", () => {
   const fixture = appAt("/todos");
-  const prevented = clickFirstLink(fixture, "a.plain");
-  expect(prevented)
+  expect(clickLink(fixture, "a.plain"))
     .toBe(false);
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos");
   fixture.destroy();
 });
 
 test("a link that targets another tab is left to the browser, and keeps its target attribute", () => {
   const fixture = appAt("/todos");
-  expect(clickFirstLink(fixture, "a.blank"))
+  expect(clickLink(fixture, "a.blank"))
     .toBe(false);
   expect(fixture.root.query("a.blank")
     .getAttribute("target"))
     .toBe("_blank");
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos");
   fixture.destroy();
 });
 
 test("a link that targets this tab is handled", () => {
   const fixture = appAt("/todos");
-  expect(clickFirstLink(fixture, "a.self"))
+  expect(clickLink(fixture, "a.self"))
     .toBe(true);
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos/7");
   fixture.destroy();
 });
 
 test("a modifier or middle click is left to the browser", () => {
   const fixture = appAt("/todos");
-  expect(clickFirstLink(fixture, "a.self", { ctrlKey: true }))
+  expect(clickLink(fixture, "a.open", { ctrlKey: true }))
     .toBe(false);
-  expect(clickFirstLink(fixture, "a.self", { metaKey: true }))
+  expect(clickLink(fixture, "a.open", { metaKey: true }))
     .toBe(false);
-  expect(clickFirstLink(fixture, "a.self", { shiftKey: true }))
+  expect(clickLink(fixture, "a.open", { shiftKey: true }))
     .toBe(false);
-  expect(clickFirstLink(fixture, "a.self", { altKey: true }))
+  expect(clickLink(fixture, "a.open", { altKey: true }))
     .toBe(false);
-  expect(clickFirstLink(fixture, "a.self", { button: 1 }))
+  expect(clickLink(fixture, "a.open", { button: 1 }))
     .toBe(false);
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos");
   fixture.destroy();
 });
@@ -138,9 +153,67 @@ test("the href is the URL a click navigates to, and an anchor with no destinatio
 test("a link in the root component navigates from the root", () => {
   const fixture = appAt("/nowhere");
   window.history.replaceState(null, "", "/todos");
-  expect(clickFirstLink(fixture, "a.root"))
+  expect(clickLink(fixture, "a.root"))
     .toBe(true);
-  expect(fixture.root.instance.router.url())
+  expect(fixture.get(Router)
+    .url())
     .toBe("/todos");
+  fixture.destroy();
+});
+
+test("queryParams are added to the destination, in the href and in the navigation", () => {
+  const fixture = appAt("/todos");
+  expect(fixture.root.query("a.query")
+    .getAttribute("href"))
+    .toBe("/todos/7?tab=done");
+  expect(clickLink(fixture, "a.query"))
+    .toBe(true);
+  expect(fixture.get(Router)
+    .url())
+    .toBe("/todos/7?tab=done");
+  fixture.destroy();
+});
+
+test("a fragment is the hash of the destination", () => {
+  const fixture = appAt("/todos");
+  expect(clickLink(fixture, "a.fragment"))
+    .toBe(true);
+  expect(fixture.get(Router)
+    .url())
+    .toBe("/todos/7#top");
+  fixture.destroy();
+});
+
+test("state is the state of the history entry a click creates", () => {
+  const fixture = appAt("/todos");
+  expect(clickLink(fixture, "a.stateful"))
+    .toBe(true);
+  expect(window.history.state)
+    .toEqual({ scroll: 320 });
+  fixture.destroy();
+});
+
+test("aria-current is page on the link to the current path, and absent elsewhere", () => {
+  const fixture = appAt("/todos");
+  expect(fixture.root.query("a.root")
+    .getAttribute("aria-current"))
+    .toBe("page");
+  expect(fixture.root.query("a.open")
+    .getAttribute("aria-current"))
+    .toBeNull();
+  fixture.get(Router)
+    .navigate("/todos/7");
+  fixture.detectChanges();
+  expect(fixture.root.query("a.root")
+    .getAttribute("aria-current"))
+    .toBeNull();
+  fixture.destroy();
+});
+
+test("a destination given as segments is joined, and resolved against the route", () => {
+  const fixture = appAt("/todos");
+  expect(fixture.root.query("a.segments")
+    .getAttribute("href"))
+    .toBe("/todos/7");
   fixture.destroy();
 });

@@ -5,6 +5,7 @@
 // of the path, and empty segments are ignored, so "/todos/" is "/todos".
 
 import type { Route } from "./route.ts";
+import { UrlBuilder } from "./url-builder.ts";
 
 /** The params a path read, by name. */
 export type RouteParams = Readonly<Record<string, string>>;
@@ -24,7 +25,7 @@ export interface RouteMatch {
 
 /** The levels from the root down to the leaf that match `url`, or undefined when none does. */
 export function matchChain(root: Route, url: string): readonly LevelMatch[] | undefined {
-  return levelsFrom(root, segmentsOf(url.replace(/[?#].*$/, "")));
+  return levelsFrom(root, UrlBuilder.from(url).segments);
 }
 
 /** The leaf that matches `url`, with the params of every level, or undefined when none does. */
@@ -71,7 +72,7 @@ function consume(
   pattern: string,
   segments: readonly string[],
 ): { params: RouteParams; count: number } | undefined {
-  const parts = segmentsOf(pattern);
+  const parts = UrlBuilder.from(pattern).segments;
   if (parts.length > segments.length) {
     return undefined;
   }
@@ -87,10 +88,4 @@ function consume(
     ),
     count: parts.length,
   };
-}
-
-/** The non-empty segments of a path: "/todos/7" is ["todos", "7"]. */
-function segmentsOf(path: string): string[] {
-  return path.split("/")
-    .filter((segment) => segment !== "");
 }

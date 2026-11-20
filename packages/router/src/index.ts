@@ -6,6 +6,7 @@ export type { NavigateOptions } from "./router.ts";
 export { ActivatedRoute } from "./activated-route.ts";
 export { RouterOutlet } from "./router-outlet.ts";
 export { RouterLink } from "./router-link.ts";
+export { UrlBuilder } from "./url-builder.ts";
 export { ChildActivatedRoute } from "./child-activated-route.ts";
 export type { RouteMatch, RouteParams } from "./match.ts";
 export { provideRouter } from "./provide-router.ts";
