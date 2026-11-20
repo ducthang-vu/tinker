@@ -269,6 +269,25 @@ test("the data of a route is its static data", () => {
   destroy();
 });
 
+test("a route redirect moves the navigation, and adds one history entry for the target", async () => {
+  const { router, fake, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [
+        { ...TODOS_ROUTE, redirect: (navigation) => (navigation.url === "/todos/7" ? "/todos" : undefined) },
+        { path: "/home", component: Home },
+      ],
+    },
+  });
+  await router.navigate("/todos/7");
+  expect(router.url())
+    .toBe("/todos");
+  expect(fake.changes)
+    .toEqual(["push /todos"]);
+  destroy();
+});
+
 test("a route with no static data has empty data", () => {
   const { router, destroy } = routerAt("/todos");
   expect(router.activated()[1]?.data)

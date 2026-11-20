@@ -9,20 +9,24 @@ leaves the URL, the history and the activated routes as they were.
 
 1. **Match.** The URL is matched against the route tree. No match fails with
    `NoRouteError`.
-2. **Guards.** The `canActivate` guards of every matched route run, root
+2. **Redirect.** The `redirect` function of every matched route runs, root
+   first. The first one that returns a URL decides: the navigation is sent to
+   that URL, matched and checked again from step 1, keeping the navigation's
+   state. A function returning `undefined` leaves the navigation alone.
+3. **Guards.** The `canActivate` guards of every matched route run, root
    first, each route's in order. Each guard returns a decision:
    - `true`: go on to the next guard.
    - `false`: the navigation fails with `NavigationRejectedError`.
-   - a string: redirect to that URL. The redirect target is matched and
-     guarded again from step 1, keeping the navigation's state. More than 10
-     redirects fail the navigation with `NavigationFailedError`.
-3. **Commit.** The URL and the activated routes change. A level that stays
+   - a string: redirect to that URL, as in step 2.
+   More than 10 redirects, from either step, fail the navigation with
+   `NavigationFailedError`.
+4. **Commit.** The URL and the activated routes change. A level that stays
    (same route, params and segments) keeps its activated route.
 
-A guard runs in the router's injection context, so it can call `inject`. It
-may return its decision, or a `Task` of it for work that takes time. A throw
-or a failing task fails the navigation with `NavigationFailedError`, whose
-`cause` is the original error.
+A redirect and a guard run in the router's injection context, so they can call
+`inject`. A redirect is synchronous. A guard may return its decision, or a
+`Task` of it for work that takes time. A throw or a failing task fails the
+navigation with `NavigationFailedError`, whose `cause` is the original error.
 
 ## Syntax
 
@@ -41,6 +45,7 @@ const ROOT: Route = {
       canActivate: [
         () => (inject(Session).signedIn() ? true : "/login"),
       ],
+      redirect: (navigation) => (navigation.url === "/todos" ? "/todos/1" : undefined),
       children: [
         { path: ":id", component: TodoDetail },
       ],

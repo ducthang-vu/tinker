@@ -385,3 +385,12 @@ kept, but the entry's own URL is lost.
 **To do.** Move the browser back once with `history.go(delta)` where possible.
 That needs a way to tell a rejected move from a new entry, and is untested in
 browsers.
+
+### 5. A redirect cannot wait
+
+**Problem.** `Route.redirect` is synchronous, so a redirect that needs a fetch
+(a lookup of the target by id, say) must be a guard that returns a `Task`
+instead, and the guard runs after the other redirects.
+
+**To do.** Accept a `Task` from `redirect` too, with the same waiting as a
+guard.

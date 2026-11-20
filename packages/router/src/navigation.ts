@@ -32,6 +32,12 @@ export type GuardResult = boolean | string;
  */
 export type Guard = (navigation: Navigation) => GuardResult | Task<GuardResult, unknown>;
 
+/**
+ * A redirect of a route: the URL the navigation goes to instead, or `undefined` to leave the
+ * navigation as it is. It is synchronous, and runs in the injection context of the router.
+ */
+export type Redirect = (navigation: Navigation) => string | undefined;
+
 /** A URL no route matches. The URL does not change. */
 export class NoRouteError extends Error {
   constructor(readonly url: string) {

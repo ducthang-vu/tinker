@@ -255,3 +255,105 @@ describe("guards", () => {
       .toBe(true);
   });
 });
+
+describe("redirects of a route", () => {
+  test("a route redirect that returns a URL sends the navigation there, before any guard runs", () => {
+    const guarded: string[] = [];
+    const root = treeWith({
+      todos: {
+        redirect: () => "/home",
+        canActivate: [() => {
+          guarded.push("guard");
+          return true;
+        }],
+      },
+    });
+    const plan = planNow(contextFor(root), "/todos/7");
+    expect("ok" in plan && plan.ok.url)
+      .toBe("/home");
+    expect(guarded)
+      .toEqual([]);
+  });
+
+  test("a redirect that returns undefined leaves the navigation to the guards", () => {
+    const root = treeWith({
+      todos: { redirect: () => undefined },
+    });
+    const plan = planNow(contextFor(root), "/todos");
+    expect("ok" in plan && plan.ok.url)
+      .toBe("/todos");
+  });
+
+  test("a redirect gets the navigation", () => {
+    const seen: string[] = [];
+    const root = treeWith({
+      todos: {
+        redirect: (navigation) => {
+          seen.push(navigation.url);
+          return undefined;
+        },
+      },
+    });
+    planNow(contextFor(root), "/todos/7");
+    expect(seen)
+      .toEqual(["/todos/7"]);
+  });
+
+  test("the routes are asked root first, and the first redirect that returns a URL decides", () => {
+    const asked: string[] = [];
+    const root = treeWith({
+      root: {
+        redirect: (navigation) => {
+          asked.push("root");
+          return navigation.url === "/todos" ? "/home" : undefined;
+        },
+      },
+      todos: {
+        redirect: () => {
+          asked.push("todos");
+          return "/elsewhere";
+        },
+      },
+    });
+    const plan = planNow(contextFor(root), "/todos");
+    expect("ok" in plan && plan.ok.url)
+      .toBe("/home");
+    expect(asked[0])
+      .toBe("root");
+    expect(asked)
+      .not.toContain("todos");
+  });
+
+  test("a redirect can call inject: it runs in the injection context of the router", () => {
+    const TARGET = new InjectionToken<string>("target");
+    const root = treeWith({
+      todos: { redirect: () => inject(TARGET) },
+    });
+    const plan = planNow(contextFor(root, {
+      providers: [provide(TARGET, { useValue: "/home" })],
+    }), "/todos");
+    expect("ok" in plan && plan.ok.url)
+      .toBe("/home");
+  });
+
+  test("a redirect that throws fails the navigation", () => {
+    const root = treeWith({
+      todos: {
+        redirect: () => {
+          throw new Error("no config");
+        },
+      },
+    });
+    expect(errorOf(planNow(contextFor(root), "/todos")))
+      .toBeInstanceOf(NavigationFailedError);
+  });
+
+  test("redirects that never end fail the navigation, as guard redirects do", () => {
+    const root = treeWith({
+      todos: { redirect: () => "/todos" },
+    });
+    const error = errorOf(planNow(contextFor(root), "/todos"));
+    expect((error as NavigationFailedError).cause)
+      .toEqual(new Error("More than 10 redirects"));
+  });
+});

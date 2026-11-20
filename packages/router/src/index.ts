@@ -15,6 +15,7 @@ export type {
   Navigation,
   NavigationError,
   NavigationResult,
+  Redirect,
 } from "./navigation.ts";
 export { ActivatedRoute } from "./activated-route.ts";
 export { RouterOutlet } from "./router-outlet.ts";

@@ -80,16 +80,45 @@ function planAt(
   const levels = chain.slice(1);
   const kept = keptLevels(context.activated, levels);
   return Task.flatMap(
-    runGuards(context.injector, navigation, chain),
-    (verdict): Outcome<Plan> => {
-      if (verdict === false) {
-        return Task.fail(new NavigationRejectedError(url));
+    runRedirects(context.injector, navigation, chain),
+    (target): Outcome<Plan> => {
+      if (target !== undefined) {
+        return redirect(context, target, state, redirects);
       }
-      if (typeof verdict === "string") {
-        return redirect(context, verdict, state, redirects);
-      }
-      return Task.succeed({ url, state, chain, kept });
+      return Task.flatMap(
+        runGuards(context.injector, navigation, chain),
+        (verdict): Outcome<Plan> => {
+          if (verdict === false) {
+            return Task.fail(new NavigationRejectedError(url));
+          }
+          if (typeof verdict === "string") {
+            return redirect(context, verdict, state, redirects);
+          }
+          return Task.succeed({ url, state, chain, kept });
+        },
+      );
     },
+  );
+}
+
+/**
+ * The URL the redirects of the matched levels send the navigation to, root first: the first
+ * redirect that returns one decides. `undefined` when none does.
+ */
+function runRedirects(
+  injector: Injector,
+  navigation: Navigation,
+  chain: readonly LevelMatch[],
+): Outcome<string | undefined> {
+  const redirects = chain.flatMap((level) =>
+    level.route.redirect === undefined ? [] : [level.route.redirect]);
+  return redirects.reduce<Outcome<string | undefined>>(
+    (previous, redirectOf) =>
+      Task.flatMap(previous, (target): Outcome<string | undefined> =>
+        target === undefined
+          ? step(injector, navigation, () => redirectOf(navigation))
+          : Task.succeed(target)),
+    Task.succeed(undefined),
   );
 }
 

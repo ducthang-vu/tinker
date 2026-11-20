@@ -3,7 +3,7 @@
 // the tree, from the root.
 
 import type { Class } from "@tinker/core";
-import type { Guard } from "./navigation.ts";
+import type { Guard, Redirect } from "./navigation.ts";
 
 export interface Route {
   /**
@@ -27,4 +27,11 @@ export interface Route {
    * guard of a parent route runs before those of its children. See navigation.ts.
    */
   readonly canActivate?: readonly Guard[];
+  /**
+   * Sends a navigation that matches this route to another URL, before any guard runs. It returns
+   * that URL, or `undefined` to leave the navigation alone. The routes a URL matches are asked
+   * root first, and the first one that returns a URL decides. It runs in the injection context of
+   * the router. See navigation.ts.
+   */
+  readonly redirect?: Redirect;
 }
