@@ -166,6 +166,17 @@ describe("fixture queries", () => {
     ref.destroy();
   });
 
+  test("a selector with :not(...) excludes the elements it names", () => {
+    const ref = TestBed.component(List)
+      .build();
+    expect(ref.root.queryAll("li:not([mark])")
+      .map((item) => item.element.textContent))
+      .toEqual(["b"]);
+    expect(ref.root.queryAll("li:not([mark]), li[mark]"))
+      .toHaveLength(2);
+    ref.destroy();
+  });
+
   test("a class finds the directive and component instances, nested ones included", () => {
     const ref = TestBed.component(List)
       .build();

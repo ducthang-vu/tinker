@@ -420,3 +420,26 @@ describe("ElementRef", () => {
       .toBe(b.host);
   });
 });
+
+describe("a :not(...) selector in directive metadata", () => {
+  test("applies to the elements its selector does not exclude", () => {
+    @Directive({ selector: "button:not([disabled])", host: { "[attr.data-enabled]": "'yes'" } })
+    class Enabled {}
+    @Component({
+      selector: "tk-buttons",
+      template: `<button>a</button><button disabled>b</button><a>c</a>`,
+      imports: [Enabled],
+    })
+    class Buttons {}
+    const engine = Engine.create();
+    const view = engine.createComponent(Buttons);
+    engine.flush();
+    const [first, second] = Array.from(view.host.nativeElement.querySelectorAll("button"));
+    expect(first!.getAttribute("data-enabled"))
+      .toBe("yes");
+    expect(second!.hasAttribute("data-enabled"))
+      .toBe(false);
+    expect(view.host.nativeElement.querySelector("a")!.hasAttribute("data-enabled"))
+      .toBe(false);
+  });
+});
