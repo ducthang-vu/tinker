@@ -7,7 +7,7 @@ import { computed, Directive, input, inject } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
 import { pathOf, resolveUrl } from "./resolve-url.ts";
 import { Router } from "./router.ts";
-import { pathPartOf, withParts } from "./url-parts.ts";
+import { UrlBuilder } from "./url-builder.ts";
 
 /** The path a `routerlink` names: a string as it is, or its segments joined. */
 function pathOfTo(to: string | readonly string[]): string {
@@ -42,7 +42,10 @@ export class RouterLink {
     const to = this.routerlink();
     return to === undefined
       ? undefined
-      : withParts(pathOfTo(to), this.queryParams(), this.fragment());
+      : UrlBuilder.from(pathOfTo(to))
+          .withQuery(this.queryParams() ?? {})
+          .withFragment(this.fragment())
+          .build();
   });
 
   /** The URL a click navigates to, resolved: the href of the link. */
@@ -54,7 +57,8 @@ export class RouterLink {
   /** `page` while the link's path is the current one, for assistive technology. */
   private readonly ariaCurrent = computed(() => {
     const href = this.href();
-    return href !== undefined && pathPartOf(href) === pathPartOf(this.router.url())
+    const current = UrlBuilder.from(this.router.url()).path;
+    return href !== undefined && UrlBuilder.from(href).path === current
       ? "page"
       : undefined;
   });
