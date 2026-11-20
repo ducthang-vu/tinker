@@ -353,6 +353,44 @@ describe("@match", () => {
     app.destroy();
   });
 
+  test("open ranges and same-name alternatives pick their branches and bind names", async () => {
+    @Component({
+      selector: "tk-open",
+      template: "@match age() { @case 18.. { adult } @case ..17 { minor } @default { none } }",
+    })
+    class OpenRange {
+      readonly age = signal(30);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(OpenRange, { host: el });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("adult");
+    app.root.instance.age.set(12);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("minor");
+    app.destroy();
+
+    @Component({
+      selector: "tk-either",
+      template: "@match res() { @case { status: \"ok\", value } | { status: \"cached\", value } { {{ value }} } @default { none } }",
+    })
+    class SameNames {
+      readonly res = signal<{ status: string; value: number }>({ status: "cached", value: 7 });
+    }
+    const el2 = document.createElement("section");
+    const app2 = bootstrap(SameNames, { host: el2 });
+    await tick();
+    expect(el2.textContent!.trim())
+      .toBe("7");
+    app2.root.instance.res.set({ status: "ok", value: 8 });
+    await tick();
+    expect(el2.textContent!.trim())
+      .toBe("8");
+    app2.destroy();
+  });
+
   test("an as-pattern shows the whole value under its alias, and its names too", async () => {
     @Component({
       selector: "tk-alias",
