@@ -24,6 +24,10 @@
 //   bindings are set after the instance is created.
 // - An optional input (`input(defaultValue)`) has its default until it is
 //   bound, so it can always be read.
+// - Options (`input(defaultValue, { name, adapter })`): `name` is the name templates
+//   use, in `[name]` and in a plain `name="…"` attribute; `adapter` turns that
+//   attribute's string into the input's type (see input-adapters.ts). Template
+//   bindings are already typed, so they skip the adapter.
 
 import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal, type Signal, signal, untracked } from "../../../signals/index.ts";
@@ -59,24 +63,47 @@ export class InputNotBoundError extends Error {
   }
 }
 
+/** The options of `input()`: the name templates use, and how a plain attribute's string is read. */
+export interface InputOptions<T> {
+  /**
+   * The name templates use for the input: `[name]="…"` and the plain attribute
+   * `name="…"`. Without it, the property's name is used. Code always uses the property.
+   */
+  readonly name?: string;
+  /**
+   * Turns the string of a plain attribute (`size="3"`) into the input's type, e.g.
+   * `numberAdapter`. Template bindings (`[size]="3"`) are already typed and skip it.
+   * Without one, the string is set as it is.
+   */
+  readonly adapter?: (value: string) => T;
+}
+
 /** The framework's side of an input: binds values to the signal the directive reads. */
 export class InputBinding<T> {
   private readonly state: Signal<Maybe<T>>;
   private label = Maybe.none<string>();
   /** The signal the directive reads. */
   readonly signal: InputSignal<T>;
+  /** The name templates use for the input, if it has one (`input(…, { name })`). */
+  readonly alias: string | undefined;
+  private readonly adapter: ((value: string) => T) | undefined;
 
-  private constructor(initial: Maybe<T>) {
+  private constructor(initial: Maybe<T>, options: InputOptions<T>) {
     this.state = signal(initial);
+    this.alias = options.name;
+    this.adapter = options.adapter;
     this.signal = computed(() =>
       this.state()
         .getOrThrow(() => new InputNotBoundError(this.label)),
     ) as InputSignal<T>;
   }
 
-  /** @internal Use `input()`. @param initial The default value, for an optional input. */
-  static create<T>(initial: Maybe<T>): InputBinding<T> {
-    return new InputBinding(initial);
+  /**
+   * @internal Use `input()`. @param initial The default value, for an optional input.
+   * @param options The name and adapter, if any.
+   */
+  static create<T>(initial: Maybe<T>, options: InputOptions<T> = {}): InputBinding<T> {
+    return new InputBinding(initial, options);
   }
 
   /** Name the input, for error messages (e.g. `"text" of Tooltip`). */
@@ -87,6 +114,11 @@ export class InputBinding<T> {
   /** Set the input's value. The directive's signal updates like any signal. */
   bind(value: T): void {
     this.state.set(Maybe.some(value));
+  }
+
+  /** Set the input from a plain attribute's string: through the adapter, if it has one. */
+  bindText(text: string): void {
+    this.bind(this.adapter === undefined ? (text as T) : this.adapter(text));
   }
 
   /** The current value, if there is one, read without tracking it. */
@@ -110,12 +142,38 @@ export function input<T>(): InputSignal<T>;
  * `defaultValue` until the template binding of the same name sets it.
  */
 export function input<T>(defaultValue: T): InputSignal<T>;
-export function input<T>(...defaultValue: [] | [T]): InputSignal<T> {
-  // A rest parameter tells "no default" apart from a default of `undefined`.
-  const initial = defaultValue.length === 0 ? Maybe.none<T>() : Maybe.some(defaultValue[0] as T);
-  const binding = InputBinding.create(initial);
+/**
+ * Declare an input with options: `readonly size = input({ adapter: numberAdapter })`
+ * (required), or `readonly label = input("", { name: "title" })` (optional, and set by
+ * `title="…"` in templates). A plain attribute's string goes through the adapter.
+ */
+export function input<T>(options: InputOptions<T>): InputSignal<T>;
+/** Declare an optional input with options: `input(0, { adapter: numberAdapter })`. */
+export function input<T>(defaultValue: T, options: InputOptions<T>): InputSignal<T>;
+export function input<T>(...args: unknown[]): InputSignal<T> {
+  const [first, second] = args;
+  if (args.length === 0) {
+    return createInput(Maybe.none<T>(), {});
+  }
+  if (args.length === 1 && isOptions(first)) {
+    return createInput(Maybe.none<T>(), first as InputOptions<T>);
+  }
+  return createInput(Maybe.some(first as T), (second ?? {}) as InputOptions<T>);
+}
+
+function createInput<T>(initial: Maybe<T>, options: InputOptions<T>): InputSignal<T> {
+  const binding = InputBinding.create(initial, options);
   bindings.set(binding.signal, binding as InputBinding<unknown>);
   return binding.signal;
+}
+
+/**
+ * Whether the single argument of `input()` is its options rather than a default value:
+ * an object with a `name` or an `adapter` key. An object default with one of those keys
+ * must be passed with options: `input(value, {})`.
+ */
+function isOptions(value: unknown): boolean {
+  return typeof value === "object" && value !== null && ("name" in value || "adapter" in value);
 }
 
 /**
@@ -143,18 +201,28 @@ export function inputsOf(directive: object): ReadonlyMap<string, InputBinding<un
 }
 
 /**
+ * The inputs of `instance` by the name templates use: the input's `name` option if it
+ * has one, else its property's name.
+ */
+function templateInputsOf(instance: object): [string, InputBinding<unknown>][] {
+  return [...inputsOf(instance)]
+    .map(([property, binding]) => [binding.alias ?? property, binding]);
+}
+
+/**
  * Bind each input of `instance` named like one of `attributes` (plain
- * attributes of its element) to the attribute's value. Names are compared
- * case-insensitively: the browser's parser lowercases attribute names.
+ * attributes of its element) to the attribute's value, through the input's adapter
+ * if it has one. Names are compared case-insensitively: the browser's parser
+ * lowercases attribute names.
  */
 export function bindInputsToAttributes(
   instance: object,
   attributes: readonly { readonly name: string; readonly value: string }[],
 ): void {
-  const inputs = [...inputsOf(instance)];
+  const inputs = templateInputsOf(instance);
   for (const attribute of attributes) {
     Maybe.from(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
-      .ifSome(([, input]) => input.bind(attribute.value));
+      .ifSome(([, input]) => input.bindText(attribute.value));
   }
 }
 
@@ -164,7 +232,7 @@ export function bindInputsToAttributes(
  * directives and the component on one element.
  */
 export function inputsNamed(instances: readonly object[], name: string): InputBinding<unknown>[] {
-  return instances.flatMap((instance) => [...inputsOf(instance)]
+  return instances.flatMap((instance) => templateInputsOf(instance)
     .filter(([inputName]) => inputName.toLowerCase() === name.toLowerCase())
     .map(([, input]) => input));
 }
