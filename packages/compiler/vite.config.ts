@@ -13,13 +13,15 @@ export default defineConfig({
     alias: workspaceAlias,
   },
   build: {
-    ssr: "src/index.ts",
+    ssr: true,
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
+      // index.js is the plugin; bin.js is the tinker-check command.
+      input: { index: "src/index.ts", bin: "bin/tinker-check.ts" },
       output: {
         format: "es",
-        entryFileNames: "index.js",
+        entryFileNames: "[name].js",
       },
     },
   },

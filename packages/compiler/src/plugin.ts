@@ -51,11 +51,22 @@ const HELPER_IMPORTS = [
 export interface CompilerOptions {
   /** Replace each compiled template with its emitted tree. Off by default. */
   readonly emit?: boolean;
+  /**
+   * Fail the build for a component that cannot be checked (a template, imports or a
+   * selector that is not a literal), instead of skipping it with a warning. Off by default.
+   */
+  readonly strict?: boolean;
+}
+
+/** How a compile run behaves: see CompilerOptions. */
+export interface CompileMode {
+  readonly emit: boolean;
+  readonly strict: boolean;
 }
 
 /** The plugin: compiles the templates of components in each source file it transforms. */
 export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
-  const emit = options.emit ?? false;
+  const mode: CompileMode = { emit: options.emit ?? false, strict: options.strict ?? false };
   return {
     name: "tinker:compile-templates",
     enforce: "pre",
@@ -67,7 +78,7 @@ export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
         resolve: async (source, importer) => (await this.resolve(source, importer))?.id ?? null,
         error: (message) => this.error(message),
         warn: (message) => this.warn(message),
-      }, emit);
+      }, mode);
       if (replacements.length === 0) {
         return null;
       }
@@ -92,33 +103,49 @@ function isSourceWithComponents(code: string, id: string): boolean {
 }
 
 /**
- * Compiles every component declared in `code`. Fails through `host` on the first error.
- * Gives the replacements for the templates to emit: none unless `emit` is set.
+ * Compiles every component declared in `code`. Fails through `host` on the first error,
+ * and on a component that cannot be checked when `mode.strict` is set. Gives the
+ * replacements for the templates to emit: none unless `mode.emit` is set.
  */
 export async function compileComponents(
   code: string,
   filename: string,
   host: CheckHost,
-  emit = false,
+  mode: CompileMode = { emit: false, strict: false },
 ): Promise<Replacement[]> {
   const source = readSource(code, filename);
   const replacements: Replacement[] = [];
   for (const declaration of source.declarations) {
-    if (declaration.kind === "component" && declaration.template !== undefined) {
-      const replacement = await replacementFor(
-        declaration,
-        declaration.template,
-        source,
-        filename,
-        host,
-        emit,
-      );
-      if (replacement !== undefined) {
-        replacements.push(replacement);
-      }
+    if (declaration.kind !== "component") {
+      continue;
+    }
+    const where = `${basename(filename)}: <${declaration.name}>`;
+    if (declaration.template === undefined) {
+      skip(host, mode, where, "its template is not a literal");
+      continue;
+    }
+    const replacement = await replacementFor(
+      declaration,
+      declaration.template,
+      source,
+      filename,
+      host,
+      mode,
+    );
+    if (replacement !== undefined) {
+      replacements.push(replacement);
     }
   }
   return replacements;
+}
+
+/** A component that cannot be checked: an error in strict mode, a warning otherwise. */
+function skip(host: CheckHost, mode: CompileMode, where: string, reason: string): void {
+  if (mode.strict) {
+    host.error(`${where} cannot be checked: ${reason}`);
+  } else {
+    host.warn(`${where} is not compiled: ${reason}`);
+  }
 }
 
 async function replacementFor(
@@ -127,12 +154,12 @@ async function replacementFor(
   source: SourceInfo,
   filename: string,
   host: CheckHost,
-  emit: boolean,
+  mode: CompileMode,
 ): Promise<Replacement | undefined> {
   const where = `${basename(filename)}: <${declaration.name}>`;
   const imports = await importedSelectors(declaration.imports, source, filename, host);
   if (!imports.isRead) {
-    host.warn(`${where} is not compiled: ${imports.reason}`);
+    skip(host, mode, where, imports.reason);
     return undefined;
   }
   // Each import gets a placeholder class named as the file names it, so the emitted
@@ -146,7 +173,7 @@ async function replacementFor(
   return compileSource(template.text, list)
     .match({
       left: (error) => host.error(`${where}: ${error.message}`),
-      right: (nodes) => emit
+      right: (nodes) => mode.emit
         ? { start: template.start, end: template.end, text: emitCompiled(nodes, classes, HELPERS) }
         : undefined,
     });
