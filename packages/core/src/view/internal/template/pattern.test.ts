@@ -99,3 +99,67 @@ describe("parsePattern: the remaining patterns", () => {
       .toEqual({ kind: "bind", name: "knot" });
   });
 });
+
+describe("parsePattern: as-patterns", () => {
+  test("`as name` binds the whole value, next to the pattern's own names", () => {
+    expect(parsePattern("{ id, name } as user")
+      .getOrThrow())
+      .toEqual({
+        kind: "as",
+        name: "user",
+        pattern: {
+          kind: "object",
+          fields: [{ key: "id", pattern: { kind: "bind", name: "id" } }, { key: "name", pattern: { kind: "bind", name: "name" } }],
+        },
+      });
+    expect(namesOf(parsePattern("{ id, name } as user")
+      .getOrThrow()))
+      .toEqual(["id", "name", "user"]);
+  });
+
+  test("the alias covers the whole pattern, alternatives included", () => {
+    expect(parsePattern(`"a" | "b" as s`)
+      .getOrThrow())
+      .toEqual({
+        kind: "as",
+        name: "s",
+        pattern: { kind: "alt", options: [{ kind: "value", value: "a" }, { kind: "value", value: "b" }] },
+      });
+  });
+
+  test("an array with a rest can be aliased", () => {
+    expect(namesOf(parsePattern("[first, ...rest] as list")
+      .getOrThrow()))
+      .toEqual(["first", "rest", "list"]);
+  });
+
+  test("` as ` inside braces, brackets, parentheses or quotes is not an alias", () => {
+    expect(parsePattern("{ as }")
+      .getOrThrow())
+      .toEqual({ kind: "object", fields: [{ key: "as", pattern: { kind: "bind", name: "as" } }] });
+    expect(parsePattern(`"x as y"`)
+      .getOrThrow())
+      .toEqual({ kind: "value", value: "x as y" });
+    expect(namesOf(parsePattern("some(x as y)")
+      .getOrThrow()))
+      .toEqual(["x", "y"]);
+  });
+
+  test("an alias binds a name the pattern does not, and cannot repeat one it has", () => {
+    expect(parsePattern("{ id } as id")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("{ id } as true")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("1 as")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("an alias in an object field names that field's value", () => {
+    expect(namesOf(parsePattern("{ user: { id } as u }")
+      .getOrThrow()))
+      .toEqual(["id", "u"]);
+  });
+});

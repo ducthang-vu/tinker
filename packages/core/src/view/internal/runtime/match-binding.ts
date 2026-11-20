@@ -172,6 +172,10 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
       return value instanceof Either && value.isLeft()
         ? match(pattern.pattern, value.match({ left: (error) => error, right: () => undefined }))
         : undefined;
+    case "as": {
+      const bound = match(pattern.pattern, value);
+      return bound === undefined ? undefined : new Map([...bound, [pattern.name, value]]);
+    }
   }
 }
 
