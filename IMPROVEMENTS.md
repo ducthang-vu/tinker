@@ -268,6 +268,51 @@ API, and its test is the reference the new parser is checked against.
 **To do.** Remove it from `view/index.ts` in a later release, along with its
 test, once the new parser is the only one.
 
+## Precompiled templates (`packages/core/src/view/internal/factories/component-factory.ts`)
+
+A component's template can be a compiled tree a build step wrote, which the engine
+uses as it is (see `@tinker/core/compiler`).
+
+### 1. CLASS_REPLACEMENTS does not apply to a precompiled tree
+
+**Problem.** The tree names the real classes of its directives and component. A test
+that replaces a class through `CLASS_REPLACEMENTS` gets the original in such a tree.
+
+**To do.** Either walk the tree and replace the classes the same way (once per class,
+where the factory caches the nodes), or keep precompiled templates out of tests and
+say so. Until then, a test of a replaced class uses a string template.
+
+## Build-time template compiler (`packages/compiler`)
+
+The plugin compiles each component's literal template into the expression that
+rebuilds its tree, and checks that it compiles. Its limits:
+
+### 1. Templates and selectors that are not literals are not compiled
+
+**Problem.** A template built in code, an `imports` list that is not a list of names,
+or a directive whose selector is computed is skipped with a warning, and keeps its
+template string. The app still works, but the check and the emitted tree do not
+cover it.
+
+**To do.** Resolve such values when they are simple (a constant in the same file), and
+report the rest as errors in a strict mode for libraries.
+
+### 2. A compiled template is larger than its string
+
+**Problem.** The example's bundle grew from 188.65 kB to 216.58 kB (gzip 36.1 kB to
+37.2 kB). The tree is written as JavaScript objects, so it is bigger than the source it
+replaces.
+
+**To do.** Measure the cost per template, then choose: keep the strings for large
+templates, or write the tree in a shorter form the engine reads.
+
+### 3. The helper imports need `@tinker/functional` and `@tinker/core/compiler`
+
+**Problem.** A compiled component's file imports both packages under aliased names. An
+app must be able to resolve them, which the example does through its alias.
+
+**To do.** Document the two dependencies for apps, and check them at build time.
+
 ## Testing: concurrent tests
 
 `cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only

@@ -10,6 +10,14 @@
 import { parseSync } from "@babel/core";
 import * as t from "@babel/types";
 
+/** A template written as a literal, with the place it is in the source. */
+export interface TemplateSource {
+  readonly text: string;
+  /** Where the literal starts and ends in the source, for replacing it. */
+  readonly start: number;
+  readonly end: number;
+}
+
 /** A class declared with `@Component` or `@Directive`. */
 export interface Declaration {
   readonly name: string;
@@ -17,7 +25,7 @@ export interface Declaration {
   /** The selector, when the decorator gives it as a string literal. */
   readonly selector: string | undefined;
   /** The template, when it is a string or a template literal with no `${}`. */
-  readonly template: string | undefined;
+  readonly template: TemplateSource | undefined;
   /** The names in `imports`, when they are all plain identifiers. */
   readonly imports: readonly string[] | undefined;
 }
@@ -84,7 +92,7 @@ function decoratorInfo(
   return {
     kind,
     selector: literalOf(propertyOf(options, "selector")),
-    template: literalOf(propertyOf(options, "template")),
+    template: templateOf(propertyOf(options, "template")),
     imports: identifiersOf(propertyOf(options, "imports")),
   };
 }
@@ -118,6 +126,14 @@ function literalOf(value: t.Expression | undefined): string | undefined {
     return value.quasis[0]!.value.cooked as string;
   }
   return undefined;
+}
+
+/** The template literal at `value`, with where it is in the source. */
+function templateOf(value: t.Expression | undefined): TemplateSource | undefined {
+  const text = literalOf(value);
+  return text === undefined || value === undefined
+    ? undefined
+    : { text, start: value.start as number, end: value.end as number };
 }
 
 /** The names of an array of identifiers, or `undefined` if it has anything else. */

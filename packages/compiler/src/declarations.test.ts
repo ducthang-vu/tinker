@@ -15,7 +15,7 @@ describe("readSource", () => {
         name: "Page",
         kind: "component",
         selector: "tk-page",
-        template: "<p>hi</p>",
+        template: { text: "<p>hi</p>", start: expect.any(Number), end: expect.any(Number) },
         imports: ["Item"],
       }]);
   });
@@ -26,7 +26,7 @@ describe("readSource", () => {
   });
 
   test("reads a template literal with no substitutions, and gives none for one with them", () => {
-    expect(read("@Component({ template: `<p>a</p>` }) class A {}").declarations[0]!.template)
+    expect(read("@Component({ template: `<p>a</p>` }) class A {}").declarations[0]!.template?.text)
       .toBe("<p>a</p>");
     expect(read("@Component({ template: `<p>${x}</p>` }) class A {}").declarations[0]!.template)
       .toBeUndefined();

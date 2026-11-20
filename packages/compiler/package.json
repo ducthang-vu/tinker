@@ -9,7 +9,8 @@
   "dependencies": {
     "@babel/core": "^8.1.2",
     "@babel/types": "^8.1.2",
-    "@tinker/core": "*"
+    "@tinker/core": "*",
+    "magic-string": "^1.4.5"
   },
   "peerDependencies": {
     "vite": "*"

@@ -4,13 +4,26 @@
 //
 // The expression refers to `Maybe` (from @tinker/functional), `Selector` (from
 // @tinker/core/compiler), and each component or directive class by the name given
-// for it. The module it is put in must have all of them in scope. Anything the tree
-// holds that this cannot write faithfully is an error, not a guess.
+// for it. The module it is put in must have all of them in scope; the names of
+// `Maybe` and `Selector` can be changed, for a module that declares those already.
+// Anything the tree holds that this cannot write faithfully is an error, not a guess.
 
 import { Maybe } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
+
+/** The names the expression uses for `Maybe` and `Selector`. */
+export interface EmitHelpers {
+  readonly Maybe: string;
+  readonly Selector: string;
+}
+
+/** What the emitter knows about the module the expression is put in. */
+interface Scope {
+  readonly names: ReadonlyMap<Class<object>, string>;
+  readonly helpers: EmitHelpers;
+}
 
 /**
  * The JavaScript expression for `nodes`. `names` gives the name of each class the
@@ -19,11 +32,12 @@ import { Selector } from "../internal/template/selector.ts";
 export function emitCompiled(
   nodes: readonly CompiledNode[],
   names: ReadonlyMap<Class<object>, string>,
+  helpers: EmitHelpers = { Maybe: "Maybe", Selector: "Selector" },
 ): string {
-  return emitValue(nodes, names);
+  return emitValue(nodes, { names, helpers });
 }
 
-function emitValue(value: unknown, names: ReadonlyMap<Class<object>, string>): string {
+function emitValue(value: unknown, scope: Scope): string {
   if (value === undefined) {
     return "undefined";
   }
@@ -37,30 +51,30 @@ function emitValue(value: unknown, names: ReadonlyMap<Class<object>, string>): s
     return String(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map((item) => emitValue(item, names))
+    return `[${value.map((item) => emitValue(item, scope))
       .join(", ")}]`;
   }
   if (value instanceof Maybe) {
     return value.match({
-      some: (inner) => `Maybe.some(${emitValue(inner, names)})`,
-      none: () => "Maybe.none()",
+      some: (inner) => `${scope.helpers.Maybe}.some(${emitValue(inner, scope)})`,
+      none: () => `${scope.helpers.Maybe}.none()`,
     });
   }
   if (value instanceof Selector) {
-    return `Selector.parse(${JSON.stringify(value.source)}).getOrThrow()`;
+    return `${scope.helpers.Selector}.parse(${JSON.stringify(value.source)}).getOrThrow()`;
   }
   if (typeof value === "function") {
-    return nameOf(value as Class<object>, names);
+    return nameOf(value as Class<object>, scope.names);
   }
   if (isPlainObject(value)) {
-    return emitObject(value, names);
+    return emitObject(value, scope);
   }
   throw new Error(`Cannot emit ${Object.prototype.toString.call(value)}: it is not plain data, a Maybe, a Selector or a class`);
 }
 
-function emitObject(value: object, names: ReadonlyMap<Class<object>, string>): string {
+function emitObject(value: object, scope: Scope): string {
   const fields = Object.entries(value)
-    .map(([key, field]) => `${JSON.stringify(key)}: ${emitValue(field, names)}`);
+    .map(([key, field]) => `${JSON.stringify(key)}: ${emitValue(field, scope)}`);
   return `{ ${fields.join(", ")} }`;
 }
 

@@ -66,6 +66,15 @@ describe("emitCompiled", () => {
       .toStrictEqual([{ kind: "value", some: Maybe.some(1), none: Maybe.none(), flag: false, nothing: null }]);
   });
 
+  test("uses the helper names it is given", () => {
+    const code = emitCompiled([{ some: Maybe.some(1), none: Maybe.none(), selector: Selector.parse("[a]")
+      .getOrThrow() }] as unknown as CompiledNode[], names, { Maybe: "__M", Selector: "__S" });
+    expect(code)
+      .toContain("__M.some(1)");
+    expect(code)
+      .toContain("__S.parse(\"[a]\")");
+  });
+
   test("writes a Selector by its source", () => {
     const selector = Selector.parse("tk-card[item]")
       .getOrThrow();

@@ -1,19 +1,24 @@
-// A Vite plugin that checks the templates of an app's components at build time.
+// A Vite plugin that compiles the templates of an app's components at build time.
 //
 // For each file that declares a component, it reads the component's template and
-// the directives its `imports` list gives, and runs compileSource on them. A
-// template that does not compile fails the build, with the file, the component
-// and the error. The file itself is not changed: the check only reports.
+// the directives its `imports` list gives. It runs compileSource on them: a template
+// that does not compile fails the build, with the file, the component and the error.
+// A template that compiles is replaced in the file by the expression that rebuilds
+// its compiled tree (emitCompiled), so the component skips the parser and the
+// compiler at run time. The file's helper imports are added at its top, under names
+// that cannot clash with its own.
 //
-// A component is skipped, with a warning, when something it needs is not
-// written as a literal (its template, its `imports` or a directive's selector),
-// or when an imported directive cannot be found. Nothing is checked at run time.
+// A component is skipped, with a warning, when something it needs is not written as
+// a literal (its template, its `imports` or a directive's selector), or when an
+// imported directive cannot be found. Such a component keeps its template string.
 
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { compileSource, type ImportedSelector } from "@tinker/core/compiler";
+import type { Class } from "@tinker/core";
+import { compileSource, type ImportedSelector, emitCompiled } from "@tinker/core/compiler";
+import MagicString from "magic-string";
 import type { Plugin } from "vite";
-import { type Declaration, readSource, type SourceInfo } from "./declarations.ts";
+import { type Declaration, readSource, type SourceInfo, type TemplateSource } from "./declarations.ts";
 
 /** What the check needs from its caller: resolving an import, and reporting. */
 export interface CheckHost {
@@ -24,20 +29,47 @@ export interface CheckHost {
   warn(message: string): void;
 }
 
-/** The plugin: checks the templates of components in each source file it transforms. */
+/** Text to put in place of a range of the source: a template, now its compiled expression. */
+export interface Replacement {
+  readonly start: number;
+  readonly end: number;
+  readonly text: string;
+}
+
+/** The names the emitted code uses for the helpers, aliased so they cannot clash with the file. */
+const HELPERS = { Maybe: "__tinkerMaybe", Selector: "__tinkerSelector" };
+const HELPER_IMPORTS = [
+  `import { Maybe as ${HELPERS.Maybe} } from "@tinker/functional";`,
+  `import { Selector as ${HELPERS.Selector} } from "@tinker/core/compiler";`,
+  "",
+].join("\n");
+
+/** The plugin: compiles the templates of components in each source file it transforms. */
 export function tinkerCompiler(): Plugin {
   return {
-    name: "tinker:compile-check",
+    name: "tinker:compile-templates",
     enforce: "pre",
     async transform(code, id) {
-      if (isSourceWithComponents(code, id)) {
-        await checkComponents(code, id, {
-          resolve: async (source, importer) => (await this.resolve(source, importer))?.id ?? null,
-          error: (message) => this.error(message),
-          warn: (message) => this.warn(message),
-        });
+      if (!isSourceWithComponents(code, id)) {
+        return null;
       }
-      return null;
+      const replacements = await compileComponents(code, id, {
+        resolve: async (source, importer) => (await this.resolve(source, importer))?.id ?? null,
+        error: (message) => this.error(message),
+        warn: (message) => this.warn(message),
+      });
+      if (replacements.length === 0) {
+        return null;
+      }
+      const output = new MagicString(code);
+      for (const replacement of replacements) {
+        output.overwrite(replacement.start, replacement.end, replacement.text);
+      }
+      output.prepend(HELPER_IMPORTS);
+      return {
+        code: output.toString(),
+        map: output.generateMap({ hires: true, source: id, includeContent: true }),
+      };
     },
   };
 }
@@ -49,43 +81,77 @@ function isSourceWithComponents(code: string, id: string): boolean {
     && /@(Component|Directive)\b/.test(code);
 }
 
-/** Checks every component declared in `code`, failing through `host` on the first error. */
-export async function checkComponents(
+/** Compiles every component declared in `code`. Fails through `host` on the first error. */
+export async function compileComponents(
   code: string,
   filename: string,
   host: CheckHost,
-): Promise<void> {
+): Promise<Replacement[]> {
   const source = readSource(code, filename);
+  const replacements: Replacement[] = [];
   for (const declaration of source.declarations) {
     if (declaration.kind === "component" && declaration.template !== undefined) {
-      await checkComponent(declaration, declaration.template, source, filename, host);
+      const replacement = await replacementFor(
+        declaration,
+        declaration.template,
+        source,
+        filename,
+        host,
+      );
+      if (replacement !== undefined) {
+        replacements.push(replacement);
+      }
     }
   }
+  return replacements;
 }
 
-async function checkComponent(
+async function replacementFor(
   declaration: Declaration,
-  template: string,
+  template: TemplateSource,
   source: SourceInfo,
   filename: string,
   host: CheckHost,
-): Promise<void> {
+): Promise<Replacement | undefined> {
   const where = `${basename(filename)}: <${declaration.name}>`;
   const imports = await importedSelectors(declaration.imports, source, filename, host);
   if (!imports.isRead) {
-    host.warn(`${where} is not checked: ${imports.reason}`);
-    return;
+    host.warn(`${where} is not compiled: ${imports.reason}`);
+    return undefined;
   }
-  compileSource(template, imports.selectors)
+  // Each import gets a placeholder class named as the file names it, so the emitted
+  // expression can refer to it by that name.
+  const classes = new Map<Class<object>, string>();
+  const list: ImportedSelector[] = imports.selectors.map((imported) => {
+    const type = placeholderFor(imported.name);
+    classes.set(type, imported.name);
+    return { selector: imported.selector, isComponent: imported.isComponent, type };
+  });
+  return compileSource(template.text, list)
     .match({
       left: (error) => host.error(`${where}: ${error.message}`),
-      right: () => undefined,
+      right: (nodes) => ({
+        start: template.start,
+        end: template.end,
+        text: emitCompiled(nodes, classes, HELPERS),
+      }),
     });
+}
+
+function placeholderFor(name: string): Class<object> {
+  return Object.defineProperty(class {}, "name", { value: name }) as Class<object>;
+}
+
+/** A directive a component imports, with its name in the importing file. */
+interface NamedSelector {
+  readonly name: string;
+  readonly selector: string;
+  readonly isComponent: boolean;
 }
 
 /** The selectors of the directives a component imports, or why they cannot be read. */
 type ImportsRead
-  = | { readonly isRead: true; readonly selectors: ImportedSelector[] }
+  = | { readonly isRead: true; readonly selectors: NamedSelector[] }
     | { readonly isRead: false; readonly reason: string };
 
 async function importedSelectors(
@@ -97,13 +163,13 @@ async function importedSelectors(
   if (names === undefined) {
     return { isRead: false, reason: "its imports are not a list of names" };
   }
-  const selectors: ImportedSelector[] = [];
+  const selectors: NamedSelector[] = [];
   for (const name of names) {
     const selector = await selectorOf(name, source, filename, host);
     if (selector === undefined) {
       return { isRead: false, reason: `${name} has no literal selector, or is not found` };
     }
-    selectors.push(selector);
+    selectors.push({ name, ...selector });
   }
   return { isRead: true, selectors };
 }
@@ -114,7 +180,7 @@ async function selectorOf(
   source: SourceInfo,
   filename: string,
   host: CheckHost,
-): Promise<ImportedSelector | undefined> {
+): Promise<Pick<NamedSelector, "selector" | "isComponent"> | undefined> {
   const local = source.declarations.find((declaration) => declaration.name === name);
   if (local !== undefined) {
     return selectorInfo(local);
@@ -132,7 +198,9 @@ async function selectorOf(
   return declared === undefined ? undefined : selectorInfo(declared);
 }
 
-function selectorInfo(declaration: Declaration): ImportedSelector | undefined {
+function selectorInfo(
+  declaration: Declaration,
+): Pick<NamedSelector, "selector" | "isComponent"> | undefined {
   if (declaration.selector === undefined) {
     return undefined;
   }

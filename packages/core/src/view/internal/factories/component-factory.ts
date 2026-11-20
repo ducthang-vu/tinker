@@ -331,12 +331,14 @@ export class ComponentFactory {
   /**
    * The compiled template of `type`, its elements matched against the
    * directives it imports: compiled on first use, then cached per class.
+   * A precompiled tree is used as it is, so CLASS_REPLACEMENTS does not apply to it.
    */
   private templateOf(type: Class<unknown>, metadata: ComponentMetadata): readonly CompiledNode[] {
     let nodes = this.templates.get(type);
     if (!nodes) {
-      const parsed = this.parser.parse(metadata.template);
-      nodes = compileTemplate(parsed, this.candidatesOf(type, metadata));
+      nodes = typeof metadata.template === "string"
+        ? compileTemplate(this.parser.parse(metadata.template), this.candidatesOf(type, metadata))
+        : metadata.template;
       this.templates.set(type, nodes);
     }
     return nodes;
