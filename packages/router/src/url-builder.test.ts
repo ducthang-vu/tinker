@@ -58,3 +58,45 @@ test("a path given as segments is joined, and the query and hash go in the last 
     .build())
     .toBe("todos/7?tab=done");
 });
+
+/** The URL `url` resolved against `base`. */
+const resolved = (url: string, base: readonly string[]): string =>
+  UrlBuilder.from(url)
+    .resolve(base)
+    .build();
+
+test("an absolute URL ignores the base", () => {
+  expect(resolved("/todos/7", ["orgs", "acme"]))
+    .toBe("/todos/7");
+});
+
+test("a relative URL is appended to the base", () => {
+  expect(resolved("teams/x", ["orgs", "acme"]))
+    .toBe("/orgs/acme/teams/x");
+});
+
+test("'..' goes up one segment, and never above the root", () => {
+  expect(resolved("../y", ["orgs", "acme", "teams", "x"]))
+    .toBe("/orgs/acme/teams/y");
+  expect(resolved("../../../../y", ["orgs"]))
+    .toBe("/y");
+});
+
+test("'.' stays where it is", () => {
+  expect(resolved("./teams", ["orgs"]))
+    .toBe("/orgs/teams");
+});
+
+test("the query and the hash are kept", () => {
+  expect(resolved("teams?tab=done#top", ["orgs"]))
+    .toBe("/orgs/teams?tab=done#top");
+  expect(resolved("?tab=done", ["orgs"]))
+    .toBe("/orgs?tab=done");
+});
+
+test("empty segments are ignored", () => {
+  expect(resolved("/todos/", []))
+    .toBe("/todos");
+  expect(resolved("/", []))
+    .toBe("/");
+});

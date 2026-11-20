@@ -41,10 +41,33 @@ export class UrlBuilder {
     return new UrlBuilder(this.path, this.query, fragment ?? this.hash);
   }
 
+  /**
+   * The same URL resolved against `base`, the path of the route it is relative to. A path that
+   * starts with "/" is absolute; "." stays, ".." goes up one segment (never above the root), and
+   * any other segment goes down. The query and the hash are kept.
+   */
+  resolve(base: readonly string[]): UrlBuilder {
+    const start = this.path.startsWith("/") ? [] : base;
+    const segments = this.path.split("/")
+      .reduce(step, start);
+    return new UrlBuilder(`/${segments.join("/")}`, this.query, this.hash);
+  }
+
   /** The URL as a string. */
   build(): string {
     const search = this.query.toString();
     const fragment = this.hash === "" ? "" : `#${this.hash}`;
     return `${this.path}${search === "" ? "" : `?${search}`}${fragment}`;
   }
+}
+
+/** The base after one part of a relative URL. */
+function step(segments: readonly string[], part: string): readonly string[] {
+  if (part === "" || part === ".") {
+    return segments;
+  }
+  if (part === "..") {
+    return segments.slice(0, -1);
+  }
+  return [...segments, part];
 }

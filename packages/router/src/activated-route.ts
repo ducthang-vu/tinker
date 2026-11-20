@@ -8,6 +8,15 @@ import type { RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 
 export class ActivatedRoute {
+  /** The path of this level: the segments of every level from the root down to it. */
+  get path(): readonly string[] {
+    const above = this.parent.match({
+      some: (parent) => parent.path,
+      none: () => [],
+    });
+    return [...above, ...this.segments];
+  }
+
   constructor(
     /** The route of this level. */
     readonly route: Route,

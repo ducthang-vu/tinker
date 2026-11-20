@@ -5,7 +5,6 @@
 
 import { computed, Directive, input, inject } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
-import { pathOf, resolveUrl } from "./resolve-url.ts";
 import { Router } from "./router.ts";
 import { UrlBuilder } from "./url-builder.ts";
 
@@ -46,7 +45,11 @@ export class RouterLink {
   /** The URL a click navigates to, resolved: the href of the link. */
   private readonly href = computed(() => {
     const destination = this.destination();
-    return destination === undefined ? undefined : resolveUrl(destination, pathOf(this.own));
+    return destination === undefined
+      ? undefined
+      : UrlBuilder.from(destination)
+          .resolve(this.own.path)
+          .build();
   });
 
   /** `page` while the link's path is the current one, for assistive technology. */
