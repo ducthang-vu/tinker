@@ -160,6 +160,24 @@ should be an error, and nothing tells the author today.
 Shadowing across scopes is allowed, as in most languages: this is a warning for
 the author, not a ban.
 
+## Component styles (`packages/core/src/view/internal/runtime/component-styles.ts`, `renderer.ts`)
+
+### 1. A component's `<style>` stays in the head after it is destroyed
+
+**Problem.** `Renderer.addStyleSheet` adds one `<style data-tk-style="tk-cN">` to
+`document.head` per component class, and nothing removes it. Its rules then stay on
+the page after the last instance is gone, and a test that creates components leaves them
+behind for the next test. Nothing counts the instances, so the element cannot be removed
+when the last one goes.
+
+**To do.** Count the live instances per class in the component factory (add on create,
+remove on destroy), and remove the `<style>` when the count reaches zero. The renderer
+would need a `removeStyleSheet(id)` to match. Until then, the leftover rules are harmless
+(their attribute only exists on elements of that class), but they accumulate.
+
+Related, in the same module: the rewriter is a small hand-written parser, so nested rules
+and `@container` inside `@media` are not handled, and `styles` is one string, not a list.
+
 ## Testing: concurrent tests
 
 `cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only
