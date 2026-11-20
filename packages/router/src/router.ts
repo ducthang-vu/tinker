@@ -74,13 +74,12 @@ export class Router {
     url: string | readonly string[],
     options: NavigateOptions = {},
   ): Either<NoRouteError, void> {
-    const path = typeof url === "string" ? url : url.join("/");
     const base = Maybe.from(options.relativeTo)
       .match({
         some: (route) => route.path,
         none: () => [],
       });
-    const target = UrlBuilder.from(path)
+    const target = UrlBuilder.from(url)
       .resolve(base)
       .build();
     if (matchRoute(this.root, target) === undefined) {

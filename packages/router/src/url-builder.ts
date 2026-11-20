@@ -27,6 +27,12 @@ export class UrlBuilder {
     );
   }
 
+  /** The non-empty segments of the path: `"/todos/7"` is `["todos", "7"]`. */
+  get segments(): readonly string[] {
+    return this.path.split("/")
+      .filter((segment) => segment !== "");
+  }
+
   /** The same URL with `params` set over its query: a param replaces the same key. */
   withQuery(params: Readonly<Record<string, string>>): UrlBuilder {
     const query = new URLSearchParams(this.query);

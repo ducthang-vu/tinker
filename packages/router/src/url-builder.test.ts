@@ -100,3 +100,12 @@ test("empty segments are ignored", () => {
   expect(resolved("/", []))
     .toBe("/");
 });
+
+test("the segments of the path are its non-empty parts", () => {
+  expect(UrlBuilder.from("/todos/7?tab=done#top").segments)
+    .toEqual(["todos", "7"]);
+  expect(UrlBuilder.from("/").segments)
+    .toEqual([]);
+  expect(UrlBuilder.from(["todos", "7"]).segments)
+    .toEqual(["todos", "7"]);
+});
