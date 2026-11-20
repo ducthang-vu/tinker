@@ -44,6 +44,24 @@ describe("event modifiers in templates and host listeners", () => {
       .toBe(1);
   });
 
+  test("(keydown.submit) in a template: Enter submits, Shift+Enter does not", () => {
+    let calls = 0;
+    @Component({ selector: "tk-a", template: `<input (keydown.submit)="go()" />` })
+    class A {
+      go() {
+        calls += 1;
+      }
+    }
+    const host = document.createElement("div");
+    Engine.create()
+      .createComponent(A, host);
+    const input = host.querySelector("input")!;
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", shiftKey: true }));
+    expect(calls)
+      .toBe(1);
+  });
+
   test("\"(click.self)\" in a host option: a click on a child does not reach the handler", () => {
     let calls = 0;
     @Directive({
