@@ -12,6 +12,7 @@ import {
   output,
   Engine,
   type Provider,
+  type ProviderToken,
   provide,
   type Token,
 } from "@tinker/core";
@@ -126,7 +127,7 @@ class Bed<T extends object> implements TestBedApi<T> {
         await new Promise((resolve) => setTimeout(resolve));
         engine.flush();
       },
-      get: <S>(token: Token<S>): S => engine.get(token),
+      get: <S>(target: ProviderToken<S>): S => engine.get(target),
       destroy: () => {
         if (!destroyed) {
           destroyed = true;

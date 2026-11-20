@@ -95,6 +95,17 @@ describe("TestBed.build", () => {
     ref.destroy();
   });
 
+  test("get takes a service's class as well as its token", () => {
+    class Clock {}
+    const clock = new Clock();
+    const fixture = TestBed.providers(provide(Clock, { useValue: clock }))
+      .component(Greeting)
+      .build();
+    expect(fixture.get(Clock))
+      .toBe(clock);
+    fixture.destroy();
+  });
+
   test("destroy can be called twice", () => {
     const ref = TestBed.component(Greeting)
       .build();
