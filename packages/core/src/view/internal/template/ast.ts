@@ -10,6 +10,13 @@
 /** A node in a parsed template. */
 export type TemplateNode = ElementNode | TextNode;
 
+/** Where a node is in its template source: offsets, from the first character. */
+export interface Span {
+  readonly start: number;
+  /** The offset just after the node. */
+  readonly end: number;
+}
+
 /** An element, e.g. `<button (click)="inc()">`. */
 export interface ElementNode {
   readonly kind: "element";
@@ -17,6 +24,11 @@ export interface ElementNode {
   readonly name: string;
   readonly attributes: readonly AttributeNode[];
   readonly children: readonly TemplateNode[];
+  /**
+   * From `<` to the end of the closing tag (or of the start tag, for an element
+   * with none). Set by the parser; absent in a tree built by hand.
+   */
+  readonly span?: Span;
 }
 
 /** An attribute as written, e.g. name `"(click)"`, value `"inc()"`. */
@@ -30,4 +42,6 @@ export interface AttributeNode {
 export interface TextNode {
   readonly kind: "text";
   readonly value: string;
+  /** The text as written. Set by the parser; absent in a tree built by hand. */
+  readonly span?: Span;
 }

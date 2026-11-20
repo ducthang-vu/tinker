@@ -3,12 +3,21 @@ import type { ElementNode, TemplateNode } from "./ast.ts";
 import { TemplateSyntaxError, TinkerTemplateParser } from "./tinker-parser.ts";
 
 const parser = new TinkerTemplateParser();
-const parseOne = (source: string) => parser.parse(source)[0] as ElementNode;
+
+/** The tree without the spans, for the tests that compare the shape of a tree. */
+function withoutSpans(nodes: readonly TemplateNode[]): TemplateNode[] {
+  return nodes.map((node) => node.kind === "text"
+    ? { kind: "text", value: node.value }
+    : { kind: "element", name: node.name, attributes: node.attributes, children: withoutSpans(node.children) });
+}
+
+const parse = (source: string) => withoutSpans(parser.parse(source));
+const parseOne = (source: string) => parse(source)[0] as ElementNode;
 
 /** The error the parser throws for `source`, or fails the test if it does not throw. */
 function syntaxError(source: string): TemplateSyntaxError {
   try {
-    parser.parse(source);
+    parse(source);
   } catch (error) {
     return error as TemplateSyntaxError;
   }
@@ -16,8 +25,30 @@ function syntaxError(source: string): TemplateSyntaxError {
 }
 
 describe("TinkerTemplateParser", () => {
+  test("records the span of each element and text: the offsets it covers", () => {
+    const [p] = parser.parse("<p>Hi {{ a }}</p>") as ElementNode[];
+    expect(p!.span)
+      .toEqual({ start: 0, end: 17 });
+    expect(p!.children[0]!.span)
+      .toEqual({ start: 3, end: 13 });
+  });
+
+  test("a void or self-closing element's span ends at its start tag", () => {
+    const [input, icon] = parser.parse(`<input [value]="a"><tk-icon />`) as ElementNode[];
+    expect(input!.span)
+      .toEqual({ start: 0, end: "<input [value]=\"a\">".length });
+    expect(icon!.span)
+      .toEqual({ start: "<input [value]=\"a\">".length, end: "<input [value]=\"a\"><tk-icon />".length });
+  });
+
+  test("a text inside a script records its span too", () => {
+    const [script] = parser.parse("<script>a</script>") as ElementNode[];
+    expect(script!.children[0]!.span)
+      .toEqual({ start: 8, end: 9 });
+  });
+
   test("parses elements, text and nesting", () => {
-    expect(parser.parse("<p>Hi <b>you</b></p>"))
+    expect(parse("<p>Hi <b>you</b></p>"))
       .toEqual([
         {
           kind: "element",
@@ -37,7 +68,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("returns several top-level nodes", () => {
-    expect(parser.parse("a<i></i>b")
+    expect(parse("a<i></i>b")
       .map((n) => n.kind))
       .toEqual(["text", "element", "text"]);
   });
@@ -247,7 +278,7 @@ describe("TinkerTemplateParser", () => {
       ]],
     ];
     for (const [source, tree] of cases) {
-      expect(parser.parse(source), source)
+      expect(parse(source), source)
         .toEqual(tree);
     }
   });
@@ -311,7 +342,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("closes any element with />, custom ones included", () => {
-    const outer = parser.parse("<tk-icon /><tk-icon/><span></span>");
+    const outer = parse("<tk-icon /><tk-icon/><span></span>");
     expect(outer.map((n) => (n as ElementNode).name))
       .toEqual(["tk-icon", "tk-icon", "span"]);
     expect((outer[0] as ElementNode).children)
@@ -319,7 +350,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("needs no closing tag for void elements, in any case", () => {
-    const nodes = parser.parse("<input [value]=\"a\"><BR><img src=\"x.png\">");
+    const nodes = parse("<input [value]=\"a\"><BR><img src=\"x.png\">");
     expect(nodes.map((n) => (n as ElementNode).name))
       .toEqual(["input", "BR", "img"]);
     expect((nodes[0] as ElementNode).children)
@@ -332,7 +363,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("drops comments, and text around them stays as separate nodes", () => {
-    expect(parser.parse("<!-- note --><p></p>"))
+    expect(parse("<!-- note --><p></p>"))
       .toHaveLength(1);
     expect(parseOne("<p>a<!-- x -->b</p>").children)
       .toEqual([
@@ -360,7 +391,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("reads script and style as raw text", () => {
-    expect(parser.parse("<script>if (a < b) { x(\"</div>\") }</script>"))
+    expect(parse("<script>if (a < b) { x(\"</div>\") }</script>"))
       .toEqual([
         {
           kind: "element",

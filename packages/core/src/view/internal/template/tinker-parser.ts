@@ -12,8 +12,9 @@
 // - Text between `{{` and `}}` is not read as markup, so an expression can hold `<`.
 //
 // Errors are TemplateSyntaxError, with the line and column where the problem starts.
-// Known limits (see IMPROVEMENTS.md): only a few named entities are decoded, `script`
-// and `style` are read as raw text, and nodes carry no source positions.
+// Each element and text node carries its span, the offsets it covers in the source.
+// Known limits (see IMPROVEMENTS.md): only a few named entities are decoded, and
+// `script` and `style` are read as raw text.
 // Comments are dropped.
 
 import { Maybe } from "@tinker/functional";
@@ -110,13 +111,13 @@ class Scanner {
     const name = this.name();
     const { attributes, selfClosing } = this.startTagRest(start, name);
     if (selfClosing || VOID_ELEMENTS.has(name.toLowerCase())) {
-      return { kind: "element", name, attributes, children: [] };
+      return { kind: "element", name, attributes, children: [], span: { start, end: this.pos } };
     }
     const children = RAW_TEXT_ELEMENTS.has(name.toLowerCase())
       ? this.rawText(name)
       : this.nodes();
     this.closeTag(name, start);
-    return { kind: "element", name, attributes, children };
+    return { kind: "element", name, attributes, children, span: { start, end: this.pos } };
   }
 
   /** Text up to the next markup. `{{ }}` is skipped whole, so markup in it is not read. */
@@ -126,7 +127,11 @@ class Scanner {
       this.pos = this.interpolationEnd()
         .getOrElse(this.pos + 1);
     }
-    return { kind: "text", value: decodeEntities(this.source.slice(start, this.pos)) };
+    return {
+      kind: "text",
+      value: decodeEntities(this.source.slice(start, this.pos)),
+      span: { start, end: this.pos },
+    };
   }
 
   /** Where the `{{ }}` starting here ends, or none when there is none here. */
@@ -140,10 +145,11 @@ class Scanner {
     const closing = new RegExp(`</${name}`, "gi");
     closing.lastIndex = this.pos;
     const match = closing.exec(this.source);
+    const start = this.pos;
     const end = match?.index ?? this.source.length;
-    const value = this.source.slice(this.pos, end);
+    const value = this.source.slice(start, end);
     this.pos = end;
-    return value === "" ? [] : [{ kind: "text", value }];
+    return value === "" ? [] : [{ kind: "text", value, span: { start, end } }];
   }
 
   /** Consumes `</name>`, which must close the element opened at `openedAt`. */

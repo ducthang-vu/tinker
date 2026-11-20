@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { TinkerTemplateParser } from "./tinker-parser.ts";
 import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compile.ts";
 import { ExpressionParser } from "./expression.ts";
+import { itemsOf } from "./blocks.ts";
 
 function compile(source: string): readonly CompiledNode[] {
   return compileTemplate(new TinkerTemplateParser()
@@ -281,5 +282,26 @@ describe("the body of a case with a parenthesized pattern", () => {
       .toHaveLength(1);
     expect(match.cases[0]!.body[0]!.kind)
       .toBe("text");
+  });
+});
+
+describe("the spans of text split around a block", () => {
+  test("each piece records the part of the source it covers", () => {
+    const [first, block, last] = itemsOf(new TinkerTemplateParser()
+      .parse("ab @if (x) { c } d"));
+    expect(first)
+      .toMatchObject({ kind: "text", value: "ab ", span: { start: 0, end: 3 } });
+    expect(block)
+      .toMatchObject({ kind: "block" });
+    expect(last)
+      .toMatchObject({ kind: "text", value: " d", span: { start: 16, end: 18 } });
+  });
+
+  test("a text node built by hand has no spans", () => {
+    const [text] = itemsOf([{ kind: "text", value: "a @if (x) { b }" }]);
+    expect(text)
+      .toMatchObject({ kind: "text", value: "a " });
+    expect((text as { span?: unknown }).span)
+      .toBeUndefined();
   });
 });

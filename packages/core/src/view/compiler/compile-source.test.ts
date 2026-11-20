@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { EitherError } from "@tinker/functional";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { TemplateSyntaxError } from "../internal/template/tinker-parser.ts";
+import { TemplateCompileError } from "../internal/template/compile.ts";
 import { compileSource } from "./compile-source.ts";
 
 const item = { selector: "tk-item", isComponent: true };
@@ -60,5 +61,15 @@ describe("compileSource", () => {
     const error = errorOf(compileSource("<p></p>", [{ selector: "", isComponent: false }]));
     expect(error)
       .toBeInstanceOf(Error);
+  });
+});
+
+describe("compile errors and their place", () => {
+  test("a compile error carries the span of the text it is in, nested in an element", () => {
+    const error = errorOf(compileSource("<div>\n<p>{{ a + }}</p></div>"));
+    expect(error)
+      .toBeInstanceOf(TemplateCompileError);
+    expect((error as TemplateCompileError).span)
+      .toEqual({ start: 9, end: 18 });
   });
 });
