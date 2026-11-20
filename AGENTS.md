@@ -49,6 +49,13 @@ step through it.
   `npm run repo-map -- --format markdown`.
 - Do not skip tests, or add a disable comment or coverage exclusion to get
   green, without a clear reason written next to it.
+- Document every new feature accurately: what it does, its syntax, and what it
+  does not do. Check the docs against the code and the tests before reporting
+  the change as done, and fix any doc that the change makes wrong (README,
+  `docs/`, and the comment at the top of the module).
+- Record each known limitation of a new feature in `IMPROVEMENTS.md`, with the
+  problem and what to do about it. A limitation left out of that file is one
+  nobody will remember.
 - Do not open pull requests, or push to `main`, unless the user asks.
 - Keep commits and pull request bodies free of model names, and end them with
   the attribution lines the tool gives you.
