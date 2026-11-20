@@ -2,7 +2,13 @@
 // Used by template event bindings and by host listeners, so both behave alike.
 
 import type { Renderer } from "../renderer.ts";
-import { type EventModifier, type EventName, keyOf, systemKeyOf } from "../template/event-modifiers.ts";
+import {
+  type EventModifier,
+  type EventName,
+  keyOf,
+  type SystemRequirement,
+  systemRequirementOf,
+} from "../template/event-modifiers.ts";
 
 /**
  * Listen to `name` on `target`. For each event: `self` ignores it unless its
@@ -20,8 +26,8 @@ export function listenWithModifiers(
   const has = (modifier: EventModifier) => modifiers.includes(modifier);
   const keys = modifiers.map(keyOf)
     .filter((key): key is string => key !== undefined);
-  const systemKeys = modifiers.map(systemKeyOf)
-    .filter((flag): flag is NonNullable<typeof flag> => flag !== undefined);
+  const systems = modifiers.map(systemRequirementOf)
+    .filter((requirement): requirement is SystemRequirement => requirement !== undefined);
   const stop = renderer.listen(target, event, (domEvent) => {
     if (has("self") && domEvent.target !== target) {
       return;
@@ -29,7 +35,7 @@ export function listenWithModifiers(
     if (keys.length > 0 && !keys.includes((domEvent as KeyboardEvent).key)) {
       return;
     }
-    if (systemKeys.some((flag) => (domEvent as KeyboardEvent)[flag] !== true)) {
+    if (systems.some(({ flag, held }) => ((domEvent as KeyboardEvent)[flag] === true) !== held)) {
       return;
     }
     if (has("prevent")) {

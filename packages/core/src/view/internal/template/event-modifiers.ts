@@ -6,8 +6,9 @@
 // Guards come first: `self` ignores an event whose target is a child of the
 // element, a key modifier ignores a keyboard event whose `key` is another one
 // (`(keydown.enter)`, `(keydown.esc)`), and a system modifier ignores an event
-// without that key held (`(click.ctrl)`, `(click.cmd)`). Other keys may be
-// held too, so `(click.ctrl)` also fires with Shift held. Then the actions:
+// without that key held (`(click.ctrl)`, `(click.cmd)`), and `!` in front of a
+// system modifier requires the key not to be held (`(click.!ctrl)`). Other keys
+// may be held too, so `(click.ctrl)` also fires with Shift held. Then the actions:
 // `prevent` and `stop` change the event (they can come in any order). `once`
 // counts only events that passed the guards, and ends the listener after the
 // first of them.
@@ -41,8 +42,16 @@ const SYSTEM_KEYS = {
 
 export type SystemModifier = keyof typeof SYSTEM_KEYS;
 
+/** A system modifier with `!` in front: the key must not be held. */
+export type NegatedSystemModifier = `!${SystemModifier}`;
+
 /** The modifiers Tinker supports. */
-export type EventModifier = "prevent" | "stop" | "self" | "once" | SystemModifier | KeyModifier;
+export type EventModifier = "prevent" | "stop" | "self" | "once"
+  | SystemModifier | NegatedSystemModifier | KeyModifier;
+
+type SystemFlag = "ctrlKey" | "shiftKey" | "altKey" | "metaKey";
+
+const SYSTEM_NAMES: readonly string[] = Object.keys(SYSTEM_KEYS);
 
 const SUPPORTED: readonly string[] = [
   "prevent",
@@ -58,9 +67,18 @@ export function keyOf(modifier: EventModifier): string | undefined {
   return (KEY_VALUES as Partial<Record<string, string>>)[modifier];
 }
 
-/** The `MouseEvent` or `KeyboardEvent` flag a system modifier requires, if `modifier` is one. */
-export function systemKeyOf(modifier: EventModifier): "ctrlKey" | "shiftKey" | "altKey" | "metaKey" | undefined {
-  return (SYSTEM_KEYS as Partial<Record<string, "ctrlKey" | "shiftKey" | "altKey" | "metaKey">>)[modifier];
+/** What a system modifier checks: its event flag, and whether the key must be held. */
+export interface SystemRequirement {
+  readonly flag: SystemFlag;
+  readonly held: boolean;
+}
+
+/** The requirement of a system modifier (`ctrl` or `!ctrl`), if `modifier` is one. */
+export function systemRequirementOf(modifier: EventModifier): SystemRequirement | undefined {
+  const negated = modifier.startsWith("!");
+  const name = negated ? modifier.slice(1) : modifier;
+  const flag = (SYSTEM_KEYS as Partial<Record<string, SystemFlag>>)[name];
+  return flag === undefined ? undefined : { flag, held: !negated };
 }
 
 /** A DOM event name with its modifiers, in the order written. */
@@ -71,7 +89,8 @@ export interface EventName {
 }
 
 export function isModifier(name: string): name is EventModifier {
-  return SUPPORTED.includes(name);
+  return SUPPORTED.includes(name)
+    || (name.startsWith("!") && SYSTEM_NAMES.includes(name.slice(1)));
 }
 
 /**

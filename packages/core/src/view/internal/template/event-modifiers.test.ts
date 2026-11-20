@@ -26,6 +26,16 @@ describe("parseEventName", () => {
       .toEqual({ event: "click", modifiers: ["ctrl", "shift", "alt", "meta", "cmd"] });
   });
 
+  test("a ! in front of a system modifier is a modifier; ! in front of anything else is not", () => {
+    expect(parseEventName("click.!ctrl.!cmd", "x")
+      .getOrThrow())
+      .toEqual({ event: "click", modifiers: ["!ctrl", "!cmd"] });
+    expect(messageOf(parseEventName("click.!enter", "x")))
+      .toContain(`Unknown modifier ".!enter"`);
+    expect(messageOf(parseEventName("click.!toString", "x")))
+      .toContain(`Unknown modifier ".!toString"`);
+  });
+
   test("an unknown modifier is an error naming it and the supported ones", () => {
     const message = messageOf(parseEventName("click.prevnt", "event binding"));
     expect(message)

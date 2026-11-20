@@ -96,6 +96,23 @@ describe("listenWithModifiers", () => {
       .toHaveLength(1);
   });
 
+  test("!ctrl runs the handler only while Ctrl is not held", () => {
+    const { button, calls } = setup(["!ctrl"]);
+    button.dispatchEvent(new MouseEvent("click", { ctrlKey: true }));
+    button.dispatchEvent(new MouseEvent("click"));
+    expect(calls)
+      .toHaveLength(1);
+  });
+
+  test("a negated and a required modifier combine: (click.cmd.!shift)", () => {
+    const { button, calls } = setup(["cmd", "!shift"]);
+    button.dispatchEvent(new MouseEvent("click", { metaKey: true, shiftKey: true }));
+    button.dispatchEvent(new MouseEvent("click", { metaKey: true, altKey: true }));
+    button.dispatchEvent(new MouseEvent("click"));
+    expect(calls)
+      .toHaveLength(1);
+  });
+
   test("the returned function removes the listener", () => {
     const { button, calls, stop } = setup([]);
     stop();
