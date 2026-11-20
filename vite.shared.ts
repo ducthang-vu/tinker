@@ -37,6 +37,11 @@ export function standardDecorators(): Plugin {
 
 /** A workspace package is read from its source, not from an install. */
 export const workspaceAlias = [
+  // A subpath with its own entry point, from packages/core's "exports" field.
+  {
+    find: /^@tinker\/core\/compiler$/,
+    replacement: new URL("./packages/core/src/view/compiler/index.ts", import.meta.url).pathname,
+  },
   {
     find: /^@tinker\/(.+)$/,
     replacement: new URL("./packages/$1/src/index.ts", import.meta.url).pathname,
