@@ -15,6 +15,8 @@ test("the public API exports exactly these values", () => {
         "bootstrap",
         "AppRef",
         "InputNotBoundError",
+        "booleanAdapter",
+        "numberAdapter",
         "RENDERER",
         "TEMPLATE_PARSER",
         "ComponentRef",

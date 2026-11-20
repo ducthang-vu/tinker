@@ -178,6 +178,47 @@ would need a `removeStyleSheet(id)` to match. Until then, the leftover rules are
 Related, in the same module: the rewriter is a small hand-written parser, so nested rules
 and `@container` inside `@media` are not handled, and `styles` is one string, not a list.
 
+## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
+
+### 1. The testing helpers do not know an input's template name
+
+**Problem.** `input(…, { name })` gives the template name, but `InputName<T>` and the
+mock builders (`requiredInputs`, `optionalInputs`) work on the property names. They were
+written before options existed, so a mock may not copy the template name: a test that
+sets `title="…"` on a mock of `label` could then fail. Not yet checked by a test.
+
+**To do.** Have the mock builders read `InputBinding.alias` (through `inputsOf` or a new
+accessor) and copy each input under its template name, keeping the property name for
+the typed side.
+
+### 2. Adapters report no errors
+
+**Problem.** `numberAdapter` gives NaN for text that is not a number, and nothing tells the
+author. `booleanAdapter` treats every value except `"false"` as true. An adapter that
+throws would surface as an error during change detection, with no note of which attribute.
+
+**To do.** Decide the policy: keep NaN and document it, or let an adapter report an error
+through `RenderHooks` or `onWarning`, with the element and the attribute named.
+
+### 3. A single argument is taken as options when it has a `name` or `adapter` key
+
+**Problem.** `input(value)` treats an object default that has a `name` or `adapter` key
+as options. Such a default must be written `input(value, {})`. The rule is simple but
+guessed from the keys, not from the type.
+
+**To do.** Use a marker that cannot clash with a value, such as an `InputOptions` class
+instance built by a helper (`inputOptions({ … })`), or accept only the two-argument form
+for object defaults.
+
+### 4. Adapters apply to plain attributes only
+
+**Problem.** `[size]="n()"` sets the input as the expression gives it, so a binding of the
+wrong type is not converted, and a string bound to a number input is not caught.
+
+**To do.** Nothing yet: this matches Angular's split between attributes and bindings. If
+type errors at bind time are wanted, check the value against the input's adapter, or
+add a dev-mode check next to the other development warnings.
+
 ## Testing: concurrent tests
 
 `cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only

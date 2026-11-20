@@ -165,6 +165,12 @@ it is on purpose.
   and component on the element, never a DOM property: `[title]` on a plain
   `<p>` is an error, not a write to `p.title`. Input names match
   case-insensitively, since the browser's parser lowercases them.
+- **Input options** name an input for templates and convert its plain
+  attribute. `input(0, { name: "size", adapter: numberAdapter })` is set by
+  `size="3"` (the code reads a number, `3`), and `[size]="n()"` sets it as the
+  expression gives it. `numberAdapter` and `booleanAdapter` are built in;
+  `adapter` is any `(value: string) => T`. Without `name`, the property's name
+  is used. Input options are the second argument of `input()`.
 - **Multi tokens are declared once, on the token.**
   `InjectionToken.multi<Validator>("VALIDATORS")` instead of `multi: true` on
   every provider: `inject()` is typed as a list, a provider as one item, and

@@ -16,6 +16,8 @@ export { query, QueryMissingError } from "./internal/authoring/query.ts";
 export { Outlet } from "./internal/authoring/outlet.ts";
 export type { TemplateContext, TemplateRef } from "./internal/runtime/template-ref.ts";
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./internal/authoring/input.ts";
+export { type InputOptions } from "./internal/authoring/input.ts";
+export { booleanAdapter, numberAdapter } from "./internal/authoring/input-adapters.ts";
 
 // What the engine creates and hands back
 export { ComponentRef } from "./internal/component-ref.ts";
