@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { inject, Injector, InjectionToken, provide, runInInjectionContext, Task, type Provider } from "@tinker/core";
+import { type NavigationAction } from "./actions.ts";
 import { Location } from "./location.ts";
 import { type Guard, type GuardResult, NavigationCancelledError, NavigationFailedError, NavigationRejectedError, NoRouteError } from "./navigation.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
@@ -16,7 +17,10 @@ class Home {}
  * A platform location that starts at `url`. It records each change the router makes, and `back`
  * moves the browser to a URL the way a back or forward move does, then fires popstate.
  */
-function fakePlatform(url: string) {
+function fakePlatform(
+  url: string,
+  refuse: { readonly push?: boolean; readonly replace?: boolean } = {},
+) {
   let current = { url, state: null as unknown };
   const listeners: (() => void)[] = [];
   const changes: string[] = [];
@@ -24,10 +28,16 @@ function fakePlatform(url: string) {
     url: () => current.url,
     state: () => current.state,
     push: (next, state) => {
+      if (refuse.push === true) {
+        throw new Error("push refused");
+      }
       changes.push(`push ${next}`);
       current = { url: next, state };
     },
     replace: (next, state) => {
+      if (refuse.replace === true) {
+        throw new Error("replace refused");
+      }
       changes.push(`replace ${next}`);
       current = { url: next, state };
     },
@@ -60,9 +70,13 @@ const TODOS_ROUTE: Route = {
 /** A router over a tree, in an injector with `providers`, at `url`. */
 function routerAt(
   url: string,
-  options: { readonly root?: Route; readonly providers?: readonly Provider[] } = {},
+  options: {
+    readonly root?: Route;
+    readonly providers?: readonly Provider[];
+    readonly refuse?: { readonly push?: boolean; readonly replace?: boolean };
+  } = {},
 ) {
-  const fake = fakePlatform(url);
+  const fake = fakePlatform(url, options.refuse);
   const root: Route = options.root ?? {
     path: "",
     component: Root,
@@ -394,5 +408,218 @@ test("a guard that is also a route's guard is run for the root too", async () =>
   await router.navigate("/todos");
   expect(log)
     .toEqual(["root", "root"]);
+  destroy();
+});
+
+/** Records every action the router dispatches from now on. */
+function recordActions(router: Router): NavigationAction[] {
+  const seen: NavigationAction[] = [];
+  router.actions.run({
+    next: (action) => {
+      seen.push(action);
+    },
+  });
+  return seen;
+}
+
+/** The actions as `[navigationId, sequence, type, status]`, for comparing a whole sequence. */
+function shape(actions: readonly NavigationAction[]) {
+  return actions.map((action) =>
+    [action.navigationId, action.sequence, action.type, action.status]);
+}
+
+test("a navigation dispatches its steps in order, numbered within one navigation", async () => {
+  const { router, destroy } = routerAt("/home");
+  const seen = recordActions(router);
+  await router.navigate("/todos/7");
+  expect(shape(seen))
+    .toEqual([
+      [2, 1, "NAVIGATION_START", "success"],
+      [2, 2, "MATCH_ROUTE", "success"],
+      [2, 3, "GUARD_ROUTE", "success"],
+      [2, 4, "GUARD_ROUTE", "success"],
+      [2, 5, "GUARD_ROUTE", "success"],
+      [2, 6, "BROWSER_NAVIGATION", "success"],
+      [2, 7, "NAVIGATION_END", "success"],
+    ]);
+  destroy();
+});
+
+test("the browser step of a navigation says it pushed the URL, with its state", async () => {
+  const { router, destroy } = routerAt("/home");
+  const seen = recordActions(router);
+  await router.navigate("/todos/7", { state: { scroll: 3 } });
+  const browser = seen.find((action) => action.type === "BROWSER_NAVIGATION");
+  expect(browser?.type === "BROWSER_NAVIGATION" && browser.payload)
+    .toEqual({ url: "/todos/7", state: { scroll: 3 }, step: "push" });
+  destroy();
+});
+
+test("a rejected guard fails its GUARD_ROUTE, the routes after it do not run, and the navigation ends failed", async () => {
+  const { router, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [todosGuard(() => false), { path: "/home", component: Home }],
+    },
+  });
+  const seen = recordActions(router);
+  await router.navigate("/todos/7");
+  expect(shape(seen))
+    .toEqual([
+      [2, 1, "NAVIGATION_START", "success"],
+      [2, 2, "MATCH_ROUTE", "success"],
+      [2, 3, "GUARD_ROUTE", "success"],
+      [2, 4, "GUARD_ROUTE", "error"],
+      [2, 5, "NAVIGATION_END", "error"],
+    ]);
+  const failed = seen[3];
+  expect(failed?.status === "error" && failed.error)
+    .toBeInstanceOf(NavigationRejectedError);
+  expect(failed?.payload)
+    .toEqual({ url: "/todos/7", route: "/todos" });
+  destroy();
+});
+
+test("a URL no route matches fails its MATCH_ROUTE, and nothing else runs", async () => {
+  const { router, destroy } = routerAt("/home");
+  const seen = recordActions(router);
+  await router.navigate("/nowhere");
+  expect(shape(seen))
+    .toEqual([
+      [2, 1, "NAVIGATION_START", "success"],
+      [2, 2, "MATCH_ROUTE", "error"],
+      [2, 3, "NAVIGATION_END", "error"],
+    ]);
+  destroy();
+});
+
+test("a route redirect is dispatched as REDIRECT_ROUTE, and the target is matched again", async () => {
+  const { router, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [
+        { ...TODOS_ROUTE, redirect: (navigation) => (navigation.url === "/todos/7" ? "/todos" : undefined) },
+        { path: "/home", component: Home },
+      ],
+    },
+  });
+  const seen = recordActions(router);
+  await router.navigate("/todos/7");
+  const types = seen.map((action) => action.type);
+  expect(types.slice(0, 4))
+    .toEqual(["NAVIGATION_START", "MATCH_ROUTE", "REDIRECT_ROUTE", "MATCH_ROUTE"]);
+  const redirect = seen[2];
+  expect(redirect?.type === "REDIRECT_ROUTE" && redirect.payload)
+    .toEqual({ url: "/todos/7", target: "/todos", by: "route" });
+  expect(types.at(-1))
+    .toBe("NAVIGATION_END");
+  destroy();
+});
+
+test("a guard redirect is the GUARD_ROUTE verdict, then a REDIRECT_ROUTE by the guard", async () => {
+  const { router, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [
+        todosGuard((navigation) => (navigation.url === "/todos/7" ? "/todos/1" : true)),
+        { path: "/home", component: Home },
+      ],
+    },
+  });
+  const seen = recordActions(router);
+  await router.navigate("/todos/7");
+  const verdict = seen.find((action) => action.type === "GUARD_ROUTE" && action.payload.verdict === "/todos/1");
+  expect(verdict?.status)
+    .toBe("success");
+  const redirect = seen.find((action) => action.type === "REDIRECT_ROUTE");
+  expect(redirect?.type === "REDIRECT_ROUTE" && redirect.payload.by)
+    .toBe("guard");
+  destroy();
+});
+
+test("a browser that refuses the push fails its BROWSER_NAVIGATION, and the URL does not change", async () => {
+  const { router, destroy } = routerAt("/home", { refuse: { push: true } });
+  const seen = recordActions(router);
+  const result = await router.navigate("/todos/7");
+  expect(result.isLeft())
+    .toBe(true);
+  expect(shape(seen)
+    .at(-2))
+    .toEqual([2, 6, "BROWSER_NAVIGATION", "error"]);
+  expect(router.url())
+    .toBe("/home");
+  destroy();
+});
+
+test("a rejected back move dispatches a BROWSER_NAVIGATION that restores the URL, then ends", () => {
+  const { router, fake, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [todosGuard(() => false), { path: "/home", component: Home }],
+    },
+  });
+  const seen = recordActions(router);
+  fake.back("/todos/7");
+  expect(shape(seen))
+    .toEqual([
+      [2, 1, "NAVIGATION_START", "success"],
+      [2, 2, "MATCH_ROUTE", "success"],
+      [2, 3, "GUARD_ROUTE", "success"],
+      [2, 4, "GUARD_ROUTE", "error"],
+      [2, 5, "BROWSER_NAVIGATION", "success"],
+      [2, 6, "NAVIGATION_END", "error"],
+    ]);
+  const restore = seen[4];
+  expect(restore?.type === "BROWSER_NAVIGATION" && restore.payload.step)
+    .toBe("restore");
+  destroy();
+});
+
+test("a browser that refuses the restore dispatches it as a failure", () => {
+  const { router, fake, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [todosGuard(() => false), { path: "/home", component: Home }],
+    },
+    refuse: { replace: true },
+  });
+  const seen = recordActions(router);
+  fake.back("/todos/7");
+  const restore = seen.find((action) => action.type === "BROWSER_NAVIGATION");
+  expect(restore?.status)
+    .toBe("error");
+  expect(seen.at(-1)?.type)
+    .toBe("NAVIGATION_END");
+  destroy();
+});
+
+test("a navigation cancelled by a newer one ends as cancelled, and each navigation has its own id", async () => {
+  let answer: (result: GuardResult) => void = () => {};
+  const slow: Guard = () => Task.from<GuardResult, unknown>((ok) => {
+    answer = ok;
+  });
+  const { router, destroy } = routerAt("/home", {
+    root: {
+      path: "",
+      component: Root,
+      children: [{ ...TODOS_ROUTE, canActivate: [slow] }, { path: "/home", component: Home }],
+    },
+  });
+  const seen = recordActions(router);
+  const older = router.navigate("/todos/7");
+  await router.navigate("/home");
+  answer(true);
+  await older;
+  const ended = seen.filter((action) => action.type === "NAVIGATION_END");
+  expect(ended.map((action) => [action.navigationId, action.status]))
+    .toEqual([[2, "error"], [3, "success"]]);
+  const cancelled = ended[0];
+  expect(cancelled?.status === "error" && cancelled.error)
+    .toBeInstanceOf(NavigationCancelledError);
   destroy();
 });

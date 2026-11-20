@@ -11,6 +11,7 @@ import {
 import { ActivatedRoute } from "./activated-route.ts";
 import { type Guard, type GuardResult, NavigationFailedError, NavigationRejectedError, NoRouteError } from "./navigation.ts";
 import { type PipelineContext, type Plan, planNavigation } from "./pipeline.ts";
+import { NavigationTrace, type NavigationAction } from "./actions.ts";
 import type { Route } from "./route.ts";
 
 class Root {}
@@ -77,6 +78,8 @@ function contextFor(
     readonly providers?: readonly Provider[];
     readonly activated?: readonly ActivatedRoute[];
     readonly from?: string;
+    /** Where the actions of the navigation are recorded, when a test checks them. */
+    readonly actions?: NavigationAction[];
   } = {},
 ): PipelineContext {
   const { injector } = Injector.create({ providers: options.providers ?? [] });
@@ -86,6 +89,9 @@ function contextFor(
     injector,
     activated: options.activated ?? [rootRoute],
     from: options.from ?? "",
+    trace: NavigationTrace.of(1, (action) => {
+      options.actions?.push(action);
+    }),
   };
 }
 

@@ -27,3 +27,4 @@ export { provideRouter } from "./provide-router.ts";
 export { Location } from "./location.ts";
 export { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
 export type { PlatformLocation } from "./platform-location.ts";
+export type { ActionPayloads, ActionType, NavigationAction } from "./actions.ts";

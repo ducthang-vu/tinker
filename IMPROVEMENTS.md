@@ -394,3 +394,14 @@ instead, and the guard runs after the other redirects.
 
 **To do.** Accept a `Task` from `redirect` too, with the same waiting as a
 guard.
+
+### 6. The first navigation is not observable
+
+**Problem.** The router starts its first navigation in its constructor, so a
+subscriber to `router.actions` made afterwards never sees the first
+navigation's actions. Only the navigation that the router is created for is
+affected.
+
+**To do.** Keep the last navigation's actions and replay them to a new
+subscriber, or start the first navigation on the first subscription.
+
