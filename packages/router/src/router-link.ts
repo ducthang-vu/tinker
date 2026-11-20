@@ -1,28 +1,63 @@
 // RouterLink: an anchor that navigates the router instead of letting the browser follow its href.
 // A relative destination is resolved against the route of the component the link sits in. A link
 // that opens elsewhere (a target other than this tab, or a modifier or middle click) is left to the
-// browser.
+// browser. The link is `aria-current="page"` while its path is the current one.
 
 import { computed, Directive, input, inject } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
-import { hrefOf } from "./href.ts";
-import { pathOf } from "./resolve-url.ts";
+import { pathOf, resolveUrl } from "./resolve-url.ts";
 import { Router } from "./router.ts";
+import { pathPartOf, withParts } from "./url-parts.ts";
+
+/** The path a `routerlink` names: a string as it is, or its segments joined. */
+function pathOfTo(to: string | readonly string[]): string {
+  return typeof to === "string" ? to : to.join("/");
+}
 
 @Directive({
   selector: "a[routerlink]",
-  host: { "(click.plain.primary)": "navigateTo($event)", "[attr.href]": "href()", "[attr.target]": "target()" },
+  host: {
+    "(click.plain.primary)": "navigateTo($event)",
+    "[attr.href]": "href()",
+    "[attr.target]": "target()",
+    "[attr.aria-current]": "ariaCurrent()",
+  },
 })
 export class RouterLink {
   /** The destination: a path, or the segments of one, e.g. `"/todos"` or `["todos", "7"]`. */
   readonly routerlink = input<string | readonly string[] | undefined>(undefined);
   /** The browser's target, set on the link. `_blank` opens it in a new tab: left to the browser. */
   readonly target = input<string | undefined>(undefined);
+  /** Query params set on the destination; a param replaces the same key of its own query. */
+  readonly queryParams = input<Readonly<Record<string, string>> | undefined>(undefined);
+  /** The fragment (hash) of the destination, without the `#`. */
+  readonly fragment = input<string | undefined>(undefined);
+  /** The state of the history entry a click creates. */
+  readonly state = input<unknown>(undefined);
   private readonly router = inject(Router);
   /** The activated route of the component this link sits in: a relative destination's base. */
   private readonly own = inject(ActivatedRoute);
-  /** The URL a click navigates to: the href of the link. */
-  private readonly href = computed(() => hrefOf(this.routerlink(), pathOf(this.own)));
+  /** Where a click goes: the destination, with its query params and fragment. */
+  private readonly destination = computed(() => {
+    const to = this.routerlink();
+    return to === undefined
+      ? undefined
+      : withParts(pathOfTo(to), this.queryParams(), this.fragment());
+  });
+
+  /** The URL a click navigates to, resolved: the href of the link. */
+  private readonly href = computed(() => {
+    const destination = this.destination();
+    return destination === undefined ? undefined : resolveUrl(destination, pathOf(this.own));
+  });
+
+  /** `page` while the link's path is the current one, for assistive technology. */
+  private readonly ariaCurrent = computed(() => {
+    const href = this.href();
+    return href !== undefined && pathPartOf(href) === pathPartOf(this.router.url())
+      ? "page"
+      : undefined;
+  });
 
   /**
    * Navigates to the destination, and stops the browser from following the href. Only a plain
@@ -35,10 +70,10 @@ export class RouterLink {
       return;
     }
     event.preventDefault();
-    const to = this.routerlink();
-    if (to === undefined) {
+    const destination = this.destination();
+    if (destination === undefined) {
       return;
     }
-    this.router.navigate(to, { relativeTo: this.own });
+    this.router.navigate(destination, { relativeTo: this.own, state: this.state() });
   }
 }
