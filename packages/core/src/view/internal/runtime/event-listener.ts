@@ -4,6 +4,7 @@
 import type { Renderer } from "../renderer.ts";
 import {
   anySystemKeyHeld,
+  buttonOf,
   type EventModifier,
   type EventName,
   keyOf,
@@ -27,6 +28,8 @@ export function listenWithModifiers(
   const has = (modifier: EventModifier) => modifiers.includes(modifier);
   const keys = modifiers.map(keyOf)
     .filter((key): key is string => key !== undefined);
+  const buttons = modifiers.map(buttonOf)
+    .filter((button): button is number => button !== undefined);
   const systems = modifiers.map(systemRequirementOf)
     .filter((requirement): requirement is SystemRequirement => requirement !== undefined);
   const stop = renderer.listen(target, event, (domEvent) => {
@@ -34,6 +37,9 @@ export function listenWithModifiers(
       return;
     }
     if (keys.length > 0 && !keys.includes((domEvent as KeyboardEvent).key)) {
+      return;
+    }
+    if (buttons.length > 0 && !buttons.includes((domEvent as MouseEvent).button)) {
       return;
     }
     if (has("modified") && !anySystemKeyHeld(domEvent as KeyboardEvent)) {

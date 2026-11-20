@@ -16,6 +16,9 @@
 // Aliases stand for a list of modifiers, written once here: `plain` is a click
 // with no modifier key held, `submit` is Enter without Shift, and `modified`
 // needs at least one of Ctrl, Shift, Alt or Meta held (its complement is `plain`).
+//
+// `primary` and `secondary` pick the mouse button: 0 (the left button) and 2 (the
+// right button) of a `MouseEvent`. A keyboard event has no button, so it never passes.
 
 import { Either, type EitherError } from "@tinker/functional";
 
@@ -52,9 +55,17 @@ export type NegatedSystemModifier = `!${SystemModifier}`;
 /** A guard that passes when at least one of Ctrl, Shift, Alt or Meta is held. */
 export type AnyModifier = "modified";
 
+/** The mouse button of a `MouseEvent`: `primary` is the left one, `secondary` the right. */
+export type ButtonModifier = "primary" | "secondary";
+
+const BUTTONS: Readonly<Record<ButtonModifier, number>> = {
+  primary: 0,
+  secondary: 2,
+};
+
 /** The modifiers Tinker supports. */
 export type EventModifier = "prevent" | "stop" | "self" | "once"
-  | SystemModifier | NegatedSystemModifier | AnyModifier | KeyModifier;
+  | SystemModifier | NegatedSystemModifier | AnyModifier | ButtonModifier | KeyModifier;
 
 /** A name standing for several modifiers, expanded when the event name is parsed. */
 export type AliasName = "plain" | "submit";
@@ -75,9 +86,15 @@ const SUPPORTED: readonly string[] = [
   "once",
   ...Object.keys(SYSTEM_KEYS),
   "modified",
+  ...Object.keys(BUTTONS),
   ...Object.keys(ALIASES),
   ...Object.keys(KEY_VALUES),
 ];
+
+/** The `MouseEvent.button` a button modifier stands for, if `modifier` is one. */
+export function buttonOf(modifier: EventModifier): number | undefined {
+  return (BUTTONS as Partial<Record<string, number>>)[modifier];
+}
 
 /** The `KeyboardEvent.key` a key modifier stands for, if `modifier` is one. */
 export function keyOf(modifier: EventModifier): string | undefined {

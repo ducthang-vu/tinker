@@ -45,6 +45,12 @@ describe("parseEventName", () => {
       .toEqual({ event: "keydown", modifiers: ["enter", "!shift"] });
   });
 
+  test("primary and secondary are modifiers", () => {
+    expect(parseEventName("mousedown.secondary.prevent", "x")
+      .getOrThrow())
+      .toEqual({ event: "mousedown", modifiers: ["secondary", "prevent"] });
+  });
+
   test("modified stays a guard", () => {
     expect(parseEventName("click.modified", "x")
       .getOrThrow())
@@ -54,7 +60,7 @@ describe("parseEventName", () => {
   test("an unknown modifier is an error naming it and the supported ones", () => {
     const message = messageOf(parseEventName("click.prevnt", "event binding"));
     expect(message)
-      .toBe(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once, .ctrl, .shift, .alt, .meta, .cmd, .modified, .plain, .submit, .enter, .esc, .escape, .space, .tab, .up, .down, .left, .right`);
+      .toBe(`Unknown modifier ".prevnt" in event binding "click.prevnt": supported are .prevent, .stop, .self, .once, .ctrl, .shift, .alt, .meta, .cmd, .modified, .primary, .secondary, .plain, .submit, .enter, .esc, .escape, .space, .tab, .up, .down, .left, .right`);
   });
 
   test("a missing event name is an error", () => {
