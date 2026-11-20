@@ -1,19 +1,30 @@
 // The router: the current URL, the matched route and params, the list of activated routes, and
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
+//
+// A navigation runs the pipeline in pipeline.ts before it changes anything: the guards decide, the
+// resolvers load what the routes show, and only a plan that passes is committed (the URL and the
+// activated routes). Back and forward moves run the same pipeline after the browser has moved; when
+// one is rejected, the router puts the previous URL back. A newer navigation cancels the one
+// running.
 
 import {
   computed,
   Either,
+  inject,
+  Injector,
   Maybe,
   type ReadonlySignal,
-  type Runnable,
   signal,
   untracked,
   watch,
+  type Runnable,
 } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
+import { activatedFor } from "./activation.ts";
 import type { Location } from "./location.ts";
-import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
+import { matchRoute, type RouteMatch } from "./match.ts";
+import { NavigationCancelledError, type NavigationResult } from "./navigation.ts";
+import { type Outcome, type Plan, planNavigation } from "./pipeline.ts";
 import type { Route } from "./route.ts";
 import { UrlBuilder } from "./url-builder.ts";
 
@@ -25,16 +36,28 @@ export interface NavigateOptions {
   readonly relativeTo?: ActivatedRoute;
 }
 
+/**
+ * How a navigation reaches the browser: `"push"` adds a history entry when it commits, and
+ * `"current"` is a back or forward move, where the browser already shows the URL.
+ */
+type Arrival = "push" | "current";
+
+/** A navigation that is running, until it commits, fails, or a newer one replaces it. */
+interface Running {
+  readonly url: string;
+  readonly settle: (result: NavigationResult) => void;
+  /** Stops the step that is waiting. */
+  readonly cancel: () => void;
+}
+
+/** The URL and state of the history entry the router last committed. */
+interface Committed {
+  readonly url: string;
+  readonly state: unknown;
+}
+
 /** Runs a watch at once: the activated routes follow the URL as soon as it changes. */
 const immediately = { schedule: (task: Runnable) => task.run() };
-
-/** A navigation to a URL that no route matches. The URL does not change. */
-export class NoRouteError extends Error {
-  constructor(readonly url: string) {
-    super(`Cannot match any route: ${url}`);
-    this.name = "NoRouteError";
-  }
-}
 
 export class Router {
   /** The current URL: path, query and hash. */
@@ -43,11 +66,19 @@ export class Router {
   readonly match: ReadonlySignal<RouteMatch | undefined>;
   /** The activated routes for the current URL, root first. The first one never changes. */
   readonly activated: ReadonlySignal<readonly ActivatedRoute[]>;
-  private readonly root: Route;
-  private readonly location: Location;
   /** The activated route of the root: the first of the list, which never changes. */
   readonly rootRoute: ActivatedRoute;
+  private readonly root: Route;
+  private readonly location: Location;
+  private readonly injector = inject(Injector);
   private readonly list = signal<readonly ActivatedRoute[]>([]);
+  private running: Maybe<Running> = Maybe.none();
+  private committed: Maybe<Committed> = Maybe.none();
+  /**
+   * True while the router itself moves the browser, so that the move is not taken for a back or
+   * forward.
+   */
+  private changingBrowser = false;
 
   constructor(root: Route, location: Location) {
     this.root = root;
@@ -56,24 +87,32 @@ export class Router {
     this.rootRoute = new ActivatedRoute(root, {}, [], Maybe.none());
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
+    this.list.set([this.rootRoute]);
     watch(() => {
-      const chain = matchChain(root, location.url());
-      untracked(() => this.list.set(activatedFor(this.rootRoute, this.list(), chain)));
+      const url = location.url();
+      untracked(() => {
+        if (!this.changingBrowser) {
+          void this.start(url, location.state(), "current");
+        }
+      });
     }, immediately);
   }
 
   /**
-   * Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of
-   * one: `["todos", "7"]` is `"todos/7"`, and the query and hash then go in the last segment. A
-   * relative URL is resolved against the path of `options.relativeTo` (the root when none is
-   * given); see `UrlBuilder.resolve`. The resolved URL is what must match: a URL no route
-   * matches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch
-   * those URLs.
+   * Go to `url` as a new history entry, with `options.state`, once its guards and resolvers pass.
+   * `url` is a URL, or the segments of one: `["todos", "7"]` is `"todos/7"`, and the query and hash
+   * then go in the last segment. A relative URL is resolved against the path of
+   * `options.relativeTo` (the root when none is given); see `UrlBuilder.resolve`.
+   *
+   * The result is a promise of the outcome, and it settles later when a guard is asynchronous. With
+   * synchronous guards the URL has changed by the time `navigate` returns. A navigation that is
+   * rejected, fails, or is cancelled by a newer one leaves the URL as it was. A URL no route
+   * matches is a `NoRouteError`: declare a `**` route to catch those.
    */
   navigate(
     url: string | readonly string[],
     options: NavigateOptions = {},
-  ): Either<NoRouteError, void> {
+  ): Promise<NavigationResult> {
     const base = Maybe.from(options.relativeTo)
       .match({
         some: (route) => route.path,
@@ -82,71 +121,95 @@ export class Router {
     const target = UrlBuilder.from(url)
       .resolve(base)
       .build();
-    if (matchRoute(this.root, target) === undefined) {
-      return Either.left(new NoRouteError(target));
+    return this.start(target, options.state ?? null, "push");
+  }
+
+  /**
+   * Runs the pipeline for `url`, and settles with its outcome. A running navigation is cancelled
+   * first.
+   */
+  private start(url: string, state: unknown, arrival: Arrival): Promise<NavigationResult> {
+    return new Promise((settle) => {
+      this.cancelRunning();
+      let done = false;
+      const cancel = this.plan(url, state)
+        .run({
+          ok: (plan) => {
+            done = true;
+            this.running = Maybe.none();
+            this.commit(plan, arrival);
+            settle(Either.right(undefined));
+          },
+          error: (error) => {
+            done = true;
+            this.running = Maybe.none();
+            this.restore(arrival);
+            settle(Either.left(error));
+          },
+        });
+      // Only a navigation still waiting for a guard can be cancelled by a newer one.
+      if (!done) {
+        this.running = Maybe.some({ url, settle, cancel });
+      }
+    });
+  }
+
+  /** Stops the running navigation, if any: it settles as cancelled, and changes nothing. */
+  private cancelRunning(): void {
+    this.running.ifSome((running) => {
+      this.running = Maybe.none();
+      running.cancel();
+      running.settle(Either.left(new NavigationCancelledError(running.url)));
+    });
+  }
+
+  private plan(url: string, state: unknown): Outcome<Plan> {
+    return planNavigation(
+      {
+        root: this.root,
+        injector: this.injector,
+        activated: untracked(() => this.list()),
+        from: this.committed.match({
+          some: (entry) => entry.url,
+          none: () => "",
+        }),
+      },
+      url,
+      state,
+    );
+  }
+
+  /**
+   * Makes a plan the current navigation: the browser shows its URL, and its routes are activated.
+   */
+  private commit(plan: Plan, arrival: Arrival): void {
+    this.changeBrowser(() => {
+      if (arrival === "push") {
+        this.location.go(plan.url, plan.state);
+      } else if (plan.url !== this.location.url()) {
+        this.location.replace(plan.url, plan.state);
+      }
+    });
+    this.committed = Maybe.some({ url: plan.url, state: plan.state });
+    this.list.set(activatedFor(this.rootRoute, plan.kept, plan.chain.slice(1), plan.resolved));
+  }
+
+  /** After a back or forward move that did not commit, shows the URL the router was at again. */
+  private restore(arrival: Arrival): void {
+    if (arrival === "current") {
+      this.committed.ifSome(({ url, state }) => {
+        this.changeBrowser(() => this.location.replace(url, state));
+      });
     }
-    this.location.go(target, options.state ?? null);
-    return Either.right(undefined);
   }
-}
 
-/**
- * The activated routes for `chain`, root first. The levels that keep their previous instance are
- * the leading ones that are unchanged: a level under a changed level is made again too, since its
- * component sits inside the view of the one above.
- */
-function activatedFor(
-  rootRoute: ActivatedRoute,
-  previous: readonly ActivatedRoute[],
-  chain: readonly LevelMatch[] | undefined,
-): readonly ActivatedRoute[] {
-  if (chain === undefined) {
-    return [rootRoute];
-  }
-  const levels = chain.slice(1);
-  const kept = keptPrefix(previous.slice(1), levels);
-  return levels.reduce<readonly ActivatedRoute[]>(
-    (made, level, index) => [
-      ...made,
-      kept[index] ?? new ActivatedRoute(level.route, level.params, level.segments, lastOf(made)),
-    ],
-    [rootRoute],
-  );
-}
-
-/** The last activated route of a non-empty list, which is the parent of the next level. */
-function lastOf(made: readonly ActivatedRoute[]): Maybe<ActivatedRoute> {
-  return Maybe.from(made[made.length - 1]);
-}
-
-/** The previous instances of the leading levels that are still the same, in order. */
-function keptPrefix(
-  previous: readonly ActivatedRoute[],
-  levels: readonly LevelMatch[],
-): readonly ActivatedRoute[] {
-  const kept: ActivatedRoute[] = [];
-  for (const [index, level] of levels.entries()) {
-    const candidate = previous[index];
-    if (candidate === undefined || !sameLevel(candidate, level)) {
-      break;
+  private changeBrowser(change: () => void): void {
+    const was = this.changingBrowser;
+    this.changingBrowser = true;
+    try {
+      change();
+    } finally {
+      this.changingBrowser = was;
     }
-    kept.push(candidate);
   }
-  return kept;
-}
-
-/** Whether an activated route is still the level it was made for. */
-function sameLevel(activated: ActivatedRoute, level: LevelMatch): boolean {
-  return activated.route === level.route
-    && sameParams(activated.params, level.params)
-    && sameSegments(activated.segments, level.segments);
-}
-
-function sameParams(a: RouteParams, b: RouteParams): boolean {
-  const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
-}
-
-function sameSegments(a: readonly string[], b: readonly string[]): boolean {
-  return a.length === b.length && a.every((segment, index) => segment === b[index]);
 }

@@ -31,9 +31,11 @@ export function matchChain(root: Route, url: string): readonly LevelMatch[] | un
 /** The leaf that matches `url`, with the params of every level, or undefined when none does. */
 export function matchRoute(root: Route, url: string): RouteMatch | undefined {
   const chain = matchChain(root, url);
-  if (chain === undefined) {
-    return undefined;
-  }
+  return chain === undefined ? undefined : matchOf(chain);
+}
+
+/** The leaf of a chain of levels, with the params read along it. */
+export function matchOf(chain: readonly LevelMatch[]): RouteMatch {
   return {
     route: chain[chain.length - 1]?.route as Route,
     params: Object.fromEntries(chain.flatMap((level) => Object.entries(level.params))),

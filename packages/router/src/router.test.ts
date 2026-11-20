@@ -3,7 +3,8 @@ import { inject, Injector, Maybe, provide, runInInjectionContext } from "@tinker
 import { ActivatedRoute } from "./activated-route.ts";
 import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
-import { NoRouteError, Router } from "./router.ts";
+import { NoRouteError } from "./navigation.ts";
+import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
 
 /** A platform location that starts at `url`, and records the entries the router adds. */
@@ -76,9 +77,9 @@ test("navigate with a state gives the state to the history entry", () => {
     .toEqual({ scroll: 320 });
 });
 
-test("a URL no route matches is rejected, and the URL does not change", () => {
+test("a URL no route matches is rejected, and the URL does not change", async () => {
   const { router, fake } = routerAt("/todos");
-  const result = router.navigate("/nowhere", { state: { scroll: 1 } });
+  const result = await router.navigate("/nowhere", { state: { scroll: 1 } });
   result.match({
     left: (failure) => {
       expect(failure)
@@ -96,9 +97,9 @@ test("a URL no route matches is rejected, and the URL does not change", () => {
     .toBeNull();
 });
 
-test("a navigation to a matched URL succeeds", () => {
+test("a navigation to a matched URL succeeds", async () => {
   const { router } = routerAt("/todos");
-  const result = router.navigate("/todos/7");
+  const result = await router.navigate("/todos/7");
   expect(result.match({ left: () => false, right: () => true }))
     .toBe(true);
 });
@@ -293,13 +294,13 @@ test("a relative URL is resolved against the path of relativeTo", () => {
   destroy();
 });
 
-test("a relative URL that matches no route is rejected with its resolved URL", () => {
+test("a relative URL that matches no route is rejected with its resolved URL", async () => {
   const { router, destroy } = routerAt("/todos/7");
-  const result = router.navigate("../..", { relativeTo: router.activated()[1] });
+  const result = await router.navigate("../..", { relativeTo: router.activated()[1] });
   result.match({
     left: (failure) => {
-      expect(failure.url)
-        .toBe("/");
+      expect(failure.message)
+        .toBe("Cannot match any route: /");
     },
     right: () => {
       throw new Error("expected a rejection");

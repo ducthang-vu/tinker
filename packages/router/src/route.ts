@@ -3,6 +3,7 @@
 // the tree, from the root.
 
 import type { Class } from "@tinker/core";
+import type { Guard, Resolver } from "./navigation.ts";
 
 export interface Route {
   /**
@@ -20,4 +21,17 @@ export interface Route {
    * first that matches wins. A route without children must match the whole URL.
    */
   readonly children?: readonly Route[];
+  /**
+   * Guards that decide whether a navigation to this route may commit. They run on every navigation
+   * whose URL matches this route, in order, and the first one that does not say `true` decides. A
+   * guard of a parent route runs before those of its children. See navigation.ts.
+   */
+  readonly canActivate?: readonly Guard[];
+  /**
+   * Resolvers of the values this route shows, by name: `ActivatedRoute.data` has each value under
+   * its name. They run before the navigation commits, in order, and only when the route is made
+   * again (not when only its query or hash changes). The root route's resolvers do not run: the
+   * root is never made again, so put them on a child route.
+   */
+  readonly resolve?: Readonly<Record<string, Resolver>>;
 }
