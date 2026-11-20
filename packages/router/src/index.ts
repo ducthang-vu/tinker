@@ -9,7 +9,7 @@ export { RouterLink } from "./router-link.ts";
 export { UrlBuilder } from "./url-builder.ts";
 export { ChildActivatedRoute } from "./child-activated-route.ts";
 export type { RouteMatch, RouteParams } from "./match.ts";
-export { provideRouter } from "./provide-router.ts";
+export { provideRootOutlet, provideRouter } from "./provide-router.ts";
 export { Location } from "./location.ts";
 export { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
 export type { PlatformLocation } from "./platform-location.ts";

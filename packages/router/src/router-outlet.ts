@@ -10,7 +10,8 @@ import { Router } from "./router.ts";
 @Directive({ selector: "router-outlet" })
 export class RouterOutlet {
   private readonly container = inject(ViewContainerRef);
-  private readonly next = inject(ChildActivatedRoute);
+  // Looked up in the owner component only: an outlet that its owner does not provide fails.
+  private readonly next = inject(ChildActivatedRoute, { host: true });
   private readonly router = inject(Router);
 
   /** Shows the component of the next activated route, replacing the one shown. */

@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { inject, Injector, runInInjectionContext } from "@tinker/core";
 import { ChildActivatedRoute } from "./child-activated-route.ts";
-import { provideRouter } from "./provide-router.ts";
+import { provideRootOutlet, provideRouter } from "./provide-router.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
 
@@ -25,7 +25,8 @@ test("provideRouter gives a router over the browser's address bar", () => {
 
 test("ChildActivatedRoute is the activated route after the root, as a signal", () => {
   window.history.replaceState(null, "", "/todos");
-  const { injector, destroy } = Injector.create({ providers: provideRouter(ROOT) });
+  const providers = [...provideRouter(ROOT), provideRootOutlet()];
+  const { injector, destroy } = Injector.create({ providers });
   const child = runInInjectionContext(injector, () => inject(ChildActivatedRoute));
   expect(child()
     .getOrThrow(() => new Error("no child")).route.component)

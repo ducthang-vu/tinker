@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { Component } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
-import { provideRouter } from "./provide-router.ts";
+import { provideRootOutlet, provideRouter } from "./provide-router.ts";
 import { RouterLink } from "./router-link.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { Router } from "./router.ts";
@@ -36,6 +36,7 @@ class Root {}
   selector: "tk-app",
   template: "<a class=\"root\" routerlink=\"/todos\">root</a><router-outlet></router-outlet>",
   imports: [RouterLink, RouterOutlet],
+  providers: [provideRootOutlet()],
 })
 class App {}
 

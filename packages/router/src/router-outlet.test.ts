@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { Component, getDirectiveMetadata, inject } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
-import { provideRouter } from "./provide-router.ts";
+import { provideRootOutlet, provideRouter } from "./provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { ActivatedRoute } from "./activated-route.ts";
 import { Router } from "./router.ts";
@@ -27,7 +27,12 @@ class TodoDetail {
 @Component({ selector: "tk-root", template: "<p>Root</p>" })
 class Root {}
 
-@Component({ selector: "tk-app", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
+@Component({
+  selector: "tk-app",
+  template: "<router-outlet></router-outlet>",
+  imports: [RouterOutlet],
+  providers: [provideRootOutlet()],
+})
 class App {
   readonly router = inject(Router);
 }
