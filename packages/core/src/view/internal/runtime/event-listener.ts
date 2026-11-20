@@ -2,11 +2,12 @@
 // Used by template event bindings and by host listeners, so both behave alike.
 
 import type { Renderer } from "../renderer.ts";
-import { type EventModifier, type EventName, keyOf } from "../template/event-modifiers.ts";
+import { type EventModifier, type EventName, keyOf, systemKeyOf } from "../template/event-modifiers.ts";
 
 /**
  * Listen to `name` on `target`. For each event: `self` ignores it unless its
- * target is `target` itself; `prevent` and `stop` change it; `once` ends the
+ * target is `target` itself; a key or system modifier ignores it unless its key
+ * matches (or is held); `prevent` and `stop` change it; `once` ends the
  * listener once an event has passed the guards; then `handler` runs.
  * Returns how to remove the listener.
  */
@@ -19,11 +20,16 @@ export function listenWithModifiers(
   const has = (modifier: EventModifier) => modifiers.includes(modifier);
   const keys = modifiers.map(keyOf)
     .filter((key): key is string => key !== undefined);
+  const systemKeys = modifiers.map(systemKeyOf)
+    .filter((flag): flag is NonNullable<typeof flag> => flag !== undefined);
   const stop = renderer.listen(target, event, (domEvent) => {
     if (has("self") && domEvent.target !== target) {
       return;
     }
     if (keys.length > 0 && !keys.includes((domEvent as KeyboardEvent).key)) {
+      return;
+    }
+    if (systemKeys.some((flag) => (domEvent as KeyboardEvent)[flag] !== true)) {
       return;
     }
     if (has("prevent")) {
