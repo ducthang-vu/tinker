@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
-import { type CompiledElement, compileTemplate, TemplateCompileError } from "./compile.ts";
+import { type CompiledElement, compileTemplate } from "./compile.ts";
+import { TemplateCompileError } from "./compile-error.ts";
 import { Selector } from "./selector.ts";
 import { Maybe } from "@tinker/functional";
 import { ExpressionParser } from "./expression.ts";

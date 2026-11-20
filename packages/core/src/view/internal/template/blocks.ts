@@ -12,6 +12,7 @@
 // `{{ }}` is skipped when looking for braces, since interpolations contain them.
 
 import type { Span, TemplateNode, TextNode } from "./ast.ts";
+import { compileError, locatedAt } from "./compile-error.ts";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
@@ -23,6 +24,8 @@ export interface BlockItem {
   readonly keyword: BlockKeyword;
   /** The text between the keyword and the `{`, trimmed: `(user())`, `"loading"`, or empty. */
   readonly header: string;
+  /** From the keyword to the closing brace. Set by the parser; absent in a tree built by hand. */
+  readonly span?: Span;
   readonly body: readonly Item[];
   /** For an `@if`: what its `@else` or `@else if` gives, when there is one. */
   readonly otherwise?: readonly Item[];
@@ -30,16 +33,22 @@ export interface BlockItem {
 
 type Token
   = | { readonly kind: "node"; readonly node: TemplateNode }
-    | { readonly kind: "open"; readonly keyword: BlockKeyword; readonly header: string }
-    | { readonly kind: "close" };
+    | { readonly kind: "open"; readonly keyword: BlockKeyword; readonly header: string; readonly span: Span | undefined }
+    | { readonly kind: "close"; readonly span: Span | undefined };
 
 const BLOCK_START = /@(else\s+if|if|else|match|case|default|map)(?![\w$])/y;
 
 /** The items of a list of nodes: blocks nested by braces, `@else`s attached to their `@if`. */
 export function itemsOf(nodes: readonly TemplateNode[]): readonly Item[] {
   const tokens = nodes.flatMap(tokenize);
-  const state = { position: 0 };
-  return attachElses(read(tokens, state, false));
+  const state: ReadState = { position: 0, closed: undefined };
+  return attachElses(read(tokens, state, undefined));
+}
+
+/** Where the reading of the tokens is: the next token, and the span of the last closing brace. */
+interface ReadState {
+  position: number;
+  closed: Span | undefined;
 }
 
 function tokenize(node: TemplateNode): Token[] {
@@ -78,18 +87,25 @@ function tokenize(node: TemplateNode): Token[] {
     if (start) {
       flush(i);
       const keyword = start[1]!.replace(/\s+/, "") as BlockKeyword;
-      const brace = bodyBrace(node.value, BLOCK_START.lastIndex, keyword);
+      const keywordSpan = spanWithin(node, i, i + start[0].length);
+      const brace = locatedAt(keywordSpan, () =>
+        bodyBrace(node.value, BLOCK_START.lastIndex, keyword));
       if (brace === -1) {
-        throw new Error(`Missing "{" after "${start[0]}"`);
+        throw compileError(`Missing "{" after "${start[0]}"`, keywordSpan);
       }
-      tokens.push({ kind: "open", keyword, header: node.value.slice(BLOCK_START.lastIndex, brace)
-        .trim() });
+      tokens.push({
+        kind: "open",
+        keyword,
+        header: node.value.slice(BLOCK_START.lastIndex, brace)
+          .trim(),
+        span: spanWithin(node, i, brace + 1),
+      });
       i = brace + 1;
       continue;
     }
     if (node.value[i] === "}") {
       flush(i);
-      tokens.push({ kind: "close" });
+      tokens.push({ kind: "close", span: spanWithin(node, i, i + 1) });
     } else {
       append(node.value[i]!, i);
     }
@@ -205,27 +221,49 @@ function matchingBrace(value: string, open: number): number {
   throw new Error(`Missing "${closer}" in the pattern`);
 }
 
-/** Read items until the end of the tokens, or, inside a block, its closing brace. */
-function read(tokens: readonly Token[], state: { position: number }, inBlock: boolean): Item[] {
+/**
+ * Read items until the end of the tokens, or, inside a block (`open` is its opening
+ * token), its closing brace.
+ */
+function read(
+  tokens: readonly Token[],
+  state: ReadState,
+  open: { readonly span: Span | undefined } | undefined,
+): Item[] {
   const items: Item[] = [];
   while (state.position < tokens.length) {
     const token = tokens[state.position++]!;
     if (token.kind === "node") {
       items.push(token.node);
     } else if (token.kind === "open") {
-      const body = attachElses(read(tokens, state, true));
-      items.push({ kind: "block", keyword: token.keyword, header: token.header, body });
+      const body = attachElses(read(tokens, state, token));
+      items.push({
+        kind: "block",
+        keyword: token.keyword,
+        header: token.header,
+        body,
+        span: blockSpan(token.span, state.closed),
+      });
     } else {
-      if (!inBlock) {
-        throw new Error(`Unexpected "}" with no block to close`);
+      if (open === undefined) {
+        throw compileError(`Unexpected "}" with no block to close`, token.span);
       }
+      state.closed = token.span;
       return items;
     }
   }
-  if (inBlock) {
-    throw new Error(`Missing "}" to close a block`);
+  if (open !== undefined) {
+    throw compileError(`Missing "}" to close a block`, open.span);
   }
   return items;
+}
+
+/** From a block's keyword to its closing brace, when both are known. */
+function blockSpan(open: Span | undefined, close: Span | undefined): Span | undefined {
+  if (open === undefined || close === undefined) {
+    return undefined;
+  }
+  return { start: open.start, end: close.end };
 }
 
 /**

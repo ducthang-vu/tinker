@@ -3,6 +3,7 @@ import { TinkerTemplateParser } from "./tinker-parser.ts";
 import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compile.ts";
 import { ExpressionParser } from "./expression.ts";
 import { itemsOf } from "./blocks.ts";
+import { TemplateCompileError } from "./compile-error.ts";
 
 function compile(source: string): readonly CompiledNode[] {
   return compileTemplate(new TinkerTemplateParser()
@@ -303,5 +304,87 @@ describe("the spans of text split around a block", () => {
       .toMatchObject({ kind: "text", value: "a " });
     expect((text as { span?: unknown }).span)
       .toBeUndefined();
+  });
+});
+
+describe("the place of a block error", () => {
+  const blockError = (source: string): TemplateCompileError => {
+    try {
+      itemsOf(new TinkerTemplateParser()
+        .parse(source));
+    } catch (error) {
+      return error as TemplateCompileError;
+    }
+    throw new Error(`no error for ${JSON.stringify(source)}`);
+  };
+
+  test("a block with no opening brace is located at its keyword", () => {
+    const error = blockError("x @if y");
+    expect(error)
+      .toBeInstanceOf(TemplateCompileError);
+    expect(error.message)
+      .toBe(`Missing "{" after "@if"`);
+    expect(error.span)
+      .toEqual({ start: 2, end: 5 });
+  });
+
+  test("a block that is never closed is located at its opening brace", () => {
+    const error = blockError("ab @if (x) { c");
+    expect(error.message)
+      .toBe(`Missing "}" to close a block`);
+    expect(error.span)
+      .toEqual({ start: 3, end: 12 });
+  });
+
+  test("a closing brace with no block is located at the brace", () => {
+    const error = blockError("a } b");
+    expect(error.message)
+      .toBe(`Unexpected "}" with no block to close`);
+    expect(error.span)
+      .toEqual({ start: 2, end: 3 });
+  });
+
+  test("a pattern that is never closed is located at the block", () => {
+    const error = blockError("@match v { @case [a { X } }");
+    expect(error)
+      .toBeInstanceOf(TemplateCompileError);
+    expect(error.message)
+      .toContain("in the pattern");
+  });
+
+  test("a block in a tree built by hand has no place, so its error is a plain error", () => {
+    let thrown: unknown;
+    try {
+      itemsOf([{ kind: "text", value: "a @if (x) { c" }]);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown)
+      .not.toBeInstanceOf(TemplateCompileError);
+    expect((thrown as Error).message)
+      .toBe(`Missing "}" to close a block`);
+  });
+
+  test("a block's span runs from its keyword to its closing brace", () => {
+    const [, block] = itemsOf(new TinkerTemplateParser()
+      .parse("ab @if (x) { c } d"));
+    expect(block)
+      .toMatchObject({ kind: "block", span: { start: 3, end: 16 } });
+  });
+
+  test("an @else with no @if is located in the template, for the compiler's error", () => {
+    const error = (() => {
+      try {
+        compileTemplate(new TinkerTemplateParser()
+          .parse("<p>\n@else { x }</p>"));
+      } catch (caught) {
+        return caught as TemplateCompileError;
+      }
+      throw new Error("no error");
+    })();
+    expect(error.message)
+      .toBe("@else must follow an @if");
+    expect(error.span)
+      .toEqual({ start: 4, end: 15 });
   });
 });
