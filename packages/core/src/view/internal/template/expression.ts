@@ -245,7 +245,7 @@ export class ExpressionParser {
       if (!result.isRight()) {
         return result;
       }
-      const left = result.value();
+      const left = result.get();
       this.skipWhitespace();
       const operator = this.take(operators);
       if (!operator) {
@@ -407,7 +407,7 @@ export class ExpressionParser {
       if (!next.isRight()) {
         return next.propagate();
       }
-      collected.push(next.value());
+      collected.push(next.get());
       this.skipWhitespace();
       if (this.take([","]) === undefined && this.source[this.position] !== close) {
         return Either.left(this.error(

@@ -245,7 +245,7 @@ describe("narrowing with isRight, isLeft and the accessors", () => {
     if (!e.isRight()) {
       return -1;
     }
-    return e.value() + 1;
+    return e.get() + 1;
   };
 
   test("after an early return on !isRight(), the value is typed and read", () => {
@@ -257,7 +257,7 @@ describe("narrowing with isRight, isLeft and the accessors", () => {
 
   test("isLeft narrows to the error", () => {
     const e: Either<number, string> = Either.left("boom");
-    expect(e.isLeft() ? e.error() : "")
+    expect(e.isLeft() ? e.get() : "")
       .toBe("boom");
   });
 
@@ -271,6 +271,6 @@ describe("narrowing with isRight, isLeft and the accessors", () => {
   test("propagate throws on a success, since that is a bug", () => {
     expect(() => Either.right<number, string>(1)
       .propagate())
-      .toThrow("propagate is for a failure");
+      .toThrow("propagate is for a Left");
   });
 });

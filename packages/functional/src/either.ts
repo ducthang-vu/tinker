@@ -1,5 +1,5 @@
-// Either<T, E>: a success (Right, holding a T) or a failure (Left, holding
-// an E). By convention "right" is the correct result.
+// Either<T, E>: a Right (holding a T) or a Left (holding an E). Whatever the client puts
+// in the Left is the client's choice. By convention "right" is the correct result.
 //
 // Like Maybe and Task, it is a monad with the same vocabulary:
 //   Either.right(a)  wrap a value (a Right)
@@ -30,7 +30,7 @@ export interface EitherFlatMap {
 /** An Either that is a success: where `isRight()` said yes, its value is `value()`. */
 export type Right<T> = Either<T, never>;
 
-/** An Either that is a failure: where `isLeft()` said yes, its error is `error()`. */
+/** An Either that is a Left: where `isLeft()` said yes, its content is `get()`. */
 export type Left<E> = Either<never, E>;
 
 /**
@@ -63,7 +63,7 @@ export class Either<T, E> {
     return new Either<T, E>(true, value);
   }
 
-  /** A failure. */
+  /** A Left, holding `error`: whatever the caller chose to put there. */
   static left<T = never, E = never>(error: E): Either<T, E> {
     return new Either<T, E>(false, error);
   }
@@ -79,34 +79,31 @@ export class Either<T, E> {
 
   /**
    * Whether this is a success. After `if (!x.isRight()) return ...`, `x` is a Right
-   * for the rest of the function, so `x.value()` is typed.
+   * for the rest of the function, so `x.get()` is the value.
    */
   isRight(): this is Right<T> {
     return this.isRightSide;
   }
 
-  /** Whether this is a failure. */
+  /** Whether this is a Left. */
   isLeft(): this is Left<E> {
     return !this.isRightSide;
   }
 
-  /** The success value. Callable once `isRight()` has said yes. */
-  value(this: Right<T>): T {
-    return this.payload as T;
-  }
-
-  /** The error. Callable once `isLeft()` has said yes. */
-  error(this: Left<E>): E {
-    return this.payload as E;
+  /** What the box holds: the value of a Right, or the Left's content. Typed by the narrowing. */
+  get(this: Right<T>): T;
+  get(this: Left<E>): E;
+  get(): T | E {
+    return this.payload;
   }
 
   /**
-   * The failure, as the early return of a function whose success type is `U`. Call it
-   * after `if (!x.isRight())`, where `x` is a failure. On a success it throws: that is a bug.
+   * The Left, as the early return of a function whose Right type is `U`. Call it after
+   * `if (!x.isRight())`. On a Right it throws: that is a bug.
    */
   propagate<U>(): Either<U, E> {
     if (this.isRightSide) {
-      throw new Error("propagate is for a failure: call it only after !isRight()");
+      throw new Error("propagate is for a Left: call it only after !isRight()");
     }
     return Either.left(this.payload as E);
   }
@@ -129,7 +126,7 @@ export class Either<T, E> {
       : (this as unknown as Either<U, E>);
   }
 
-  /** Transform the failure, if it is one. */
+  /** Transform the Left's content, if it is a Left. */
   mapLeft<F>(f: (error: E) => F): Either<T, F> {
     return this.isRightSide ? (this as unknown as Either<T, F>) : Either.left(f(this.payload as E));
   }
@@ -144,12 +141,12 @@ export class Either<T, E> {
     return this.isRightSide ? cases.right(this.payload as T) : cases.left(this.payload as E);
   }
 
-  /** The success, or `fallback` if it is a failure. */
+  /** The Right's value, or `fallback` if it is a Left. */
   getOrElse<U>(fallback: U): T | U {
     return this.isRightSide ? (this.payload as T) : fallback;
   }
 
-  /** `Some(value)` for a success, `None` for a failure (the error is dropped). */
+  /** `Some(value)` for a Right, `None` for a Left (its content is dropped). */
   toMaybe(): Maybe<T> {
     return this.isRightSide ? Maybe.some(this.payload as T) : Maybe.none();
   }
