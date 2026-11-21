@@ -13,7 +13,7 @@
 
 import type { Span, TemplateNode, TextNode } from "./ast.ts";
 import { compileError, locatedAt } from "./compile-error.ts";
-import { blankRegexes } from "./pattern.ts";
+import { blankRegexes, QuoteTracker } from "./pattern.ts";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
@@ -204,15 +204,11 @@ function matchingBrace(value: string, open: number): number {
   const opener = value[open]!;
   const closer = { "[": "]", "(": ")", "{": "}" }[opener]!;
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (let i = open; i < value.length; i++) {
     const char = value[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === opener) {
       depth++;
     } else if (char === closer) {

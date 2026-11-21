@@ -324,3 +324,47 @@ describe("splitGuard: regex literals", () => {
       .toEqual({ pattern: "/ when x/" });
   });
 });
+
+describe("parsePattern: escaped quotes", () => {
+  test("an escaped quote does not close a string, so a bar inside it is text", () => {
+    expect(parsePattern(String.raw`"a\"|b"`)
+      .getOrThrow())
+      .toEqual({ kind: "value", value: `a"|b` });
+    expect(parsePattern(String.raw`"\")" | "a"`)
+      .getOrThrow())
+      .toEqual({ kind: "alt", options: [{ kind: "value", value: `")` }, { kind: "value", value: "a" }] });
+  });
+
+  test("an escaped quote does not end a string before `when`, a bracket or `as`", () => {
+    expect(splitGuard(String.raw`"x\" when y" when z`))
+      .toEqual({ pattern: String.raw`"x\" when y"`, guard: "z" });
+    expect(namesOf(parsePattern(String.raw`("\")", b)`)
+      .getOrThrow()))
+      .toEqual(["b"]);
+    expect(namesOf(parsePattern(String.raw`"\" as x" as y`)
+      .getOrThrow()))
+      .toEqual(["y"]);
+  });
+});
+
+describe("parsePattern: duplicate names", () => {
+  test("a name bound twice in one pattern is an error, whatever its shape", () => {
+    for (const text of ["[a, a]", "{ a, b: a }", "(a, a)", "[a, [a]]", "{ k: { a }, j: [a] }", "{ a, b: a } as c"]) {
+      expect(parsePattern(text)
+        .isLeft(), text)
+        .toBe(true);
+    }
+    expect(parsePattern("[a, a]")
+      .match({ left: (error) => error.message, right: () => "" }))
+      .toContain(`The name "a" is bound twice`);
+  });
+
+  test("distinct names, and alternatives that bind the same names, are not duplicates", () => {
+    expect(namesOf(parsePattern("[a, b]")
+      .getOrThrow()))
+      .toEqual(["a", "b"]);
+    expect(parsePattern("{ a } | { a }")
+      .isRight())
+      .toBe(true);
+  });
+});

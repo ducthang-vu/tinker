@@ -398,3 +398,13 @@ describe("the body of a case with a regex pattern", () => {
       .toBe("text");
   });
 });
+
+describe("the body of a case with an escaped quote in a pattern", () => {
+  test("a brace inside a string is text, even after an escaped quote", () => {
+    const match = onlyMatch(String.raw`@match v { @case { s: "\"}" } { X } @default { Y } }`);
+    expect(match.cases)
+      .toHaveLength(1);
+    expect(match.cases[0]!.body[0]!.kind)
+      .toBe("text");
+  });
+});

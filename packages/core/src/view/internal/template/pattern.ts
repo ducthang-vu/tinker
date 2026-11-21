@@ -58,20 +58,49 @@ export type RelationOperator = "<" | "<=" | ">" | ">=" | "!==";
 /** A literal value a pattern compares with. */
 export type Literal = string | number | boolean | null | undefined;
 
+/**
+ * Tracks whether a scan is inside a quoted string. A backslash inside a string escapes
+ * the next character, as the expression parser does, so `"\""` is one string.
+ */
+export class QuoteTracker {
+  private quote: string | undefined;
+  private escaped = false;
+
+  /** Whether the character is part of a string (its quotes included), so the scan skips it. */
+  step(char: string): boolean {
+    if (this.quote === undefined) {
+      if (char === "\"" || char === "'") {
+        this.quote = char;
+        return true;
+      }
+      return false;
+    }
+    if (this.escaped) {
+      this.escaped = false;
+    } else if (char === "\\") {
+      this.escaped = true;
+    } else if (char === this.quote) {
+      this.quote = undefined;
+    }
+    return true;
+  }
+
+  /** Whether the scan is inside a string now. */
+  get open(): boolean {
+    return this.quote !== undefined;
+  }
+}
+
 /** A header split at its top-level `when`: the pattern, and the guard if there is one. */
 export function splitGuard(header: string): { readonly pattern: string; readonly guard?: string } {
   // The scan reads a copy with the regex literals blanked, so a `when` inside one is not a guard.
   const scan = blankRegexes(header);
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (let i = 0; i < scan.length; i++) {
     const char = scan[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "{" || char === "(" || char === "[") {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
@@ -211,21 +240,17 @@ function aliasPattern(text: string, name: string, whole: string): Pattern {
 /** Whether `index` in `text` is outside every brace, bracket, parenthesis and quote. */
 function isTopLevel(text: string, index: number): boolean {
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (const char of text.slice(0, index)) {
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "{" || char === "(" || char === "[") {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
       depth--;
     }
   }
-  return depth === 0 && quote === undefined;
+  return depth === 0 && !quotes.open;
 }
 
 /**
@@ -286,6 +311,7 @@ function objectPattern(text: string): Pattern {
     const pattern = fieldPattern(key, match[2]);
     fields.push({ key, pattern });
   }
+  distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text);
   return { kind: "object", fields };
 }
 
@@ -310,15 +336,11 @@ function isWholeGroup(text: string): boolean {
     return false;
   }
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (let index = 0; index < text.length; index++) {
     const char = text[index]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "(" || char === "{" || char === "[") {
       depth++;
     } else if (char === ")" || char === "}" || char === "]") {
@@ -361,7 +383,20 @@ function arrayPattern(text: string): Pattern {
     }
     rest = name;
   });
-  return rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+  const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+  distinctNames(namesOf(pattern), text);
+  return pattern;
+}
+
+/** Throws when a name is bound twice in the pattern: the later binding would replace the earlier. */
+function distinctNames(names: readonly string[], text: string): void {
+  const seen = new Set<string>();
+  for (const name of names) {
+    if (seen.has(name)) {
+      throw new Error(`The name "${name}" is bound twice in "${text}"`);
+    }
+    seen.add(name);
+  }
 }
 
 /** The names a pattern binds, in order. */
@@ -404,16 +439,12 @@ function fieldPattern(key: string, value: string | undefined): Pattern {
 function splitTopLevel(text: string, separator = ","): string[] {
   const parts: string[] = [];
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   let start = 0;
   for (let i = 0; i < text.length; i++) {
     const char = text[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "{" || char === "(" || char === "[") {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
@@ -450,15 +481,11 @@ function startsRegex(text: string, at: number): boolean {
 /** The [start, end) spans of the regex literals in the text. Quoted strings are skipped. */
 function regexSpans(text: string): [number, number][] {
   const spans: [number, number][] = [];
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (let i = 0; i < text.length; i++) {
     const char = text[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "/" && startsRegex(text, i)) {
       const found = REGEX_LITERAL.exec(text.slice(i));
       if (found) {
