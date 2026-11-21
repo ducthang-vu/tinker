@@ -373,3 +373,16 @@ delays the whole view. Nothing limits its cost.
 **To do.** Decide whether to refuse nested quantifiers at parse time, or to document the
 risk and leave the author to write a linear regex.
 
+
+## Errors in the view builder (`packages/core/src/view/internal/factories/`)
+
+### 1. An invalid `host` option is thrown where the directive is first used
+
+**Problem.** `HostBindings.parse` returns an `Either`, so an invalid `host` option is a
+value. But the directive factory (`directive-factory.ts`) builds the bindings during view
+creation, and the code above it returns plain values, not `Either`s. So the factory calls
+`getOrThrow()`, and the error is thrown there instead of being returned to the caller.
+
+**To do.** Make the view builder (`template-builder.ts` and its callers) return an `Either`
+for the directive's bindings, so the caller that creates the directive decides what to do
+with the error. This follows from converting the template compiler to `Either`.

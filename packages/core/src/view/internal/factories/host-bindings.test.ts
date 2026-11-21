@@ -4,12 +4,26 @@ import { ComponentView } from "../runtime/component-view.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
 
+/** The bindings of a host option; throws (as the old constructor did) when it is invalid. */
+const bindingsOf = (host?: Readonly<Record<string, string>>): HostBindings =>
+  HostBindings.parse(host)
+    .getOrThrow();
+
 const renderer = new DomRenderer();
 const makeView = (host: Element) => new ComponentView(host, {}, [], renderer, {});
 
 describe("HostBindings parsing", () => {
+  test("parse is a Left, holding one error per invalid entry", () => {
+    const result = HostBindings.parse({ "[title]": "open()", "(click)": "go" });
+    expect(result.isLeft())
+      .toBe(true);
+    const errors = result.match({ left: (error) => error.errors, right: () => [] });
+    expect(errors)
+      .toHaveLength(2);
+  });
+
   test("parses listeners with and without $event", () => {
-    const bindings = new HostBindings({ "(click)": "toggle()", "(keydown)": "onKey($event)" });
+    const bindings = bindingsOf({ "(click)": "toggle()", "(keydown)": "onKey($event)" });
     expect(bindings.listeners)
       .toEqual([
         { event: "click", modifiers: [], handler: expect.objectContaining({ method: "toggle" }) },
@@ -18,26 +32,26 @@ describe("HostBindings parsing", () => {
   });
 
   test("allows spaces, and has no listeners without a host option", () => {
-    expect(new HostBindings({ "(click)": "  go( $event )  " }).listeners)
+    expect(bindingsOf({ "(click)": "  go( $event )  " }).listeners)
       .toEqual([
         { event: "click", modifiers: [], handler: expect.objectContaining({ method: "go" }) },
       ]);
-    expect(new HostBindings().listeners)
+    expect(bindingsOf().listeners)
       .toEqual([]);
   });
 
   test("rejects other kinds of host bindings", () => {
-    expect(() => new HostBindings({ "[title]": "open()" }))
+    expect(() => bindingsOf({ "[title]": "open()" }))
       .toThrow(
         "Unsupported host binding \"[title]\": only \"(event)\" listeners and "
         + "\"[class.name]\", \"[style.name]\" and \"[attr.name]\" bindings are supported for now",
       );
-    expect(() => new HostBindings({ click: "go()" }))
+    expect(() => bindingsOf({ click: "go()" }))
       .toThrow("Unsupported host binding");
   });
 
   test("parses class bindings, keeping the class's case", () => {
-    const bindings = new HostBindings({ "[class.isOpen]": "open()", "(click)": "toggle()" });
+    const bindings = bindingsOf({ "[class.isOpen]": "open()", "(click)": "toggle()" });
     expect(bindings.classes.map(({ name }) => name))
       .toEqual(["isOpen"]);
     expect(bindings.classes[0]!.expression)
@@ -48,13 +62,13 @@ describe("HostBindings parsing", () => {
   });
 
   test("reports an invalid class binding expression with its key", () => {
-    expect(() => new HostBindings({ "[class.open]": "a(1 2)" }))
+    expect(() => bindingsOf({ "[class.open]": "a(1 2)" }))
       .toThrow(`Expected "," or ")", found "2" (at column 5 in "a(1 2)"), `
         + `in host binding "[class.open]"`);
   });
 
   test("parses style and attribute bindings, attr mapping to the attribute kind", () => {
-    const bindings = new HostBindings({
+    const bindings = bindingsOf({
       "[style.--highlight]": "color()",
       "[style.font-size]": "size()",
       "[attr.role]": "role()",
@@ -68,25 +82,25 @@ describe("HostBindings parsing", () => {
   });
 
   test("reports an invalid style or attribute expression with its key", () => {
-    expect(() => new HostBindings({ "[attr.title]": "a(1 2)" }))
+    expect(() => bindingsOf({ "[attr.title]": "a(1 2)" }))
       .toThrow(`in host binding "[attr.title]"`);
   });
 
   test("rejects handlers other than method() and method($event)", () => {
     for (const handler of ["go", "a.b.c()", "open.toggle"]) {
-      expect(() => new HostBindings({ "(click)": handler }))
+      expect(() => bindingsOf({ "(click)": handler }))
         .toThrow(
           `Unsupported host handler "${handler}": write a call of a method, as in "method()", "method($event)" or "g.method()"`,
         );
     }
-    expect(() => new HostBindings({ "(click)": "open = !open" }))
+    expect(() => bindingsOf({ "(click)": "open = !open" }))
       .toThrow(`Unsupported host handler "open = !open": `);
   });
 
   test("reports every invalid entry at once", () => {
     let thrown: unknown;
     try {
-      new HostBindings({ "[title]": "x()", "(click)": "go()", "(keyup)": "a.b.c()" });
+      bindingsOf({ "[title]": "x()", "(click)": "go()", "(keyup)": "a.b.c()" });
     } catch (error) {
       thrown = error;
     }
@@ -117,7 +131,7 @@ describe("HostBindings.attach", () => {
         calls.push(["onKey", event.type]);
       },
     };
-    new HostBindings({ "(click)": "toggle()", "(keydown)": "onKey($event)" })
+    bindingsOf({ "(click)": "toggle()", "(keydown)": "onKey($event)" })
       .attach(
         instance,
         element,
@@ -137,7 +151,7 @@ describe("HostBindings.attach", () => {
     const element = document.createElement("button");
     const toggle = vi.fn();
     const view = makeView(element);
-    new HostBindings({ "(click)": "toggle()" })
+    bindingsOf({ "(click)": "toggle()" })
       .attach({ toggle }, element, renderer, view);
     view.destroy();
     element.click();
@@ -148,7 +162,7 @@ describe("HostBindings.attach", () => {
     class Toggle {}
     const element = document.createElement("div");
     expect(() =>
-      new HostBindings({ "(click)": "toggle()" })
+      bindingsOf({ "(click)": "toggle()" })
         .attach(new Toggle(), element, renderer, makeView(element)),
     )
       .toThrow(`Toggle has no method "toggle" for host listener "(click)"`);
@@ -164,7 +178,7 @@ describe("HostBindings handlers with event fields", () => {
         seen.push(value);
       },
     };
-    new HostBindings({ "(input)": "select($event.target)" })
+    bindingsOf({ "(input)": "select($event.target)" })
       .attach(instance, element, renderer, makeView(element));
     element.dispatchEvent(new Event("input"));
     expect(seen)
@@ -177,7 +191,7 @@ describe("HostBindings handlers on a field", () => {
     const element = document.createElement("button");
     const go = vi.fn();
     const instance = { other: { go } };
-    new HostBindings({ "(click)": "other.go()" })
+    bindingsOf({ "(click)": "other.go()" })
       .attach(instance, element, renderer, makeView(element));
     element.click();
     expect(go)

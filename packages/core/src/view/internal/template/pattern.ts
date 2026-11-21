@@ -13,7 +13,8 @@
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
 
-import { Either, toError, type EitherError } from "@tinker/functional";
+import { Either, toError } from "@tinker/functional";
+import { eachOf } from "../../../utils/each-of.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 
 export type TypeName = "string" | "number" | "boolean" | "object" | "function";
@@ -115,16 +116,37 @@ export function splitGuard(header: string): { readonly pattern: string; readonly
 }
 
 /** The pattern written as `text`, or the error explaining what is not supported. */
-export function parsePattern(text: string): EitherError<Pattern> {
-  // Regex literals are masked first, so their braces, bars and quotes are not read as structure.
-  return Either.try(() => patternOf(maskRegexes(text.trim())))
-    .mapLeft(toError)
-    .mapLeft((error) => new Error(restoreRegexes(error.message)));
+/** A pattern that is not supported: what is wrong with it. */
+export class PatternError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PatternError";
+  }
 }
 
-function patternOf(text: string): Pattern {
+/** The result of a parse step: the value, or the error that stopped it. */
+type Parsed<T> = Either<T, PatternError>;
+
+/** One key of an object pattern, with the pattern its value must match. */
+interface Field {
+  readonly key: string;
+  readonly pattern: Pattern;
+}
+
+/** The error for a pattern that is not supported. */
+function fail<T = never>(message: string): Parsed<T> {
+  return Either.left(new PatternError(message));
+}
+
+export function parsePattern(text: string): Parsed<Pattern> {
+  // Regex literals are masked first, so their braces, bars and quotes are not read as structure.
+  return patternOf(maskRegexes(text.trim()))
+    .mapLeft((error) => new PatternError(restoreRegexes(error.message)));
+}
+
+function patternOf(text: string): Parsed<Pattern> {
   if (text === "") {
-    throw new Error("A pattern is needed");
+    return fail("A pattern is needed");
   }
   const literal = MASKED_REGEX.exec(text);
   if (literal) {
@@ -151,23 +173,23 @@ function patternOf(text: string): Pattern {
   }
   const negated = NOT.exec(text);
   if (negated) {
-    const pattern = patternOf(negated[1]!.trim());
-    if (namesOf(pattern).length > 0) {
-      throw new Error(`"not" cannot bind names: "${text}"`);
-    }
-    return { kind: "not", pattern };
+    return Either.flatMap(patternOf(negated[1]!.trim()), (pattern): Parsed<Pattern> =>
+      namesOf(pattern).length > 0
+        ? fail(`"not" cannot bind names: "${text}"`)
+        : Either.right({ kind: "not", pattern }));
   }
   const wrapped = WRAPPED.exec(text);
   if (wrapped) {
-    const pattern = patternOf(wrapped[2]!.trim());
-    switch (wrapped[1]) {
-      case "some":
-        return { kind: "some", pattern };
-      case "ok":
-        return { kind: "ok", pattern };
-      default:
-        return { kind: "error", pattern };
-    }
+    return Either.map(patternOf(wrapped[2]!.trim()), (pattern): Pattern => {
+      switch (wrapped[1]) {
+        case "some":
+          return { kind: "some", pattern };
+        case "ok":
+          return { kind: "ok", pattern };
+        default:
+          return { kind: "error", pattern };
+      }
+    });
   }
   const range = RANGE.exec(text);
   if (range && (range[1] !== undefined || range[2] !== undefined)) {
@@ -175,43 +197,46 @@ function patternOf(text: string): Pattern {
   }
   switch (text) {
     case "truthy":
-      return { kind: "truthy" };
+      return Either.right({ kind: "truthy" });
     case "falsy":
-      return { kind: "falsy" };
+      return Either.right({ kind: "falsy" });
     case "_":
-      return { kind: "any" };
+      return Either.right({ kind: "any" });
     case "present":
-      return { kind: "present" };
+      return Either.right({ kind: "present" });
     case "none":
-      return { kind: "none" };
+      return Either.right({ kind: "none" });
     case "absent":
-      throw new Error(`"absent" is the pattern of a key, as in { error: absent }`);
+      return fail(`"absent" is the pattern of a key, as in { error: absent }`);
     default:
       break;
   }
   if (TYPES.includes(text)) {
-    return { kind: "type", type: text as TypeName };
+    return Either.right({ kind: "type", type: text as TypeName });
   }
   const relation = RELATION.exec(text);
   if (relation) {
-    const value = literalOf(relation[2]!.trim(), `A relation takes a literal: "${text}"`);
-    return { kind: "compare", operator: relation[1] as RelationOperator, value };
+    return Either.map(
+      literalOf(relation[2]!.trim(), `A relation takes a literal: "${text}"`),
+      (value): Pattern => ({ kind: "compare", operator: relation[1] as RelationOperator, value }),
+    );
   }
   if (IDENTIFIER.test(text) && !LITERAL_WORDS.includes(text)) {
-    return { kind: "bind", name: text };
+    return Either.right({ kind: "bind", name: text });
   }
   const message = `Only literals, types, truthy, falsy, _ and names are patterns: "${text}"`;
-  return { kind: "value", value: literalOf(text, message) };
+  return Either.map(literalOf(text, message), (value): Pattern => ({ kind: "value", value }));
 }
 
 /** The value of a literal, or an error with `message` if the text is not one. */
-function literalOf(text: string, message: string): Literal {
-  const expression: Expression = ExpressionParser.parse(text)
-    .getOrThrow();
-  if (expression.kind !== "literal") {
-    throw new Error(message);
-  }
-  return expression.value;
+function literalOf(text: string, message: string): Parsed<Literal> {
+  return Either.flatMap(
+    ExpressionParser.parse(text)
+      .mapLeft((error) => new PatternError(error.message)),
+    (expression): Parsed<Literal> => (expression.kind === "literal"
+      ? Either.right(expression.value)
+      : fail(message)),
+  );
 }
 
 /**
@@ -226,16 +251,15 @@ function aliasOf(text: string): { pattern: string; name: string } | undefined {
   return { pattern: text.slice(0, match.index), name: match[1]! };
 }
 
-function aliasPattern(text: string, name: string, whole: string): Pattern {
+function aliasPattern(text: string, name: string, whole: string): Parsed<Pattern> {
   if (LITERAL_WORDS.includes(name)) {
-    throw new Error(`"${name}" cannot be a name: "${whole}"`);
+    return fail(`"${name}" cannot be a name: "${whole}"`);
   }
-  const pattern = patternOf(text.trim());
-  const names = namesOf(pattern);
-  if (names.includes(name)) {
-    throw new Error(`The name "${name}" is bound twice in "${whole}"`);
-  }
-  return { kind: "as", pattern, name };
+  return Either.flatMap(patternOf(text.trim()), (pattern): Parsed<Pattern> =>
+    namesOf(pattern)
+      .includes(name)
+      ? fail(`The name "${name}" is bound twice in "${whole}"`)
+      : Either.right({ kind: "as", pattern, name }));
 }
 
 /** Whether `index` in `text` is outside every brace, bracket, parenthesis and quote. */
@@ -259,17 +283,17 @@ function isTopLevel(text: string, index: number): boolean {
  * missing bound is open. The bounds are written as numbers, so a range never has
  * an undefined bound (the key is left out).
  */
-function rangeOf(low: string | undefined, high: string | undefined, text: string): Pattern {
+function rangeOf(low: string | undefined, high: string | undefined, text: string): Parsed<Pattern> {
   const min = low === undefined ? undefined : Number(low);
   const max = high === undefined ? undefined : Number(high);
   if (min !== undefined && max !== undefined && min > max) {
-    throw new Error(`A range goes from the smaller number to the larger: "${text}"`);
+    return fail(`A range goes from the smaller number to the larger: "${text}"`);
   }
-  return {
+  return Either.right({
     kind: "range",
     ...(min === undefined ? {} : { min }),
     ...(max === undefined ? {} : { max }),
-  };
+  });
 }
 
 /**
@@ -277,13 +301,14 @@ function rangeOf(low: string | undefined, high: string | undefined, text: string
  * so the names mean the same thing whichever option matched: `{ status: "ok", value }
  * | { status: "cached", value }` binds `value` either way.
  */
-function alternatives(options: readonly string[], text: string): Pattern {
-  const patterns = options.map((option) => patternOf(option));
-  const [first, ...rest] = patterns.map((pattern) => sortedNames(pattern));
-  if (rest.some((names) => names.join() !== first!.join())) {
-    throw new Error(`Alternatives must bind the same names, or none: "${text}"`);
-  }
-  return { kind: "alt", options: patterns };
+function alternatives(options: readonly string[], text: string): Parsed<Pattern> {
+  const parsed = eachOf(options, (option) => patternOf(option));
+  return Either.flatMap(parsed, (patterns): Parsed<Pattern> => {
+    const [first, ...rest] = patterns.map((pattern) => sortedNames(pattern));
+    return rest.some((names) => names.join() !== first!.join())
+      ? fail(`Alternatives must bind the same names, or none: "${text}"`)
+      : Either.right({ kind: "alt", options: patterns });
+  });
 }
 
 /** The names a pattern binds, sorted, without duplicates. */
@@ -292,28 +317,32 @@ function sortedNames(pattern: Pattern): string[] {
 }
 
 /** `{ key, key: pattern, … }`: each key must exist, and its value must match its pattern. */
-function objectPattern(text: string): Pattern {
+function objectPattern(text: string): Parsed<Pattern> {
   if (!text.endsWith("}")) {
-    throw new Error(`Missing "}" in the pattern "${text}"`);
+    return fail(`Missing "}" in the pattern "${text}"`);
   }
-  const fields: { key: string; pattern: Pattern }[] = [];
-  for (const entry of splitTopLevel(text.slice(1, -1))) {
-    if (entry.trim() === "") {
-      continue;
-    }
-    const match = FIELD.exec(entry.trim());
-    if (!match) {
-      throw new Error(`Expected a key in the pattern: "${entry.trim()}"`);
-    }
-    const key = match[1]!;
-    if (fields.some((field) => field.key === key)) {
-      throw new Error(`The key "${key}" is in the pattern twice`);
-    }
-    const pattern = fieldPattern(key, match[2]);
-    fields.push({ key, pattern });
+  const entries = splitTopLevel(text.slice(1, -1))
+    .filter((entry) => entry.trim() !== "");
+  return Either.flatMap(fieldsOf(entries, []), (fields): Parsed<Pattern> =>
+    Either.map(distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text), () => ({ kind: "object", fields })));
+}
+
+/** The fields of an object pattern, one entry at a time: each key must be new. */
+function fieldsOf(entries: readonly string[], fields: readonly Field[]): Parsed<readonly Field[]> {
+  const [entry, ...others] = entries;
+  if (entry === undefined) {
+    return Either.right(fields);
   }
-  distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text);
-  return { kind: "object", fields };
+  const match = FIELD.exec(entry.trim());
+  if (!match) {
+    return fail(`Expected a key in the pattern: "${entry.trim()}"`);
+  }
+  const key = match[1]!;
+  if (fields.some((field) => field.key === key)) {
+    return fail(`The key "${key}" is in the pattern twice`);
+  }
+  return Either.flatMap(fieldPattern(key, match[2]), (pattern) =>
+    fieldsOf(others, [...fields, { key, pattern }]));
 }
 
 /**
@@ -321,7 +350,7 @@ function objectPattern(text: string): Pattern {
  * with no comma only group it, so `(1 | 2)` is the alternatives, and `(a,)` is a
  * tuple of one.
  */
-function tupleOf(text: string): Pattern {
+function tupleOf(text: string): Parsed<Pattern> {
   const inner = text.slice(1, -1);
   if (inner.trim() === "") {
     return arrayPattern("[]");
@@ -358,46 +387,52 @@ function isWholeGroup(text: string): boolean {
  * `[]`, `[pattern, …]`, or `[pattern, ...rest]`: the array has exactly those
  * items, or, with a rest, at least those items, and the rest binds the others.
  */
-function arrayPattern(text: string): Pattern {
+function arrayPattern(text: string): Parsed<Pattern> {
   if (!text.endsWith("]")) {
-    throw new Error(`Missing "]" in the pattern "${text}"`);
+    return fail(`Missing "]" in the pattern "${text}"`);
   }
   const entries = splitTopLevel(text.slice(1, -1))
     .map((entry) => entry.trim());
   if (entries.at(-1) === "") {
     entries.pop();
   }
-  const items: Pattern[] = [];
-  let rest: string | undefined;
-  entries.forEach((entry, index) => {
-    if (!entry.startsWith("...")) {
-      items.push(patternOf(entry));
-      return;
-    }
-    const name = entry.slice(3)
-      .trim();
-    if (index !== entries.length - 1) {
-      throw new Error(`The rest of an array pattern comes last: "${text}"`);
-    }
-    if (!IDENTIFIER.test(name) || LITERAL_WORDS.includes(name)) {
-      throw new Error(`The rest of an array pattern needs a name: "${entry}"`);
-    }
-    rest = name;
+  return Either.flatMap(arrayItems(entries, text, []), ({ items, rest }): Parsed<Pattern> => {
+    const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+    return Either.map(distinctNames(namesOf(pattern), text), () => pattern);
   });
-  const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
-  distinctNames(namesOf(pattern), text);
-  return pattern;
+}
+
+/** The items of an array pattern, and the rest name if its last entry is one. */
+function arrayItems(
+  entries: readonly string[],
+  text: string,
+  items: readonly Pattern[],
+): Parsed<{ readonly items: readonly Pattern[]; readonly rest: string | undefined }> {
+  const [entry, ...others] = entries;
+  if (entry === undefined) {
+    return Either.right({ items, rest: undefined });
+  }
+  if (!entry.startsWith("...")) {
+    return Either.flatMap(patternOf(entry), (pattern) =>
+      arrayItems(others, text, [...items, pattern]));
+  }
+  const name = entry.slice(3)
+    .trim();
+  if (others.length > 0) {
+    return fail(`The rest of an array pattern comes last: "${text}"`);
+  }
+  if (!IDENTIFIER.test(name) || LITERAL_WORDS.includes(name)) {
+    return fail(`The rest of an array pattern needs a name: "${entry}"`);
+  }
+  return Either.right({ items, rest: name });
 }
 
 /** Throws when a name is bound twice: the later binding would replace the earlier. */
-function distinctNames(names: readonly string[], text: string): void {
-  const seen = new Set<string>();
-  for (const name of names) {
-    if (seen.has(name)) {
-      throw new Error(`The name "${name}" is bound twice in "${text}"`);
-    }
-    seen.add(name);
-  }
+function distinctNames(names: readonly string[], text: string): Parsed<void> {
+  const duplicate = names.find((name, index) => names.indexOf(name) !== index);
+  return duplicate === undefined
+    ? Either.right(undefined)
+    : fail(`The name "${duplicate}" is bound twice in "${text}"`);
 }
 
 /** The names a pattern binds, in order. */
@@ -429,11 +464,11 @@ export function namesOf(pattern: Pattern): string[] {
 }
 
 /** The pattern of an object field: its key's value, or the key's name when it has none. */
-function fieldPattern(key: string, value: string | undefined): Pattern {
+function fieldPattern(key: string, value: string | undefined): Parsed<Pattern> {
   if (value === undefined) {
-    return { kind: "bind", name: key };
+    return Either.right({ kind: "bind", name: key });
   }
-  return value.trim() === "absent" ? { kind: "absent" } : patternOf(value.trim());
+  return value.trim() === "absent" ? Either.right({ kind: "absent" }) : patternOf(value.trim());
 }
 
 /** Split at the `separator`s that are not inside braces, brackets, parentheses or quotes. */
@@ -546,15 +581,26 @@ function decodeLiteral(hex: string): string {
  * each to the group's text (undefined when the group did not take part). `g` and `y` keep
  * state between matches, so they are refused.
  */
-function regexPattern(literal: string): Pattern {
+function regexPattern(literal: string): Parsed<Pattern> {
   const close = literal.lastIndexOf("/");
   const source = literal.slice(1, close);
   const flags = literal.slice(close + 1);
   if (/[gy]/.test(flags)) {
-    throw new Error(`A regex pattern cannot have the "g" or "y" flag, since they keep state between matches: "${literal}"`);
+    return fail(`A regex pattern cannot have the "g" or "y" flag, since they keep state between matches: "${literal}"`);
   }
-  // A probe with an empty alternative always matches, and its groups list every named group.
-  const names = Object.keys(new RegExp(`(?:${source})|`, flags)
-    .exec("")!.groups ?? {});
-  return { kind: "regex", source, flags, names };
+  return Either.map(regexNames(source, flags), (names): Pattern => ({ kind: "regex", source, flags, names }));
+}
+
+/**
+ * The named groups of a regex. The engine reports a regex that does not compile only by
+ * throwing, so this is the one place that catches: it turns that throw into a Left.
+ * A probe with an empty alternative always matches, and its groups list every named group.
+ */
+function regexNames(source: string, flags: string): Parsed<string[]> {
+  try {
+    return Either.right(Object.keys(new RegExp(`(?:${source})|`, flags)
+      .exec("")!.groups ?? {}));
+  } catch (error) {
+    return fail(toError(error).message);
+  }
 }

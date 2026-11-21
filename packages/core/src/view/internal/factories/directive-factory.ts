@@ -171,7 +171,10 @@ export class DirectiveFactory {
   private hostBindingsOf(type: Class<unknown>): HostBindings {
     let bindings = this.hostBindings.get(type);
     if (!bindings) {
-      bindings = new HostBindings(this.metadataOf(type).host);
+      // The view builder above this call does not return errors yet, so an invalid host
+      // option is thrown here, where the directive is first used. (See IMPROVEMENTS.md.)
+      bindings = HostBindings.parse(this.metadataOf(type).host)
+        .getOrThrow();
       this.hostBindings.set(type, bindings);
     }
     return bindings;

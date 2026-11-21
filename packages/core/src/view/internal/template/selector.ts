@@ -16,6 +16,7 @@
 // parser lowercases tag and attribute names.
 
 import { Either } from "@tinker/functional";
+import { eachOf } from "../../../utils/each-of.ts";
 
 /** A selector that is not supported: what is wrong with it. */
 export class SelectorError extends Error {
@@ -72,18 +73,6 @@ export class Selector {
   matches(element: SelectableElement): boolean {
     return this.alternatives.some((alternative) => alternative.matches(element));
   }
-}
-
-/** Runs `step` on each item, in order: the results, or the first error. */
-function eachOf<T, U>(
-  items: readonly T[],
-  step: (item: T) => Either<U, SelectorError>,
-): Either<readonly U[], SelectorError> {
-  return items.reduce<Either<readonly U[], SelectorError>>(
-    (done, item) => Either.flatMap(done, (results) =>
-      Either.map(step(item), (next) => [...results, next])),
-    Either.right([]),
-  );
 }
 
 /** Splits `source` at its commas, except those inside quotes or parentheses. */
