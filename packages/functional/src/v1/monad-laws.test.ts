@@ -1,29 +1,47 @@
+import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { type LawCheck, monadLaws, type MonadUnderTest } from "./monad-laws.ts";
 
-/** A lawful monad of numbers, boxed as { value } or { none }. */
-type Box = { readonly value: number } | { readonly none: true };
-const some = (value: number): Box => ({ value });
-const nothing: Box = { none: true };
-const lawful: MonadUnderTest<Box, number> = {
+/** A box holding any value, or nothing. Tags, not `in`, so undefined and null count as values. */
+type Box = { readonly tag: "Some"; readonly value: unknown } | { readonly tag: "None" };
+const some = (value: unknown): Box => ({ tag: "Some", value });
+const nothing: Box = { tag: "None" };
+
+/** Normal values and edge cases: every interaction is checked on each of them. */
+const EDGE_VALUES: readonly unknown[] = [
+  0, -0, 1, -1, 0.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER, Number.MIN_VALUE,
+  "", " ", "text", "null", "0",
+  true, false,
+  null, undefined,
+  [], [undefined], [null], [0], [[]], [1, 2, 3], [, 1],
+  {}, { a: undefined }, { a: null }, { a: 1 }, { "": 0 },
+  new Set(), new Set([0]), new Map(), new Map([["k", 1]]),
+  new Date(0), 0n, Symbol("s"), () => 1,
+];
+
+/** Each value boxed as a success, plus nothing: the samples the checks run on. */
+const samples: readonly Box[] = [...EDGE_VALUES.map(some), nothing];
+
+/** The lawful test monad. Its equality is structural: NaN equals NaN, and objects compare by content. */
+const lawful: MonadUnderTest<Box, unknown> = {
   name: "Box",
-  samples: [some(1), some(2), nothing],
-  values: [1, 2],
+  samples,
+  values: EDGE_VALUES,
   of: some,
-  map: (box, f) => ("value" in box ? some(f(box.value)) : box),
-  flatMap: (box, f) => ("value" in box ? f(box.value) : box),
-  equal: (a, b) => ("value" in a && "value" in b ? a.value === b.value : "none" in a && "none" in b),
+  map: (box, f) => (box.tag === "Some" ? some(f(box.value)) : box),
+  flatMap: (box, f) => (box.tag === "Some" ? f(box.value) : box),
+  equal: (a, b) => isDeepStrictEqual(a, b),
   cases: ["Some", "None"],
   successCase: "Some",
-  caseOf: (box) => ("value" in box ? "Some" : "None"),
-  f: (value) => value + 1,
-  g: (value) => value * 2,
-  step: (value) => some(value + 10),
-  nextStep: (value) => (value > 5 ? nothing : some(value * 3)),
+  caseOf: (box) => box.tag,
+  f: (value) => [value],
+  g: (value) => ({ wrapped: value }),
+  step: (value) => some(value),
+  nextStep: (value) => (value === null || value === undefined ? nothing : some([value])),
 };
 
 /** Runs every check, so a failure shows the description. */
-const runAll = (monad: MonadUnderTest<Box, number>): LawCheck[] =>
+const runAll = (monad: MonadUnderTest<Box, unknown>): LawCheck[] =>
   monadLaws(monad)
     .map(([description, check]) => [description, (): void => check()] as const);
 
@@ -45,46 +63,76 @@ describe("monadLaws", () => {
       .toContain("Box: map with the identity");
   });
 
-  test("a lawful monad passes every check", () => {
-    for (const [, check] of runAll(lawful)) {
-      expect(check)
+  test("a lawful monad passes every check on every edge value", () => {
+    for (const [description, check] of runAll(lawful)) {
+      expect(check, description)
         .not.toThrow();
     }
   });
 
-  test("a map that changes boxes fails the identity law", () => {
-    const broken: MonadUnderTest<Box, number> = { ...lawful, map: (box) => ("value" in box ? some(0) : box) };
-    expect(find(runAll(broken), "map with the identity")[1])
-      .toThrow("map(box, identity) changed a box");
+  test("the samples cover every edge value and a nothing", () => {
+    expect(samples)
+      .toHaveLength(EDGE_VALUES.length + 1);
+    expect(samples.at(-1))
+      .toEqual(nothing);
   });
 
-  test("a flatMap that ignores its step fails the left identity law", () => {
-    const broken: MonadUnderTest<Box, number> = { ...lawful, flatMap: (box) => box };
-    expect(find(runAll(broken), "left identity")[1])
-      .toThrow("flatMap left identity fails");
-  });
+  // Each interaction is broken for one edge value at a time, so every value must be exercised.
+  // A check that never sees the value would pass, and the test would fail.
+  const brokenFor = (value: unknown) => (box: Box) =>
+  box.tag === "Some" && isDeepStrictEqual(box.value, value);
 
-  test("a caseOf that names a case outside the monad fails the match check", () => {
-    const broken: MonadUnderTest<Box, number> = { ...lawful, caseOf: () => "Other" };
-    expect(find(runAll(broken), "every box is in one of")[1])
-      .toThrow("not one of Some, None");
-  });
+  test.each(EDGE_VALUES.map((value) => [String(value), value] as const))(
+    "map is checked on the value %s",
+    (_, value) => {
+      const broken: MonadUnderTest<Box, unknown> = {
+        ...lawful,
+        map: (box, f) => (brokenFor(value)(box) ? nothing : lawful.map(box, f)),
+      };
+      expect(find(runAll(broken), "map with the identity")[1])
+        .toThrow("map(box, identity) changed a box");
+    },
+  );
 
-  test("an of that builds a box outside the success case fails the match check", () => {
-    const broken: MonadUnderTest<Box, number> = { ...lawful, successCase: "None" };
-    expect(find(runAll(broken), "of(a) is in the success case")[1])
-      .toThrow("is not in the None case");
+  test.each(EDGE_VALUES.map((value) => [String(value), value] as const))(
+    "flatMap left identity is checked on the value %s",
+    (_, value) => {
+      const broken: MonadUnderTest<Box, unknown> = {
+        ...lawful,
+        flatMap: (box, f) => (brokenFor(value)(box) ? nothing : lawful.flatMap(box, f)),
+      };
+      expect(find(runAll(broken), "left identity")[1])
+        .toThrow("flatMap left identity fails");
+    },
+  );
+
+  test.each(EDGE_VALUES.map((value) => [String(value), value] as const))(
+    "match is checked on the value %s",
+    (_, value) => {
+      const broken: MonadUnderTest<Box, unknown> = {
+        ...lawful,
+        caseOf: (box) => (brokenFor(value)(box) ? "Other" : box.tag),
+      };
+      expect(find(runAll(broken), "every box is in one of")[1])
+        .toThrow("not one of Some, None");
+    },
+  );
+
+  test("a flatMap that changes the case of a box fails the case check", () => {
+    const broken: MonadUnderTest<Box, unknown> = { ...lawful, flatMap: () => nothing };
+    expect(find(runAll(broken), "flatMap(box, of) keeps the case")[1])
+      .toThrow("flatMap(box, of) changed the case of a box");
   });
 
   test("a map that turns a success into a failure fails the case check", () => {
-    const broken: MonadUnderTest<Box, number> = { ...lawful, map: () => nothing };
+    const broken: MonadUnderTest<Box, unknown> = { ...lawful, map: () => nothing };
     expect(find(runAll(broken), "map keeps the case")[1])
       .toThrow("map changed the case of a box");
   });
 
-  test("a flatMap that changes the case of a box fails the case check", () => {
-    const broken: MonadUnderTest<Box, number> = { ...lawful, flatMap: () => nothing };
-    expect(find(runAll(broken), "flatMap(box, of) keeps the case")[1])
-      .toThrow("flatMap(box, of) changed the case of a box");
+  test("an of that builds a box outside the success case fails the match check", () => {
+    const broken: MonadUnderTest<Box, unknown> = { ...lawful, successCase: "None" };
+    expect(find(runAll(broken), "of(a) is in the success case")[1])
+      .toThrow("is not in the None case");
   });
 });
