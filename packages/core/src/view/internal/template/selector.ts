@@ -15,7 +15,16 @@
 // when it matches none. Names are compared case-insensitively: the browser's
 // parser lowercases tag and attribute names.
 
-import { Either, toError, type EitherError } from "@tinker/functional";
+import { Either } from "@tinker/functional";
+import { eachOf } from "../../../utils/each-of.ts";
+
+/** A selector that is not supported: what is wrong with it. */
+export class SelectorError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SelectorError";
+  }
+}
 import type { AttributeNode } from "./ast.ts";
 
 /** What a selector is matched against: an element of a parsed template. */
@@ -44,25 +53,25 @@ export class Selector {
   ) {}
 
   /** Parse `source`, or the error explaining what is not supported. */
-  static parse(source: string): EitherError<Selector> {
-    return Either.try(() => Selector.parseOrThrow(source))
-      .mapLeft(toError);
+  static parse(source: string): Either<Selector, SelectorError> {
+    if (source.trim() === "") {
+      return Either.left(new SelectorError(`Empty selector: write e.g. "[tooltip]" or "tk-card"`));
+    }
+    const parts = splitList(source);
+    if (parts.some((part) => part.trim() === "")) {
+      return Either.left(new SelectorError(
+        `Empty part in selector list "${source}": write e.g. "[tooltip], tk-card"`,
+      ));
+    }
+    return Either.map(
+      eachOf(parts, (part) => Compound.parse(part, source)),
+      (alternatives) => new Selector(source, alternatives),
+    );
   }
 
   /** Whether `element` matches any of the selectors of the list. */
   matches(element: SelectableElement): boolean {
     return this.alternatives.some((alternative) => alternative.matches(element));
-  }
-
-  private static parseOrThrow(source: string): Selector {
-    if (source.trim() === "") {
-      throw new Error(`Empty selector: write e.g. "[tooltip]" or "tk-card"`);
-    }
-    const parts = splitList(source);
-    if (parts.some((part) => part.trim() === "")) {
-      throw new Error(`Empty part in selector list "${source}": write e.g. "[tooltip], tk-card"`);
-    }
-    return new Selector(source, parts.map((part) => Compound.parse(part, source)));
   }
 }
 
@@ -91,6 +100,14 @@ function splitList(source: string): string[] {
   return parts;
 }
 
+/** The conditions of one selector, gathered while its source is read. */
+interface CompoundParts {
+  readonly tag: string | undefined;
+  readonly attributes: readonly AttributeCondition[];
+  readonly classes: readonly string[];
+  readonly negations: readonly Compound[];
+}
+
 /** One selector of a list: a tag, attributes, classes and `:not(...)`s, all required. */
 class Compound {
   private constructor(
@@ -102,36 +119,62 @@ class Compound {
   ) {}
 
   /** Parse one selector of the list `source`, for error messages. `part` is not empty. */
-  static parse(part: string, source: string): Compound {
-    let rest = part.trim();
+  static parse(part: string, source: string): Either<Compound, SelectorError> {
+    const rest = part.trim();
     const tag = TAG.exec(rest)?.[0];
-    rest = rest.slice(tag?.length ?? 0);
-    const attributes: AttributeCondition[] = [];
-    const classes: string[] = [];
-    const negations: Compound[] = [];
-    while (rest !== "") {
-      const attribute = ATTRIBUTE.exec(rest);
-      const className = CLASS.exec(rest);
-      const negation = NOT.exec(rest);
-      if (attribute) {
-        const value = attribute[2] ?? attribute[3] ?? attribute[4];
-        const name = attribute[1]!.toLowerCase();
-        attributes.push({ name, ...(value !== undefined && { value }) });
-        rest = rest.slice(attribute[0].length);
-      } else if (className) {
-        classes.push(className[1]!);
-        rest = rest.slice(className[0].length);
-      } else if (negation) {
-        negations.push(...Compound.parseNegation(source, negation[1]!));
-        rest = rest.slice(negation[0].length);
-      } else {
-        throw new Error(
-          `Unsupported selector "${source}" at "${rest}": `
-          + "write a tag, [attr], [attr=value], .class or :not(...)",
-        );
-      }
+    return Either.map(
+      Compound.parseParts(
+        rest.slice(tag?.length ?? 0),
+        { tag, attributes: [], classes: [], negations: [] },
+        source,
+      ),
+      (parts) => new Compound(
+        parts.tag?.toLowerCase(),
+        parts.attributes,
+        parts.classes,
+        parts.negations,
+      ),
+    );
+  }
+
+  /** The conditions left in `rest`, each read onto the `parts` gathered so far. */
+  private static parseParts(
+    rest: string,
+    parts: CompoundParts,
+    source: string,
+  ): Either<CompoundParts, SelectorError> {
+    if (rest === "") {
+      return Either.right(parts);
     }
-    return new Compound(tag?.toLowerCase(), attributes, classes, negations);
+    const attribute = ATTRIBUTE.exec(rest);
+    const className = CLASS.exec(rest);
+    const negation = NOT.exec(rest);
+    if (attribute) {
+      const value = attribute[2] ?? attribute[3] ?? attribute[4];
+      const name = attribute[1]!.toLowerCase();
+      const condition = { name, ...(value !== undefined && { value }) };
+      return Compound.parseParts(rest.slice(attribute[0].length), {
+        ...parts,
+        attributes: [...parts.attributes, condition],
+      }, source);
+    }
+    if (className) {
+      return Compound.parseParts(rest.slice(className[0].length), {
+        ...parts,
+        classes: [...parts.classes, className[1]!],
+      }, source);
+    }
+    if (negation) {
+      return Either.flatMap(Compound.parseNegation(source, negation[1]!), (negated) =>
+        Compound.parseParts(rest.slice(negation[0].length), {
+          ...parts,
+          negations: [...parts.negations, ...negated],
+        }, source));
+    }
+    return Either.left(new SelectorError(
+      `Unsupported selector "${source}" at "${rest}": `
+      + "write a tag, [attr], [attr=value], .class or :not(...)",
+    ));
   }
 
   /** Whether `element` matches: its tag, every attribute and class, and no negation. */
@@ -149,15 +192,12 @@ class Compound {
   }
 
   /** The selectors of a `:not(...)` body: a comma list, each part a simple selector. */
-  private static parseNegation(source: string, body: string): Compound[] {
-    return body.split(",")
-      .map((part) => {
-        if (part.trim() === "") {
-          throw new Error(
-            `Empty part in ":not(${body})" of "${source}": write e.g. ":not([disabled])"`,
-          );
-        }
-        return Compound.parse(part, source);
-      });
+  private static parseNegation(
+    source: string,
+    body: string,
+  ): Either<readonly Compound[], SelectorError> {
+    return eachOf(body.split(","), (part) => (part.trim() === ""
+      ? Either.left(new SelectorError(`Empty part in ":not(${body})" of "${source}": write e.g. ":not([disabled])"`))
+      : Compound.parse(part, source)));
   }
 }

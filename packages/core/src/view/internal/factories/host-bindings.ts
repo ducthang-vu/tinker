@@ -59,28 +59,32 @@ export class HostBindings {
   /** The parsed attribute bindings. */
   readonly attributes: readonly HostValueBinding[];
 
-  /**
-   * Parse a `host` option. Throws for anything but `"(event)": "method()"`,
-   * `"(event)": "method($event)"` or `"[class.name]": "expression"`,
-   * reporting every invalid entry at once (an AggregateError holding one
-   * error each).
-   */
-  constructor(host: Readonly<Record<string, string>> = {}) {
-    const parsed = Object.entries(host)
-      .map(([key, value]) => parseEntry(key, value));
-    const errors = parsed.flatMap((result) =>
-      result.match({ left: (error) => [error], right: () => [] }),
-    );
-    if (errors.length > 0) {
-      throw new AggregateError(errors, errors.map((error) => error.message)
-        .join("\n"));
-    }
-    const entries = parsed.map((result) => result.getOrThrow());
+  private constructor(entries: readonly (HostListener | HostValueBinding)[]) {
     this.listeners = entries.filter((entry): entry is HostListener => "event" in entry);
     const values = entries.filter((entry): entry is HostValueBinding => "kind" in entry);
     this.classes = values.filter((value) => value.kind === "class");
     this.styles = values.filter((value) => value.kind === "style");
     this.attributes = values.filter((value) => value.kind === "attribute");
+  }
+
+  /**
+   * Parse a `host` option: `"(event)": "method()"`, `"(event)": "method($event)"`, or
+   * `"[class.name]"`, `"[style.name]"` and `"[attr.name]"` with an expression. Anything else
+   * is a Left holding an AggregateError with one error per invalid entry, so every
+   * mistake is reported at once.
+   */
+  static parse(host: Readonly<Record<string, string>> = {}): Either<HostBindings, AggregateError> {
+    const parsed = Object.entries(host)
+      .map(([key, value]) => parseEntry(key, value));
+    const errors = parsed.flatMap((result) =>
+      result.match({ left: (error) => [error], right: () => [] }));
+    if (errors.length > 0) {
+      return Either.left(new AggregateError(errors, errors.map((error) => error.message)
+        .join("\n")));
+    }
+    const entries = parsed.flatMap((result) =>
+      result.match({ left: () => [], right: (entry) => [entry] }));
+    return Either.right(new HostBindings(entries));
   }
 
   /**
