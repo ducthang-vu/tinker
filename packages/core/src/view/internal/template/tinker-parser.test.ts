@@ -548,6 +548,26 @@ describe("TinkerTemplateParser", () => {
         .toEqual(["1:6: attribute value is never closed", "1:1: <p is never closed"]);
     });
 
+    test("a closing tag that closes nothing open is reported once, and the element still closes", () => {
+      const { nodes, errors } = parser.parseAll("<div>x</span></div><i>y</i>");
+      expect(errors.map((error) => error.message))
+        .toEqual(["1:7: </span> does not close <div>"]);
+      expect(withoutSpans(nodes)
+        .map((node) => node.kind === "element" ? node.name : "text"))
+        .toEqual(["div", "i"]);
+    });
+
+    test("a closing tag of an outer element leaves the inner one unclosed, and reports it once", () => {
+      const { nodes, errors } = parser.parseAll("<div><b>x</div><i>y</i>");
+      expect(errors.map((error) => error.message))
+        .toEqual(["1:6: <b> is never closed"]);
+      expect(withoutSpans(nodes))
+        .toEqual([
+          { kind: "element", name: "div", attributes: [], children: [{ kind: "element", name: "b", attributes: [], children: [{ kind: "text", value: "x" }] }] },
+          { kind: "element", name: "i", attributes: [], children: [{ kind: "text", value: "y" }] },
+        ]);
+    });
+
     test("a stray closing tag is reported, and the text after it is still read", () => {
       const { nodes, errors } = parser.parseAll("a</x>b<i>c</i>");
       expect(errors.map((error) => error.message))
