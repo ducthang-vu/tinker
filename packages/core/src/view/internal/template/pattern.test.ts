@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { namesOf, parsePattern } from "./pattern.ts";
+import { namesOf, parsePattern, splitGuard } from "./pattern.ts";
 
 describe("parsePattern", () => {
   test("an array pattern needs its closing ]", () => {
@@ -233,6 +233,138 @@ describe("parsePattern: tuples", () => {
       .toEqual(["id", "x", "pair"]);
     expect(parsePattern("(1, 2")
       .isLeft())
+      .toBe(true);
+  });
+});
+
+describe("parsePattern: regex patterns", () => {
+  test("a regex literal is one pattern, with its source and flags", () => {
+    expect(parsePattern(String.raw`/^\d+$/`)
+      .getOrThrow())
+      .toEqual({ kind: "regex", source: String.raw`^\d+$`, flags: "", names: [] });
+    expect(parsePattern("/ab/i")
+      .getOrThrow())
+      .toEqual({ kind: "regex", source: "ab", flags: "i", names: [] });
+  });
+
+  test("named groups are the names the pattern binds", () => {
+    expect(namesOf(parsePattern(String.raw`/(?<id>\d+)-(?<tag>\w+)?/`)
+      .getOrThrow()))
+      .toEqual(["id", "tag"]);
+  });
+
+  test("a bar, a slash in a class, and an escaped slash stay inside the literal", () => {
+    expect(parsePattern("/a|b/")
+      .getOrThrow())
+      .toEqual({ kind: "regex", source: "a|b", flags: "", names: [] });
+    expect(parsePattern("/[/]/")
+      .getOrThrow())
+      .toEqual({ kind: "regex", source: "[/]", flags: "", names: [] });
+    expect(parsePattern(String.raw`/a\/b/`)
+      .getOrThrow())
+      .toEqual({ kind: "regex", source: String.raw`a\/b`, flags: "", names: [] });
+  });
+
+  test("a regex can be aliased, and can sit under not", () => {
+    expect(namesOf(parsePattern("/x/ as whole")
+      .getOrThrow()))
+      .toEqual(["whole"]);
+    expect(parsePattern("not /x/")
+      .getOrThrow())
+      .toEqual({ kind: "not", pattern: { kind: "regex", source: "x", flags: "", names: [] } });
+  });
+
+  test("g and y are refused, and so is a regex that does not compile", () => {
+    expect(parsePattern("/a/g")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("/a/y")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("/(/")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("/a/zz")
+      .isLeft())
+      .toBe(true);
+    expect(parsePattern("/abc")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("a slash in a string is text, and a slash that does not start a pattern is not a regex", () => {
+    expect(parsePattern(`"a/b"`)
+      .getOrThrow())
+      .toEqual({ kind: "value", value: "a/b" });
+    expect(parsePattern("x/y")
+      .isLeft())
+      .toBe(true);
+  });
+
+  test("an error about a regex in alternatives names the literal as it was typed", () => {
+    const message = parsePattern("/(?<x>a)/ | 1")
+      .match({ left: (error) => error.message, right: () => "" });
+    expect(message)
+      .toContain("/(?<x>a)/");
+  });
+
+  test("a regex error names the literal as it was typed", () => {
+    const message = parsePattern("/a/g")
+      .match({ left: (error) => error.message, right: () => "" });
+    expect(message)
+      .toContain("/a/g");
+  });
+});
+
+describe("splitGuard: regex literals", () => {
+  test("a slash in a guard is division, and a regex's `when` is not a guard", () => {
+    expect(splitGuard("/a/ when a / b > 1"))
+      .toEqual({ pattern: "/a/", guard: "a / b > 1" });
+    expect(splitGuard("/ when x/"))
+      .toEqual({ pattern: "/ when x/" });
+  });
+});
+
+describe("parsePattern: escaped quotes", () => {
+  test("an escaped quote does not close a string, so a bar inside it is text", () => {
+    expect(parsePattern(String.raw`"a\"|b"`)
+      .getOrThrow())
+      .toEqual({ kind: "value", value: `a"|b` });
+    expect(parsePattern(String.raw`"\")" | "a"`)
+      .getOrThrow())
+      .toEqual({ kind: "alt", options: [{ kind: "value", value: `")` }, { kind: "value", value: "a" }] });
+  });
+
+  test("an escaped quote does not end a string before `when`, a bracket or `as`", () => {
+    expect(splitGuard(String.raw`"x\" when y" when z`))
+      .toEqual({ pattern: String.raw`"x\" when y"`, guard: "z" });
+    expect(namesOf(parsePattern(String.raw`("\")", b)`)
+      .getOrThrow()))
+      .toEqual(["b"]);
+    expect(namesOf(parsePattern(String.raw`"\" as x" as y`)
+      .getOrThrow()))
+      .toEqual(["y"]);
+  });
+});
+
+describe("parsePattern: duplicate names", () => {
+  test("a name bound twice in one pattern is an error, whatever its shape", () => {
+    for (const text of ["[a, a]", "{ a, b: a }", "(a, a)", "[a, [a]]", "{ k: { a }, j: [a] }", "{ a, b: a } as c"]) {
+      expect(parsePattern(text)
+        .isLeft(), text)
+        .toBe(true);
+    }
+    expect(parsePattern("[a, a]")
+      .match({ left: (error) => error.message, right: () => "" }))
+      .toContain(`The name "a" is bound twice`);
+  });
+
+  test("distinct names, and alternatives that bind the same names, are not duplicates", () => {
+    expect(namesOf(parsePattern("[a, b]")
+      .getOrThrow()))
+      .toEqual(["a", "b"]);
+    expect(parsePattern("{ a } | { a }")
+      .isRight())
       .toBe(true);
   });
 });

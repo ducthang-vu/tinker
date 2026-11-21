@@ -13,6 +13,7 @@
 
 import type { Span, TemplateNode, TextNode } from "./ast.ts";
 import { compileError, locatedAt } from "./compile-error.ts";
+import { blankRegexes, QuoteTracker } from "./pattern.ts";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
@@ -143,25 +144,28 @@ function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
  * body brace comes after the pattern's last part.
  */
 function caseBodyBrace(value: string, from: number): number {
-  let search = from;
+  // The scan reads the header with its regex literals blanked, so a brace or bar
+  // inside one is not structure.
+  const text = blankRegexes(value.slice(from));
+  let search = 0;
   for (;;) {
-    const open = value.slice(search)
+    const open = text.slice(search)
       .search(/[{[(]/);
     if (open === -1) {
       return -1;
     }
     const at = search + open;
-    if (value[at] === "(") {
+    if (text[at] === "(") {
       // A parenthesized pattern (`some({ id })`, a tuple) can hold braces: skip it whole.
-      search = matchingBrace(value, at) + 1;
+      search = matchingBrace(text, at) + 1;
       continue;
     }
-    const before = value.slice(from, at)
+    const before = text.slice(0, at)
       .trimEnd();
     if (before === "" || /(\||\bnot)$/.test(before)) {
-      search = matchingBrace(value, at) + 1;
-    } else if (value[at] === "{") {
-      return at;
+      search = matchingBrace(text, at) + 1;
+    } else if (text[at] === "{") {
+      return from + at;
     } else {
       search = at + 1;
     }
@@ -200,15 +204,11 @@ function matchingBrace(value: string, open: number): number {
   const opener = value[open]!;
   const closer = { "[": "]", "(": ")", "{": "}" }[opener]!;
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (let i = open; i < value.length; i++) {
     const char = value[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === opener) {
       depth++;
     } else if (char === closer) {

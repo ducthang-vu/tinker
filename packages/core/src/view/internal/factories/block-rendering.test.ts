@@ -411,6 +411,30 @@ describe("@match", () => {
     app.destroy();
   });
 
+  test("a regex matches a string, and only a string", async () => {
+    @Component({
+      selector: "tk-regex",
+      template: String.raw`@match code() { @case /^\d+$/ { number } @default { text } }`,
+    })
+    class RegexMatch {
+      readonly code = signal<unknown>("42");
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(RegexMatch, { host: el });
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("number");
+    app.root.instance.code.set("x");
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("text");
+    app.root.instance.code.set(42);
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("text");
+    app.destroy();
+  });
+
   test("an as-pattern shows the whole value under its alias, and its names too", async () => {
     @Component({
       selector: "tk-alias",

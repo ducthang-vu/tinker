@@ -120,7 +120,12 @@ and `" "` (a space).
 | `ok(pattern)` | an `Either` that is a Right whose value matches the pattern | `@case ok(n)` | done |
 | `error(pattern)` | an `Either` that is a Left whose error matches the pattern | `@case error(message)` | done |
 | `not` | anything the inner pattern does not match (it binds no names) | `@case not "guest"` | done |
+| Regex, `/body/flags` | a string that the regex matches. Each named group `(?<name>…)` binds its text, or `undefined` when the group did not take part. Only strings match, and the `g` and `y` flags are refused | `@case /^\d+$/`, `@case /(?<id>\d+)/i` | done (named groups: see IMPROVEMENTS) |
 | `pattern as name` | the pattern matches; the whole value is also bound to `name` (in the branch and in the guard). The alias covers the whole pattern, alternatives included, and may not repeat a name the pattern binds | `@case { id, name } as user` | done |
+
+A regex starts only where a pattern can begin: after the start of the pattern, a bar,
+an opening bracket, a comma, a colon or `not`. So a `/` in a `when` guard is still
+division (`@case x when a / b > 1`).
 
 An alias does not bind names inside `@map`'s `let` yet, and a `@case` without a
 subject takes only `_`, so `_ as x` is refused there. See `IMPROVEMENTS.md`.

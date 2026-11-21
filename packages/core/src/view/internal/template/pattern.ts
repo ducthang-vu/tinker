@@ -8,6 +8,7 @@
 //   { status, index: number }   an object with those keys, each matching its pattern
 //   some(x)  none  ok(x)  error(e)   a Maybe or an Either: the payload matches x or e
 //   { id, name } as user             a pattern, plus the whole value bound to `user`
+//   /^\d+$/  /(?<id>\d+)/i          a string matched by a regex; named groups bind names
 //
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
@@ -49,30 +50,62 @@ export type Pattern
     | { readonly kind: "none" }
     | { readonly kind: "ok"; readonly pattern: Pattern }
     | { readonly kind: "error"; readonly pattern: Pattern }
-    | { readonly kind: "as"; readonly pattern: Pattern; readonly name: string };
+    | { readonly kind: "as"; readonly pattern: Pattern; readonly name: string }
+    | { readonly kind: "regex"; readonly source: string; readonly flags: string; readonly names: readonly string[] };
 
 export type RelationOperator = "<" | "<=" | ">" | ">=" | "!==";
 
 /** A literal value a pattern compares with. */
 export type Literal = string | number | boolean | null | undefined;
 
+/**
+ * Tracks whether a scan is inside a quoted string. A backslash inside a string escapes
+ * the next character, as the expression parser does, so `"\""` is one string.
+ */
+export class QuoteTracker {
+  private quote: string | undefined;
+  private escaped = false;
+
+  /** Whether the character is part of a string (its quotes included), so the scan skips it. */
+  step(char: string): boolean {
+    if (this.quote === undefined) {
+      if (char === "\"" || char === "'") {
+        this.quote = char;
+        return true;
+      }
+      return false;
+    }
+    if (this.escaped) {
+      this.escaped = false;
+    } else if (char === "\\") {
+      this.escaped = true;
+    } else if (char === this.quote) {
+      this.quote = undefined;
+    }
+    return true;
+  }
+
+  /** Whether the scan is inside a string now. */
+  get open(): boolean {
+    return this.quote !== undefined;
+  }
+}
+
 /** A header split at its top-level `when`: the pattern, and the guard if there is one. */
 export function splitGuard(header: string): { readonly pattern: string; readonly guard?: string } {
+  // The scan reads a copy with the regex literals blanked, so a `when` inside one is not a guard.
+  const scan = blankRegexes(header);
   let depth = 0;
-  let quote: string | undefined;
-  for (let i = 0; i < header.length; i++) {
-    const char = header[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+  const quotes = new QuoteTracker();
+  for (let i = 0; i < scan.length; i++) {
+    const char = scan[i]!;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "{" || char === "(" || char === "[") {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
       depth--;
-    } else if (depth === 0 && /^when(\s|$)/.test(header.slice(i)) && /\s/.test(header[i - 1] ?? " ")) {
+    } else if (depth === 0 && /^when(\s|$)/.test(scan.slice(i)) && /\s/.test(scan[i - 1] ?? " ")) {
       return { pattern: header.slice(0, i)
         .trim(), guard: header.slice(i + 4)
         .trim() };
@@ -83,12 +116,18 @@ export function splitGuard(header: string): { readonly pattern: string; readonly
 
 /** The pattern written as `text`, or the error explaining what is not supported. */
 export function parsePattern(text: string): EitherError<Pattern> {
-  return Either.from(() => patternOf(text.trim()));
+  // Regex literals are masked first, so their braces, bars and quotes are not read as structure.
+  return Either.from(() => patternOf(maskRegexes(text.trim())))
+    .mapLeft((error) => new Error(restoreRegexes(error.message)));
 }
 
 function patternOf(text: string): Pattern {
   if (text === "") {
     throw new Error("A pattern is needed");
+  }
+  const literal = MASKED_REGEX.exec(text);
+  if (literal) {
+    return regexPattern(decodeLiteral(literal[1]!));
   }
   // `as` comes first: it names the whole pattern, alternatives included.
   const alias = aliasOf(text);
@@ -201,21 +240,17 @@ function aliasPattern(text: string, name: string, whole: string): Pattern {
 /** Whether `index` in `text` is outside every brace, bracket, parenthesis and quote. */
 function isTopLevel(text: string, index: number): boolean {
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (const char of text.slice(0, index)) {
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "{" || char === "(" || char === "[") {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
       depth--;
     }
   }
-  return depth === 0 && quote === undefined;
+  return depth === 0 && !quotes.open;
 }
 
 /**
@@ -276,6 +311,7 @@ function objectPattern(text: string): Pattern {
     const pattern = fieldPattern(key, match[2]);
     fields.push({ key, pattern });
   }
+  distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text);
   return { kind: "object", fields };
 }
 
@@ -300,15 +336,11 @@ function isWholeGroup(text: string): boolean {
     return false;
   }
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   for (let index = 0; index < text.length; index++) {
     const char = text[index]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "(" || char === "{" || char === "[") {
       depth++;
     } else if (char === ")" || char === "}" || char === "]") {
@@ -351,7 +383,20 @@ function arrayPattern(text: string): Pattern {
     }
     rest = name;
   });
-  return rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+  const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+  distinctNames(namesOf(pattern), text);
+  return pattern;
+}
+
+/** Throws when a name is bound twice: the later binding would replace the earlier. */
+function distinctNames(names: readonly string[], text: string): void {
+  const seen = new Set<string>();
+  for (const name of names) {
+    if (seen.has(name)) {
+      throw new Error(`The name "${name}" is bound twice in "${text}"`);
+    }
+    seen.add(name);
+  }
 }
 
 /** The names a pattern binds, in order. */
@@ -372,6 +417,8 @@ export function namesOf(pattern: Pattern): string[] {
       return namesOf(pattern.pattern);
     case "as":
       return [...namesOf(pattern.pattern), pattern.name];
+    case "regex":
+      return [...pattern.names];
     case "alt":
       // Every option binds the same names (see alternatives), so the first one's are the names.
       return namesOf(pattern.options[0]!);
@@ -392,16 +439,12 @@ function fieldPattern(key: string, value: string | undefined): Pattern {
 function splitTopLevel(text: string, separator = ","): string[] {
   const parts: string[] = [];
   let depth = 0;
-  let quote: string | undefined;
+  const quotes = new QuoteTracker();
   let start = 0;
   for (let i = 0; i < text.length; i++) {
     const char = text[i]!;
-    if (quote) {
-      if (char === quote) {
-        quote = undefined;
-      }
-    } else if (char === "\"" || char === "'") {
-      quote = char;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
     } else if (char === "{" || char === "(" || char === "[") {
       depth++;
     } else if (char === "}" || char === ")" || char === "]") {
@@ -413,4 +456,104 @@ function splitTopLevel(text: string, separator = ","): string[] {
   }
   parts.push(text.slice(start));
   return parts;
+}
+
+// A regex literal: `/body/flags`. The body is one or more escapes, bracket classes or
+// characters other than `/`, `\`, `[` and a line break. So a `/` inside `[...]` or
+// after `\` does not end it.
+const REGEX_LITERAL = /^\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^\/\\[\n])+)\/[A-Za-z]*/;
+// A masked literal: its characters as hex, between two private-use marks that no
+// pattern token contains.
+const MASKED_REGEX = /^\uE000([0-9a-f]+)\uE000$/;
+const MASK_MARK = "\uE000";
+const MASKED_IN_TEXT = /\uE000([0-9a-f]+)\uE000/g;
+
+/**
+ * Whether a `/` at `at` starts a regex literal: only where a pattern can begin, after the
+ * start, a bar, an opening bracket, a comma, a colon or `not`. So `a / b` in a guard is division.
+ */
+function startsRegex(text: string, at: number): boolean {
+  const before = text.slice(0, at)
+    .trimEnd();
+  return before === "" || /[|([{,:]$/.test(before) || /\bnot$/.test(before);
+}
+
+/** The [start, end) spans of the regex literals in the text. Quoted strings are skipped. */
+function regexSpans(text: string): [number, number][] {
+  const spans: [number, number][] = [];
+  const quotes = new QuoteTracker();
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]!;
+    if (quotes.step(char)) {
+      // A character of a string is never structure.
+    } else if (char === "/" && startsRegex(text, i)) {
+      const found = REGEX_LITERAL.exec(text.slice(i));
+      if (found) {
+        spans.push([i, i + found[0].length]);
+        i += found[0].length - 1;
+      }
+    }
+  }
+  return spans;
+}
+
+/** The text with each regex literal replaced by the same number of `_`, so every index is kept. */
+export function blankRegexes(text: string): string {
+  let blanked = text;
+  for (const [start, end] of regexSpans(text)
+    .reverse()) {
+    blanked = blanked.slice(0, start) + "_".repeat(end - start) + blanked.slice(end);
+  }
+  return blanked;
+}
+
+/** The text with each regex literal replaced by its masked form, which a pattern token can hold. */
+function maskRegexes(text: string): string {
+  let masked = text;
+  for (const [start, end] of regexSpans(text)
+    .reverse()) {
+    masked = masked.slice(0, start) + encodeLiteral(text.slice(start, end)) + masked.slice(end);
+  }
+  return masked;
+}
+
+/** A message with its masked literals written back as they were typed. */
+function restoreRegexes(message: string): string {
+  return message.replace(MASKED_IN_TEXT, (_, hex: string) => decodeLiteral(hex));
+}
+
+function encodeLiteral(literal: string): string {
+  let hex = "";
+  for (let i = 0; i < literal.length; i++) {
+    hex += literal.charCodeAt(i)
+      .toString(16)
+      .padStart(4, "0");
+  }
+  return `${MASK_MARK}${hex}${MASK_MARK}`;
+}
+
+function decodeLiteral(hex: string): string {
+  let literal = "";
+  for (let i = 0; i < hex.length; i += 4) {
+    literal += String.fromCharCode(Number.parseInt(hex.slice(i, i + 4), 16));
+  }
+  return literal;
+}
+
+/**
+ * `/body/flags`: a string matched with the regex. Its named groups are the names it binds,
+ * each to the group's text (undefined when the group did not take part). `g` and `y` keep
+ * state between matches, so they are refused.
+ */
+function regexPattern(literal: string): Pattern {
+  const close = literal.lastIndexOf("/");
+  const source = literal.slice(1, close);
+  const flags = literal.slice(close + 1);
+  if (/[gy]/.test(flags)) {
+    throw new Error(`A regex pattern cannot have the "g" or "y" flag, since they keep state between matches: "${literal}"`);
+  }
+  // A probe with an empty alternative always matches, and its groups list every named group.
+  const names = Object.keys(new RegExp(`(?:${source})|`, flags)
+    .exec("")!.groups ?? {});
+  return { kind: "regex", source, flags, names };
 }
