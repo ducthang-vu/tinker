@@ -4,10 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./compiler": "./src/view/compiler/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./compiler": {
+      "types": "./dist/view/compiler/index.d.ts",
+      "default": "./dist/view/compiler/index.js"
+    }
   },
   "dependencies": {
     "@tinker/functional": "*"
+  },
+  "scripts": {
+    "build": "node ../../node_modules/typescript7/bin/tsc -p tsconfig.build.json"
   }
 }

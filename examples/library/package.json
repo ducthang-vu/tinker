@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prebuild": "npm run build -w @tinker/compiler",
+    "prebuild": "npm run build -w @tinker/functional && npm run build -w @tinker/core && npm run build -w @tinker/compiler",
     "build": "rm -rf dist ../../dist/library-source && tinker-compile --out ../../dist/library-source --package package.json src/*.ts && node ../../node_modules/typescript7/bin/tsc -p tsconfig.build.json"
   },
   "dependencies": {

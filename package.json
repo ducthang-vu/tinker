@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @tinker/example-basics",
-    "build": "node node_modules/typescript7/bin/tsc -p packages/core/tsconfig.build.json",
+    "build": "npm run build -w @tinker/functional && npm run build -w @tinker/core",
     "build:example": "npm run build -w @tinker/example-basics",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "lint": "eslint .",

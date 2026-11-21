@@ -310,15 +310,14 @@ Both follow only relative imports.
 `examples/library` is a sample library built this way: `npm run build` compiles its
 sources to `build/`, then emits JavaScript and declarations to `dist/`.
 
-### 1. Consumers must bundle the library's dependencies
+### 1. The packages are built, but still private
 
-**Problem.** The sample's `dist` imports `@tinker/core` and `@tinker/functional`, which
-are workspace packages exporting TypeScript source. Node cannot run that, so a consumer
-must bundle it, as the example app does. A published library would need built
-dependencies.
+**Problem.** `@tinker/core` and `@tinker/functional` now build to JavaScript and
+declarations, and their `exports` point at the built files, so the sample library runs
+in plain Node. Both packages are still `private`, and have no version to publish.
 
-**To do.** Build the packages a library depends on into JavaScript and declarations
-before publishing, and point their `exports` at the built files.
+**To do.** Decide the first published version, remove `private`, and check the packed
+output (`npm pack`) before publishing.
 
 ### 2. Emitted trees are larger than their templates
 
