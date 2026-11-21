@@ -108,7 +108,8 @@ describe("event attributes cannot be bound", () => {
   });
 
   test("a host binding to an on… attribute is refused the same way", () => {
-    expect(() => new HostBindings({ "[attr.onclick]": "code()" }))
+    expect(() => HostBindings.parse({ "[attr.onclick]": "code()" })
+      .getOrThrow())
       .toThrow("[attr.onclick] in host binding \"[attr.onclick]\": event attributes cannot be bound");
   });
 });
