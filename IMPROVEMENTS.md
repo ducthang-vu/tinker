@@ -328,8 +328,9 @@ Chromium on one machine, 40 loads of each build, alternating:
 - Bundle: 193,704 bytes raw and 37,617 gzipped with strings; 221,593 raw and 38,436
   gzipped with trees (about 0.8 KB more gzipped).
 
-So for this app the trees are worth their size. The person running the compiler chooses per
-build: `--emit` writes the trees, and without it the output keeps the template strings.
+So for this app the trees are worth their size, and the example app now uses them
+(`tinkerCompiler({ emit: true })`). The person running the compiler chooses per build:
+`--emit` writes the trees, and without it the output keeps the template strings.
 
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
