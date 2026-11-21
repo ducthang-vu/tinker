@@ -261,15 +261,16 @@ say so. Until then, a test of a replaced class uses a string template.
 The plugin compiles each component's literal template into the expression that
 rebuilds its tree, and checks that it compiles. Its limits:
 
-### 1. Templates and selectors that are not literals are not compiled
+### 1. Values computed at run time are not compiled
 
-**Problem.** A template built in code, an `imports` list that is not a list of names,
-or a directive whose selector is computed is skipped with a warning, and keeps its
-template string. The app still works, but the check and the emitted tree do not
-cover it.
+**Problem.** A template or selector that a `const` of the file, or of the file it is
+imported from, gives as a literal is compiled. One computed at run time (a function
+call, a `let`) is skipped with a warning, and keeps its template string. The app still
+works, but the check and the emitted tree do not cover it. A constant that is itself
+computed is not followed either.
 
-**To do.** Resolve such values when they are simple (a constant in the same file), and
-report the rest as errors in a strict mode for libraries.
+**To do.** Follow a constant that is computed from other constants, and report the
+values that remain as errors in strict mode.
 
 ### 2. An emitted tree is about 2.2 times the gzipped size of its template
 

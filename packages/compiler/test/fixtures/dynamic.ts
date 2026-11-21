@@ -1,7 +1,7 @@
-// A component whose template is not a literal: skipped, or an error in strict mode.
+// A component whose template is computed at run time: skipped, or an error in strict mode.
 import { Component } from "@tinker/core";
 
-const html = "<p>dynamic</p>";
+declare function render(): string;
 
-@Component({ selector: "tk-dynamic", template: html })
+@Component({ selector: "tk-dynamic", template: render() })
 export class Dynamic {}

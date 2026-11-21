@@ -97,4 +97,43 @@ describe("readSource", () => {
         { local: "Named", imported: "tk-name", source: "./named.ts" },
       ]);
   });
+
+  test("reads a constant of the file as the template or the selector", () => {
+    const { declarations, constants } = readSource(`
+      const html = "<p>x</p>";
+      const sel = "[a]";
+      @Component({ selector: sel, template: html }) class A {}
+    `, "file.ts");
+    expect(constants)
+      .toEqual(new Map([["html", "<p>x</p>"], ["sel", "[a]"]]));
+    expect(declarations[0])
+      .toMatchObject({
+        selector: "[a]",
+        template: { text: "<p>x</p>", start: expect.any(Number), end: expect.any(Number) },
+      });
+  });
+
+  test("a constant that is not a literal is not read, and a name of another file is a reference", () => {
+    const { declarations, constants } = readSource(`
+      const html = render();
+      let other = "<p>no</p>";
+      import { theme } from "./theme.ts";
+      @Component({ selector: pick, template: theme }) class A {}
+    `, "file.ts");
+    expect(constants.size)
+      .toBe(0);
+    expect(declarations[0])
+      .toMatchObject({
+        selector: undefined,
+        selectorName: "pick",
+        template: undefined,
+        templateRef: { name: "theme", start: expect.any(Number), end: expect.any(Number) },
+      });
+  });
+
+  test("an exported constant is read too", () => {
+    const { constants } = readSource(`export const page = "<p>x</p>";`, "file.ts");
+    expect(constants.get("page"))
+      .toBe("<p>x</p>");
+  });
 });

@@ -260,4 +260,72 @@ describe("compileComponents", () => {
     expect(errors)
       .toEqual([]);
   });
+
+  describe("constants", () => {
+    test("a template named by a constant of the file is checked, with its place in the file", async () => {
+      const { host, errors } = recordingHost();
+      await expect(compileComponents(`
+      const broken = "<p>{{ a + }}</p>";
+      @Component({ template: broken }) class A {}
+    `, "/app/a.ts", host))
+        .rejects
+        .toThrow();
+      expect(errors[0])
+        .toContain("a.ts: <A>: Missing a name at the end");
+    });
+
+    test("a template named by a constant of another file is checked", async () => {
+      const { host, errors } = recordingHost({ "./constants.ts": fixture("constants.ts") });
+      await expect(compileComponents(`
+      import { brokenPage } from "./constants.ts";
+      @Component({ template: brokenPage }) class A {}
+    `, "/app/a.ts", host))
+        .rejects
+        .toThrow();
+      expect(errors[0])
+        .toContain("a.ts: <A>: Missing a name at the end");
+    });
+
+    test("a template named by a constant of another file that compiles is accepted", async () => {
+      const { host, errors, warnings } = recordingHost({ "./constants.ts": fixture("constants.ts") });
+      await compileComponents(`
+      import { page } from "./constants.ts";
+      @Component({ template: page }) class A {}
+    `, "/app/a.ts", host);
+      expect(errors)
+        .toEqual([]);
+      expect(warnings)
+        .toEqual([]);
+    });
+
+    test("a selector named by a constant of the directive's own file is read", async () => {
+      const { host, warnings } = recordingHost({ "./constants.ts": fixture("constants.ts") });
+      await compileComponents(`
+      import { Marked } from "./constants.ts";
+      @Component({ template: "<p marked></p>", imports: [Marked] }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toEqual([]);
+    });
+
+    test("a constant that the other file does not declare is warned about, and not checked", async () => {
+      const { host, warnings } = recordingHost({ "./constants.ts": fixture("constants.ts") });
+      await compileComponents(`
+      import { nothere } from "./constants.ts";
+      @Component({ template: nothere }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
+    });
+
+    test("a constant imported from a file that cannot be found is not read", async () => {
+      const { host, warnings } = recordingHost();
+      await compileComponents(`
+      import { page } from "./missing.ts";
+      @Component({ template: page }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
+    });
+  });
 });
