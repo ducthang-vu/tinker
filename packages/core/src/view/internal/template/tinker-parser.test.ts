@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ElementNode, TemplateNode } from "./ast.ts";
-import { TemplateSyntaxError, TinkerTemplateParser } from "./tinker-parser.ts";
+import { combineSyntaxErrors, TemplateSyntaxError, TinkerTemplateParser } from "./tinker-parser.ts";
 
 const parser = new TinkerTemplateParser();
 
@@ -516,6 +516,74 @@ describe("TinkerTemplateParser", () => {
         .toBeInstanceOf(Error);
       expect(error.name)
         .toBe("TemplateSyntaxError");
+    });
+  });
+
+  describe("recovery", () => {
+    test("goes on after an error, and reports every error of the template", () => {
+      const { nodes, errors } = parser.parseAll(`<p>a</p><i a="1" a="2">x</i><b>y</b>`);
+      expect(errors.map((error) => error.message))
+        .toEqual(["1:18: duplicate attribute a"]);
+      expect(withoutSpans(nodes)
+        .map((node) => node.kind === "element" ? node.name : "text"))
+        .toEqual(["p", "i", "b"]);
+    });
+
+    test("an attribute that is not valid keeps its element and the element's children", () => {
+      const { nodes, errors } = parser.parseAll(`<p a=><b>x</b></p>`);
+      expect(errors.map((error) => error.message))
+        .toEqual(["1:6: expected an attribute value"]);
+      expect(withoutSpans(nodes))
+        .toEqual([{
+          kind: "element",
+          name: "p",
+          attributes: [],
+          children: [{ kind: "element", name: "b", attributes: [], children: [{ kind: "text", value: "x" }] }],
+        }]);
+    });
+
+    test("an attribute problem with no tag end after it reports the tag as never closed", () => {
+      const { errors } = parser.parseAll(`<p a="x`);
+      expect(errors.map((error) => error.message))
+        .toEqual(["1:6: attribute value is never closed", "1:1: <p is never closed"]);
+    });
+
+    test("a stray closing tag is reported, and the text after it is still read", () => {
+      const { nodes, errors } = parser.parseAll("a</x>b<i>c</i>");
+      expect(errors.map((error) => error.message))
+        .toEqual(["1:2: closing tag with no element open"]);
+      expect(withoutSpans(nodes)
+        .map((node) => node.kind))
+        .toEqual(["text", "element"]);
+    });
+
+    test("parse throws the first error of the template", () => {
+      expect(() => parse("<p a=></p><div>x</span></div>"))
+        .toThrow("1:6: expected an attribute value");
+    });
+
+    test("a problem that is not a syntax error is not taken for one: it is thrown", () => {
+      expect(() => parser.parseAll("<b>".repeat(50000)))
+        .toThrow(RangeError);
+    });
+  });
+
+  describe("combineSyntaxErrors", () => {
+    test("one error is itself", () => {
+      const error = new TemplateSyntaxError("bad", 1, 2);
+      expect(combineSyntaxErrors([error]))
+        .toBe(error);
+    });
+
+    test("several errors are one error, with the place of each", () => {
+      const combined = combineSyntaxErrors([
+        new TemplateSyntaxError("first", 1, 2),
+        new TemplateSyntaxError("second", 3, 4),
+      ]);
+      expect(combined.message)
+        .toBe("1:2: first (at 1:2); second (at 3:4)");
+      expect([combined.line, combined.column])
+        .toEqual([1, 2]);
     });
   });
 });

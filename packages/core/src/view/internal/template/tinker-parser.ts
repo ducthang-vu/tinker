@@ -12,6 +12,7 @@
 // - Text between `{{` and `}}` is not read as markup, so an expression can hold `<`.
 //
 // Errors are TemplateSyntaxError, with the line and column where the problem starts.
+// The parser goes on after an error (parseAll returns them all); parse throws the first.
 // Each element and text node carries its span, the offsets it covers in the source.
 // Known limits (see IMPROVEMENTS.md): only a few named entities are decoded, and
 // `script` and `style` are read as raw text.
@@ -25,20 +26,50 @@ import type { TemplateParser } from "./parser.ts";
 export class TemplateSyntaxError extends Error {
   readonly line: number;
   readonly column: number;
+  /** The problem, without its place: `message` is `line:column: reason`. */
+  readonly reason: string;
 
-  constructor(message: string, line: number, column: number) {
-    super(`${line}:${column}: ${message}`);
+  constructor(reason: string, line: number, column: number) {
+    super(`${line}:${column}: ${reason}`);
     this.name = "TemplateSyntaxError";
     this.line = line;
     this.column = column;
+    this.reason = reason;
   }
 }
 
-/** Reads template source into Tinker's syntax tree (ast.ts). Throws TemplateSyntaxError. */
+/** The errors of a template as one error: the first one's place, and every problem in it. */
+export function combineSyntaxErrors(errors: readonly TemplateSyntaxError[]): TemplateSyntaxError {
+  const [first] = errors;
+  if (errors.length === 1) {
+    return first!;
+  }
+  const reason = errors.map((error) => `${error.reason} (at ${error.line}:${error.column})`)
+    .join("; ");
+  return new TemplateSyntaxError(reason, first!.line, first!.column);
+}
+
+/** Reads template source into Tinker's syntax tree (ast.ts). */
 export class TinkerTemplateParser implements TemplateParser {
+  /** The tree. Throws the first TemplateSyntaxError of the source, if there is one. */
   parse(source: string): readonly TemplateNode[] {
+    const { nodes, errors } = this.parseAll(source);
+    if (errors.length > 0) {
+      throw errors[0];
+    }
+    return nodes;
+  }
+
+  /**
+   * The tree and every error of the source. The parser goes on after an error, so a
+   * template with several problems reports them all; the tree has what it could read.
+   */
+  parseAll(source: string): {
+    nodes: readonly TemplateNode[];
+    errors: readonly TemplateSyntaxError[];
+  } {
     return new Scanner(source)
-      .root();
+      .scan();
   }
 }
 
@@ -72,22 +103,43 @@ class Scanner {
 
   constructor(private readonly source: string) {}
 
-  /** The whole template: its nodes, and nothing after them. */
-  root(): TemplateNode[] {
-    const nodes = this.nodes();
-    if (!this.atEnd()) {
-      throw this.error("closing tag with no element open");
+  /** Every error found, in the order they were found. */
+  private readonly found: TemplateSyntaxError[] = [];
+
+  /** The whole template: its nodes, and the errors found in it. */
+  scan(): { nodes: TemplateNode[]; errors: TemplateSyntaxError[] } {
+    const nodes: TemplateNode[] = [];
+    for (;;) {
+      nodes.push(...this.nodes());
+      if (this.atEnd()) {
+        return { nodes, errors: this.found };
+      }
+      // A closing tag with no element open: report it, and go on after it.
+      this.found.push(this.error("closing tag with no element open"));
+      this.resume(this.pos);
     }
-    return nodes;
   }
 
   /** Nodes up to a closing tag or the end. The closing tag is not consumed. */
   private nodes(): TemplateNode[] {
     const nodes: TemplateNode[] = [];
     while (!this.atEnd() && !this.startsWith("</")) {
-      nodes.push(...this.node());
+      const start = this.pos;
+      try {
+        nodes.push(...this.node());
+      } catch (error) {
+        // The node is dropped; scanning goes on at the next tag after the problem.
+        this.found.push(asSyntaxError(error));
+        this.resume(Math.max(this.pos, start));
+      }
     }
     return nodes;
+  }
+
+  /** Moves to the next `<` after `from`, or to the end of the source. */
+  private resume(from: number): void {
+    const next = this.source.indexOf("<", from + 1);
+    this.pos = next === -1 ? this.source.length : next;
   }
 
   /** One node, or none for a comment. */
@@ -163,7 +215,8 @@ class Scanner {
     this.take(SPACES);
     this.expect(">");
     if (closing.toLowerCase() !== name.toLowerCase()) {
-      throw this.error(`</${closing}> does not close <${name}>`, at);
+      // The element closes here anyway, so its parent carries on as if it had matched.
+      this.found.push(this.error(`</${closing}> does not close <${name}>`, at));
     }
   }
 
@@ -186,13 +239,26 @@ class Scanner {
         return { attributes, selfClosing: true };
       }
       const at = this.pos;
-      const attribute = this.attribute();
-      if (names.has(attribute.name)) {
-        throw this.error(`duplicate attribute ${attribute.name}`, at);
+      try {
+        const attribute = this.attribute();
+        if (names.has(attribute.name)) {
+          this.found.push(this.error(`duplicate attribute ${attribute.name}`, at));
+        } else {
+          names.add(attribute.name);
+          attributes.push(attribute);
+        }
+      } catch (error) {
+        // The attribute is dropped, and the tag goes on at its end.
+        this.found.push(asSyntaxError(error));
+        this.skipToTagEnd();
       }
-      names.add(attribute.name);
-      attributes.push(attribute);
     }
+  }
+
+  /** Moves to the `>` that ends the start tag, or to the end of the source. */
+  private skipToTagEnd(): void {
+    const end = this.source.indexOf(">", this.pos);
+    this.pos = end === -1 ? this.source.length : end;
   }
 
   /** `name`, `name=value`, or `name="value"` (or with single quotes). */
@@ -304,4 +370,12 @@ function decodeEntity(body: string): Maybe<string> {
   const hex = /^#x/i.test(body);
   const code = Number.parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10);
   return Maybe.from(code <= 0x10ffff ? String.fromCodePoint(code) : undefined);
+}
+
+/** The error a scanner step threw. Anything else is a bug, and is rethrown. */
+function asSyntaxError(error: unknown): TemplateSyntaxError {
+  if (error instanceof TemplateSyntaxError) {
+    return error;
+  }
+  throw error;
 }
