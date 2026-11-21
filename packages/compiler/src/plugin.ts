@@ -140,23 +140,57 @@ export async function compileComponents(
       continue;
     }
     const where = `${basename(filename)}: <${declaration.name}>`;
-    if (declaration.template === undefined) {
+    const template = await templateOf(declaration, source, filename, host);
+    if (template === undefined) {
       skip(host, mode, where, "its template is not a literal");
       continue;
     }
-    const replacement = await replacementFor(
-      declaration,
-      declaration.template,
-      source,
-      filename,
-      host,
-      mode,
-    );
+    const replacement = await replacementFor(declaration, template, source, filename, host, mode);
     if (replacement !== undefined) {
       replacements.push(replacement);
     }
   }
   return replacements;
+}
+
+/**
+ * The template of a component: its own literal or constant, or the constant of another
+ * file it names. Undefined when none of these gives it.
+ */
+async function templateOf(
+  declaration: Declaration,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+): Promise<TemplateSource | undefined> {
+  if (declaration.template !== undefined) {
+    return declaration.template;
+  }
+  if (declaration.templateRef === undefined) {
+    return undefined;
+  }
+  const ref = declaration.templateRef;
+  const text = await constantValue(ref.name, source, filename, host);
+  return text === undefined ? undefined : { text, start: ref.start, end: ref.end };
+}
+
+/** The text of the constant `name`, which the file imports from another file (one level deep). */
+async function constantValue(
+  name: string,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+): Promise<string | undefined> {
+  // A name is a reference only when the file does not declare it as a constant.
+  const binding = source.imports.find((imported) => imported.local === name);
+  if (binding === undefined) {
+    return undefined;
+  }
+  const file = await host.resolve(binding.source, filename);
+  if (file === null) {
+    return undefined;
+  }
+  return readSource(readFileSync(file, "utf8"), file).constants.get(binding.imported);
 }
 
 /** A component that cannot be checked: an error in strict mode, a warning otherwise. */
@@ -259,7 +293,7 @@ async function selectorOf(
 ): Promise<Pick<NamedSelector, "selector" | "isComponent"> | undefined> {
   const local = source.declarations.find((declaration) => declaration.name === name);
   if (local !== undefined) {
-    return selectorInfo(local);
+    return selectorInfo(local, source, filename, host);
   }
   const binding = source.imports.find((imported) => imported.local === name);
   if (binding === undefined) {
@@ -269,16 +303,28 @@ async function selectorOf(
   if (file === null) {
     return undefined;
   }
-  const declared = readSource(readFileSync(file, "utf8"), file)
-    .declarations.find((declaration) => declaration.name === binding.imported);
-  return declared === undefined ? undefined : selectorInfo(declared);
+  const fileSource = readSource(readFileSync(file, "utf8"), file);
+  const declared = fileSource.declarations
+    .find((declaration) => declaration.name === binding.imported);
+  return declared === undefined ? undefined : selectorInfo(declared, fileSource, file, host);
 }
 
-function selectorInfo(
+/**
+ * The selector of a directive: its literal or constant, or the constant of its own file
+ * that it names. `source` and `filename` are the file that declares it.
+ */
+async function selectorInfo(
   declaration: Declaration,
-): Pick<NamedSelector, "selector" | "isComponent"> | undefined {
-  if (declaration.selector === undefined) {
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+): Promise<Pick<NamedSelector, "selector" | "isComponent"> | undefined> {
+  const selector = declaration.selector
+    ?? (declaration.selectorName === undefined
+      ? undefined
+      : await constantValue(declaration.selectorName, source, filename, host));
+  if (selector === undefined) {
     return undefined;
   }
-  return { selector: declaration.selector, isComponent: declaration.kind === "component" };
+  return { selector, isComponent: declaration.kind === "component" };
 }

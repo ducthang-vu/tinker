@@ -1,7 +1,7 @@
-// A directive whose selector is not a literal: the compiler cannot read it.
+// A directive whose selector is computed at run time: the compiler cannot read it.
 import { Directive } from "@tinker/core";
 
-const selector = "[computed]";
+declare function pick(): string;
 
-@Directive({ selector })
+@Directive({ selector: pick() })
 export class Computed {}
