@@ -261,16 +261,18 @@ describe("narrowing with isRight, isLeft and the accessors", () => {
       .toBe("boom");
   });
 
-  test("propagate returns the failure with another success type", () => {
-    const failed: Either<number, string> = Either.left("boom");
-    const again: Either<boolean, string> = failed.propagate();
-    expect(again.match({ left: (error) => error, right: () => "ok" }))
+  test("a Left is returned as the early return of another success type, without a cast", () => {
+    const check = (e: Either<number, string>): Either<boolean, string> => {
+      if (!e.isRight()) {
+        return Either.left(e.get());
+      }
+      return Either.right(e.get() > 0);
+    };
+    expect(check(Either.left("boom"))
+      .match({ left: (error) => error, right: () => "ok" }))
       .toBe("boom");
-  });
-
-  test("propagate throws on a success, since that is a bug", () => {
-    expect(() => Either.right<number, string>(1)
-      .propagate())
-      .toThrow("propagate is for a Left");
+    expect(check(Either.right(1))
+      .match({ left: () => "no", right: (value) => String(value) }))
+      .toBe("true");
   });
 });

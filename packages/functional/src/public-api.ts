@@ -9,7 +9,7 @@
 //                    values (Either items) and never end a stream.
 //   Emitter<T, R, E> a hot source of a Stream, e.g. the output of a directive
 
-export { Either, toError } from "./either.ts";
+export { Either, Left, Right, toError } from "./either.ts";
 export { Emitter } from "./emitter.ts";
 export { pipe } from "./pipe.ts";
 export { partial } from "./function.ts";

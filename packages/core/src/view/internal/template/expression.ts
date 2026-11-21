@@ -405,7 +405,7 @@ export class ExpressionParser {
       }
       const next = item();
       if (!next.isRight()) {
-        return next.propagate();
+        return Either.left(next.get());
       }
       collected.push(next.get());
       this.skipWhitespace();

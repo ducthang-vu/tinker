@@ -4,7 +4,7 @@ import * as api from "./public-api.ts";
 test("exports exactly the public runtime symbols", () => {
   expect(Object.keys(api)
     .sort())
-    .toEqual(["Either", "Emitter", "Maybe", "Stream", "Task", "TimeoutError", "partial", "pipe", "toError"]);
+    .toEqual(["Either", "Emitter", "Left", "Maybe", "Right", "Stream", "Task", "TimeoutError", "partial", "pipe", "toError"]);
 });
 
 test("an Either is a Right or a Left, and matching it gives the value", () => {
