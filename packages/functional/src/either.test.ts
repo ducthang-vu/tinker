@@ -209,3 +209,38 @@ describe("isEqual compares the content", () => {
       .toBe(true);
   });
 });
+
+describe("narrowing with isRight, isLeft and the accessors", () => {
+  const readValue = (e: Either<number, string>): number => {
+    if (!e.isRight()) {
+      return -1;
+    }
+    return e.value() + 1;
+  };
+
+  test("after an early return on !isRight(), the value is typed and read", () => {
+    expect(readValue(Either.right(4)))
+      .toBe(5);
+    expect(readValue(Either.left("no")))
+      .toBe(-1);
+  });
+
+  test("isLeft narrows to the error", () => {
+    const e: Either<number, string> = Either.left("boom");
+    expect(e.isLeft() ? e.error() : "")
+      .toBe("boom");
+  });
+
+  test("propagate returns the failure with another success type", () => {
+    const failed: Either<number, string> = Either.left("boom");
+    const again: Either<boolean, string> = failed.propagate();
+    expect(again.match({ left: (error) => error, right: () => "ok" }))
+      .toBe("boom");
+  });
+
+  test("propagate throws on a success, since that is a bug", () => {
+    expect(() => Either.right<number, string>(1)
+      .propagate())
+      .toThrow("propagate is for a failure");
+  });
+});
