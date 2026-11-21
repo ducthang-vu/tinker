@@ -381,3 +381,28 @@ delays the whole view. Nothing limits its cost.
 **To do.** Decide whether to refuse nested quantifiers at parse time, or to document the
 risk and leave the author to write a linear regex.
 
+
+## Functional library (`packages/functional`)
+
+### 1. `Either<E, T>` puts the error first; make it `Either<T, E>`
+
+**Problem.** `Task<T, E>` and `Stream<T, R, E>` put the value first, and `Maybe<T>` has
+only a value. `Either` is the one type that puts the error first, so a reader has to
+remember the order per type. The defaults also differ: `Task` and `Stream` default `E` to
+`Error`, and `Either` has no default.
+
+**To do.** Change `Either` to `Either<T, E>`, with `E` last. Migrate the about 50 type
+references (`EitherError<T>` stays an alias for `Either<T, Error>` with the new order).
+Remove the default on `Either`, and keep `E = Error` only where `Task` and `Stream`
+already have it. The compiler finds every site that is missed.
+
+### 2. The documented `.map(...)` chaining does not compile
+
+**Problem.** The header comments in `maybe.ts` (and the matching examples) show
+`Maybe.from(x).map(...).getOrElse(...)`. `map` and `flatMap` are `private` on the instances,
+so the snippet is a type error. The data-first and data-last statics (`Maybe.map(m, f)`,
+`pipe(m, Maybe.map(f))`) are the only working forms.
+
+**To do.** Either make `map` and `flatMap` public on the instances (additive: the statics
+stay), or correct the comments to the static forms. Decide before changing `Either`, since
+both touch the same examples.
