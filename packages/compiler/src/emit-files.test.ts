@@ -7,6 +7,9 @@ import { emitFiles, parseArguments } from "./emit-files.ts";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
 
+/** A manifest that declares the packages the compiled files import. */
+const MANIFEST = fixture("library-package.json");
+
 const directories: string[] = [];
 function outputDirectory(): string {
   const directory = mkdtempSync(join(tmpdir(), "tinker-compile-"));
@@ -32,12 +35,17 @@ function recording(): CheckOutput & { logs: string[]; errors: string[] } {
 describe("parseArguments", () => {
   test("reads the output directory, the strict flag and the files", () => {
     expect(parseArguments(["--out", "dist", "--strict", "a.ts", "b.ts"]))
-      .toEqual({ outDir: "dist", files: ["a.ts", "b.ts"], strict: true });
+      .toEqual({ outDir: "dist", files: ["a.ts", "b.ts"], strict: true, packagePath: "package.json" });
   });
 
   test("without the strict flag, it is not strict", () => {
     expect(parseArguments(["a.ts", "--out", "dist"]))
-      .toEqual({ outDir: "dist", files: ["a.ts"], strict: false });
+      .toEqual({ outDir: "dist", files: ["a.ts"], strict: false, packagePath: "package.json" });
+  });
+
+  test("an option with no value is not given, so the usage error is raised", () => {
+    expect(() => parseArguments(["a.ts", "--out"]))
+      .toThrow("Usage: tinker-compile");
   });
 
   test("needs an output directory", () => {
@@ -55,7 +63,7 @@ describe("emitFiles", () => {
   test("writes a file whose templates compile, with the trees in place of the templates", async () => {
     const outDir = outputDirectory();
     const output = recording();
-    const code = await emitFiles({ outDir, files: [fixture("item.ts")], strict: false }, output);
+    const code = await emitFiles({ outDir, files: [fixture("item.ts")], strict: false, packagePath: MANIFEST }, output);
     expect(code)
       .toBe(0);
     const written = readFileSync(writtenAt(outDir, "item.ts"), "utf8");
@@ -69,7 +77,7 @@ describe("emitFiles", () => {
 
   test("copies a file with nothing to emit as it is", async () => {
     const outDir = outputDirectory();
-    const code = await emitFiles({ outDir, files: [fixture("no-selector.ts")], strict: false }, recording());
+    const code = await emitFiles({ outDir, files: [fixture("no-selector.ts")], strict: false, packagePath: MANIFEST }, recording());
     expect(code)
       .toBe(0);
     expect(readFileSync(writtenAt(outDir, "no-selector.ts"), "utf8"))
@@ -79,7 +87,7 @@ describe("emitFiles", () => {
   test("a file that does not compile is reported, nothing is written for it, and the result is 1", async () => {
     const outDir = outputDirectory();
     const output = recording();
-    const code = await emitFiles({ outDir, files: [fixture("broken.ts"), fixture("item.ts")], strict: false }, output);
+    const code = await emitFiles({ outDir, files: [fixture("broken.ts"), fixture("item.ts")], strict: false, packagePath: MANIFEST }, output);
     expect(code)
       .toBe(1);
     expect(existsSync(writtenAt(outDir, "broken.ts")))
@@ -97,7 +105,7 @@ describe("emitFiles", () => {
   test("in strict mode, a component that cannot be checked fails the file", async () => {
     const outDir = outputDirectory();
     const output = recording();
-    const code = await emitFiles({ outDir, files: [fixture("dynamic.ts")], strict: true }, output);
+    const code = await emitFiles({ outDir, files: [fixture("dynamic.ts")], strict: true, packagePath: MANIFEST }, output);
     expect(code)
       .toBe(1);
     expect(output.errors)
@@ -107,7 +115,7 @@ describe("emitFiles", () => {
   test("a file that cannot be read is reported, and the result is 1", async () => {
     const outDir = outputDirectory();
     const output = recording();
-    const code = await emitFiles({ outDir, files: [fixture("missing.ts")], strict: false }, output);
+    const code = await emitFiles({ outDir, files: [fixture("missing.ts")], strict: false, packagePath: MANIFEST }, output);
     expect(code)
       .toBe(1);
     expect(output.errors[0])
@@ -116,7 +124,7 @@ describe("emitFiles", () => {
 
   test("finds the relative imports of a file on disk, to emit its templates", async () => {
     const outDir = outputDirectory();
-    const code = await emitFiles({ outDir, files: [fixture("importer.ts")], strict: false }, recording());
+    const code = await emitFiles({ outDir, files: [fixture("importer.ts")], strict: false, packagePath: MANIFEST }, recording());
     expect(code)
       .toBe(0);
     expect(readFileSync(writtenAt(outDir, "importer.ts"), "utf8"))
@@ -126,7 +134,7 @@ describe("emitFiles", () => {
   test("a component that cannot be checked is warned about, and the file is still written", async () => {
     const outDir = outputDirectory();
     const output = recording();
-    const code = await emitFiles({ outDir, files: [fixture("dynamic.ts")], strict: false }, output);
+    const code = await emitFiles({ outDir, files: [fixture("dynamic.ts")], strict: false, packagePath: MANIFEST }, output);
     expect(code)
       .toBe(0);
     expect(output.errors)
@@ -142,10 +150,53 @@ describe("emitFiles", () => {
     const path = join(outside, "page.ts");
     writeFileSync(path, "export const x = 1;");
     const output = recording();
-    const code = await emitFiles({ outDir, files: [path], strict: false }, output);
+    const options = { outDir, files: [path], strict: false, packagePath: MANIFEST };
+    const code = await emitFiles(options, output);
     expect(code)
       .toBe(1);
     expect(output.errors)
       .toEqual([`${path} is outside the working directory: it cannot be written under the output`]);
+  });
+
+  test("a manifest that does not declare a package the compiled files import is an error, and nothing is written", async () => {
+    const outDir = outputDirectory();
+    const manifestDirectory = mkdtempSync(join(tmpdir(), "tinker-manifest-"));
+    directories.push(manifestDirectory);
+    const manifest = join(manifestDirectory, "package.json");
+    writeFileSync(manifest, JSON.stringify({ dependencies: { "@tinker/core": "*" } }));
+    const output = recording();
+    const code = await emitFiles({ outDir, files: [fixture("item.ts")], strict: false, packagePath: manifest }, output);
+    expect(code)
+      .toBe(1);
+    expect(output.errors)
+      .toEqual([`${manifest} does not declare @tinker/functional: the compiled files import them`]);
+    expect(output.logs)
+      .toEqual(["The compile failed: nothing was written."]);
+    expect(existsSync(writtenAt(outDir, "item.ts")))
+      .toBe(false);
+  });
+
+  test("a manifest that peer dependencies declare counts as declared", async () => {
+    const outDir = outputDirectory();
+    const manifestDirectory = mkdtempSync(join(tmpdir(), "tinker-manifest-"));
+    directories.push(manifestDirectory);
+    const manifest = join(manifestDirectory, "package.json");
+    writeFileSync(manifest, JSON.stringify({ peerDependencies: { "@tinker/core": "*", "@tinker/functional": "*" } }));
+    const code = await emitFiles({ outDir, files: [fixture("item.ts")], strict: false, packagePath: manifest }, recording());
+    expect(code)
+      .toBe(0);
+  });
+
+  test("a manifest that cannot be read is an error, and nothing is written", async () => {
+    const outDir = outputDirectory();
+    const output = recording();
+    const options = { outDir, files: [fixture("item.ts")], strict: false, packagePath: join(outDir, "nope.json") };
+    const code = await emitFiles(options, output);
+    expect(code)
+      .toBe(1);
+    expect(output.errors[0])
+      .toContain("ENOENT");
+    expect(existsSync(writtenAt(outDir, "item.ts")))
+      .toBe(false);
   });
 });
