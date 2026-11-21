@@ -12,7 +12,12 @@ function bind(text: string, component: object) {
   const setText = vi.spyOn(renderer, "setText");
   const node = document.createTextNode("");
   const binding = new TextBinding(node, parseInterpolation(text)
-    .getOrThrow(), new Scope(component), renderer);
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    }), new Scope(component), renderer);
   return { binding, node, setText };
 }
 
@@ -56,7 +61,12 @@ describe("BindingFactory", () => {
     const node = document.createTextNode("");
 
     const binding = factory.text(node, parseInterpolation("{{ a }}")
-      .getOrThrow(), new Scope({ a: "x" }));
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope({ a: "x" }));
     binding.update();
 
     expect(binding)

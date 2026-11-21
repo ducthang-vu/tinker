@@ -60,8 +60,9 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
   uses it, or it is part of the API. Check each new member for this when you
   add it, not later.
 - Lookups that may find nothing return `Maybe`, not `T | undefined`.
-  Operations that may fail return `Either` / `EitherError` where the caller
-  should handle the error; `getOrThrow` goes back to exceptions.
+  Operations that may fail return an `Either`, a box holding a Right (the value) or
+  a Left (the error). The caller handles the Left, or matches it and throws to go back
+  to exceptions.
 
 ## Formatting
 

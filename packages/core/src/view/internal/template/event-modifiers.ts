@@ -20,7 +20,7 @@
 // `primary` and `secondary` pick the mouse button: 0 (the left button) and 2 (the
 // right button) of a `MouseEvent`. A keyboard event has no button, so it never passes.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either } from "@tinker/functional";
 
 /** The keys a keyboard event can be filtered to, by name. */
 const KEY_VALUES = {
@@ -142,7 +142,7 @@ export function expandModifier(name: EventModifier | AliasName): readonly EventM
  * Parse `click.self.prevent` into the event and its modifiers, or fail
  * naming what is wrong. `what` names where it is written, for the message.
  */
-export function parseEventName(source: string, what: string): EitherError<EventName> {
+export function parseEventName(source: string, what: string): Either<EventName, Error> {
   const [event = "", ...names] = source.split(".");
   if (event === "") {
     return Either.left(new Error(`Missing event name in ${what} "${source}"`));

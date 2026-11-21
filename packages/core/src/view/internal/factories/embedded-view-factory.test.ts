@@ -92,7 +92,12 @@ describe("EmbeddedViewFactory", () => {
     const { owner, host, anchor, app } = setup();
     const candidates: DirectiveCandidate[] = [
       { type: Child, selector: Selector.parse("tk-child")
-        .getOrThrow(), isComponent: true },
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }), isComponent: true },
     ];
     const view = render(owner, compile("<tk-child></tk-child>", candidates), new Scope(owner), anchor);
     expect(host.innerHTML)

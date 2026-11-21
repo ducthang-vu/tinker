@@ -240,25 +240,24 @@ export class ExpressionParser {
     operators: readonly string[],
     operand: () => Parsed<Expression>,
   ): Parsed<Expression> {
-    return Either.flatMap(operand(), (left) => this.binaryTail(left, operators, operand));
-  }
-
-  /** The operators after `left` at one level, each with its right operand. */
-  private binaryTail(
-    left: Expression,
-    operators: readonly string[],
-    operand: () => Parsed<Expression>,
-  ): Parsed<Expression> {
-    this.skipWhitespace();
-    const operator = this.take(operators);
-    if (!operator) {
-      return Either.right(left);
+    let result = operand();
+    for (;;) {
+      if (!result.isRight()) {
+        return result;
+      }
+      const left = result.get();
+      this.skipWhitespace();
+      const operator = this.take(operators);
+      if (!operator) {
+        return result;
+      }
+      result = Either.map(operand(), (right): Expression => ({
+        kind: "binary",
+        operator: operator as BinaryOperator,
+        left,
+        right,
+      }));
     }
-    return Either.flatMap(operand(), (right) => this.binaryTail(
-      { kind: "binary", operator: operator as BinaryOperator, left, right },
-      operators,
-      operand,
-    ));
   }
 
   /** `**` is right-associative: `2 ** 3 ** 2` is `2 ** (3 ** 2)`. */
@@ -394,23 +393,28 @@ export class ExpressionParser {
     missing: string,
     item: () => Parsed<T>,
   ): Parsed<readonly T[]> {
-    this.skipWhitespace();
-    if (this.source[this.position] === close) {
-      this.position++;
-      return Either.right(items);
-    }
-    if (this.atEnd()) {
-      return Either.left(this.error(missing));
-    }
-    return Either.flatMap(item(), (next): Parsed<readonly T[]> => {
+    const collected = [...items];
+    for (;;) {
+      this.skipWhitespace();
+      if (this.source[this.position] === close) {
+        this.position++;
+        return Either.right(collected);
+      }
+      if (this.atEnd()) {
+        return Either.left(this.error(missing));
+      }
+      const next = item();
+      if (!next.isRight()) {
+        return next.propagate();
+      }
+      collected.push(next.get());
       this.skipWhitespace();
       if (this.take([","]) === undefined && this.source[this.position] !== close) {
         return Either.left(this.error(
           `Expected "," or "${close}", found "${this.source[this.position] ?? "the end"}"`,
         ));
       }
-      return this.listFrom([...items, next], close, missing, item);
-    });
+    }
   }
 
   /**

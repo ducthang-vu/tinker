@@ -19,7 +19,12 @@ function onlyMatch(source: string): CompiledMatch {
 }
 
 const expression = (source: string) => ExpressionParser.parse(source)
-  .getOrThrow();
+  .match({
+    left: (error) => {
+      throw error;
+    },
+    right: (value) => value,
+  });
 
 describe("@if and @else", () => {
   test("@if is a match with one truthy case, and no default", () => {

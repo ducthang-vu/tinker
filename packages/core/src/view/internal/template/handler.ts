@@ -10,7 +10,7 @@
 // `$event` is the DOM event, or the value an output emits. Used by template
 // event bindings `(name)="..."` and by host listeners `"(click)": "..."`.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either } from "@tinker/functional";
 import { signal, type ReadonlySignal } from "../../../signals/index.ts";
 import { evaluate } from "./evaluate.ts";
 import { type Call, ExpressionParser } from "./expression.ts";
@@ -32,7 +32,7 @@ export interface Handler {
  * Parse `source`, or fail with an error naming `what` it is (e.g. "event
  * handler") and what is supported.
  */
-export function parseHandler(source: string, what: string): EitherError<Handler> {
+export function parseHandler(source: string, what: string): Either<Handler, Error> {
   const unsupported = (reason: string) =>
     Either.left(new Error(`Unsupported ${what} "${source}": ${reason}`));
   return ExpressionParser.parse(source)

@@ -61,7 +61,8 @@ function emitValue(value: unknown, scope: Scope): string {
     });
   }
   if (value instanceof Selector) {
-    return `${scope.helpers.Selector}.parse(${JSON.stringify(value.source)}).getOrThrow()`;
+    return `${scope.helpers.Selector}.parse(${JSON.stringify(value.source)})`
+      + ".match({ left: (error) => { throw error; }, right: (value) => value })";
   }
   if (typeof value === "function") {
     return nameOf(value as Class<object>, scope.names);

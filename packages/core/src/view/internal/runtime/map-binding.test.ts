@@ -13,7 +13,12 @@ describe("MapBinding", () => {
     const node: CompiledMap = {
       kind: "map",
       list: ExpressionParser.parse("items")
-        .getOrThrow(),
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }),
       item: { kind: "bind", name: "item" },
       body: [],
     };

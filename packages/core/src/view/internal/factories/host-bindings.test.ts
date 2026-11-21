@@ -7,7 +7,12 @@ import { HostBindings } from "./host-bindings.ts";
 /** The bindings of a host option; throws (as the old constructor did) when it is invalid. */
 const bindingsOf = (host?: Readonly<Record<string, string>>): HostBindings =>
   HostBindings.parse(host)
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
 
 const renderer = new DomRenderer();
 const makeView = (host: Element) => new ComponentView(host, {}, [], renderer, {});
@@ -56,7 +61,12 @@ describe("HostBindings parsing", () => {
       .toEqual(["isOpen"]);
     expect(bindings.classes[0]!.expression)
       .toEqual(ExpressionParser.parse("open()")
-        .getOrThrow());
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }));
     expect(bindings.listeners.map(({ event }) => event))
       .toEqual(["click"]);
   });

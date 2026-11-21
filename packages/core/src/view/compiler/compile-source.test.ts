@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { EitherError } from "@tinker/functional";
+import { Either } from "@tinker/functional";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { TemplateSyntaxError } from "../internal/template/tinker-parser.ts";
 import { TemplateCompileError } from "../internal/template/compile-error.ts";
@@ -8,7 +8,7 @@ import { compileSource } from "./compile-source.ts";
 const item = { selector: "tk-item", isComponent: true };
 
 /** The error of a left result, or fails the test when the result is right. */
-function errorOf(result: EitherError<readonly CompiledNode[]>): Error {
+function errorOf(result: Either<readonly CompiledNode[], Error>): Error {
   return result.match({
     left: (error) => error,
     right: () => {
@@ -22,7 +22,12 @@ describe("compileSource", () => {
     const result = compileSource(`<p>Hi {{ name() }}</p><tk-item label="x"></tk-item>`, [item]);
     expect(result.isRight())
       .toBe(true);
-    expect(result.getOrThrow())
+    expect(result.match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    }))
       .toHaveLength(2);
   });
 

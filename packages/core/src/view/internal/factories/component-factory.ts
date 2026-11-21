@@ -355,7 +355,12 @@ export class ComponentFactory {
         type: imported,
         selector: Selector.parse(this.directives.metadataOf(imported).selector)
           .mapLeft((error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))
-          .getOrThrow(),
+          .match({
+            left: (error) => {
+              throw error;
+            },
+            right: (value) => value,
+          }),
         isComponent: getComponentMetadata(imported)
           .isSome(),
       };

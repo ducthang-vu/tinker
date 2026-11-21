@@ -4,13 +4,23 @@ import { type Expression, ExpressionParser } from "./expression.ts";
 /** Parse, failing the test on an error. */
 function parse(source: string): Expression {
   return ExpressionParser.parse(source)
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
 }
 
 /** The error message for `source`. */
 function parsed(source: string) {
   return ExpressionParser.parse(source)
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
 }
 
 function error(source: string): string {

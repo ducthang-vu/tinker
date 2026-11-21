@@ -6,7 +6,12 @@ import { InputBinder } from "./input-binder.ts";
 import { Scope } from "../template/scope.ts";
 
 const parse = (source: string) => ExpressionParser.parse(source)
-  .getOrThrow();
+  .match({
+    left: (error) => {
+      throw error;
+    },
+    right: (value) => value,
+  });
 
 describe("InputBinder", () => {
   test("sets its inputs to the expression's value, only when it changed", () => {

@@ -13,7 +13,12 @@ describe("ClassBinding", () => {
     const element = document.createElement("p");
     const open = signal<unknown>(true);
     const binding = new ClassBinding(element, "open", ExpressionParser.parse("open()")
-      .getOrThrow(), new Scope({ open }), renderer);
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope({ open }), renderer);
 
     binding.update();
     binding.update();
@@ -33,7 +38,12 @@ describe("ClassBinding", () => {
     const element = document.createElement("p");
     element.className = "keep";
     new ClassBinding(element, "open", ExpressionParser.parse("open")
-      .getOrThrow(), new Scope({ open: false }), new DomRenderer())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope({ open: false }), new DomRenderer())
       .update();
     expect(element.className)
       .toBe("keep");

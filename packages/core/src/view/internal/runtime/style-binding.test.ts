@@ -6,7 +6,12 @@ import { StyleBinding } from "./style-binding.ts";
 import { Scope } from "../template/scope.ts";
 
 const parse = (source: string) => ExpressionParser.parse(source)
-  .getOrThrow();
+  .match({
+    left: (error) => {
+      throw error;
+    },
+    right: (value) => value,
+  });
 
 describe("StyleBinding", () => {
   test("sets the style property to the value, and changes it when the value changes", () => {

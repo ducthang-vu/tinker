@@ -18,7 +18,12 @@ const noParsing = provide(TEMPLATE_PARSER, {
 describe("a component with a precompiled template", () => {
   test("renders its tree without parsing or compiling the template", () => {
     const nodes = compileSource("<p>{{ name() }}</p>")
-      .getOrThrow();
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      });
     @Component({ selector: "tk-greet", template: nodes })
     class Greet {
       readonly name = signal("Ada");
@@ -39,7 +44,12 @@ describe("a component with a precompiled template", () => {
       }
     }
     const nodes = compileSource("<p item>x</p>", [{ selector: "[item]", isComponent: false, type: Item }])
-      .getOrThrow();
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      });
     @Component({ selector: "tk-list", template: nodes, imports: [Item] })
     class List {}
     const engine = Engine.create({ providers: [noParsing] });

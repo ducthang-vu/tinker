@@ -33,7 +33,7 @@ describe("Either.map and Either.flatMap, in both call forms", () => {
     expect(result.isLeft())
       .toBe(true);
     expect(Either.map(Either.right<number, string>(1), (n: number) => n * 4)
-      .getOrElse(0))
+      .match({ left: () => 0, right: (value) => value }))
       .toBe(4);
   });
 });

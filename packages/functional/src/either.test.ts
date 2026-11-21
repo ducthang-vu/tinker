@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
-import { Either, toError, type EitherError } from "./either.ts";
+import { Either, toError } from "./either.ts";
 import { pipe } from "./pipe.ts";
 
 const show = <E, T>(e: Either<T, E>): unknown[] => e.match<unknown[]>({ left: (l) => ["left", l], right: (r) => ["right", r] });
@@ -59,12 +59,12 @@ describe("Either", () => {
       .toEqual(["left", "odd"]);
   });
 
-  test("getOrElse and toMaybe", () => {
+  test("match and toMaybe", () => {
     expect(Either.right(1)
-      .getOrElse(0))
+      .match({ left: () => 0, right: (value) => value }))
       .toBe(1);
     expect(Either.left<number, string>("e")
-      .getOrElse(0))
+      .match({ left: () => 0, right: (value) => value }))
       .toBe(0);
     expect(Either.right(1)
       .toMaybe()
@@ -98,7 +98,7 @@ describe("Either", () => {
   });
 });
 
-describe("EitherError", () => {
+describe("Either.try and toError", () => {
   test("from keeps a thrown Error as is", () => {
     const error = new TypeError("bad");
     const result = Either.try(() => {
@@ -106,7 +106,7 @@ describe("EitherError", () => {
     })
       .mapLeft(toError);
     expectTypeOf(result)
-      .toEqualTypeOf<EitherError<never>>();
+      .toEqualTypeOf<Either<never, Error>>();
     expect(result.match({ left: (e) => e, right: () => null }))
       .toBe(error);
   });
@@ -128,16 +128,26 @@ describe("EitherError", () => {
   test("from gives a Right when nothing is thrown", () => {
     expect(Either.try(() => 42)
       .mapLeft(toError)
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toBe(42);
   });
 
-  test("from runs a throwing call into an EitherError", () => {
+  test("try turns a throwing call into a Left holding the thrown value", () => {
     const parsed = Either.try(() => JSON.parse("{\"a\":1}") as unknown)
       .mapLeft(toError);
     expectTypeOf(parsed)
-      .toEqualTypeOf<EitherError<unknown>>();
-    expect(parsed.getOrThrow())
+      .toEqualTypeOf<Either<unknown, Error>>();
+    expect(parsed.match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    }))
       .toEqual({ a: 1 });
     expect(Either.try(() => JSON.parse("{") as unknown)
       .mapLeft(toError)
@@ -154,26 +164,46 @@ describe("EitherError", () => {
     })
       .mapLeft(toError);
     expect(pipe(Either.right<string, Error>("{\"port\":8080}"), Either.flatMap(read), Either.flatMap(port))
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toBe(8080);
     expect(() => pipe(Either.right<string, Error>("{\"port\":\"x\"}"), Either.flatMap(read), Either.flatMap(port))
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toThrow("port must be a number");
   });
 
-  test("map and flatMap keep it an EitherError", () => {
+  test("map and flatMap keep the Left's error", () => {
     const result = Either.flatMap(Either.map(Either.try(() => 2)
       .mapLeft(toError), (n) => n * 10), (n) => Either.try(() => `${n}`)
       .mapLeft(toError));
     expectTypeOf(result)
-      .toEqualTypeOf<EitherError<string>>();
-    expect(result.getOrThrow())
+      .toEqualTypeOf<Either<string, Error>>();
+    expect(result.match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    }))
       .toBe("20");
   });
 
   test("getOrThrow throws the failure, and only exists when it is an Error", () => {
-    const failed: EitherError<number> = Either.left(new Error("failed"));
-    expect(() => failed.getOrThrow())
+    const failed: Either<number, Error> = Either.left(new Error("failed"));
+    expect(() => failed.match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    }))
       .toThrow("failed");
     const notAnError = Either.left<number, string>("just a string");
     // @ts-expect-error getOrThrow needs the failure to be an Error
@@ -207,5 +237,40 @@ describe("isEqual compares the content", () => {
     expect(Either.right("ab")
       .isEqual(Either.right("cd"), byLength))
       .toBe(true);
+  });
+});
+
+describe("narrowing with isRight, isLeft and the accessors", () => {
+  const readValue = (e: Either<number, string>): number => {
+    if (!e.isRight()) {
+      return -1;
+    }
+    return e.get() + 1;
+  };
+
+  test("after an early return on !isRight(), the value is typed and read", () => {
+    expect(readValue(Either.right(4)))
+      .toBe(5);
+    expect(readValue(Either.left("no")))
+      .toBe(-1);
+  });
+
+  test("isLeft narrows to the error", () => {
+    const e: Either<number, string> = Either.left("boom");
+    expect(e.isLeft() ? e.get() : "")
+      .toBe("boom");
+  });
+
+  test("propagate returns the failure with another success type", () => {
+    const failed: Either<number, string> = Either.left("boom");
+    const again: Either<boolean, string> = failed.propagate();
+    expect(again.match({ left: (error) => error, right: () => "ok" }))
+      .toBe("boom");
+  });
+
+  test("propagate throws on a success, since that is a bug", () => {
+    expect(() => Either.right<number, string>(1)
+      .propagate())
+      .toThrow("propagate is for a Left");
   });
 });

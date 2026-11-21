@@ -11,7 +11,12 @@ describe("ClassMapBinding", () => {
     const element = document.createElement("p");
     const component: { value: Value } = { value: { a: true, b: false } };
     const binding = new ClassMapBinding(element, ExpressionParser.parse("value")
-      .getOrThrow(), new Scope(component), new DomRenderer());
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope(component), new DomRenderer());
     binding.update();
     expect(element.className)
       .toBe("a");
@@ -28,7 +33,12 @@ describe("ClassMapBinding", () => {
     const element = document.createElement("p");
     const component: { value: Value } = { value: { a: true } };
     const binding = new ClassMapBinding(element, ExpressionParser.parse("value")
-      .getOrThrow(), new Scope(component), new DomRenderer());
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope(component), new DomRenderer());
     binding.update();
     component.value = null;
     binding.update();

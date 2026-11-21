@@ -173,7 +173,7 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
       return value instanceof Maybe && value.isNone() ? new Map() : undefined;
     case "ok":
       return value instanceof Either && value.isRight()
-        ? match(pattern.pattern, value.getOrElse(undefined))
+        ? match(pattern.pattern, value.get())
         : undefined;
     case "error":
       return value instanceof Either && value.isLeft()
