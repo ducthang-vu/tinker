@@ -4,10 +4,10 @@
 //
 //   item* end
 //
-// - An item is an `Either<E, T>`: a failure is a value, and it does NOT end
+// - An item is an `Either<T, E>`: a failure is a value, and it does NOT end
 //   the stream. Only two things end a subscription: the source ending the
 //   stream, or the subscriber cancelling.
-// - The end is an `Either<E, R>` too: `R` is what the stream ends with
+// - The end is an `Either<R, E>` too: `R` is what the stream ends with
 //   (`void` for most), or `Left` when it ended because it failed. After it,
 //   nothing more is delivered.
 // - Cancelling is silent: after it, no item and no end arrives.
@@ -55,9 +55,9 @@ export type Cancel = () => void;
 /** What a stream's source calls to deliver items and to end. */
 export interface StreamSink<T, R, E> {
   /** Deliver an item. Ignored after the end, or after a cancel. */
-  next(item: Either<E, T>): void;
+  next(item: Either<T, E>): void;
   /** End the stream. Only the first call counts; ignored after a cancel. */
-  end(result: Either<E, R>): void;
+  end(result: Either<R, E>): void;
 }
 
 /**
@@ -68,8 +68,8 @@ export type StreamComputation<T, R, E> = (sink: StreamSink<T, R, E>) => Cancel |
 
 /** What a subscriber is told. Both parts are optional. */
 export interface StreamObserver<T, R, E> {
-  readonly next?: (item: Either<E, T>) => void;
-  readonly end?: (result: Either<E, R>) => void;
+  readonly next?: (item: Either<T, E>) => void;
+  readonly end?: (result: Either<R, E>) => void;
 }
 
 /** What to do with a stream's values, unwrapped: see `Stream.run`. */
@@ -134,7 +134,7 @@ export class Stream<T, R = void, E = Error> {
   }
 
   /** No items, ends with `end`: a Right succeeds, a Left fails. */
-  static fromEither<E, R>(end: Either<E, R>): Stream<never, R, E> {
+  static fromEither<E, R>(end: Either<R, E>): Stream<never, R, E> {
     return Stream.make((sink) => sink.end(end));
   }
 
@@ -189,7 +189,7 @@ export class Stream<T, R = void, E = Error> {
           // through the source. It must not be swallowed.
           throw reason;
         }
-        sink.end(Either.left(toError(reason)) as Either<E, R>);
+        sink.end(Either.left(toError(reason)) as Either<R, E>);
       }
       return () => {
         if (!finished) {

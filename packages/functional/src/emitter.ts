@@ -36,8 +36,8 @@ interface Subscription<T, R, E> {
 
 /** What waits in the queue: an item, or the end. */
 type Event<T, R, E>
-  = | { readonly kind: "item"; readonly item: Either<E, T> }
-    | { readonly kind: "end"; readonly result: Either<E, R> };
+  = | { readonly kind: "item"; readonly item: Either<T, E> }
+    | { readonly kind: "end"; readonly result: Either<R, E> };
 
 export class Emitter<T, R = void, E = never> {
   /** What the owner hands out: subscribe to it, but not emit or end. */
@@ -49,7 +49,7 @@ export class Emitter<T, R = void, E = never> {
   /** Set when the end is emitted: anything emitted after it is ignored. */
   private ended = false;
   /** Set when the end reached the subscribers: later subscribers get it at once. */
-  private final = Maybe.none<Either<E, R>>();
+  private final = Maybe.none<Either<R, E>>();
 
   private constructor() {
     this.stream = Stream.hot((observer) => this.subscribe(observer));

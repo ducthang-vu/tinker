@@ -80,7 +80,7 @@ export class Patterns {
   readonly items = signal<readonly string[]>(ITEM_SETS[0]!);
   readonly name = signal<string | null>(null);
   readonly found = signal<Maybe<string>>(Maybe.some("Ada"));
-  readonly reply = signal<Either<string, number>>(Either.right(3));
+  readonly reply = signal<Either<number, string>>(Either.right(3));
 
   toggleFound(): void {
     this.found.update((found) => (found.isSome() ? Maybe.none() : Maybe.some("Grace")));
