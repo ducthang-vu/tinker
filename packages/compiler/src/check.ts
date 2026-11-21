@@ -2,9 +2,10 @@
 // is checked the way the plugin checks it, with relative imports found on disk.
 // It changes nothing. Errors and warnings go to `output`; the result is the exit code.
 
-import { readFileSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { type CheckHost, compileComponents, type CompileMode } from "./plugin.ts";
+import { resolveRelative } from "./resolve.ts";
 
 /** Where the check writes its messages. */
 export interface CheckOutput {
@@ -41,24 +42,4 @@ export async function checkFiles(
   }
   output.log(failed ? "The check failed." : `Checked ${files.length} file(s).`);
   return failed ? 1 : 0;
-}
-
-/** A relative import as the file it names: as written, with `.ts`, or `/index.ts`.
- * Null for anything else. */
-function resolveRelative(source: string, importer: string): Promise<string | null> {
-  if (!source.startsWith(".")) {
-    return Promise.resolve(null);
-  }
-  const base = resolve(dirname(importer), source);
-  const file = [base, `${base}.ts`, `${base}/index.ts`].find(isFile);
-  return Promise.resolve(file ?? null);
-}
-
-function isFile(path: string): boolean {
-  try {
-    return statSync(path)
-      .isFile();
-  } catch {
-    return false;
-  }
 }

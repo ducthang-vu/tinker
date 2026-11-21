@@ -19,6 +19,7 @@
     "build": "vite build"
   },
   "bin": {
-    "tinker-check": "./dist/bin.js"
+    "tinker-check": "./dist/tinker-check.js",
+    "tinker-compile": "./dist/tinker-compile.js"
   }
 }

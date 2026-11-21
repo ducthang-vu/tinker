@@ -74,24 +74,44 @@ export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
       if (!isSourceWithComponents(code, id)) {
         return null;
       }
-      const replacements = await compileComponents(code, id, {
+      const emitted = await emitFile(code, id, {
         resolve: async (source, importer) => (await this.resolve(source, importer))?.id ?? null,
         error: (message) => this.error(message),
         warn: (message) => this.warn(message),
       }, mode);
-      if (replacements.length === 0) {
-        return null;
-      }
-      const output = new MagicString(code);
-      for (const replacement of replacements) {
-        output.overwrite(replacement.start, replacement.end, replacement.text);
-      }
-      output.prepend(HELPER_IMPORTS);
-      return {
-        code: output.toString(),
-        map: output.generateMap({ hires: true, source: id, includeContent: true }),
-      };
+      return emitted ?? null;
     },
+  };
+}
+
+/** A file with its templates replaced, and the source map from the original. */
+export interface EmittedFile {
+  readonly code: string;
+  readonly map: ReturnType<MagicString["generateMap"]>;
+}
+
+/**
+ * The file `code` with its compiled templates replaced by their trees, and the helper
+ * imports added. Undefined when no template is replaced (none compiles, or emit is off).
+ */
+export async function emitFile(
+  code: string,
+  filename: string,
+  host: CheckHost,
+  mode: CompileMode,
+): Promise<EmittedFile | undefined> {
+  const replacements = await compileComponents(code, filename, host, mode);
+  if (replacements.length === 0) {
+    return undefined;
+  }
+  const output = new MagicString(code);
+  for (const replacement of replacements) {
+    output.overwrite(replacement.start, replacement.end, replacement.text);
+  }
+  output.prepend(HELPER_IMPORTS);
+  return {
+    code: output.toString(),
+    map: output.generateMap({ hires: true, source: filename, includeContent: true }),
   };
 }
 

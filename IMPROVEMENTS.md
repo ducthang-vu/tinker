@@ -298,24 +298,45 @@ app must be able to resolve them, which the example does through its alias.
 
 **To do.** Document the two dependencies for apps, and check them at build time.
 
-## Checking a library without Vite (`packages/compiler/src/check.ts`)
+## Compiling a library (`packages/compiler/src/emit-files.ts`)
 
-The `tinker-check` command checks each file it is given, as the plugin does: pass
-`--strict` to fail on a component that cannot be checked. It changes no file.
+`tinker-compile --out <dir> [--strict] <file.ts>...` writes each file into the output
+directory, at its path relative to the working directory, with its compiled templates
+replaced by their trees. `tinker-check` is the same check without writing. Both follow
+only relative imports, and neither produces declaration files.
 
-### 1. The command only checks
+### 1. The output is TypeScript, not JavaScript
 
-**Problem.** It cannot write compiled output, so a library cannot ship its templates
-compiled. The name `tinker-check` says what it does today.
+**Problem.** The library's own build compiles the output, decorators included. A library
+without such a build cannot use the command as it is.
 
-**To do.** Add emission (`tinker-compile`), and write the output with declaration files.
+**To do.** Add a build step that compiles the output (or a flag that calls the project's
+bundler), and emit declaration files from the same output.
 
-### 2. Only relative imports are followed
+### 2. The output needs the library to depend on two packages
 
-**Problem.** An import from a package, or from a path alias, is not read: a component
-whose directive is imported that way is skipped (an error in strict mode).
+**Problem.** Each compiled file imports `Maybe` from `@tinker/functional` and `Selector`
+from `@tinker/core/compiler`. A library must list both as dependencies, or the files
+will not resolve for its consumers.
 
-**To do.** Resolve packages with Node's resolution, and the aliases a project declares.
+**To do.** Check the dependencies at compile time, and write them into the library's
+package manifest.
+
+### 3. A file outside the working directory is written outside the output
+
+**Problem.** The output path is the file's path relative to the working directory, so
+a file with `..` in it is written above the output directory.
+
+**To do.** Reject such a file, or write it under the output directory by its name.
+
+### 4. Emitted trees are larger than their templates
+
+**Problem.** Measured on the example: about 2.2 times the gzipped size of the
+templates (see the plugin's `emit` option). Consumers pay that size for the faster
+first render.
+
+**To do.** Decide per library whether `--strict` output is worth it, or write templates
+as strings and check them only.
 
 ## Testing: concurrent tests
 
