@@ -315,7 +315,7 @@ function itemOf(text: string): Pattern {
   const pattern = parsePattern(text)
     .mapLeft((error) => new Error(`${error.message}, in @map`))
     .getOrThrow();
-  if (pattern.kind !== "bind" && pattern.kind !== "object" && pattern.kind !== "array") {
+  if (!isMapPattern(pattern)) {
     throw new Error(`@map's let takes a name or a pattern, e.g. let todo or let { id }, got "${text}"`);
   }
   const reserved = namesOf(pattern)
@@ -324,6 +324,13 @@ function itemOf(text: string): Pattern {
     throw new Error(`"${reserved}" is reserved: names starting with $ are the row's variables`);
   }
   return pattern;
+}
+
+function isMapPattern(pattern: Pattern): boolean {
+  if (pattern.kind === "as") {
+    return isMapPattern(pattern.pattern);
+  }
+  return pattern.kind === "bind" || pattern.kind === "object" || pattern.kind === "array";
 }
 
 /** The `track` after a `@map`'s name: an expression, or `{ field, … }` naming fields. */
