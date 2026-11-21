@@ -1,8 +1,8 @@
-// Checks that a monad obeys the monad laws, and that its boxes work with map, flatMap, match and
-// isEqual. It returns [description, check] pairs: each check throws when it fails, so any test
-// framework can run them, e.g. `for (const [name, check] of monadLaws(m)) test(name, check)`.
+// Checks that a monad obeys the monad laws, and that its boxes work with map, flatMap and match.
+// It returns [description, check] pairs: each check throws when it fails, so any test framework
+// can run them, e.g. `for (const [name, check] of monadLaws(m)) test(name, check)`.
 
-/** A monad to check: its boxes, its values, its operations and its equality. */
+/** A monad to check: its boxes, values, operations, and how its match names a box's case. */
 export interface MonadUnderTest<M, A> {
   /** The name shown in each description, e.g. "Maybe". */
   readonly name: string;
@@ -16,8 +16,14 @@ export interface MonadUnderTest<M, A> {
   readonly map: (box: M, f: (value: A) => A) => M;
   /** The monad's flatMap, data-first. */
   readonly flatMap: (box: M, f: (value: A) => M) => M;
-  /** Whether two boxes are equal, e.g. `isEqual` from the functional package. */
+  /** Whether two boxes are equal. The laws compare boxes with it. */
   readonly equal: (a: M, b: M) => boolean;
+  /** The names of the monad's cases, e.g. ["Some", "None"]. */
+  readonly cases: readonly string[];
+  /** The case that `of` builds, e.g. "Some". */
+  readonly successCase: string;
+  /** The case a box is in, read through the monad's match, e.g. `match(box, { Some, None })`. */
+  readonly caseOf: (box: M) => string;
   /** Two transforms for the map laws. */
   readonly f: (value: A) => A;
   readonly g: (value: A) => A;
@@ -36,9 +42,10 @@ function expectTrue(condition: boolean, message: string): void {
   }
 }
 
-/** The monad laws, and the interaction with map, flatMap, match and isEqual, as checks. */
+/** The monad laws, and the interaction with map, flatMap and match, as checks. */
 export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
-  const { name, samples, values, of, map, flatMap, equal, f, g, step, nextStep } = monad;
+  const { name, samples, values, of, map, flatMap, equal } = monad;
+  const { cases, successCase, caseOf, f, g, step, nextStep } = monad;
   return [
     [`${name}: map with the identity leaves each box unchanged`, () => {
       for (const box of samples) {
@@ -75,9 +82,27 @@ export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
         );
       }
     }],
-    [`${name}: equality is reflexive on every sample`, () => {
+    [`${name}: match: every box is in one of the monad's cases`, () => {
       for (const box of samples) {
-        expectTrue(equal(box, box), `${name}: a box is not equal to itself`);
+        expectTrue(cases.includes(caseOf(box)), `${name}: match picked a case that is not one of ${cases.join(", ")}`);
+      }
+    }],
+    [`${name}: match: of(a) is in the success case`, () => {
+      for (const value of values) {
+        expectTrue(caseOf(of(value)) === successCase, `${name}: of(a) is not in the ${successCase} case`);
+      }
+    }],
+    [`${name}: match: map keeps the case of each box`, () => {
+      for (const box of samples) {
+        expectTrue(caseOf(map(box, f)) === caseOf(box), `${name}: map changed the case of a box`);
+      }
+    }],
+    [`${name}: match: flatMap(box, of) keeps the case of each box`, () => {
+      for (const box of samples) {
+        expectTrue(
+          caseOf(flatMap(box, of)) === caseOf(box),
+          `${name}: flatMap(box, of) changed the case of a box`,
+        );
       }
     }],
   ];
