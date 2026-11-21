@@ -67,6 +67,7 @@ module; each module also lists its own in its `index.ts`.
 | [`packages/core/src/resource`](packages/core/src/resource/index.ts) | `resource`: a value a loader produces, with its state, its last error and when it last changed; reading it never throws; see [docs/resource.md](docs/resource.md) |
 | [`packages/core/src/utils`](packages/core/src/utils) | small shared helpers (context variables, metadata, `runAll`) |
 | [`packages/http/src`](packages/http/src/index.ts) | HTTP: `HTTP_BACKEND` (`FetchHttpBackend`) runs the interceptors (`HTTP_INTERCEPTORS`) around `HTTP_TRANSPORT` (native `fetch`); see [docs/http.md](docs/http.md) |
+| [`packages/compiler`](packages/compiler/src/index.ts) | `@tinker/compiler`: a Vite plugin that checks each template at build time (and can replace it with its compiled tree), and the `tinker-check` and `tinker-compile` commands for a library's files; see [docs/compiler.md](docs/compiler.md) |
 | [`packages/testing/src`](packages/testing/src/index.ts) | the test bed (`TestBed`), testing elements, `ComponentBuilder`, and mocks (`MockComponentBuilder`, `MockDirectiveBuilder`); see [docs/testing.md](docs/testing.md) |
 
 ### The view, in short
@@ -128,11 +129,13 @@ it is on purpose.
 
 ### Where Tinker differs
 
-- **No compiler.** Templates are strings parsed at runtime by Tinker's own
-  parser, which reads HTML's syntax without a DOM and reports malformed markup
-  with its line and column, instead of repairing it. Expressions have a small
-  parser of their own (no `eval`, so it works under a strict Content Security
-  Policy). The cost: templates are not type-checked.
+- **Templates are strings, checked at build time.** Tinker's own parser reads
+  HTML's syntax without a DOM and reports each malformed markup with its line
+  and column, instead of repairing it. A build-time compiler (`@tinker/compiler`) checks
+  each template, and can replace it with its compiled tree; see
+  [docs/compiler.md](docs/compiler.md). Expressions have a small parser of their own
+  (no `eval`, so it works under a strict Content Security Policy). The cost: templates
+  are not type-checked.
 - **Pattern matching in templates.** `@match` tests a value against patterns
   (literals, `truthy` and `falsy`, objects, arrays, guards), and `@if` is the
   simplest case of it. `@map` renders one row per item, keyed by `track`. Angular's
