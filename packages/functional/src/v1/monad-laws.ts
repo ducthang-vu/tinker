@@ -35,75 +35,88 @@ export interface MonadUnderTest<M, A> {
 /** A check: its description, and a function that throws when the law does not hold. */
 export type LawCheck = readonly [description: string, check: () => void];
 
-/** Throws, with `message`, unless `condition` holds. */
-function expectTrue(condition: boolean, message: string): void {
-  if (!condition) {
+/** Throws, with `message`, unless `holds` is true for every item: a pipeline, with no loop. */
+const holdsForAll = <X>(
+  items: readonly X[],
+  holds: (item: X) => boolean,
+  message: string,
+): void => {
+  if (!items.every(holds)) {
     throw new Error(message);
   }
-}
+};
 
 /** The monad laws, and the interaction with map, flatMap and match, as checks. */
 export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
   const { name, samples, values, of, map, flatMap, equal } = monad;
   const { cases, successCase, caseOf, f, g, step, nextStep } = monad;
   return [
-    [`${name}: map with the identity leaves each box unchanged`, () => {
-      for (const box of samples) {
-        expectTrue(equal(map(box, (value) => value), box), `${name}: map(box, identity) changed a box`);
-      }
-    }],
-    [`${name}: map composes: map(map(box, f), g) is map(box, g after f)`, () => {
-      for (const box of samples) {
-        expectTrue(
-          equal(map(map(box, f), g), map(box, (value) => g(f(value)))),
-          `${name}: map does not compose`,
-        );
-      }
-    }],
-    [`${name}: flatMap left identity: flatMap(of(a), step) is step(a)`, () => {
-      for (const value of values) {
-        expectTrue(equal(flatMap(of(value), step), step(value)), `${name}: flatMap left identity fails`);
-      }
-    }],
-    [`${name}: flatMap right identity: flatMap(box, of) is box`, () => {
-      for (const box of samples) {
-        expectTrue(equal(flatMap(box, of), box), `${name}: flatMap right identity fails`);
-      }
-    }],
+    [`${name}: map with the identity leaves each box unchanged`, () =>
+      holdsForAll(
+        samples,
+        (box) => equal(map(box, (value) => value), box),
+        `${name}: map(box, identity) changed a box`,
+      ),
+    ],
+    [`${name}: map composes: map(map(box, f), g) is map(box, g after f)`, () =>
+      holdsForAll(
+        samples,
+        (box) => equal(map(map(box, f), g), map(box, (value) => g(f(value)))),
+        `${name}: map does not compose`,
+      ),
+    ],
+    [`${name}: flatMap left identity: flatMap(of(a), step) is step(a)`, () =>
+      holdsForAll(
+        values,
+        (value) => equal(flatMap(of(value), step), step(value)),
+        `${name}: flatMap left identity fails`,
+      ),
+    ],
+    [`${name}: flatMap right identity: flatMap(box, of) is box`, () =>
+      holdsForAll(
+        samples,
+        (box) => equal(flatMap(box, of), box),
+        `${name}: flatMap right identity fails`,
+      ),
+    ],
     [`${name}: flatMap associates: flatMap(flatMap(box, step), nextStep) is`
-      + ` flatMap(box, a => flatMap(step(a), nextStep))`, () => {
-      for (const box of samples) {
-        expectTrue(
-          equal(
-            flatMap(flatMap(box, step), nextStep),
-            flatMap(box, (value) => flatMap(step(value), nextStep)),
-          ),
-          `${name}: flatMap does not associate`,
-        );
-      }
-    }],
-    [`${name}: match: every box is in one of the monad's cases`, () => {
-      for (const box of samples) {
-        expectTrue(cases.includes(caseOf(box)), `${name}: match picked a case that is not one of ${cases.join(", ")}`);
-      }
-    }],
-    [`${name}: match: of(a) is in the success case`, () => {
-      for (const value of values) {
-        expectTrue(caseOf(of(value)) === successCase, `${name}: of(a) is not in the ${successCase} case`);
-      }
-    }],
-    [`${name}: match: map keeps the case of each box`, () => {
-      for (const box of samples) {
-        expectTrue(caseOf(map(box, f)) === caseOf(box), `${name}: map changed the case of a box`);
-      }
-    }],
-    [`${name}: match: flatMap(box, of) keeps the case of each box`, () => {
-      for (const box of samples) {
-        expectTrue(
-          caseOf(flatMap(box, of)) === caseOf(box),
-          `${name}: flatMap(box, of) changed the case of a box`,
-        );
-      }
-    }],
+      + ` flatMap(box, a => flatMap(step(a), nextStep))`, () =>
+      holdsForAll(
+        samples,
+        (box) => equal(
+          flatMap(flatMap(box, step), nextStep),
+          flatMap(box, (value) => flatMap(step(value), nextStep)),
+        ),
+        `${name}: flatMap does not associate`,
+      ),
+    ],
+    [`${name}: match: every box is in one of the monad's cases`, () =>
+      holdsForAll(
+        samples,
+        (box) => cases.includes(caseOf(box)),
+        `${name}: match picked a case that is not one of ${cases.join(", ")}`,
+      ),
+    ],
+    [`${name}: match: of(a) is in the success case`, () =>
+      holdsForAll(
+        values,
+        (value) => caseOf(of(value)) === successCase,
+        `${name}: of(a) is not in the ${successCase} case`,
+      ),
+    ],
+    [`${name}: match: map keeps the case of each box`, () =>
+      holdsForAll(
+        samples,
+        (box) => caseOf(map(box, f)) === caseOf(box),
+        `${name}: map changed the case of a box`,
+      ),
+    ],
+    [`${name}: match: flatMap(box, of) keeps the case of each box`, () =>
+      holdsForAll(
+        samples,
+        (box) => caseOf(flatMap(box, of)) === caseOf(box),
+        `${name}: flatMap(box, of) changed the case of a box`,
+      ),
+    ],
   ];
 }
