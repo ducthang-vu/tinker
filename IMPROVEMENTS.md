@@ -319,6 +319,9 @@ in plain Node. Both packages are still `private`, and have no version to publish
 **To do.** Decide the first published version, remove `private`, and check the packed
 output (`npm pack`) before publishing.
 
+Inside the repo, the `development` export condition points at source, so a Vite dev server
+uses the source without a rebuild. Node cannot load that source, so Node uses `dist`.
+
 ### 2. Emitted trees are larger than their templates
 
 **Problem.** Measured on the example: about 2.2 times the gzipped size of the

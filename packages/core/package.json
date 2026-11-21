@@ -5,10 +5,12 @@
   "type": "module",
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./compiler": {
+      "development": "./src/view/compiler/index.ts",
       "types": "./dist/view/compiler/index.d.ts",
       "default": "./dist/view/compiler/index.js"
     }
