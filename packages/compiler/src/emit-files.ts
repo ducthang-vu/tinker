@@ -8,7 +8,7 @@
 // @tinker/core, which the library depends on.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { type CheckOutput } from "./check.ts";
 import { type CheckHost, emitFile } from "./plugin.ts";
 import { resolveRelative } from "./resolve.ts";
@@ -35,6 +35,18 @@ export function parseArguments(args: readonly string[]): EmitOptions {
   return { outDir, files, strict };
 }
 
+/**
+ * The path of `file` under the output directory: its path relative to the working
+ * directory. A file outside the working directory has no such path, and is an error.
+ */
+function placeInOutput(file: string): string {
+  const relativePath = relative(process.cwd(), file);
+  if (relativePath === ".." || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
+    throw new Error(`${file} is outside the working directory: it cannot be written under the output`);
+  }
+  return relativePath;
+}
+
 /** Emits each file. Returns 0 when every file was written, 1 when one did not compile. */
 export async function emitFiles(options: EmitOptions, output: CheckOutput): Promise<number> {
   let failed = false;
@@ -50,7 +62,7 @@ export async function emitFiles(options: EmitOptions, output: CheckOutput): Prom
     try {
       const code = readFileSync(path, "utf8");
       const emitted = await emitFile(code, path, host, { emit: true, strict: options.strict });
-      const target = join(options.outDir, relative(process.cwd(), path));
+      const target = join(options.outDir, placeInOutput(path));
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, emitted?.code ?? code);
     } catch (error) {

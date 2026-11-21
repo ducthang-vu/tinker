@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -133,5 +133,19 @@ describe("emitFiles", () => {
       .toEqual(["warning: dynamic.ts: <Dynamic> is not compiled: its template is not a literal"]);
     expect(existsSync(writtenAt(outDir, "dynamic.ts")))
       .toBe(true);
+  });
+
+  test("a file outside the working directory is an error, and nothing is written for it", async () => {
+    const outDir = outputDirectory();
+    const outside = mkdtempSync(join(tmpdir(), "tinker-outside-"));
+    directories.push(outside);
+    const path = join(outside, "page.ts");
+    writeFileSync(path, "export const x = 1;");
+    const output = recording();
+    const code = await emitFiles({ outDir, files: [path], strict: false }, output);
+    expect(code)
+      .toBe(1);
+    expect(output.errors)
+      .toEqual([`${path} is outside the working directory: it cannot be written under the output`]);
   });
 });

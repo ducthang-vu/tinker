@@ -303,7 +303,8 @@ app must be able to resolve them, which the example does through its alias.
 `tinker-compile --out <dir> [--strict] <file.ts>...` writes each file into the output
 directory, at its path relative to the working directory, with its compiled templates
 replaced by their trees. `tinker-check` is the same check without writing. Both follow
-only relative imports, and neither produces declaration files.
+only relative imports, and neither produces declaration files. A file outside the working
+directory is an error: its output path would be above the output directory.
 
 ### 1. The output is TypeScript, not JavaScript
 
@@ -322,14 +323,7 @@ will not resolve for its consumers.
 **To do.** Check the dependencies at compile time, and write them into the library's
 package manifest.
 
-### 3. A file outside the working directory is written outside the output
-
-**Problem.** The output path is the file's path relative to the working directory, so
-a file with `..` in it is written above the output directory.
-
-**To do.** Reject such a file, or write it under the output directory by its name.
-
-### 4. Emitted trees are larger than their templates
+### 3. Emitted trees are larger than their templates
 
 **Problem.** Measured on the example: about 2.2 times the gzipped size of the
 templates (see the plugin's `emit` option). Consumers pay that size for the faster
