@@ -22,7 +22,7 @@ const EDGE_VALUES: readonly unknown[] = [
 /** Each value boxed as a success, plus nothing: the samples the checks run on. */
 const samples: readonly Box[] = [...EDGE_VALUES.map(some), nothing];
 
-/** The lawful test monad. Its equality is structural: NaN equals NaN, and objects compare by content. */
+/** The lawful test monad. Equality is structural: NaN equals NaN, objects compare by content. */
 const lawful: MonadUnderTest<Box, unknown> = {
   name: "Box",
   samples,
@@ -80,7 +80,7 @@ describe("monadLaws", () => {
   // Each interaction is broken for one edge value at a time, so every value must be exercised.
   // A check that never sees the value would pass, and the test would fail.
   const brokenFor = (value: unknown) => (box: Box) =>
-  box.tag === "Some" && isDeepStrictEqual(box.value, value);
+    box.tag === "Some" && isDeepStrictEqual(box.value, value);
 
   test.each(EDGE_VALUES.map((value) => [String(value), value] as const))(
     "map is checked on the value %s",
