@@ -79,7 +79,7 @@ describe("Maybe", () => {
       .toBe(0);
     expect(Maybe.some(1)
       .toEither("missing")
-      .getOrElse(-1))
+      .match({ left: () => -1, right: (value) => value }))
       .toBe(1);
     expect(Maybe.none<number>()
       .toEither("missing")

@@ -141,11 +141,6 @@ export class Either<T, E> {
     return this.isRightSide ? cases.right(this.payload as T) : cases.left(this.payload as E);
   }
 
-  /** The Right's value, or `fallback` if it is a Left. */
-  getOrElse<U>(fallback: U): T | U {
-    return this.isRightSide ? (this.payload as T) : fallback;
-  }
-
   /** `Some(value)` for a Right, `None` for a Left (its content is dropped). */
   toMaybe(): Maybe<T> {
     return this.isRightSide ? Maybe.some(this.payload as T) : Maybe.none();

@@ -59,12 +59,12 @@ describe("Either", () => {
       .toEqual(["left", "odd"]);
   });
 
-  test("getOrElse and toMaybe", () => {
+  test("match and toMaybe", () => {
     expect(Either.right(1)
-      .getOrElse(0))
+      .match({ left: () => 0, right: (value) => value }))
       .toBe(1);
     expect(Either.left<number, string>("e")
-      .getOrElse(0))
+      .match({ left: () => 0, right: (value) => value }))
       .toBe(0);
     expect(Either.right(1)
       .toMaybe()

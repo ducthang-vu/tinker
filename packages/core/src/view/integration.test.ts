@@ -270,7 +270,7 @@ describe("a computed built from functional values, shown in the view", () => {
       .isLeft())
       .toBe(true);
     expect(parse("[1]")
-      .getOrElse(null))
+      .match({ left: () => null, right: (value) => value }))
       .toEqual([1]);
   });
 });
