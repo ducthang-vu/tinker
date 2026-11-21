@@ -242,15 +242,6 @@ hold a `<` as text, as HTML allows.
 **To do.** Add them to `RAW_TEXT_ELEMENTS`, with their RCDATA rule (entities
 decoded, no tags) for `textarea` and `title`.
 
-### 3. A mistake can report more than one error
-
-**Problem.** The parser goes on after an error, so a template with several problems
-reports them all. One mistake can still be reported twice: a mismatched closing tag
-(`<div>x</span></div>`) closes the element, and the real `</div>` then looks stray.
-
-**To do.** When a closing tag does not match, look for the element it does close among
-the open ones, and report the problem once.
-
 ## Precompiled templates (`packages/core/src/view/internal/factories/component-factory.ts`)
 
 A component's template can be a compiled tree a build step wrote, which the engine

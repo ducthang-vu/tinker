@@ -105,6 +105,8 @@ class Scanner {
 
   /** Every error found, in the order they were found. */
   private readonly found: TemplateSyntaxError[] = [];
+  /** The names of the elements being read, outermost first. */
+  private readonly open: string[] = [];
 
   /** The whole template: its nodes, and the errors found in it. */
   scan(): { nodes: TemplateNode[]; errors: TemplateSyntaxError[] } {
@@ -165,11 +167,31 @@ class Scanner {
     if (selfClosing || VOID_ELEMENTS.has(name.toLowerCase())) {
       return { kind: "element", name, attributes, children: [], span: { start, end: this.pos } };
     }
-    const children = RAW_TEXT_ELEMENTS.has(name.toLowerCase())
-      ? this.rawText(name)
-      : this.nodes();
-    this.closeTag(name, start);
+    let children: TemplateNode[];
+    if (RAW_TEXT_ELEMENTS.has(name.toLowerCase())) {
+      // The text ends at the element's own closing tag, which is the one to consume.
+      children = this.rawText(name);
+      this.closingTag(name, start);
+    } else {
+      children = this.childrenOf(name, start);
+    }
     return { kind: "element", name, attributes, children, span: { start, end: this.pos } };
+  }
+
+  /** The children of an element, up to its closing tag, which is consumed. */
+  private childrenOf(name: string, start: number): TemplateNode[] {
+    this.open.push(name);
+    try {
+      const children: TemplateNode[] = [];
+      for (;;) {
+        children.push(...this.nodes());
+        if (this.closingTag(name, start)) {
+          return children;
+        }
+      }
+    } finally {
+      this.open.pop();
+    }
   }
 
   /** Text up to the next markup. `{{ }}` is skipped whole, so markup in it is not read. */
@@ -205,7 +227,13 @@ class Scanner {
   }
 
   /** Consumes `</name>`, which must close the element opened at `openedAt`. */
-  private closeTag(name: string, openedAt: number): void {
+  /**
+   * The closing tag of the element `name`, at the current position. True when the
+   * element is closed by it (consumed), or when it is left unclosed for an enclosing
+   * element (not consumed). False for a closing tag that closes nothing open: it is
+   * reported and skipped, and the element goes on.
+   */
+  private closingTag(name: string, openedAt: number): boolean {
     if (this.atEnd()) {
       throw this.error(`<${name}> is never closed`, openedAt);
     }
@@ -214,10 +242,16 @@ class Scanner {
     const closing = this.name();
     this.take(SPACES);
     this.expect(">");
-    if (closing.toLowerCase() !== name.toLowerCase()) {
-      // The element closes here anyway, so its parent carries on as if it had matched.
-      this.found.push(this.error(`</${closing}> does not close <${name}>`, at));
+    if (sameName(closing, name)) {
+      return true;
     }
+    if (this.open.some((open) => sameName(open, closing))) {
+      this.found.push(this.error(`<${name}> is never closed`, openedAt));
+      this.pos = at;
+      return true;
+    }
+    this.found.push(this.error(`</${closing}> does not close <${name}>`, at));
+    return false;
   }
 
   /** The attributes of a start tag, up to and including its `>` or `/>`. */
@@ -378,4 +412,9 @@ function asSyntaxError(error: unknown): TemplateSyntaxError {
     return error;
   }
   throw error;
+}
+
+/** Whether two element names are the same: names are compared without their case. */
+function sameName(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
 }

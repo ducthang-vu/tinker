@@ -79,7 +79,7 @@ describe("compile errors and their place", () => {
       expect(error)
         .toBeInstanceOf(TemplateSyntaxError);
       expect(error.message)
-        .toBe("1:6: expected an attribute value (at 1:6); </span> does not close <div> (at 1:17); closing tag with no element open (at 1:24)");
+        .toBe("1:6: expected an attribute value (at 1:6); </span> does not close <div> (at 1:17)");
     });
   });
 });
