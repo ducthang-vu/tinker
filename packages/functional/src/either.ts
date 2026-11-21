@@ -34,6 +34,12 @@ export interface EitherFlatMap {
  */
 export type EitherError<T> = Either<T, Error>;
 
+/** An Either that is a success: where `isRight()` said yes, its value is `value()`. */
+export type Right<T> = Either<T, never>;
+
+/** An Either that is a failure: where `isLeft()` said yes, its error is `error()`. */
+export type Left<E> = Either<never, E>;
+
 /**
  * `value` as an Error: an Error as is, anything else wrapped (kept as its
  * `cause`). Used wherever something that was thrown becomes a failure value.
@@ -78,12 +84,38 @@ export class Either<T, E> {
     }
   }
 
-  isRight(): boolean {
+  /**
+   * Whether this is a success. After `if (!x.isRight()) return ...`, `x` is a Right
+   * for the rest of the function, so `x.value()` is typed.
+   */
+  isRight(): this is Right<T> {
     return this.isRightSide;
   }
 
-  isLeft(): boolean {
+  /** Whether this is a failure. */
+  isLeft(): this is Left<E> {
     return !this.isRightSide;
+  }
+
+  /** The success value. Callable once `isRight()` has said yes. */
+  value(this: Right<T>): T {
+    return this.payload as T;
+  }
+
+  /** The error. Callable once `isLeft()` has said yes. */
+  error(this: Left<E>): E {
+    return this.payload as E;
+  }
+
+  /**
+   * The failure, as the early return of a function whose success type is `U`. Call it
+   * after `if (!x.isRight())`, where `x` is a failure. On a success it throws: that is a bug.
+   */
+  propagate<U>(): Either<U, E> {
+    if (this.isRightSide) {
+      throw new Error("propagate is for a failure: call it only after !isRight()");
+    }
+    return Either.left(this.payload as E);
   }
 
   /**
