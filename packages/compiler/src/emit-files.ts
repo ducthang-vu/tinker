@@ -1,6 +1,7 @@
-// The compile step as a command, for a library: each file given is written, with its
-// compiled templates replaced by their trees, into the output directory at the same
-// path relative to the working directory. A file that does not compile is reported,
+// The compile step as a command, for a library: each file given is written into the
+// output directory at the same path relative to the working directory. With --emit,
+// each compiled template is replaced by its tree; without it, the file keeps its
+// template strings, and only the check runs. A file that does not compile is reported,
 // and nothing is written for it. The result is the exit code.
 //
 // The output is still TypeScript: the library's own build compiles it to JavaScript,
@@ -18,6 +19,8 @@ export interface EmitOptions {
   readonly outDir: string;
   readonly files: readonly string[];
   readonly strict: boolean;
+  /** Whether the output carries the emitted trees, or the template strings as they are. */
+  readonly emit: boolean;
   /** The library's manifest, which must declare the packages the compiled files import. */
   readonly packagePath: string;
 }
@@ -33,10 +36,13 @@ export function parseArguments(args: readonly string[]): EmitOptions {
   const values = new Map<string, string>();
   const files: string[] = [];
   let strict = false;
+  let emit = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
     if (arg === "--strict") {
       strict = true;
+    } else if (arg === "--emit") {
+      emit = true;
     } else if (arg === "--out" || arg === "--package") {
       const value = args[++index];
       if (value !== undefined) {
@@ -48,9 +54,9 @@ export function parseArguments(args: readonly string[]): EmitOptions {
   }
   const outDir = values.get("--out");
   if (outDir === undefined || files.length === 0) {
-    throw new Error("Usage: tinker-compile --out <dir> [--package <package.json>] [--strict] <file.ts>...");
+    throw new Error("Usage: tinker-compile --out <dir> [--package <package.json>] [--strict] [--emit] <file.ts>...");
   }
-  return { outDir, files, strict, packagePath: values.get("--package") ?? "package.json" };
+  return { outDir, files, strict, emit, packagePath: values.get("--package") ?? "package.json" };
 }
 
 /** The required packages that the manifest at `packagePath` does not declare. */
@@ -101,7 +107,10 @@ export async function emitFiles(options: EmitOptions, output: CheckOutput): Prom
     };
     try {
       const code = readFileSync(path, "utf8");
-      const emitted = await emitFile(code, path, host, { emit: true, strict: options.strict });
+      const emitted = await emitFile(code, path, host, {
+        emit: options.emit,
+        strict: options.strict,
+      });
       const target = join(options.outDir, placeInOutput(path));
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, emitted?.code ?? code);

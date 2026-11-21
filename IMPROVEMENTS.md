@@ -292,15 +292,16 @@ app must be able to resolve them, which the example does through its alias.
 
 ## Compiling a library (`packages/compiler/src/emit-files.ts`)
 
-`tinker-compile --out <dir> [--package <package.json>] [--strict] <file.ts>...` writes
-each file into the output directory, at its path relative to the working directory,
-with its compiled templates replaced by their trees. It fails, and writes nothing, when
+`tinker-compile --out <dir> [--package <package.json>] [--strict] [--emit] <file.ts>...`
+writes each file into the output directory, at its path relative to the working
+directory. With `--emit`, its compiled templates are replaced by their trees; without it,
+the file keeps its template strings. It fails, and writes nothing, when
 the manifest does not declare `@tinker/functional` and `@tinker/core`, or when a file
 is outside the working directory. `tinker-check` is the same check without writing.
 Both follow only relative imports.
 
-`examples/library` is a sample library built this way: `npm run build` compiles its
-sources to `build/`, then emits JavaScript and declarations to `dist/`.
+`examples/library` is a sample library built this way, with `--emit`: `npm run build`
+compiles its sources, then emits JavaScript and declarations to `dist/`.
 
 ### 1. The packages are built, but still private
 
@@ -317,11 +318,13 @@ uses the source without a rebuild. Node cannot load that source, so Node uses `d
 ### 2. Emitted trees are larger than their templates
 
 **Problem.** Measured on the example: about 2.2 times the gzipped size of the
-templates (see the plugin's `emit` option). Consumers pay that size for the faster
-first render.
+templates (see the plugin's `emit` option). The person running the compiler chooses per
+build: `--emit` writes the trees, and without it the output keeps the template strings.
+A library's default is the strings, since the trees cost size and the start-up gain is
+not measured.
 
-**To do.** Decide per library whether `--strict` output is worth it, or write templates
-as strings and check them only.
+**To do.** Measure the start-up time a tree saves on a real app, and then decide whether
+the sample library should default to `--emit`.
 
 ## Testing: concurrent tests
 
