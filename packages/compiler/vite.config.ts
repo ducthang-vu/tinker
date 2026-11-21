@@ -17,8 +17,12 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      // index.js is the plugin; bin.js is the tinker-check command.
-      input: { index: "src/index.ts", bin: "bin/tinker-check.ts" },
+      // index.js is the plugin; the other two files are the commands.
+      input: {
+        "index": "src/index.ts",
+        "tinker-check": "bin/tinker-check.ts",
+        "tinker-compile": "bin/tinker-compile.ts",
+      },
       output: {
         format: "es",
         entryFileNames: "[name].js",
