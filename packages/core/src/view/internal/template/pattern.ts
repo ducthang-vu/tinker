@@ -388,7 +388,7 @@ function arrayPattern(text: string): Pattern {
   return pattern;
 }
 
-/** Throws when a name is bound twice in the pattern: the later binding would replace the earlier. */
+/** Throws when a name is bound twice: the later binding would replace the earlier. */
 function distinctNames(names: readonly string[], text: string): void {
   const seen = new Set<string>();
   for (const name of names) {
