@@ -1,7 +1,7 @@
 // Task<T, E>: one value, later (or a failure). A lazy, cancellable Promise.
 //
 // A Task is a Stream with no items: it only ends, with its outcome, an
-// `Either<E, T>`. So everything a stream guarantees holds for it (see
+// `Either<T, E>`. So everything a stream guarantees holds for it (see
 // stream.ts), and `flatMap` is the stream's:
 //
 // - Lazy: nothing happens until `run()`. That makes Task a proper monad, and
@@ -113,7 +113,7 @@ export class Task<T, E = Error> {
   }
 
   /** A task with the Either's outcome: a Right succeeds, a Left fails. */
-  static fromEither<E, T>(either: Either<E, T>): Task<T, E> {
+  static fromEither<E, T>(either: Either<T, E>): Task<T, E> {
     return new Task(Stream.fromEither(either));
   }
 

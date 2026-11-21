@@ -133,7 +133,7 @@ export class Maybe<T> {
   }
 
   /** `Right(value)`, or `Left(error)` if there is none. */
-  toEither<E>(error: E): Either<E, T> {
+  toEither<E>(error: E): Either<T, E> {
     return this.present ? Either.right(this.value) : Either.left(error);
   }
 }

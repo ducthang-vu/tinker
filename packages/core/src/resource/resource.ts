@@ -75,7 +75,7 @@ export function resource<T, E = Error>(
   let running: Watch | undefined;
 
   /** The outcome of run `id`, unless a newer run or a write has superseded it. */
-  const settle = (id: number, outcome: Either<E, T>): void => {
+  const settle = (id: number, outcome: Either<T, E>): void => {
     if (id !== current) {
       return;
     }

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, test } from "vitest";
 import { Either, type EitherError } from "./either.ts";
 import { pipe } from "./pipe.ts";
 
-const show = <E, T>(e: Either<E, T>): unknown[] => e.match<unknown[]>({ left: (l) => ["left", l], right: (r) => ["right", r] });
+const show = <E, T>(e: Either<T, E>): unknown[] => e.match<unknown[]>({ left: (l) => ["left", l], right: (r) => ["right", r] });
 
 describe("Either", () => {
   test("right, left and of", () => {
@@ -35,9 +35,9 @@ describe("Either", () => {
   test("map transforms a Right, mapLeft a Left", () => {
     expect(show(Either.map(Either.right<number, string>(2), (n) => n * 10)))
       .toEqual(["right", 20]);
-    expect(show(Either.map(Either.left<string, number>("e"), (n) => n * 10)))
+    expect(show(Either.map(Either.left<number, string>("e"), (n) => n * 10)))
       .toEqual(["left", "e"]);
-    expect(show(Either.left<string, number>("e")
+    expect(show(Either.left<number, string>("e")
       .mapLeft((e) => e.toUpperCase())))
       .toEqual(["left", "E"]);
     expect(show(Either.right<number, string>(2)
@@ -46,11 +46,11 @@ describe("Either", () => {
   });
 
   test("flatMap chains, a Left short-circuits, and error types add up", () => {
-    const positive = (n: number): Either<"negative", number> => (n >= 0 ? Either.right(n) : Either.left("negative"));
-    const even = (n: number): Either<"odd", number> => (n % 2 === 0 ? Either.right(n) : Either.left("odd"));
+    const positive = (n: number): Either<number, "negative"> => (n >= 0 ? Either.right(n) : Either.left("negative"));
+    const even = (n: number): Either<number, "odd"> => (n % 2 === 0 ? Either.right(n) : Either.left("odd"));
     const checked = Either.flatMap(Either.flatMap(Either.right<number, never>(4), positive), even);
     expectTypeOf(checked)
-      .toEqualTypeOf<Either<"negative" | "odd", number>>();
+      .toEqualTypeOf<Either<number, "negative" | "odd">>();
     expect(show(checked))
       .toEqual(["right", 4]);
     expect(show(Either.flatMap(Either.flatMap(Either.right(-2), positive), even)))
@@ -63,23 +63,23 @@ describe("Either", () => {
     expect(Either.right(1)
       .getOrElse(0))
       .toBe(1);
-    expect(Either.left<string, number>("e")
+    expect(Either.left<number, string>("e")
       .getOrElse(0))
       .toBe(0);
     expect(Either.right(1)
       .toMaybe()
       .getOrElse(0))
       .toBe(1);
-    expect(Either.left<string, number>("e")
+    expect(Either.left<number, string>("e")
       .toMaybe()
       .isNone())
       .toBe(true);
   });
 
   describe("monad laws", () => {
-    const f = (n: number): Either<string, number> => (n > 0 ? Either.right(n * 2) : Either.left("not positive"));
+    const f = (n: number): Either<number, string> => (n > 0 ? Either.right(n * 2) : Either.left("not positive"));
     const g = (n: number): Either<string, string> => Either.right(`#${n}`);
-    const values: Either<string, number>[] = [Either.right(3), Either.right(-1), Either.left("e")];
+    const values: Either<number, string>[] = [Either.right(3), Either.right(-1), Either.left("e")];
 
     test("left identity: of(a).flatMap(f) = f(a)", () => {
       for (const a of [3, -1]) expect(show(Either.flatMap(Either.right(a), f)))
@@ -166,7 +166,7 @@ describe("EitherError", () => {
     const failed: EitherError<number> = Either.left(new Error("failed"));
     expect(() => failed.getOrThrow())
       .toThrow("failed");
-    const notAnError = Either.left<string, number>("just a string");
+    const notAnError = Either.left<number, string>("just a string");
     // @ts-expect-error getOrThrow needs the failure to be an Error
     const call = () => notAnError.getOrThrow();
     void call;

@@ -73,7 +73,7 @@ export class Router {
   navigate(
     url: string | readonly string[],
     options: NavigateOptions = {},
-  ): Either<NoRouteError, void> {
+  ): Either<void, NoRouteError> {
     const base = Maybe.from(options.relativeTo)
       .match({
         some: (route) => route.path,

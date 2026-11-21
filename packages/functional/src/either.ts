@@ -1,4 +1,4 @@
-// Either<E, T>: a success (Right, holding a T) or a failure (Left, holding
+// Either<T, E>: a success (Right, holding a T) or a failure (Left, holding
 // an E). By convention "right" is the correct result.
 //
 // Like Maybe and Task, it is a monad with the same vocabulary:
@@ -17,14 +17,14 @@ import { dual } from "./dual.ts";
 
 /** `Either.map`: data-first `map(e, f)`, or data-last `map(f)` for `pipe`. */
 export interface EitherMap {
-  <E, T, U>(self: Either<E, T>, f: (value: T) => U): Either<E, U>;
-  <T, U>(f: (value: T) => U): <E>(self: Either<E, T>) => Either<E, U>;
+  <E, T, U>(self: Either<T, E>, f: (value: T) => U): Either<U, E>;
+  <T, U>(f: (value: T) => U): <E>(self: Either<T, E>) => Either<U, E>;
 }
 
 /** `Either.flatMap`: data-first `flatMap(e, f)`, or data-last `flatMap(f)` for `pipe`. */
 export interface EitherFlatMap {
-  <E, T, F, U>(self: Either<E, T>, f: (value: T) => Either<F, U>): Either<E | F, U>;
-  <T, F, U>(f: (value: T) => Either<F, U>): <E>(self: Either<E, T>) => Either<E | F, U>;
+  <E, T, F, U>(self: Either<T, E>, f: (value: T) => Either<U, F>): Either<U, E | F>;
+  <T, F, U>(f: (value: T) => Either<U, F>): <E>(self: Either<T, E>) => Either<U, E | F>;
 }
 
 /**
@@ -32,7 +32,7 @@ export interface EitherFlatMap {
  * code that can throw. `Either.from` creates them,
  * and `getOrThrow()` turns one back into a value or a thrown error.
  */
-export type EitherError<T> = Either<Error, T>;
+export type EitherError<T> = Either<T, Error>;
 
 /**
  * `value` as an Error: an Error as is, anything else wrapped (kept as its
@@ -42,7 +42,7 @@ export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value), { cause: value });
 }
 
-export class Either<E, T> {
+export class Either<T, E> {
   static readonly map: EitherMap = dual<EitherMap>(
     2,
     (self: Either<unknown, unknown>, f: (value: unknown) => unknown) => self.map(f),
@@ -60,17 +60,17 @@ export class Either<E, T> {
   ) {}
 
   /** A success. */
-  static right<T, E = never>(value: T): Either<E, T> {
-    return new Either<E, T>(true, value);
+  static right<T, E = never>(value: T): Either<T, E> {
+    return new Either<T, E>(true, value);
   }
 
   /** A failure. */
-  static left<E, T = never>(error: E): Either<E, T> {
-    return new Either<E, T>(false, error);
+  static left<T = never, E = never>(error: E): Either<T, E> {
+    return new Either<T, E>(false, error);
   }
 
   /** Run `fn`: its result as a Right, or what it throws as a Left. */
-  static tryCatch<T>(fn: () => T): Either<unknown, T> {
+  static tryCatch<T>(fn: () => T): Either<T, unknown> {
     try {
       return Either.right(fn());
     } catch (error) {
@@ -101,27 +101,27 @@ export class Either<E, T> {
    * default is `===`.
    */
   isEqual(
-    other: Either<E, T>,
+    other: Either<T, E>,
     equal: (a: E | T, b: E | T) => boolean = (a, b) => a === b,
   ): boolean {
     return this.isRightSide === other.isRightSide && equal(this.payload, other.payload);
   }
 
   /** Transform the success, if it is one. */
-  private map<U>(f: (value: T) => U): Either<E, U> {
+  private map<U>(f: (value: T) => U): Either<U, E> {
     return this.isRightSide
       ? Either.right(f(this.payload as T))
-      : (this as unknown as Either<E, U>);
+      : (this as unknown as Either<U, E>);
   }
 
   /** Transform the failure, if it is one. */
-  mapLeft<F>(f: (error: E) => F): Either<F, T> {
-    return this.isRightSide ? (this as unknown as Either<F, T>) : Either.left(f(this.payload as E));
+  mapLeft<F>(f: (error: E) => F): Either<T, F> {
+    return this.isRightSide ? (this as unknown as Either<T, F>) : Either.left(f(this.payload as E));
   }
 
   /** Chain a step that may itself fail (the monad's bind). The error types add up. */
-  private flatMap<F, U>(f: (value: T) => Either<F, U>): Either<E | F, U> {
-    return this.isRightSide ? f(this.payload as T) : (this as unknown as Either<E, U>);
+  private flatMap<F, U>(f: (value: T) => Either<U, F>): Either<U, E | F> {
+    return this.isRightSide ? f(this.payload as T) : (this as unknown as Either<U, E>);
   }
 
   /** Get out of the Either, handling both cases. */

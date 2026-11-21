@@ -28,7 +28,7 @@ describe("Either.map and Either.flatMap, in both call forms", () => {
     const result = pipe(
       Either.right<number, string>(2),
       Either.map((n: number) => n + 1),
-      Either.flatMap((n: number) => (n > 2 ? Either.left<string, number>("big") : Either.right(n))),
+      Either.flatMap((n: number) => (n > 2 ? Either.left<number, string>("big") : Either.right(n))),
     );
     expect(result.isLeft())
       .toBe(true);
