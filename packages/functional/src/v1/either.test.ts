@@ -1,4 +1,6 @@
+import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
+import { EDGE_VALUES } from "./edge-values.ts";
 import { attempt, Left, Right, map, mapLeft, flatMap, toError, type Either } from "./either.ts";
 import { match } from "./monad.ts";
 
@@ -82,3 +84,52 @@ describe("toError", () => {
       .toBe("text");
   });
 });
+
+describe("Either on every edge value", () => {
+  const cases = EDGE_VALUES.map((value) => [String(value), value] as const);
+  const unwrapRight = (e: Either<unknown, unknown>) =>
+    match(e, { Right: (x) => x, Left: () => NOT_A_VALUE });
+  const unwrapLeft = (e: Either<unknown, unknown>) =>
+    match(e, { Right: () => NOT_A_VALUE, Left: (x) => x });
+
+  test.each(cases)("a Right of %s is matched as a Right, and map with the identity keeps it", (_, value) => {
+    expect(Object.is(unwrapRight(map(Right.of(value), (x: unknown) => x)), value))
+      .toBe(true);
+  });
+
+  test.each(cases)("flatMap with Right.of keeps a Right of %s", (_, value) => {
+    expect(Object.is(unwrapRight(flatMap(Right.of(value), Right.of)), value))
+      .toBe(true);
+  });
+
+  test.each(cases)("map composes on a Right of %s", (_, value) => {
+    const f = (x: unknown) => [x];
+    const g = (x: unknown) => ({ wrapped: x });
+    const once = unwrapRight(map(map(Right.of(value), f), g));
+    const fused = unwrapRight(map(Right.of(value), (x: unknown) => g(f(x))));
+    expect(isDeepStrictEqual(once, fused))
+      .toBe(true);
+  });
+
+  test.each(cases)("a Left holding %s is not changed by map or flatMap", (_, value) => {
+    expect(Object.is(unwrapLeft(map(Left.of(value), (x: unknown) => x)), value))
+      .toBe(true);
+    expect(Object.is(unwrapLeft(flatMap(Left.of(value), Right.of)), value))
+      .toBe(true);
+  });
+
+  test.each(cases)("mapLeft with the identity keeps a Left holding %s", (_, value) => {
+    expect(Object.is(unwrapLeft(mapLeft(Left.of(value), (x: unknown) => x)), value))
+      .toBe(true);
+  });
+
+  test.each(cases)("match tells a Right of %s from a Left of it", (_, value) => {
+    expect(match(Right.of(value), { Right: () => "Right", Left: () => "Left" }))
+      .toBe("Right");
+    expect(match(Left.of(value), { Right: () => "Right", Left: () => "Left" }))
+      .toBe("Left");
+  });
+});
+
+/** A marker for "no value", since every edge value is a value. */
+const NOT_A_VALUE: unknown = Symbol("not a value");
