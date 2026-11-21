@@ -299,7 +299,8 @@ directory. With `--emit`, its compiled templates are replaced by their trees; wi
 the file keeps its template strings. It fails, and writes nothing, when
 the manifest does not declare `@tinker/functional` and `@tinker/core`, or when a file
 is outside the working directory. `tinker-check` is the same check without writing.
-Both follow only relative imports.
+Both follow relative imports, path aliases of the nearest `tsconfig.json`, and packages that
+export TypeScript source under their `development` condition.
 
 `examples/library` is a sample library built this way, with `--emit`: `npm run build`
 compiles its sources, then emits JavaScript and declarations to `dist/`.

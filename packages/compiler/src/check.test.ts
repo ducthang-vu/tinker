@@ -127,4 +127,22 @@ describe("checkFiles", () => {
         "warning: page.ts: <Page> is not compiled: Gone has no literal selector, or is not found",
       ]);
   });
+
+  test("an import through a path alias is followed, and its directive is checked", async () => {
+    const output = recording();
+    const code = await checkFiles([fixture("aliased/page.ts")], { strict: false }, output);
+    expect(code)
+      .toBe(0);
+    expect(output.errors)
+      .toEqual([]);
+  });
+
+  test("an alias that names no file is reported as a warning", async () => {
+    const output = recording();
+    const code = await checkFiles([fixture("aliased/unknown.ts")], { strict: false }, output);
+    expect(code)
+      .toBe(0);
+    expect(output.errors)
+      .toEqual(["warning: unknown.ts: <Unknown> is not compiled: Nothing has no literal selector, or is not found"]);
+  });
 });

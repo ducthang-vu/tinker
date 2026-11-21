@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@app/*": [
+        "./lib/*"
+      ],
+      "@app/plain": [
+        "./lib/plain.ts"
+      ],
+      "@app/missing/*": [
+        "./lib/missing/*"
+      ],
+      "@app/*.virtual": [
+        "./lib/virtual/*"
+      ]
+    }
+  }
+}
