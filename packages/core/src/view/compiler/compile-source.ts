@@ -6,7 +6,7 @@
 // optionally by their class. A build step has no class references: its compiled
 // nodes name a placeholder class instead, which the check does not read.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either, toError, type EitherError } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
@@ -34,14 +34,15 @@ export function compileSource(
   source: string,
   imports: readonly ImportedSelector[] = [],
 ): EitherError<readonly CompiledNode[]> {
-  return Either.from(() => {
+  return Either.tryCatch(() => {
     const { nodes, errors } = new TinkerTemplateParser()
       .parseAll(source);
     if (errors.length > 0) {
       throw combineSyntaxErrors(errors);
     }
     return compileTemplate(nodes, imports.map(candidateOf));
-  });
+  })
+    .mapLeft(toError);
 }
 
 function candidateOf(imported: ImportedSelector): DirectiveCandidate {
