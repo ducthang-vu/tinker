@@ -34,7 +34,7 @@ export function compileSource(
   source: string,
   imports: readonly ImportedSelector[] = [],
 ): EitherError<readonly CompiledNode[]> {
-  return Either.tryCatch(() => {
+  return Either.try(() => {
     const { nodes, errors } = new TinkerTemplateParser()
       .parseAll(source);
     if (errors.length > 0) {

@@ -117,7 +117,7 @@ export function splitGuard(header: string): { readonly pattern: string; readonly
 /** The pattern written as `text`, or the error explaining what is not supported. */
 export function parsePattern(text: string): EitherError<Pattern> {
   // Regex literals are masked first, so their braces, bars and quotes are not read as structure.
-  return Either.tryCatch(() => patternOf(maskRegexes(text.trim())))
+  return Either.try(() => patternOf(maskRegexes(text.trim())))
     .mapLeft(toError)
     .mapLeft((error) => new Error(restoreRegexes(error.message)));
 }

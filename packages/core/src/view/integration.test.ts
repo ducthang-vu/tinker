@@ -264,7 +264,7 @@ describe("a computed built from functional values, shown in the view", () => {
   });
 
   test("a parse error travels as an Either value, not a throw", () => {
-    const parse = (text: string) => Either.tryCatch(() => JSON.parse(text) as unknown)
+    const parse = (text: string) => Either.try(() => JSON.parse(text) as unknown)
       .mapLeft(toError);
     expect(parse("{")
       .isLeft())

@@ -45,7 +45,7 @@ export class Selector {
 
   /** Parse `source`, or the error explaining what is not supported. */
   static parse(source: string): EitherError<Selector> {
-    return Either.tryCatch(() => Selector.parseOrThrow(source))
+    return Either.try(() => Selector.parseOrThrow(source))
       .mapLeft(toError);
   }
 

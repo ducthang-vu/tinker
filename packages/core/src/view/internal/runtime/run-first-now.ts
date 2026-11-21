@@ -35,7 +35,7 @@ export class RunFirstNow implements WatchScheduler {
       return;
     }
     this.first = false;
-    this.firstFailure = Either.tryCatch(() => task.run())
+    this.firstFailure = Either.try(() => task.run())
       .match({
         left: Maybe.some,
         right: () => Maybe.none(),

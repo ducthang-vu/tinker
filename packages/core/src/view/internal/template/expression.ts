@@ -128,7 +128,7 @@ export class ExpressionParser {
 
   /** Parse `source` into an expression, or the error explaining what is wrong. */
   static parse(source: string): EitherError<Expression> {
-    return Either.tryCatch(() => new ExpressionParser(source)
+    return Either.try(() => new ExpressionParser(source)
       .parseAll())
       .mapLeft(toError);
   }

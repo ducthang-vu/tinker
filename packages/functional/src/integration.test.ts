@@ -40,7 +40,7 @@ function record<T, R, E>(stream: Stream<T, R, E>) {
 
 describe("Either, Maybe and Task through pipe", () => {
   /** A config is text: parse it, take its port, default it when missing or invalid. */
-  const parse = (text: string) => Either.tryCatch(() => JSON.parse(text) as { port?: unknown })
+  const parse = (text: string) => Either.try(() => JSON.parse(text) as { port?: unknown })
     .mapLeft(toError);
   const portOf = (config: { port?: unknown }) => pipe(
     Maybe.from(config.port),

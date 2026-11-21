@@ -22,10 +22,10 @@ describe("Either", () => {
       .toEqual(["right", 2]);
   });
 
-  test("tryCatch: a result is a Right, a thrown error a Left", () => {
-    expect(show(Either.tryCatch(() => JSON.parse("{\"a\":1}"))))
+  test("try: a result is a Right, a thrown error a Left", () => {
+    expect(show(Either.try(() => JSON.parse("{\"a\":1}"))))
       .toEqual(["right", { a: 1 }]);
-    const failed = Either.tryCatch(() => JSON.parse("{"));
+    const failed = Either.try(() => JSON.parse("{"));
     expect(failed.isLeft())
       .toBe(true);
     expect(failed.match({ left: (e) => e instanceof SyntaxError, right: () => false }))
@@ -101,7 +101,7 @@ describe("Either", () => {
 describe("EitherError", () => {
   test("from keeps a thrown Error as is", () => {
     const error = new TypeError("bad");
-    const result = Either.tryCatch(() => {
+    const result = Either.try(() => {
       throw error;
     })
       .mapLeft(toError);
@@ -112,7 +112,7 @@ describe("EitherError", () => {
   });
 
   test("from wraps anything else in an Error, keeping it as the cause", () => {
-    const result = Either.tryCatch(() => {
+    const result = Either.try(() => {
       throw "oops";
     })
       .mapLeft(toError);
@@ -126,29 +126,29 @@ describe("EitherError", () => {
   });
 
   test("from gives a Right when nothing is thrown", () => {
-    expect(Either.tryCatch(() => 42)
+    expect(Either.try(() => 42)
       .mapLeft(toError)
       .getOrThrow())
       .toBe(42);
   });
 
   test("from runs a throwing call into an EitherError", () => {
-    const parsed = Either.tryCatch(() => JSON.parse("{\"a\":1}") as unknown)
+    const parsed = Either.try(() => JSON.parse("{\"a\":1}") as unknown)
       .mapLeft(toError);
     expectTypeOf(parsed)
       .toEqualTypeOf<EitherError<unknown>>();
     expect(parsed.getOrThrow())
       .toEqual({ a: 1 });
-    expect(Either.tryCatch(() => JSON.parse("{") as unknown)
+    expect(Either.try(() => JSON.parse("{") as unknown)
       .mapLeft(toError)
       .isLeft())
       .toBe(true);
   });
 
   test("flatMap chains steps, each a from, without nested try/catch", () => {
-    const read = (text: string) => Either.tryCatch(() => JSON.parse(text) as { port?: unknown })
+    const read = (text: string) => Either.try(() => JSON.parse(text) as { port?: unknown })
       .mapLeft(toError);
-    const port = (config: { port?: unknown }) => Either.tryCatch(() => {
+    const port = (config: { port?: unknown }) => Either.try(() => {
       if (typeof config.port !== "number") throw new Error("port must be a number");
       return config.port;
     })
@@ -162,8 +162,8 @@ describe("EitherError", () => {
   });
 
   test("map and flatMap keep it an EitherError", () => {
-    const result = Either.flatMap(Either.map(Either.tryCatch(() => 2)
-      .mapLeft(toError), (n) => n * 10), (n) => Either.tryCatch(() => `${n}`)
+    const result = Either.flatMap(Either.map(Either.try(() => 2)
+      .mapLeft(toError), (n) => n * 10), (n) => Either.try(() => `${n}`)
       .mapLeft(toError));
     expectTypeOf(result)
       .toEqualTypeOf<EitherError<string>>();
