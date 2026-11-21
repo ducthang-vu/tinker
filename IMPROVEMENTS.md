@@ -300,30 +300,27 @@ app must be able to resolve them, which the example does through its alias.
 
 ## Compiling a library (`packages/compiler/src/emit-files.ts`)
 
-`tinker-compile --out <dir> [--strict] <file.ts>...` writes each file into the output
-directory, at its path relative to the working directory, with its compiled templates
-replaced by their trees. `tinker-check` is the same check without writing. Both follow
-only relative imports, and neither produces declaration files. A file outside the working
-directory is an error: its output path would be above the output directory.
+`tinker-compile --out <dir> [--package <package.json>] [--strict] <file.ts>...` writes
+each file into the output directory, at its path relative to the working directory,
+with its compiled templates replaced by their trees. It fails, and writes nothing, when
+the manifest does not declare `@tinker/functional` and `@tinker/core`, or when a file
+is outside the working directory. `tinker-check` is the same check without writing.
+Both follow only relative imports.
 
-### 1. The output is TypeScript, not JavaScript
+`examples/library` is a sample library built this way: `npm run build` compiles its
+sources to `build/`, then emits JavaScript and declarations to `dist/`.
 
-**Problem.** The library's own build compiles the output, decorators included. A library
-without such a build cannot use the command as it is.
+### 1. Consumers must bundle the library's dependencies
 
-**To do.** Add a build step that compiles the output (or a flag that calls the project's
-bundler), and emit declaration files from the same output.
+**Problem.** The sample's `dist` imports `@tinker/core` and `@tinker/functional`, which
+are workspace packages exporting TypeScript source. Node cannot run that, so a consumer
+must bundle it, as the example app does. A published library would need built
+dependencies.
 
-### 2. The output needs the library to depend on two packages
+**To do.** Build the packages a library depends on into JavaScript and declarations
+before publishing, and point their `exports` at the built files.
 
-**Problem.** Each compiled file imports `Maybe` from `@tinker/functional` and `Selector`
-from `@tinker/core/compiler`. A library must list both as dependencies, or the files
-will not resolve for its consumers.
-
-**To do.** Check the dependencies at compile time, and write them into the library's
-package manifest.
-
-### 3. Emitted trees are larger than their templates
+### 2. Emitted trees are larger than their templates
 
 **Problem.** Measured on the example: about 2.2 times the gzipped size of the
 templates (see the plugin's `emit` option). Consumers pay that size for the faster

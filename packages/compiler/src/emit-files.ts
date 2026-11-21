@@ -18,21 +18,49 @@ export interface EmitOptions {
   readonly outDir: string;
   readonly files: readonly string[];
   readonly strict: boolean;
+  /** The library's manifest, which must declare the packages the compiled files import. */
+  readonly packagePath: string;
 }
 
+/** The packages every compiled file imports, which a library must declare. */
+const REQUIRED_PACKAGES = ["@tinker/functional", "@tinker/core"];
+
 /**
- * The options from the command line: `--out <dir> [--strict] <file.ts>...`.
- * Throws when the output directory or a file is missing.
+ * The options from the command line: `--out <dir> [--package <package.json>] [--strict]
+ * <file.ts>...`. Throws when the output directory or a file is missing.
  */
 export function parseArguments(args: readonly string[]): EmitOptions {
-  const strict = args.includes("--strict");
-  const outIndex = args.indexOf("--out");
-  const outDir = outIndex === -1 ? undefined : args[outIndex + 1];
-  const files = args.filter((arg, index) => arg !== "--strict" && index !== outIndex && index !== outIndex + 1);
-  if (outDir === undefined || files.length === 0) {
-    throw new Error("Usage: tinker-compile --out <dir> [--strict] <file.ts>...");
+  const values = new Map<string, string>();
+  const files: string[] = [];
+  let strict = false;
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+    if (arg === "--strict") {
+      strict = true;
+    } else if (arg === "--out" || arg === "--package") {
+      const value = args[++index];
+      if (value !== undefined) {
+        values.set(arg, value);
+      }
+    } else {
+      files.push(arg);
+    }
   }
-  return { outDir, files, strict };
+  const outDir = values.get("--out");
+  if (outDir === undefined || files.length === 0) {
+    throw new Error("Usage: tinker-compile --out <dir> [--package <package.json>] [--strict] <file.ts>...");
+  }
+  return { outDir, files, strict, packagePath: values.get("--package") ?? "package.json" };
+}
+
+/** The required packages that the manifest at `packagePath` does not declare. */
+function missingPackages(packagePath: string): string[] {
+  const manifest = JSON.parse(readFileSync(packagePath, "utf8")) as {
+    readonly dependencies?: Readonly<Record<string, string>>;
+    readonly peerDependencies?: Readonly<Record<string, string>>;
+  };
+  const declared = { ...manifest.peerDependencies, ...manifest.dependencies };
+  return REQUIRED_PACKAGES.filter((name) => !(name in declared));
 }
 
 /**
@@ -49,6 +77,18 @@ function placeInOutput(file: string): string {
 
 /** Emits each file. Returns 0 when every file was written, 1 when one did not compile. */
 export async function emitFiles(options: EmitOptions, output: CheckOutput): Promise<number> {
+  let missing: string[];
+  try {
+    missing = missingPackages(options.packagePath);
+  } catch (error) {
+    output.error((error as Error).message);
+    return 1;
+  }
+  if (missing.length > 0) {
+    output.error(`${options.packagePath} does not declare ${missing.join(", ")}: the compiled files import them`);
+    output.log("The compile failed: nothing was written.");
+    return 1;
+  }
   let failed = false;
   for (const file of options.files) {
     const path = resolve(file);
