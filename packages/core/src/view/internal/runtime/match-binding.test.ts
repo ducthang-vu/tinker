@@ -201,3 +201,32 @@ describe("match: tuples", () => {
       .toBe(true);
   });
 });
+
+describe("match: regex patterns", () => {
+  test("a regex matches a string, and not another value", () => {
+    expect(matches(String.raw`/^\d+$/`, "42"))
+      .toBe(true);
+    expect(matches(String.raw`/^\d+$/`, "x1"))
+      .toBe(false);
+    expect(matches(String.raw`/^\d+$/`, 42))
+      .toBe(false);
+  });
+
+  test("named groups bind the group's text, or undefined when it did not take part", () => {
+    const pattern = parsePattern(String.raw`/(?<id>\d+)-(?<tag>\w+)?/`)
+      .getOrThrow();
+    expect(match(pattern, "12-"))
+      .toEqual(new Map<string, unknown>([["id", "12"], ["tag", undefined]]));
+    expect(match(pattern, "12-ok"))
+      .toEqual(new Map<string, unknown>([["id", "12"], ["tag", "ok"]]));
+  });
+
+  test("a regex without groups binds nothing, and an alias binds the string", () => {
+    expect(match(parsePattern("/a/")
+      .getOrThrow(), "a"))
+      .toEqual(new Map());
+    expect(match(parsePattern("/(?<x>a)/ as s")
+      .getOrThrow(), "a"))
+      .toEqual(new Map<string, unknown>([["x", "a"], ["s", "a"]]));
+  });
+});

@@ -183,6 +183,18 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
       const bound = match(pattern.pattern, value);
       return bound === undefined ? undefined : new Map([...bound, [pattern.name, value]]);
     }
+    case "regex": {
+      if (typeof value !== "string") {
+        return undefined;
+      }
+      const found = new RegExp(pattern.source, pattern.flags)
+        .exec(value);
+      if (found === null) {
+        return undefined;
+      }
+      // With no named group the map is empty, so the groups are read only when there are names.
+      return new Map(pattern.names.map((name): [string, unknown] => [name, found.groups![name]]));
+    }
   }
 }
 

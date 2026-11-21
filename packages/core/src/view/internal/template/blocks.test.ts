@@ -388,3 +388,13 @@ describe("the place of a block error", () => {
       .toEqual({ start: 4, end: 15 });
   });
 });
+
+describe("the body of a case with a regex pattern", () => {
+  test("braces and bars inside a regex are not the body or alternatives", () => {
+    const match = onlyMatch(String.raw`@match v { @case /\{|\}/ { X } @default { Y } }`);
+    expect(match.cases)
+      .toHaveLength(1);
+    expect(match.cases[0]!.body[0]!.kind)
+      .toBe("text");
+  });
+});
