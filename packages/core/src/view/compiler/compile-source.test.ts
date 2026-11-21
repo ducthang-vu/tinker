@@ -72,4 +72,14 @@ describe("compile errors and their place", () => {
     expect((error as TemplateCompileError).span)
       .toEqual({ start: 9, end: 18 });
   });
+
+  describe("every syntax error of a template", () => {
+    test("is reported together, from compileSource", () => {
+      const error = errorOf(compileSource("<p a=></p><div>x</span></div>"));
+      expect(error)
+        .toBeInstanceOf(TemplateSyntaxError);
+      expect(error.message)
+        .toBe("1:6: expected an attribute value (at 1:6); </span> does not close <div> (at 1:17); closing tag with no element open (at 1:24)");
+    });
+  });
 });

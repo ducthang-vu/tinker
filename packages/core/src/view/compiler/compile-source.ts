@@ -10,7 +10,7 @@ import { Either, type EitherError } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
-import { TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
+import { combineSyntaxErrors, TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
 
 /** A directive or component a template may use, known by its selector. */
 export interface ImportedSelector {
@@ -35,8 +35,11 @@ export function compileSource(
   imports: readonly ImportedSelector[] = [],
 ): EitherError<readonly CompiledNode[]> {
   return Either.from(() => {
-    const nodes = new TinkerTemplateParser()
-      .parse(source);
+    const { nodes, errors } = new TinkerTemplateParser()
+      .parseAll(source);
+    if (errors.length > 0) {
+      throw combineSyntaxErrors(errors);
+    }
     return compileTemplate(nodes, imports.map(candidateOf));
   });
 }
