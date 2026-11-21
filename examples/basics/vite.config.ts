@@ -6,7 +6,7 @@ import { standardDecorators, workspaceAlias } from "../../vite.shared.ts";
 export default defineConfig({
   base: "./",
   // The check reads the decorators, so it runs before the decorator transform.
-  plugins: [tinkerCompiler(), standardDecorators()],
+  plugins: [tinkerCompiler({ emit: true }), standardDecorators()],
   resolve: {
     alias: workspaceAlias,
   },
