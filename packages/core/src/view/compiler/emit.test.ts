@@ -18,7 +18,12 @@ const names = new Map<Class<object>, string>([[Item, "Item"], [Card, "Card"]]);
 /** Compiles `source`, emits it, and evaluates the expression as a module would. */
 function roundTrip(source: string, list: ImportedSelector[] = imports) {
   const nodes = compileSource(source, list)
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
   const code = emitCompiled(nodes, names);
   const build = new Function("Maybe", "Selector", "Item", "Card", `return ${code};`);
   return { nodes, code, rebuilt: build(Maybe, Selector, Item, Card) as unknown };
@@ -68,7 +73,12 @@ describe("emitCompiled", () => {
 
   test("uses the helper names it is given", () => {
     const code = emitCompiled([{ some: Maybe.some(1), none: Maybe.none(), selector: Selector.parse("[a]")
-      .getOrThrow() }] as unknown as CompiledNode[], names, { Maybe: "__M", Selector: "__S" });
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }) }] as unknown as CompiledNode[], names, { Maybe: "__M", Selector: "__S" });
     expect(code)
       .toContain("__M.some(1)");
     expect(code)
@@ -77,7 +87,12 @@ describe("emitCompiled", () => {
 
   test("writes a Selector by its source", () => {
     const selector = Selector.parse("tk-card[item]")
-      .getOrThrow();
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      });
     expect(evaluate(emitCompiled([{ selector }] as unknown as CompiledNode[], names)))
       .toStrictEqual([{ selector }]);
   });
@@ -94,7 +109,12 @@ describe("emitCompiled", () => {
 
   test("is an error to emit a class that has no name in the module", () => {
     const nodes = compileSource(`<div item></div>`, imports)
-      .getOrThrow();
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      });
     expect(() => emitCompiled(nodes, new Map()))
       .toThrow("Cannot emit the class Item: it has no name in the module");
   });

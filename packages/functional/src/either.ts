@@ -27,13 +27,6 @@ export interface EitherFlatMap {
   <T, F, U>(f: (value: T) => Either<U, F>): <E>(self: Either<T, E>) => Either<U, E | F>;
 }
 
-/**
- * An Either whose failure is an Error: the common case, e.g. the result of
- * code that can throw: `Either.try(fn).mapLeft(toError)` makes one.
- * `getOrThrow()` turns it back into a value or a thrown error.
- */
-export type EitherError<T> = Either<T, Error>;
-
 /** An Either that is a success: where `isRight()` said yes, its value is `value()`. */
 export type Right<T> = Either<T, never>;
 
@@ -154,19 +147,6 @@ export class Either<T, E> {
   /** The success, or `fallback` if it is a failure. */
   getOrElse<U>(fallback: U): T | U {
     return this.isRightSide ? (this.payload as T) : fallback;
-  }
-
-  /**
-   * The success, or throw the failure: the way back to code using
-   * exceptions. Only available when the failure is an Error.
-   */
-  getOrThrow(this: EitherError<T>): T {
-    return this.match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
   }
 
   /** `Some(value)` for a success, `None` for a failure (the error is dropped). */

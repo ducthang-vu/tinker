@@ -174,7 +174,12 @@ export class DirectiveFactory {
       // The view builder above this call does not return errors yet, so an invalid host
       // option is thrown here, where the directive is first used. (See IMPROVEMENTS.md.)
       bindings = HostBindings.parse(this.metadataOf(type).host)
-        .getOrThrow();
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        });
       this.hostBindings.set(type, bindings);
     }
     return bindings;

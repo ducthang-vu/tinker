@@ -7,7 +7,12 @@ const element = (name: string, attributes: Record<string, string> = {}) => ({
     .map(([n, value]) => ({ name: n, value })),
 });
 const matches = (selector: string, el: ReturnType<typeof element>) => Selector.parse(selector)
-  .getOrThrow()
+  .match({
+    left: (error) => {
+      throw error;
+    },
+    right: (value) => value,
+  })
   .matches(el);
 const error = (selector: string) => Selector.parse(selector)
   .match({ left: (e) => e.message, right: () => "no error" });
@@ -127,7 +132,12 @@ describe("Selector", () => {
 
   test("keeps its source", () => {
     expect(Selector.parse(" [a] ")
-      .getOrThrow().source)
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }).source)
       .toBe(" [a] ");
   });
 

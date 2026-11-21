@@ -381,7 +381,7 @@ risk and leave the author to write a linear regex.
 **Problem.** `HostBindings.parse` returns an `Either`, so an invalid `host` option is a
 value. But the directive factory (`directive-factory.ts`) builds the bindings during view
 creation, and the code above it returns plain values, not `Either`s. So the factory calls
-`getOrThrow()`, and the error is thrown there instead of being returned to the caller.
+matching its Left and throwing, and the error is thrown there instead of being returned to the caller.
 
 **To do.** Make the view builder (`template-builder.ts` and its callers) return an `Either`
 for the directive's bindings, so the caller that creates the directive decides what to do

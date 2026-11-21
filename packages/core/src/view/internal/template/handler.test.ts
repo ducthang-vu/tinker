@@ -5,22 +5,42 @@ import { Scope } from "./scope.ts";
 describe("parseHandler", () => {
   test("accepts a call of a method, with or without arguments, and spaces", () => {
     expect(parseHandler("pick()", "event handler")
-      .getOrThrow()
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      })
       .method)
       .toBe("pick");
     expect(parseHandler(" pick( $event ) ", "event handler")
-      .getOrThrow()
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      })
       .method)
       .toBe("pick");
     expect(parseHandler("select(item.id, $event.key)", "event handler")
-      .getOrThrow()
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      })
       .method)
       .toBe("select");
   });
 
   test("a call of a template variable's method is accepted, with its target", () => {
     const handler = parseHandler("g.show(3)", "event handler")
-      .getOrThrow();
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      });
     expect(handler.method)
       .toBe("show");
     expect(handler.target)
@@ -54,7 +74,12 @@ describe("runHandler", () => {
     const component = { pick };
     const event = { key: "Enter" };
     runHandler(parseHandler("pick($event)", "event handler")
-      .getOrThrow(), new Scope(component), event);
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope(component), event);
     expect(pick)
       .toHaveBeenCalledWith(event);
   });
@@ -63,7 +88,12 @@ describe("runHandler", () => {
     const select = vi.fn();
     const component = { select, id: 7 };
     runHandler(parseHandler("select(id, $event.key)", "event handler")
-      .getOrThrow(), new Scope(component), { key: "a" });
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope(component), { key: "a" });
     expect(select)
       .toHaveBeenCalledWith(7, "a");
   });
@@ -77,7 +107,12 @@ describe("runHandler", () => {
       },
     };
     runHandler(parseHandler("go()", "event handler")
-      .getOrThrow(), new Scope(component), undefined);
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }), new Scope(component), undefined);
     expect(seen)
       .toEqual(["tinker"]);
   });

@@ -18,7 +18,7 @@
 // can be added here later. Class names keep their case: unlike templates,
 // host bindings are not read by the browser's HTML parser.
 
-import { Either, type EitherError, Maybe, pipe } from "@tinker/functional";
+import { Either, Maybe, pipe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
 import { Scope } from "../template/scope.ts";
@@ -109,7 +109,7 @@ const LISTENER_KEY = /^\(([^)\s]+)\)$/;
 const VALUE_KEY = /^\[(class|style|attr)\.([^\]\s]+)\]$/;
 
 /** One `host` entry, or the error explaining why it is not supported. */
-function parseEntry(key: string, value: string): EitherError<HostListener | HostValueBinding> {
+function parseEntry(key: string, value: string): Either<HostListener | HostValueBinding, Error> {
   const match = VALUE_KEY.exec(key);
   if (!match) {
     return parseListener(key, value);
@@ -128,7 +128,7 @@ function parseEntry(key: string, value: string): EitherError<HostListener | Host
 }
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
-function parseListener(key: string, handler: string): EitherError<HostListener> {
+function parseListener(key: string, handler: string): Either<HostListener, Error> {
   const source = Maybe.from(LISTENER_KEY.exec(key)?.[1])
     .toEither(
       new Error(

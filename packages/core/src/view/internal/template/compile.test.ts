@@ -27,7 +27,12 @@ describe("compileTemplate", () => {
             {
               kind: "text",
               interpolation: { strings: ["Hi ", ""], expressions: [ExpressionParser.parse("name()")
-                .getOrThrow()] },
+                .match({
+                  left: (error) => {
+                    throw error;
+                  },
+                  right: (value) => value,
+                })] },
             },
           ],
           references: [],
@@ -87,7 +92,12 @@ describe("compileTemplate", () => {
       .toEqual([{ name: "class", value: "note" }, { name: "title", value: "x" }]);
     expect(p!.classBindings)
       .toEqual([{ name: "done", expression: ExpressionParser.parse("todo.done()")
-        .getOrThrow() }]);
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }) }]);
   });
 
   test("sorts style and attribute bindings apart, with their expression", () => {
@@ -96,10 +106,20 @@ describe("compileTemplate", () => {
     ]) as CompiledElement[];
     expect(p!.styleBindings)
       .toEqual([{ name: "background-color", expression: ExpressionParser.parse("bg()")
-        .getOrThrow() }]);
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }) }]);
     expect(p!.attributeBindings)
       .toEqual([{ name: "aria-label", expression: ExpressionParser.parse("label()")
-        .getOrThrow() }]);
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }) }]);
     expect(p!.classBindings)
       .toEqual([]);
   });
@@ -119,7 +139,12 @@ describe("compileTemplate", () => {
     ) as CompiledElement[];
     expect(host!.inputBindings)
       .toEqual([{ name: "label", expression: ExpressionParser.parse("item().name")
-        .getOrThrow() }]);
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        }) }]);
     expect(host!.classBindings.map(({ name }) => name))
       .toEqual(["done"]);
   });
@@ -184,7 +209,12 @@ describe("compileTemplate", () => {
 
 function selector(source: string) {
   return Selector.parse(source)
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
 }
 
 function element(

@@ -6,7 +6,12 @@ import { AttributeBinding } from "./attribute-binding.ts";
 import { Scope } from "../template/scope.ts";
 
 const parse = (source: string) => ExpressionParser.parse(source)
-  .getOrThrow();
+  .match({
+    left: (error) => {
+      throw error;
+    },
+    right: (value) => value,
+  });
 
 describe("AttributeBinding", () => {
   test("sets the attribute to the value, and changes it when the value changes", () => {

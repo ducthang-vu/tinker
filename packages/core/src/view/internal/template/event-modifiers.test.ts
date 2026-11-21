@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { type EitherError } from "@tinker/functional";
+import { Either } from "@tinker/functional";
 import { parseEventName } from "./event-modifiers.ts";
 
-const messageOf = (result: EitherError<unknown>) => result.match({
+const messageOf = (result: Either<unknown, Error>) => result.match({
   left: (error) => error.message,
   right: () => "no error",
 });
@@ -10,25 +10,45 @@ const messageOf = (result: EitherError<unknown>) => result.match({
 describe("parseEventName", () => {
   test("a plain event has no modifiers", () => {
     expect(parseEventName("click", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "click", modifiers: [] });
   });
 
   test("keeps the modifiers in the order written", () => {
     expect(parseEventName("click.self.prevent.stop.once", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "click", modifiers: ["self", "prevent", "stop", "once"] });
   });
 
   test("ctrl, shift, alt, meta and cmd are modifiers", () => {
     expect(parseEventName("click.ctrl.shift.alt.meta.cmd", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "click", modifiers: ["ctrl", "shift", "alt", "meta", "cmd"] });
   });
 
   test("a ! in front of a system modifier is a modifier; ! in front of anything else is not", () => {
     expect(parseEventName("click.!ctrl.!cmd", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "click", modifiers: ["!ctrl", "!cmd"] });
     expect(messageOf(parseEventName("click.!enter", "x")))
       .toContain(`Unknown modifier ".!enter"`);
@@ -38,22 +58,42 @@ describe("parseEventName", () => {
 
   test("plain and submit expand to their modifiers, in place", () => {
     expect(parseEventName("click.plain.prevent", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "click", modifiers: ["!ctrl", "!shift", "!alt", "!meta", "prevent"] });
     expect(parseEventName("keydown.submit", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "keydown", modifiers: ["enter", "!shift"] });
   });
 
   test("primary and secondary are modifiers", () => {
     expect(parseEventName("mousedown.secondary.prevent", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "mousedown", modifiers: ["secondary", "prevent"] });
   });
 
   test("modified stays a guard", () => {
     expect(parseEventName("click.modified", "x")
-      .getOrThrow())
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }))
       .toEqual({ event: "click", modifiers: ["modified"] });
   });
 

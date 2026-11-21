@@ -314,7 +314,12 @@ function compileMap(block: BlockItem, candidates: readonly DirectiveCandidate[])
 function itemOf(text: string): Pattern {
   const pattern = parsePattern(text)
     .mapLeft((error) => new Error(`${error.message}, in @map`))
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
   if (!isMapPattern(pattern)) {
     throw new Error(`@map's let takes a name or a pattern, e.g. let todo or let { id }, got "${text}"`);
   }
@@ -377,7 +382,12 @@ function expressionOf(block: BlockItem): Expression {
   }
   return ExpressionParser.parse(block.header)
     .mapLeft((error) => new Error(`${error.message}, in @${block.keyword}`))
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
 }
 
 /**
@@ -394,7 +404,12 @@ function caseHeader(
   }
   const result = parsePattern(split.pattern)
     .mapLeft((error) => new Error(`${error.message}, in @case`))
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
   if (subjectless && result.kind !== "any") {
     throw new Error(`A @match without a subject takes "@case _ when …" cases, not "${split.pattern}"`);
   }
@@ -415,7 +430,12 @@ function compileText(value: string): CompiledNode[] {
   const declarations = [...value.matchAll(LET_DECLARATION)];
   if (declarations.length === 0) {
     return [{ kind: "text", interpolation: parseInterpolation(value)
-      .getOrThrow() }];
+      .match({
+        left: (error) => {
+          throw error;
+        },
+        right: (value) => value,
+      }) }];
   }
   const nodes: CompiledNode[] = [];
   let rest = 0;
@@ -435,7 +455,12 @@ function textBefore(text: string): CompiledNode[] {
 function compileLet(name: string, source: string): CompiledLet {
   const expression = ExpressionParser.parse(source)
     .mapLeft((error) => new Error(`${error.message}, in @let ${name}`))
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
   return { kind: "let", name, expression };
 }
 
@@ -634,7 +659,12 @@ function classifyAttributes(node: ElementNode): {
   const attributeBindings: ValueBindingNode[] = [];
   const parse = (attribute: AttributeNode) => ExpressionParser.parse(attribute.value)
     .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
-    .getOrThrow();
+    .match({
+      left: (error) => {
+        throw error;
+      },
+      right: (value) => value,
+    });
   for (const attribute of node.attributes) {
     if (attribute.name === "[class]") {
       classObjects.push({ name: "", expression: parse(attribute) });
@@ -668,11 +698,21 @@ function classifyAttributes(node: ElementNode): {
     } else if (eventName !== undefined) {
       const { event, modifiers } = parseEventName(eventName, "event binding")
         .mapLeft((error) => new Error(`${error.message}, on <${node.name}>`))
-        .getOrThrow();
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        });
       const handler = parseHandler(attribute.value, "event handler")
         .mapLeft((error) =>
           new Error(`${error.message}, on <${node.name}>`))
-        .getOrThrow();
+        .match({
+          left: (error) => {
+            throw error;
+          },
+          right: (value) => value,
+        });
       outputBindings.push({
         name: event,
         owner: outputOwner,
