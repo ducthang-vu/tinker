@@ -15,7 +15,7 @@
 // when it matches none. Names are compared case-insensitively: the browser's
 // parser lowercases tag and attribute names.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either, toError, type EitherError } from "@tinker/functional";
 import type { AttributeNode } from "./ast.ts";
 
 /** What a selector is matched against: an element of a parsed template. */
@@ -45,7 +45,8 @@ export class Selector {
 
   /** Parse `source`, or the error explaining what is not supported. */
   static parse(source: string): EitherError<Selector> {
-    return Either.from(() => Selector.parseOrThrow(source));
+    return Either.try(() => Selector.parseOrThrow(source))
+      .mapLeft(toError);
   }
 
   /** Whether `element` matches any of the selectors of the list. */

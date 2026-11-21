@@ -28,7 +28,7 @@ export function runBatches(takeBatch: () => readonly (() => void)[]): void {
 function firstFailure(tasks: Iterable<() => void>): Maybe<unknown> {
   let failure = Maybe.none<unknown>();
   for (const task of tasks) {
-    const outcome = Either.tryCatch(task);
+    const outcome = Either.try(task);
     failure = failure.orElse(() => outcome.match({ left: Maybe.some, right: () => Maybe.none() }));
   }
   return failure;

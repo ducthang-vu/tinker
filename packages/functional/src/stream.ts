@@ -235,7 +235,8 @@ export class Stream<T, R = void, E = Error> {
       this.subscribe({
         next: (item) => sink.next(item),
         end: (result) =>
-          sink.end(Either.flatMap(result, (value) => Either.from(() => f(value)))),
+          sink.end(Either.flatMap(result, (value) => Either.try(() => f(value))
+            .mapLeft(toError))),
       }));
   }
 
@@ -265,7 +266,8 @@ export class Stream<T, R = void, E = Error> {
         next: (item) => sink.next(item),
         end: (result) => result.match({
           left: (error) => sink.end(Either.left(error)),
-          right: (value) => Either.from(() => f(value))
+          right: (value) => Either.try(() => f(value))
+            .mapLeft(toError)
             .match({
               left: (error) => sink.end(Either.left(error)),
               right: (next) => {

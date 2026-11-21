@@ -13,7 +13,7 @@
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either, toError, type EitherError } from "@tinker/functional";
 import { type Expression, ExpressionParser } from "./expression.ts";
 
 export type TypeName = "string" | "number" | "boolean" | "object" | "function";
@@ -117,7 +117,8 @@ export function splitGuard(header: string): { readonly pattern: string; readonly
 /** The pattern written as `text`, or the error explaining what is not supported. */
 export function parsePattern(text: string): EitherError<Pattern> {
   // Regex literals are masked first, so their braces, bars and quotes are not read as structure.
-  return Either.from(() => patternOf(maskRegexes(text.trim())))
+  return Either.try(() => patternOf(maskRegexes(text.trim())))
+    .mapLeft(toError)
     .mapLeft((error) => new Error(restoreRegexes(error.message)));
 }
 

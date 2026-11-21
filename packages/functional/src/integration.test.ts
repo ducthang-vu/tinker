@@ -3,7 +3,7 @@
 // checks what comes out of them, including failures and cancellation.
 
 import { describe, expect, test } from "vitest";
-import { Either } from "./either.ts";
+import { Either, toError } from "./either.ts";
 import { Emitter } from "./emitter.ts";
 import { Maybe } from "./maybe.ts";
 import { pipe } from "./pipe.ts";
@@ -40,7 +40,8 @@ function record<T, R, E>(stream: Stream<T, R, E>) {
 
 describe("Either, Maybe and Task through pipe", () => {
   /** A config is text: parse it, take its port, default it when missing or invalid. */
-  const parse = (text: string) => Either.from(() => JSON.parse(text) as { port?: unknown });
+  const parse = (text: string) => Either.try(() => JSON.parse(text) as { port?: unknown })
+    .mapLeft(toError);
   const portOf = (config: { port?: unknown }) => pipe(
     Maybe.from(config.port),
     Maybe.flatMap((port) => (typeof port === "number" ? Maybe.some(port) : Maybe.none<number>())),

@@ -8,7 +8,7 @@
 //   either.match({ left, right })  get out, handling both cases
 //
 //   pipe(
-//     Either.from(() => JSON.parse(text)),
+//     Either.try(() => JSON.parse(text)).mapLeft(toError),
 //     Either.flatMap(validate),
 //   ).match({ left: showError, right: render });
 
@@ -29,8 +29,8 @@ export interface EitherFlatMap {
 
 /**
  * An Either whose failure is an Error: the common case, e.g. the result of
- * code that can throw. `Either.from` creates them,
- * and `getOrThrow()` turns one back into a value or a thrown error.
+ * code that can throw: `Either.try(fn).mapLeft(toError)` makes one.
+ * `getOrThrow()` turns it back into a value or a thrown error.
  */
 export type EitherError<T> = Either<T, Error>;
 
@@ -70,22 +70,12 @@ export class Either<T, E> {
   }
 
   /** Run `fn`: its result as a Right, or what it throws as a Left. */
-  static tryCatch<T>(fn: () => T): Either<T, unknown> {
+  static try<T>(fn: () => T): Either<T, unknown> {
     try {
       return Either.right(fn());
     } catch (error) {
       return Either.left(error);
     }
-  }
-
-  /**
-   * Like `tryCatch`, but what `fn` throws always becomes an Error: an Error
-   * as is, anything else (e.g. `throw "oops"`) wrapped, keeping the original
-   * value as the Error's `cause`.
-   */
-  static from<T>(fn: () => T): EitherError<T> {
-    return Either.tryCatch(fn)
-      .mapLeft(toError);
   }
 
   isRight(): boolean {

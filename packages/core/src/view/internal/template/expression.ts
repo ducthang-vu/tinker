@@ -24,7 +24,7 @@
 //
 // Call arguments, unary minus and strings come later.
 
-import { Either, type EitherError } from "@tinker/functional";
+import { Either, toError, type EitherError } from "@tinker/functional";
 
 /** A parsed template expression. */
 export type Expression
@@ -128,8 +128,9 @@ export class ExpressionParser {
 
   /** Parse `source` into an expression, or the error explaining what is wrong. */
   static parse(source: string): EitherError<Expression> {
-    return Either.from(() => new ExpressionParser(source)
-      .parseAll());
+    return Either.try(() => new ExpressionParser(source)
+      .parseAll())
+      .mapLeft(toError);
   }
 
   private parseAll(): Expression {
