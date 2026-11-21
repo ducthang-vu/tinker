@@ -47,8 +47,13 @@ computed) is skipped. Strict mode fails the build for it instead.
 
 ## The commands
 
-Both read a library's files from disk, without Vite. They follow only relative
-imports, so an import from a package is not read.
+Both read a library's files from disk, without Vite. They follow three kinds of
+import, each read as TypeScript source:
+
+- relative imports (`./card.ts`);
+- path aliases of the nearest `tsconfig.json`, with `*` as in TypeScript;
+- packages, through their `development` export when that is a `.ts` file. A package
+  that ships only built JavaScript is not followed: its decorators are compiled away.
 
 ### `tinker-check`
 

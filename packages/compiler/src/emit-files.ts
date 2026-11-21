@@ -12,7 +12,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { type CheckOutput } from "./check.ts";
 import { type CheckHost, emitFile } from "./plugin.ts";
-import { resolveRelative } from "./resolve.ts";
+import { resolveImport } from "./resolve.ts";
 
 /** What the command was asked to do. */
 export interface EmitOptions {
@@ -99,7 +99,7 @@ export async function emitFiles(options: EmitOptions, output: CheckOutput): Prom
   for (const file of options.files) {
     const path = resolve(file);
     const host: CheckHost = {
-      resolve: async (source, importer) => resolveRelative(source, importer),
+      resolve: async (source, importer) => resolveImport(source, importer),
       error: (message) => {
         throw new Error(message);
       },

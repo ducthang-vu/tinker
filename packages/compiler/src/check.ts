@@ -1,11 +1,11 @@
 // The check as a command, for a library's files that are not built by Vite: each file
-// is checked the way the plugin checks it, with relative imports found on disk.
+// is checked the way the plugin checks it, with its imports found on disk.
 // It changes nothing. Errors and warnings go to `output`; the result is the exit code.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { type CheckHost, compileComponents, type CompileMode } from "./plugin.ts";
-import { resolveRelative } from "./resolve.ts";
+import { resolveImport } from "./resolve.ts";
 
 /** Where the check writes its messages. */
 export interface CheckOutput {
@@ -27,7 +27,7 @@ export async function checkFiles(
   for (const file of files) {
     const path = resolve(file);
     const host: CheckHost = {
-      resolve: async (source, importer) => resolveRelative(source, importer),
+      resolve: async (source, importer) => resolveImport(source, importer),
       error: (message) => {
         throw new Error(message);
       },
