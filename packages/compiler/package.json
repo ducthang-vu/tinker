@@ -16,7 +16,7 @@
     "vite": "*"
   },
   "scripts": {
-    "build": "vite build"
+    "build": "vite build && chmod +x dist/tinker-check.js dist/tinker-compile.js"
   },
   "bin": {
     "tinker-check": "./dist/tinker-check.js",
