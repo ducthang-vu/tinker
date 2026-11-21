@@ -2,10 +2,13 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "rootDir": "build/src",
+    "rootDir": "../../dist/library-source/src",
     "outDir": "dist",
     "declaration": true,
     "paths": {}
   },
-  "include": ["build/src"]
+  "include": [
+    "../../dist/library-source/src"
+  ],
+  "exclude": []
 }
