@@ -467,6 +467,45 @@ describe("@map with a let pattern", () => {
     app.destroy();
   });
 
+  test("an as alias binds the whole item next to its destructured fields", async () => {
+    @Component({
+      selector: "tk-destructure-alias",
+      template: "<ul>@map rows(); let { id, title } as row; track id "
+        + "{ <li>{{ row.title }}:{{ title }}</li> }</ul>",
+    })
+    class DestructureAlias {
+      readonly rows = signal([{ id: 1, title: "a" }]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(DestructureAlias, { host: el });
+    await tick();
+    const before = el.querySelector("li");
+    app.root.instance.rows.set([{ id: 1, title: "renamed" }]);
+    await tick();
+    expect(rows(el))
+      .toEqual(["renamed:renamed"]);
+    expect(el.querySelector("li"))
+      .toBe(before);
+    app.destroy();
+  });
+
+  test("an as alias after an array pattern binds the whole array", async () => {
+    @Component({
+      selector: "tk-destructure-array-alias",
+      template: "<ul>@map pairs(); let [first, ...rest] as list "
+        + "{ <li>{{ list.length }}:{{ first }}:{{ rest.length }}</li> }</ul>",
+    })
+    class DestructureArrayAlias {
+      readonly pairs = signal([["a", "b", "c"]]);
+    }
+    const el = document.createElement("section");
+    const app = bootstrap(DestructureArrayAlias, { host: el });
+    await tick();
+    expect(rows(el))
+      .toEqual(["3:a:2"]);
+    app.destroy();
+  });
+
   test("an item that does not match the pattern is an error", () => {
     @Component({
       selector: "tk-destructure-miss",

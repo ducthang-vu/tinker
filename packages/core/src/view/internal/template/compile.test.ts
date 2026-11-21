@@ -227,7 +227,11 @@ describe("@map", () => {
       .toThrow(`"$x" is reserved`);
     expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let { id: $x } { x }" }]))
       .toThrow(`"$x" is reserved`);
+    expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let { id } as $row { x }" }]))
+      .toThrow(`"$row" is reserved`);
     expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let 1 { x }" }]))
+      .toThrow("takes a name or a pattern");
+    expect(() => compileTemplate([{ kind: "text", value: "@map todos(); let 1 as row { x }" }]))
       .toThrow("takes a name or a pattern");
   });
 
@@ -282,6 +286,15 @@ describe("@map let patterns and @case array patterns", () => {
     const [array] = compileTemplate([{ kind: "text", value: "@map rows(); let [first, ...rest] { x }" }]);
     expect(array)
       .toMatchObject({ kind: "map", item: { kind: "array", rest: "rest" } });
+  });
+
+  test("let takes an as alias after an object or array pattern", () => {
+    const [map] = compileTemplate([{ kind: "text", value: "@map rows(); let { id, title } as row { x }" }]);
+    expect(map)
+      .toMatchObject({ kind: "map", item: { kind: "as", name: "row", pattern: { kind: "object" } } });
+    const [array] = compileTemplate([{ kind: "text", value: "@map rows(); let [first, ...rest] as list { x }" }]);
+    expect(array)
+      .toMatchObject({ kind: "map", item: { kind: "as", name: "list", pattern: { kind: "array", rest: "rest" } } });
   });
 
   test("a @case can be an array pattern, empty or with a rest", () => {
