@@ -317,16 +317,22 @@ output (`npm pack`) before publishing.
 Inside the repo, the `development` export condition points at source, so a Vite dev server
 uses the source without a rebuild. Node cannot load that source, so Node uses `dist`.
 
-### 2. Emitted trees are larger than their templates
+### 2. The start-up gain of emitted trees is measured for one app
 
-**Problem.** Measured on the example: about 2.2 times the gzipped size of the
-templates (see the plugin's `emit` option). The person running the compiler chooses per
+**Problem.** The emitted templates are about 2.2 times the gzipped size of their template
+strings, but the whole bundle grows by much less. Measured on the example app, in headless
+Chromium on one machine, 40 loads of each build, alternating:
+
+- Time from navigation to all four components rendered: median 47 ms with template
+  strings, 39.1 ms with emitted trees (p90 58.4 ms and 44.9 ms).
+- Bundle: 193,704 bytes raw and 37,617 gzipped with strings; 221,593 raw and 38,436
+  gzipped with trees (about 0.8 KB more gzipped).
+
+So for this app the trees are worth their size. The person running the compiler chooses per
 build: `--emit` writes the trees, and without it the output keeps the template strings.
-A library's default is the strings, since the trees cost size and the start-up gain is
-not measured.
 
-**To do.** Measure the start-up time a tree saves on a real app, and then decide whether
-the sample library should default to `--emit`.
+**To do.** Measure on a larger app and on slower hardware before making trees the default
+for libraries, since a library's consumers pay the bundle size, not the build.
 
 ## Testing: concurrent tests
 
