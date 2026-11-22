@@ -48,3 +48,11 @@ export function flow(
 ): (...args: unknown[]) => unknown {
   return (...args) => fns.reduce((acc, fn) => fn(acc), first(...args));
 }
+
+/** The function with its first arguments fixed to `given`, taking the rest. */
+export function partial<A extends unknown[], B extends unknown[], R>(
+  f: (...args: [...A, ...B]) => R,
+  ...given: A
+): (...rest: B) => R {
+  return (...rest) => f(...[...given, ...rest] as [...A, ...B]);
+}
