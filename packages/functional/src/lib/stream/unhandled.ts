@@ -20,12 +20,22 @@ const rethrowLater: UnhandledReporter = (error) => {
 
 let reporter: UnhandledReporter = rethrowLater;
 
-/** Report `error`: it was thrown by a listener, and nobody can handle it. */
+/**
+ * Report `error`: it was thrown by a listener, and nobody can handle it.
+ *
+ * @param error The exception the listener threw.
+ */
 export function reportUnhandled(error: unknown): void {
   reporter(error);
 }
 
-/** Run `fn` with `replacement` as the reporter; the previous one is restored afterwards. */
+/**
+ * Run `fn` with `replacement` as the reporter; the previous one is restored afterwards.
+ *
+ * @param replacement The reporter to use while `fn` runs.
+ * @param fn The code to run with the replacement reporter.
+ * @returns What `fn` returns.
+ */
 export function withUnhandledReporter<R>(replacement: UnhandledReporter, fn: () => R): R {
   const previous = reporter;
   reporter = replacement;

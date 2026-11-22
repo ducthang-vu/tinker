@@ -24,7 +24,6 @@ export interface Functor<T> {
   [MAP]<U>(f: (value: T) => U): Functor<U>;
 }
 
-/** A data-last `map`: applied to a box, it maps the box. */
 /**
  * The box `B` mapped from values of type `T` to values of type `U`: the same kind of box, holding
  * `U`. The library's boxes are listed. Another functor maps to a `Functor<U>`, and any other
@@ -62,7 +61,12 @@ export interface Chain<T> {
   [CHAIN]<U>(f: (value: T) => Chain<U>): Chain<U>;
 }
 
-/** A data-last `flatMap` returning an Either. */
+/**
+ * A data-last `flatMap` returning an Either.
+ *
+ * @privateAPI Not in the public API: the signature of the data-last `flatMap` for Either, for the
+ * library's own overloads. An app uses `flatMap` and lets the type be inferred.
+ */
 export type EitherFlatMapFn<T, U, F> = <E>(self: Either<T, E>) => Either<U, E | F>;
 
 /** A data-last `flatMap` returning a Maybe. */
@@ -74,6 +78,10 @@ export type MaybeFlatMapFn<T, U> = (self: Maybe<T>) => Maybe<U>;
  * protocol maps itself; a matchable box without it uses its case's registered `map`. Data-first
  * `map(box, f)`, or data-last `map(f)`, which returns a function of the box.
  *
+ * @param self The box to map: an Either, a Maybe, an array, a stream, or another functor.
+ * @param f The function applied to the value inside the box.
+ * @returns A box of the same case holding the result, or, for the data-last form, a function of
+ * the box.
  * @example
  * ```ts
  * import { map, Some } from "@tinker/functional";
@@ -117,13 +125,25 @@ export function map(...args: readonly unknown[]): unknown {
 const MAP_NEEDS = "map needs a functor (a value with the MAP method) or a matchable box";
 const FLAT_MAP_NEEDS = "flatMap needs a chain (a value with the CHAIN method) or a matchable box";
 
-/** Whether the value is an object with a function under `key`. */
+/**
+ * Whether the value is an object with a function under `key`.
+ *
+ * @param value The value to check.
+ * @param key The symbol the method is stored under.
+ * @returns `true` when `value` has a function under `key`.
+ */
 function hasMethod(value: unknown, key: symbol): boolean {
   return typeof value === "object" && value !== null && key in value
     && typeof (value as Record<symbol, unknown>)[key] === "function";
 }
 
-/** The case name of a matchable box. Throws `message` for a value that is not matchable. */
+/**
+ * The case name of a matchable box. Throws `message` for a value that is not matchable.
+ *
+ * @param value The value to read the case name from.
+ * @param message The error message, for a value that is not matchable.
+ * @returns The case name of the box.
+ */
 function caseNameOf(value: unknown, message: string): string {
   if (typeof value === "object" && value !== null && MATCHABLE in value) {
     return (value as Matchable)[MATCHABLE].name;
@@ -136,6 +156,10 @@ function caseNameOf(value: unknown, message: string): string {
  * the result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or
  * data-last `flatMap(f)`, which returns a function of the box.
  *
+ * @param self The box to chain through.
+ * @param f The function that takes the value inside the box and returns the next box.
+ * @returns The box `f` returned, or the box itself for a case with no value; for the data-last
+ * form, a function of the box.
  * @example
  * ```ts
  * import { flatMap, None, Some } from "@tinker/functional";
@@ -186,28 +210,52 @@ export function flatMap(...args: readonly unknown[]): unknown {
   );
 }
 
-/** Maps an Either: `f` is applied to a Right's value; a Left is returned unchanged. */
+/**
+ * Maps an Either: `f` is applied to a Right's value; a Left is returned unchanged.
+ *
+ * @param box The Either to map.
+ * @param f The function applied to a Right's value.
+ * @returns A Right of `f`'s result, or the Left unchanged.
+ */
 const eitherMap: MapImpl = (box, f) =>
   match<unknown, unknown, Either<unknown, unknown>>(box as Either<unknown, unknown>, {
     Right: (value) => Right.of(f(value)),
     Left: () => box as Either<unknown, unknown>,
   });
 
-/** Chains an Either: `f` is applied to a Right's value; a Left is returned unchanged. */
+/**
+ * Chains an Either: `f` is applied to a Right's value; a Left is returned unchanged.
+ *
+ * @param box The Either to chain through.
+ * @param f The function that takes a Right's value and returns the next Either.
+ * @returns The Either `f` returned, or the Left unchanged.
+ */
 const eitherFlatMap: FlatMapImpl = (box, f) =>
   match<unknown, unknown, Either<unknown, unknown>>(box as Either<unknown, unknown>, {
     Right: (value) => f(value) as Either<unknown, unknown>,
     Left: () => box as Either<unknown, unknown>,
   });
 
-/** Maps a Maybe: `f` is applied to a Some's value; a None is returned unchanged. */
+/**
+ * Maps a Maybe: `f` is applied to a Some's value; a None is returned unchanged.
+ *
+ * @param box The Maybe to map.
+ * @param f The function applied to a Some's value.
+ * @returns A Some of `f`'s result, or the None unchanged.
+ */
 const maybeMap: MapImpl = (box, f) =>
   match<unknown, Maybe<unknown>>(box as Maybe<unknown>, {
     Some: (value) => Some.of(f(value)),
     None: () => box as Maybe<unknown>,
   });
 
-/** Chains a Maybe: `f` is applied to a Some's value; a None is returned unchanged. */
+/**
+ * Chains a Maybe: `f` is applied to a Some's value; a None is returned unchanged.
+ *
+ * @param box The Maybe to chain through.
+ * @param f The function that takes a Some's value and returns the next Maybe.
+ * @returns The Maybe `f` returned, or the None unchanged.
+ */
 const maybeFlatMap: FlatMapImpl = (box, f) =>
   match<unknown, Maybe<unknown>>(box as Maybe<unknown>, {
     Some: (value) => f(value) as Maybe<unknown>,
@@ -227,13 +275,22 @@ implementFlatMap("None", maybeFlatMap);
 /**
  * The values of a list of Eithers, in order: a Right of all of them, or the first Left. Every
  * step is run, so use it for steps that have no effects.
+ *
+ * @param eithers The Eithers to combine, in order.
+ * @returns A Right of the values in order, or the first Left.
  */
 export function sequence<T, E>(eithers: readonly Either<T, E>[]): Either<T[], E> {
   return eithers.reduce<Either<T[], E>>((all, next) =>
     flatMap(all, (values) => appendTo(values, next)), Right.of<T[], E>([]));
 }
 
-/** `next`'s value added after `values`. */
+/**
+ * `next`'s value added after `values`.
+ *
+ * @param values The values so far.
+ * @param next The Either whose value is added.
+ * @returns A Right of the values with `next`'s value at the end, or `next`'s Left.
+ */
 function appendTo<T, E>(values: readonly T[], next: Either<T, E>): Either<T[], E> {
   return map(next, (value): T[] => [...values, value]);
 }

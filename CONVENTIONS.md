@@ -66,6 +66,31 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
   a Left (the error). The caller handles the Left, or matches it and throws to go back
   to exceptions.
 
+## Documentation: every function and method has TSDoc
+
+Each function and each method of a package listed in `DOCUMENTED_PACKAGES` (in
+`eslint.config.js`) has a TSDoc block, checked by ESLint (`jsdoc/require-jsdoc`,
+`jsdoc/require-param`, `jsdoc/require-returns`):
+
+- a description, saying what it does, not how;
+- a `@param` for each parameter, saying what it is, with the name first;
+- a `@returns` when it returns a value (not for `void`).
+
+`@example`, `@throws` and `@privateAPI` are optional. Tests and inline callbacks are exempt.
+The generated API reference shows these blocks, so write them for a reader of the API. An
+export that is not for apps is marked `@privateAPI`, with what an app should use instead.
+
+```ts
+/**
+ * Keep the value only if `predicate` accepts it.
+ *
+ * @param self The Maybe to filter.
+ * @param predicate Tells whether a Some's value is kept.
+ * @returns `self` when it is a Some whose value passes, otherwise a None.
+ */
+export function filter<T>(self: Maybe<T>, predicate: (value: T) => boolean): Maybe<T> { ... }
+```
+
 ## Formatting
 
 ESLint formats the code (`npm run format` fixes, `npm run lint` checks),

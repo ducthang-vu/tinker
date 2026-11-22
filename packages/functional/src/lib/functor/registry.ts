@@ -16,6 +16,9 @@ const flatMaps = new Map<string, FlatMapImpl>();
 /**
  * Register how `map` treats boxes of the case named `caseName`. Each case can be registered once.
  *
+ * @param caseName The case name the boxes have, as the `MATCHABLE` protocol reports it.
+ * @param impl The implementation: it maps a box of this case and returns a box.
+ * @throws If `caseName` already has a `map` implementation.
  * @example
  * ```ts
  * import { implementMap, type Matchable, MATCHABLE } from "@tinker/functional";
@@ -27,8 +30,6 @@ const flatMaps = new Map<string, FlatMapImpl>();
  *
  * implementMap("Pending", (box) => box);
  * ```
- *
- * @throws If `caseName` already has a `map` implementation.
  */
 export function implementMap(caseName: string, impl: MapImpl): void {
   register(maps, "map", caseName, impl);
@@ -38,6 +39,9 @@ export function implementMap(caseName: string, impl: MapImpl): void {
  * Register how `flatMap` treats boxes of the case named `caseName`. Each case can be registered
  * once.
  *
+ * @param caseName The case name the boxes have, as the `MATCHABLE` protocol reports it.
+ * @param impl The implementation: it chains a box of this case and returns the box `f` gives back.
+ * @throws If `caseName` already has a `flatMap` implementation.
  * @example
  * ```ts
  * import { implementFlatMap, type Matchable } from "@tinker/functional";
@@ -45,23 +49,39 @@ export function implementMap(caseName: string, impl: MapImpl): void {
  * // A Pending case: it holds no value, so chaining it returns it unchanged.
  * implementFlatMap("Pending", (box) => box);
  * ```
- *
- * @throws If `caseName` already has a `flatMap` implementation.
  */
 export function implementFlatMap(caseName: string, impl: FlatMapImpl): void {
   register(flatMaps, "flatMap", caseName, impl);
 }
 
-/** The `map` implementation for a case. Throws if the case was never registered. */
+/**
+ * The `map` implementation for a case. Throws if the case was never registered.
+ *
+ * @param caseName The case name the implementation was registered under.
+ * @returns The implementation registered for the case.
+ */
 export function mapFor(caseName: string): MapImpl {
   return lookup(maps, "map", caseName, "implementMap");
 }
 
-/** The `flatMap` implementation for a case. Throws if the case was never registered. */
+/**
+ * The `flatMap` implementation for a case. Throws if the case was never registered.
+ *
+ * @param caseName The case name the implementation was registered under.
+ * @returns The implementation registered for the case.
+ */
 export function flatMapFor(caseName: string): FlatMapImpl {
   return lookup(flatMaps, "flatMap", caseName, "implementFlatMap");
 }
 
+/**
+ * Stores `impl` under `caseName` in `table`. Throws if the case is already registered.
+ *
+ * @param table The registry to add to: the `map` or the `flatMap` table.
+ * @param operation The operation's name, for the error message.
+ * @param caseName The case name to register.
+ * @param impl The implementation for the case.
+ */
 function register<I>(table: Map<string, I>, operation: string, caseName: string, impl: I): void {
   if (table.has(caseName)) {
     throw new Error(`${operation} is already implemented for the case ${caseName}`);
@@ -69,6 +89,16 @@ function register<I>(table: Map<string, I>, operation: string, caseName: string,
   table.set(caseName, impl);
 }
 
+/**
+ * Reads the implementation for `caseName` from `table`. Throws, naming the function to call, if the
+ * case was never registered.
+ *
+ * @param table The registry to read: the \`map\` or the \`flatMap\` table.
+ * @param operation The operation's name, for the error message.
+ * @param caseName The case name to look up.
+ * @param register The name of the function that registers the case, for the error message.
+ * @returns The implementation registered for the case.
+ */
 function lookup<I>(
   table: Map<string, I>,
   operation: string,
