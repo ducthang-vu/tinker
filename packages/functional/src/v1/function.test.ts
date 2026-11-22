@@ -6,7 +6,7 @@ import { implementMap } from "./registry.ts";
 import { MATCHABLE, type Matchable } from "./monad.ts";
 import { Stream, run } from "./stream.ts";
 import { flatMap, map } from "./functor.ts";
-import { flow, pipe } from "./function.ts";
+import { flow, partial, pipe } from "./function.ts";
 
 describe("pipe", () => {
   test("returns the value itself with no functions", () => {
@@ -117,5 +117,17 @@ describe("flow", () => {
     const addOne = flow(map((n: number) => n + 1));
     expect(addOne(Right.of<number, string>(1)))
       .toEqual(Right.of(2));
+  });
+});
+
+describe("partial", () => {
+  test("fixes the first arguments, and takes the rest", () => {
+    const sum3 = (a: number, b: number, c: number) => a + b + c;
+    expect(partial(sum3, 1, 2)(3))
+      .toBe(6);
+    expect(partial(sum3)(1, 2, 3))
+      .toBe(6);
+    expect(partial(sum3, 1, 2, 3)())
+      .toBe(6);
   });
 });
