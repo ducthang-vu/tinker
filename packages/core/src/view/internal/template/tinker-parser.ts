@@ -21,7 +21,7 @@
 // `script` and `style` are read as raw text.
 // Comments are dropped.
 
-import { flatMap, Left, map, match, Right, type Either } from "@tinker/functional/v1";
+import { flatMap, Left, map, match, outcomeOf, Right, type Either } from "@tinker/functional/v1";
 import { decodeReferences } from "./entities.ts";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
@@ -127,16 +127,14 @@ class Scanner {
     const nodes: TemplateNode[] = [];
     while (!this.atEnd() && !this.startsWith("</")) {
       const start = this.pos;
-      match<TemplateNode[], TemplateSyntaxError, void>(this.node(), {
-        Right: (items) => {
-          nodes.push(...items);
-        },
-        Left: (error) => {
-          // The node is dropped; scanning goes on at the next tag after the problem.
-          this.found.push(error);
-          this.resume(Math.max(this.pos, start));
-        },
-      });
+      const outcome = outcomeOf(this.node());
+      if (outcome.kind === "failed") {
+        // The node is dropped; scanning goes on at the next tag after the problem.
+        this.found.push(outcome.error);
+        this.resume(Math.max(this.pos, start));
+      } else {
+        nodes.push(...outcome.value);
+      }
     }
     return nodes;
   }
@@ -294,21 +292,17 @@ class Scanner {
         return Right.of({ attributes, selfClosing: true });
       }
       const at = this.pos;
-      match<AttributeNode, TemplateSyntaxError, void>(this.attribute(), {
-        Right: (attribute) => {
-          if (names.has(attribute.name)) {
-            this.found.push(this.error(`duplicate attribute ${attribute.name}`, at));
-          } else {
-            names.add(attribute.name);
-            attributes.push(attribute);
-          }
-        },
-        Left: (error) => {
-          // The attribute is dropped, and the tag goes on at its end.
-          this.found.push(error);
-          this.skipToTagEnd();
-        },
-      });
+      const outcome = outcomeOf(this.attribute());
+      if (outcome.kind === "failed") {
+        // The attribute is dropped, and the tag goes on at its end.
+        this.found.push(outcome.error);
+        this.skipToTagEnd();
+      } else if (names.has(outcome.value.name)) {
+        this.found.push(this.error(`duplicate attribute ${outcome.value.name}`, at));
+      } else {
+        names.add(outcome.value.name);
+        attributes.push(outcome.value);
+      }
     }
   }
 

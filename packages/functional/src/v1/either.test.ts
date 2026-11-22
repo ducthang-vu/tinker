@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { EDGE_VALUES } from "./testing.ts";
-import { attempt, Left, mapLeft, Right, toError, type Either } from "./either.ts";
+import { attempt, Left, mapLeft, outcomeOf, Right, toError, type Either } from "./either.ts";
 import { flatMap, map } from "./functor.ts";
 import { isEqual, match } from "./monad.ts";
 
@@ -141,3 +141,12 @@ describe("Either on every edge value", () => {
 
 /** A marker for "no value", since every edge value is a value. */
 const NOT_A_VALUE: unknown = Symbol("not a value");
+
+describe("outcomeOf", () => {
+  test("a Right is an ok outcome with its value, and a Left a failed outcome with its error", () => {
+    expect(outcomeOf(Right.of(1)))
+      .toEqual({ kind: "ok", value: 1 });
+    expect(outcomeOf(Left.of("bad")))
+      .toEqual({ kind: "failed", error: "bad" });
+  });
+});

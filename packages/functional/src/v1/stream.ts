@@ -17,7 +17,7 @@
 //   const upload = Stream.from<number, Response>((sink) => { ... });
 //   run(upload, { next: showProgress, ok: showResult, error: showError });
 
-import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "./either.ts";
+import { attempt, Left, mapLeft as mapLeftEither, outcomeOf, Right, toError, type Either } from "./either.ts";
 import { type Chain, CHAIN, type Functor, MAP } from "./functor.ts";
 import { match } from "./monad.ts";
 
@@ -194,18 +194,22 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
       let cancelSecond: Cancel | undefined;
       const cancelFirst = subscribe(this, {
         next: (item) => sink.next(item),
-        end: (result) => match(result, {
-          Left: (error) => sink.end(Left.of(error)),
-          Right: (value) => match(attemptAsError(() => f(value)), {
-            Left: (error) => sink.end(Left.of(error)),
-            Right: (next) => {
-              cancelSecond = subscribe(next, {
-                next: (item) => sink.next(item),
-                end: (end) => sink.end(end),
-              });
-            },
-          }),
-        }),
+        end: (result) => {
+          const outcome = outcomeOf(result);
+          if (outcome.kind === "failed") {
+            sink.end(Left.of(outcome.error));
+            return;
+          }
+          const next = outcomeOf(attemptAsError(() => f(outcome.value)));
+          if (next.kind === "failed") {
+            sink.end(Left.of(next.error));
+            return;
+          }
+          cancelSecond = subscribe(next.value, {
+            next: (item) => sink.next(item),
+            end: (end) => sink.end(end),
+          });
+        },
       });
       return () => (cancelSecond ?? cancelFirst)();
     });
@@ -236,15 +240,24 @@ export function run<T, R, E>(
   stream: Stream<T, R, E>,
   handlers: StreamHandlers<T, R, E> = {},
 ): Cancel {
+  // Without an error handler a failure is re-thrown where it happens (see StreamHandlers).
   const fail = (error: E) => {
     if (!handlers.error) {
       throw error;
     }
     handlers.error(error);
   };
+  const deliver = <A>(either: Either<A, E>, onValue: ((value: A) => void) | undefined): void => {
+    const outcome = outcomeOf(either);
+    if (outcome.kind === "failed") {
+      fail(outcome.error);
+    } else {
+      onValue?.(outcome.value);
+    }
+  };
   return subscribe(stream, {
-    next: (item) => match(item, { Left: fail, Right: (value) => handlers.next?.(value) }),
-    end: (result) => match(result, { Left: fail, Right: (value) => handlers.ok?.(value) }),
+    next: (item) => deliver(item, handlers.next),
+    end: (result) => deliver(result, handlers.ok),
   });
 }
 
