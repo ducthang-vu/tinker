@@ -23,9 +23,21 @@ export interface Matchable<
   readonly [MATCHABLE]: Case<Name, Args>;
 }
 
-/** Get out of an Either, handling each case by its constructor name. */
+/**
+ * Get out of an Either, handling each case by its constructor name.
+ *
+ * @param self The Either to read.
+ * @param cases The handler for each case, called with the case's value.
+ * @returns What the handler of the case returns.
+ */
 export function match<T, E, R>(self: Either<T, E>, cases: EitherCases<T, E, R>): R;
-/** Get out of a Maybe, handling each case by its constructor name. */
+/**
+ * Get out of a Maybe, handling each case by its constructor name.
+ *
+ * @param self The Maybe to read.
+ * @param cases The handler for each case, called with the case's value.
+ * @returns What the handler of the case returns.
+ */
 export function match<T, R>(self: Maybe<T>, cases: MaybeCases<T, R>): R;
 export function match(
   self: Matchable,
@@ -34,7 +46,13 @@ export function match(
   return readCase(self, cases);
 }
 
-/** The handler for a box's case, called with its arguments: the read `match` and `use` share. */
+/**
+ * The handler for a box's case, called with its arguments: the read `match` and `use` share.
+ *
+ * @param self The box to read.
+ * @param cases The handler for each case name.
+ * @returns What the handler of the box's case returns.
+ */
 function readCase(
   self: Matchable,
   cases: Record<string, (...args: never[]) => unknown>,
@@ -56,10 +74,12 @@ export interface MaybeEffects<T> {
 }
 
 /**
- * Run the handler of the box's case, for its effect. An effect is
- * the edge of a program: pure code reads a box with `match` instead, and uses `use` only where
- * something has to happen (a value sent to a subscriber, an error reported).
+ * Run the handler of the box's case, for its effect. An effect is the edge of a program: pure code
+ * reads a box with `match` instead, and uses `use` only where something has to happen (a value
+ * sent to a subscriber, an error reported).
  *
+ * @param self The box whose case decides which handler runs.
+ * @param cases The effect handler for each case.
  * @example
  * ```ts
  * use(Left.of("offline"), { Right: (value) => show(value), Left: (error) => report(error) });
@@ -92,6 +112,10 @@ export interface Equatable {
  * Whether `a` and `b` are equal. A value with the EQUALS protocol decides for itself. Any other
  * value is equal to another when they are the same value, with NaN equal to NaN and 0 to -0
  * (SameValueZero, the rule `Set` and `Map` use). Objects are equal only to themselves.
+ *
+ * @param a The first value.
+ * @param b The second value.
+ * @returns `true` when the two values are equal.
  */
 export function isEqual(a: unknown, b: unknown): boolean {
   if (hasEquals(a)) {
@@ -103,6 +127,10 @@ export function isEqual(a: unknown, b: unknown): boolean {
 /**
  * Equal to a box of the same case whose arguments are equal (by `isEqual`). The matchable
  * boxes use it for their EQUALS method, so nested boxes compare by value.
+ *
+ * @param self The box that compares itself.
+ * @param other The value to compare with.
+ * @returns `true` when `other` is a box of the same case with equal arguments.
  */
 export function equalCases(self: Matchable, other: unknown): boolean {
   if (typeof other !== "object" || other === null || !(MATCHABLE in other)) {
@@ -115,6 +143,12 @@ export function equalCases(self: Matchable, other: unknown): boolean {
     && mine.args.every((arg, index) => isEqual(arg, theirs.args[index]));
 }
 
+/**
+ * Whether the value has the EQUALS protocol.
+ *
+ * @param value The value to check.
+ * @returns `true` when `value` is an object with an EQUALS method.
+ */
 function hasEquals(value: unknown): value is Equatable {
   return typeof value === "object" && value !== null && EQUALS in value;
 }

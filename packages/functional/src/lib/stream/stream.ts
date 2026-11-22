@@ -74,6 +74,11 @@ const starts = new WeakMap<object, Start<unknown, unknown, unknown>>();
  * ```
  */
 export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
+  /**
+   * Keeps how the stream starts a run, for `subscribe` to read.
+   *
+   * @param start How a run starts for an observer, and returns how to cancel it.
+   */
   private constructor(start: Start<T, R, E>) {
     starts.set(this, start as Start<unknown, unknown, unknown>);
   }
@@ -81,6 +86,9 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
   /**
    * A stream doing `computation` each time it is subscribed to. An exception the computation throws
    * becomes a failure: the stream ends with a Left holding an Error (so `E | Error`).
+   *
+   * @param computation How the stream delivers its items and ends, through the sink it is given.
+   * @returns A cold stream that runs `computation` for each subscriber.
    */
   static from<T, R = void, E = Error>(
     computation: StreamComputation<T, R, E>,
@@ -91,27 +99,50 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
   /**
    * A hot stream: `subscribe` registers an observer and returns how to remove it. The source must
    * keep the grammar itself (items, then one end, and nothing after a cancel).
+   *
+   * @param subscribe Registers an observer with the source, and returns how to remove it.
+   * @returns A hot stream over the source.
    */
   static hot<T, R, E>(subscribe: (observer: StreamObserver<T, R, E>) => Cancel): Stream<T, R, E> {
     return new Stream(subscribe);
   }
 
-  /** No items, ends with `result`. */
+  /**
+   * No items, ends with `result`.
+   *
+   * @param result The result the stream ends with.
+   * @returns A stream with no items that ends successfully with `result`.
+   */
   static end<R>(result: R): Stream<never, R, never> {
     return Stream.fromEither(Right.of(result));
   }
 
-  /** No items, ends with the failure `error`. */
+  /**
+   * No items, ends with the failure `error`.
+   *
+   * @param error The failure the stream ends with.
+   * @returns A stream with no items that ends with the failure `error`.
+   */
   static fail<E>(error: E): Stream<never, never, E> {
     return Stream.fromEither(Left.of(error));
   }
 
-  /** No items, ends with `end`: a Right succeeds, a Left fails. */
+  /**
+   * No items, ends with `end`: a Right succeeds, a Left fails.
+   *
+   * @param end The Either the stream ends with.
+   * @returns A stream with no items that ends with `end`.
+   */
   static fromEither<R, E>(end: Either<R, E>): Stream<never, R, E> {
     return Stream.make((sink) => sink.end(end));
   }
 
-  /** The successful items, in order, then the end. */
+  /**
+   * The successful items, in order, then the end.
+   *
+   * @param items The items to deliver, in iteration order.
+   * @returns A stream of the items that ends successfully once they are all delivered.
+   */
   static fromIterable<T>(items: Iterable<T>): Stream<T, void, never> {
     return Stream.make((sink) => {
       for (const item of items) {
@@ -125,6 +156,9 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
    * A stream from a computation that cannot fail by itself. What it throws is turned into a
    * failure by `from`, and by `map` and `flatMap`, whose types include Error. Enforces the grammar:
    * nothing after the end, nothing after a cancel, one end.
+   *
+   * @param computation How the stream delivers its items and ends, through the sink it is given.
+   * @returns A cold stream that runs `computation` for each subscriber, enforcing the grammar.
    */
   private static make<T, R, E>(computation: StreamComputation<T, R, E>): Stream<T, R, E> {
     return new Stream((observer) => {
@@ -171,7 +205,12 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
     });
   }
 
-  /** Map what the stream ends with. Items and a failure pass through. A throw fails the stream. */
+  /**
+   * Map what the stream ends with. Items and a failure pass through. A throw fails the stream.
+   *
+   * @param f The function applied to the stream's successful end.
+   * @returns A stream with the same items, that ends with `f`'s result, or with the failure.
+   */
   [MAP]<U>(f: (result: R) => U): Stream<T, U, E | Error> {
     return Stream.make<T, U, E | Error>((sink) =>
       subscribe(this, {
@@ -188,6 +227,9 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
    * a Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,
    * `f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever
    * stream is running.
+   *
+   * @param f Makes the next stream from the successful end of this one.
+   * @returns A stream of this stream's items, then the next stream's, ending with its end.
    */
   [CHAIN]<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error> {
     return Stream.make<T | T2, R2, E | F | Error>((sink) => {
@@ -213,13 +255,22 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
   }
 }
 
-/** `f()` as an Either: a Right of its result, or a Left of what it threw, as an Error. */
+/**
+ * `f()` as an Either: a Right of its result, or a Left of what it threw, as an Error.
+ *
+ * @param f The function to call.
+ * @returns A Right of `f`'s result, or a Left of what it threw, as an Error.
+ */
 const attemptAsError = <U>(f: () => U): Either<U, Error> =>
   mapLeftEither(attempt(f, (error): error is Error => true), toError);
 
 /**
  * Start the stream (each call is a new run) and tell `observer` its items and its end. Returns how
  * to cancel, after which nothing more is delivered.
+ *
+ * @param stream The stream to subscribe to.
+ * @param observer The handlers for the items and the end.
+ * @returns A function that cancels this run.
  */
 export function subscribe<T, R, E>(
   stream: Stream<T, R, E>,
@@ -232,6 +283,10 @@ export function subscribe<T, R, E>(
 /**
  * Subscribe with the values unwrapped: successful items to `next`, a successful end to `ok`, any
  * failure to `error`, which, when absent, is re-thrown where it happens.
+ *
+ * @param stream The stream to run.
+ * @param handlers The handlers for the unwrapped values and for failures.
+ * @returns A function that cancels the run.
  */
 export function run<T, R, E>(
   stream: Stream<T, R, E>,
@@ -250,8 +305,20 @@ export function run<T, R, E>(
   });
 }
 
-/** Transform the errors, of the items and of the end. Successes pass through. */
+/**
+ * Transform the errors, of the items and of the end. Successes pass through.
+ *
+ * @param stream The stream whose errors to transform.
+ * @param f The function applied to each error.
+ * @returns A stream with the same values, and the errors transformed by `f`.
+ */
 export function mapErrors<T, R, E, F>(stream: Stream<T, R, E>, f: (error: E) => F): Stream<T, R, F>;
+/**
+ * Transform the errors, of the items and of the end. Successes pass through.
+ *
+ * @param f The function applied to each error.
+ * @returns A function that takes a stream and transforms its errors with `f`.
+ */
 export function mapErrors<E, F>(
   f: (error: E) => F,
 ): <T, R>(stream: Stream<T, R, E>) => Stream<T, R, F>;

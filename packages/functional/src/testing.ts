@@ -63,7 +63,13 @@ export interface MonadUnderTest<M, A> extends FunctorUnderTest<M, A>, ChainUnder
 /** A check: its description, and a function that throws when the law fails. */
 export type LawCheck = readonly [description: string, check: () => void];
 
-/** Throws, with `message`, unless `holds` is true for every item: a pipeline, with no loop. */
+/**
+ * Throws, with `message`, unless `holds` is true for every item: a pipeline, with no loop.
+ *
+ * @param items The items to check.
+ * @param holds Tells whether the law holds for one item.
+ * @param message The error message, when the law fails for some item.
+ */
 const holdsForAll = <X>(
   items: readonly X[],
   holds: (item: X) => boolean,
@@ -79,6 +85,8 @@ const holdsForAll = <X>(
  * composes. Use it for a type that has `map` but no `flatMap`. Each check is a
  * `[description, check]` pair: `check` throws when its law fails.
  *
+ * @param functor The functor to check: its boxes, and its map.
+ * @returns One `[description, check]` pair per law, for each box of the functor.
  * @example
  * ```ts
  * import { test } from "vitest";
@@ -115,6 +123,8 @@ export function functorLaws<M, A>(functor: FunctorUnderTest<M, A>): LawCheck[] {
  * for a type that has `flatMap` and no `map`. Each check is a `[description, check]` pair: `check`
  * throws when its law fails.
  *
+ * @param chain The chain to check: its boxes, its `of`, and its flatMap.
+ * @returns One `[description, check]` pair per law, for each box of the chain.
  * @example
  * ```ts
  * import { test } from "vitest";
@@ -163,6 +173,9 @@ export function chainLaws<M, A>(chain: ChainUnderTest<M, A>): LawCheck[] {
  * own samples (include edge values, as in `EDGE_VALUES`). Each check is a `[description, check]`
  * pair: `check` throws when its law fails, so any test framework can run it.
  *
+ * @param monad The monad to check: its boxes, `of`, `map`, `flatMap`, and its case names.
+ * @returns The functor and chain checks, and the checks of `match`, as `[description, check]`
+ * pairs.
  * @example
  * ```ts
  * import { test } from "vitest";
