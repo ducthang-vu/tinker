@@ -43,14 +43,16 @@ export type Mapped<B, T, U> = [B] extends [Either<T, infer E>] ? Either<U, E>
  */
 export type MapFn<T, U> = <B extends MappableBox<T>>(self: B) => Mapped<B, T, U>;
 
-/** The boxes a data-last `map` accepts: the library's, any functor, and any matchable box. */
+/**
+ * The boxes a data-last `map` accepts: the library's, and any functor (a value with a MAP method).
+ * A matchable box with only a registered case is mapped data-first, so its type is checked.
+ */
 type MappableBox<T>
   = | Either<T, unknown>
     | Maybe<T>
     | readonly T[]
     | Stream<unknown, T, unknown>
-    | Functor<T>
-    | Matchable;
+    | Functor<T>;
 
 /** The chain protocol: a value that chains itself. Any value may implement it, matchable or not. */
 export const CHAIN: unique symbol = Symbol("chain");
