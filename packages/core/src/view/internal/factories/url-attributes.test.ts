@@ -4,9 +4,8 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
-import { Maybe } from "@tinker/functional";
 import { HostBindings } from "./host-bindings.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional/v1";
 
 /** Render `<a [attr.name]="value()">` for `value`, and return the attribute `attribute`. */
 function attributeFor(attribute: string, value: string | null): string | null {
@@ -62,8 +61,10 @@ describe("host attribute bindings to URL attributes", () => {
     expect(a.getAttribute("href"))
       .toBe("https://example.com/");
 
-    const [link] = Maybe.map(engine.getContext(a), (context) => context.directives)
-      .getOrElse([]) as [Link];
+    const [link] = getOrElse(
+      map(engine.getContext(a), (context) => context.directives),
+      [],
+    ) as [Link];
     link!.url.set("javascript:alert(1)");
     engine.flush();
     expect(a.hasAttribute("href"))

@@ -17,8 +17,7 @@ import { RENDERER } from "../tokens.ts";
 import { ComponentView } from "../runtime/component-view.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, Some, None, isNone, getOrElse, map, use } from "@tinker/functional/v1";
 
 /** A DirectiveFactory created the way the engine creates it: through an injector. */
 function setup() {
@@ -53,8 +52,7 @@ describe("DirectiveFactory", () => {
 
     expect(tooltip)
       .toBeInstanceOf(Tooltip);
-    expect(Maybe.map(contexts.get(element), (context) => context.directives)
-      .getOrElse(undefined))
+    expect(getOrElse(map(contexts.get(element), (context) => context.directives), undefined))
       .toEqual([tooltip]);
   });
 
@@ -66,8 +64,7 @@ describe("DirectiveFactory", () => {
     const { factory, element, view } = setup();
 
     const tooltip = factory.create(Tooltip, element, view);
-    view.input(tooltip, "text")
-      .ifSome((binding) => binding.bind("hello"));
+    use(view.input(tooltip, "text"), { Some: (binding) => binding.bind("hello"), None: () => undefined });
 
     await tick();
 
@@ -114,12 +111,10 @@ describe("DirectiveFactory", () => {
 
     expect(counter.count)
       .toBe(0);
-    expect(Maybe.map(contexts.get(element), (context) => context.directives)
-      .getOrElse(undefined))
+    expect(getOrElse(map(contexts.get(element), (context) => context.directives), undefined))
       .toEqual([other]);
     otherView.destroy();
-    expect(contexts.get(element)
-      .isNone())
+    expect(isNone(contexts.get(element)))
       .toBe(true);
   });
 
@@ -132,8 +127,7 @@ describe("DirectiveFactory", () => {
     const a = factory.create(A, element, view);
     const b = factory.create(B, element, view);
     await tick();
-    expect(Maybe.map(contexts.get(element), (context) => context.directives)
-      .getOrElse(undefined))
+    expect(getOrElse(map(contexts.get(element), (context) => context.directives), undefined))
       .toEqual([a, b]);
   });
 

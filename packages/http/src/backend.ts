@@ -2,9 +2,10 @@
 // interceptors.ts) around the transport, and the transport is one instance: native fetch,
 // under HTTP_TRANSPORT. A test replaces the transport, and the interceptors still run.
 
-import { inject, Injectable, InjectionToken, Task } from "@tinker/core";
+import { inject, Injectable, InjectionToken, type Task } from "@tinker/core";
 import { HTTP_INTERCEPTORS, type HttpOutcome } from "./interceptors.ts";
 import type { HttpRequest, HttpResponse } from "./request.ts";
+import { flatMap, fromPromise, succeed, fail } from "@tinker/functional/v1";
 
 /** The transport: what sends one request. Native fetch is the one instance. */
 export type HttpTransport = (url: string, init: RequestInit) => Promise<Response>;
@@ -42,8 +43,8 @@ export class FetchHttpBackend {
   }
 
   private send(request: HttpRequest): HttpOutcome {
-    return Task.flatMap(
-      Task.fromPromise(async (signal) => {
+    return flatMap(
+      fromPromise(async (signal) => {
         const init = serialize(request);
         const response = await this.transport(request.url, { ...init, signal });
         return {
@@ -54,8 +55,8 @@ export class FetchHttpBackend {
       }),
       (response) =>
         response.status >= 200 && response.status < 300
-          ? Task.succeed(response)
-          : Task.fail(new HttpError(response)),
+          ? succeed(response)
+          : fail(new HttpError(response)),
     );
   }
 }

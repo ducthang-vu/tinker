@@ -6,9 +6,9 @@
 // each root injector creates (and destroys) its own instance, and explicit
 // providers always win.
 
-import { Maybe } from "@tinker/functional";
 import type { Token } from "./inject.ts";
 import type { Provider } from "./provider-records.ts";
+import { fromNullable, use, type Maybe } from "@tinker/functional/v1";
 
 const rootProviders = new Map<Token<unknown>, Provider<unknown>>();
 
@@ -22,5 +22,5 @@ export function registerRootProvider<T>(provider: Provider<T>): void {
 
 /** The root provider for `token`, if it has one. */
 export function findRootProvider<T>(token: Token<T>): Maybe<Provider<T>> {
-  return Maybe.from(rootProviders.get(token) as Provider<T> | undefined);
+  return fromNullable(rootProviders.get(token) as Provider<T> | undefined);
 }

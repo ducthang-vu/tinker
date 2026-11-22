@@ -6,8 +6,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Effect, Effects } from "../authoring/effects.ts";
 import { AfterEachRender, RenderHooks } from "../authoring/render-hooks.ts";
 import { Engine } from "../engine.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrElse, map } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -244,8 +243,7 @@ describe("the component in its own injector", () => {
     class A {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
-    const [part] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
-      .getOrElse([]) as [Part];
+    const [part] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives), []) as [Part];
     await tick();
     expect(part.owner)
       .toBe(view.instance);

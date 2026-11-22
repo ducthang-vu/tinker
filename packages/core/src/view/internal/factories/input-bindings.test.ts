@@ -4,8 +4,7 @@ import { computed, signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map, match } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -13,12 +12,10 @@ afterEach(() => {
 
 /** The instances on `element`: its directives, then its component if any. */
 function instancesOn(engine: Engine, element: Element): object[] {
-  return Maybe.map(engine.getContext(element), (context) => [
+  return getOrElse(map(engine.getContext(element), (context) => [
     ...context.directives,
-    ...Maybe.map(context.componentView, (view) => [view.component as object])
-      .getOrElse([]),
-  ])
-    .getOrElse([]);
+    ...getOrElse(map(context.componentView, (view) => [view.component as object]), []),
+  ]), []);
 }
 
 describe("input bindings", () => {
@@ -179,8 +176,7 @@ describe("input bindings", () => {
       .toThrow(`[label] on <tk-item>: no directive or component on this element has an input "label"`);
     expect(host.innerHTML)
       .toBe("");
-    expect(engine.getContext(host)
-      .isNone())
+    expect(isNone(engine.getContext(host)))
       .toBe(true);
   });
 

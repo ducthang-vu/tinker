@@ -27,8 +27,7 @@ function changeDetection(): ChangeDetection {
 }
 import { ComponentRef } from "./component-ref.ts";
 import type { ComponentView } from "./runtime/component-view.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -49,9 +48,8 @@ describe("Engine.create", () => {
     const view = valueOrThrow(Engine.create()
       .bootstrap(App));
     await tick();
-    expect(Engine.create()
-      .getContext(view.host.nativeElement)
-      .isNone())
+    expect(isNone(Engine.create()
+      .getContext(view.host.nativeElement)))
       .toBe(true);
   });
 });
@@ -199,17 +197,14 @@ describe("Engine.bootstrap", () => {
       .toBeInstanceOf(ComponentRef);
     expect(view.host.nativeElement.childNodes)
       .toHaveLength(1);
-    const context = engine.getContext(view.host.nativeElement)
-      .getOrElse(undefined)!;
+    const context = getOrElse(engine.getContext(view.host.nativeElement), undefined)!;
     expect(context)
       .toBeInstanceOf(ElementContext);
-    expect(Maybe.map(context.componentView, (componentView) => componentView.host)
-      .getOrElse(undefined))
+    expect(getOrElse(map(context.componentView, (componentView) => componentView.host), undefined))
       .toBe(view.host.nativeElement);
     expect(context.directives)
       .toEqual([]);
-    expect(engine.getContext(document.body)
-      .isNone())
+    expect(isNone(engine.getContext(document.body)))
       .toBe(true);
   });
 
@@ -219,18 +214,16 @@ describe("Engine.bootstrap", () => {
     class App {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.bootstrap(App));
-    const context = engine.getContext(view.host.nativeElement)
-      .getOrElse(undefined)!;
+    const context = getOrElse(engine.getContext(view.host.nativeElement), undefined)!;
     context.addDirective({ name: "some directive" });
 
     view.destroy();
 
     await tick();
 
-    expect(engine.getContext(view.host.nativeElement)
-      .getOrElse(undefined))
+    expect(getOrElse(engine.getContext(view.host.nativeElement), undefined))
       .toBe(context);
-    expect(context.componentView.isNone())
+    expect(isNone(context.componentView))
       .toBe(true);
   });
 
@@ -243,19 +236,17 @@ describe("Engine.bootstrap", () => {
     const first = valueOrThrow(engine.bootstrap(App));
     first.destroy();
     await tick();
-    expect(engine.getContext(first.host.nativeElement)
-      .isNone())
+    expect(isNone(engine.getContext(first.host.nativeElement)))
       .toBe(true);
 
     const second = valueOrThrow(engine.bootstrap(App));
-    expect(Maybe.map(
-      Maybe.flatMap(
+    expect(getOrElse(map(
+      flatMap(
         engine.getContext(second.host.nativeElement),
         (context) => context.componentView,
       ),
       (componentView) => componentView.host,
-    )
-      .getOrElse(undefined))
+    ), undefined))
       .toBe(second.host.nativeElement);
   });
 
@@ -281,9 +272,8 @@ describe("Engine.bootstrap", () => {
 
     await tick();
 
-    expect(Engine.create()
-      .getContext(view.host.nativeElement)
-      .isNone())
+    expect(isNone(Engine.create()
+      .getContext(view.host.nativeElement)))
       .toBe(true);
   });
 
@@ -301,11 +291,10 @@ describe("Engine.bootstrap", () => {
       .toBe(host);
     expect(host.innerHTML)
       .toBe("<p>x</p>");
-    expect(Maybe.map(
-      Maybe.flatMap(engine.getContext(host), (context) => context.componentView),
+    expect(getOrElse(map(
+      flatMap(engine.getContext(host), (context) => context.componentView),
       (componentView) => componentView.host,
-    )
-      .getOrElse(undefined))
+    ), undefined))
       .toBe(view.host.nativeElement);
   });
 
@@ -472,8 +461,7 @@ describe("CLASS_REPLACEMENTS", () => {
       providers: [provide(CLASS_REPLACEMENTS, { useValue: replacements })],
     });
     engine.bootstrap(App);
-    const context = engine.getContext(document.querySelector("p")!)
-      .getOrElse(undefined)!;
+    const context = getOrElse(engine.getContext(document.querySelector("p")!), undefined)!;
     await tick();
     expect(context.directives[0])
       .toBeInstanceOf(Stub);

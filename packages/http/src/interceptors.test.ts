@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { Injector, inject, provide, runInInjectionContext, Task, type Provider } from "@tinker/core";
+import { Injector, inject, provide, runInInjectionContext, type Task, type Provider } from "@tinker/core";
+import { map, succeed, run as runTask } from "@tinker/functional/v1";
 import {
   HTTP_TRANSPORT,
   FetchHttpBackend,
@@ -42,7 +43,7 @@ function backendWith(
 /** Run a task and resolve with its outcome. */
 function run<T, E>(task: Task<T, E>): Promise<T> {
   return new Promise((ok, error) => {
-    task.run({ ok, error });
+    runTask(task, { ok, error });
   });
 }
 
@@ -63,7 +64,7 @@ describe("the backend's interceptors", () => {
     const log: string[] = [];
     const logged = (name: string): HttpInterceptor => (request, next) => {
       log.push(`${name} in`);
-      return Task.map(next(request), (response) => {
+      return map(next(request), (response) => {
         log.push(`${name} out`);
         return response;
       });
@@ -92,7 +93,7 @@ describe("the backend's interceptors", () => {
   test("an interceptor can change the response it gets back", async () => {
     const { fetch } = fakeFetch({ raw: 1 });
     const unwrap: HttpInterceptor = (request, next) =>
-      Task.map(next(request), (response: HttpResponse) => ({
+      map(next(request), (response: HttpResponse) => ({
         ...response,
         body: (response.body as { raw: number }).raw,
       }));
@@ -105,7 +106,7 @@ describe("the backend's interceptors", () => {
   test("an interceptor can answer without calling next: fetch is not called", async () => {
     const { calls, fetch } = fakeFetch();
     const cached: HttpInterceptor = () =>
-      Task.succeed({ status: 200, headers: {}, body: "from cache" });
+      succeed({ status: 200, headers: {}, body: "from cache" });
     const response = await run(backendWith(fetch, [cached])
       .handle({ method: "GET", url: "/c" }));
     expect(calls)

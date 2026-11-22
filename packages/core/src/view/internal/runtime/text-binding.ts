@@ -3,7 +3,6 @@
 // written only when the resulting text changed.
 
 import { inject, Injectable } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
@@ -15,6 +14,7 @@ import { InputBinder } from "./input-binder.ts";
 import { StyleBinding } from "./style-binding.ts";
 import { RENDERER } from "../tokens.ts";
 import type { Scope } from "../template/scope.ts";
+import { Some, None, isNone, filter } from "@tinker/functional/v1";
 
 /**
  * Creates the bindings of templates, with the app's renderer. One method
@@ -87,7 +87,7 @@ export class BindingFactory {
 }
 
 export class TextBinding {
-  private last = Maybe.none<string>();
+  private last = None.of<string>();
 
   constructor(
     private readonly node: Text,
@@ -104,10 +104,9 @@ export class TextBinding {
         result + toText(evaluate(expression, this.scope)) + strings[i + 1],
       strings[0]!,
     );
-    if (this.last.filter((last) => last === text)
-      .isNone()) {
+    if (isNone(filter(this.last, (last) => last === text))) {
       this.renderer.setText(this.node, text);
-      this.last = Maybe.some(text);
+      this.last = Some.of(text);
     }
   }
 }

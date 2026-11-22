@@ -4,7 +4,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { query } from "../authoring/query.ts";
 import { QueryMissingError } from "../authoring/query.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse } from "@tinker/functional/v1";
 
 @Directive({ selector: "[marker]", exportAs: "marker" })
 class Marker {
@@ -29,8 +29,7 @@ describe("query with a template variable as the target", () => {
     const view = valueOrThrow(Engine.create()
       .createComponent(A));
     await tick();
-    expect(view.instance.item()
-      .getOrElse(undefined))
+    expect(getOrElse(view.instance.item(), undefined))
       .toBeInstanceOf(Tagged);
   });
 
@@ -60,8 +59,7 @@ describe("query with a template variable as the target", () => {
     const view = valueOrThrow(Engine.create()
       .createComponent(C));
     await tick();
-    expect(view.instance.para()
-      .getOrElse(undefined)?.tagName)
+    expect(getOrElse(view.instance.para(), undefined)?.tagName)
       .toBe("P");
   });
 
@@ -76,8 +74,7 @@ describe("query with a template variable as the target", () => {
     const view = valueOrThrow(Engine.create()
       .createComponent(D));
     await tick();
-    expect(view.instance.inner()
-      .isNone())
+    expect(isNone(view.instance.inner()))
       .toBe(true);
   });
 

@@ -7,7 +7,7 @@
 //   save.mutate(todo);
 //   save.outcome();   // "none" | "succeeded" | "failed": the last call to finish
 
-import { Task } from "@tinker/functional";
+import { fail as failTask, run, Stream, type Task } from "@tinker/functional/v1";
 import { signal, type ReadonlySignal } from "../signals/index.ts";
 import type { Resource } from "./resource.ts";
 
@@ -80,11 +80,11 @@ export function mutation<I, T, E = Error, U = unknown>(
       try {
         started = mutator(input);
       } catch (thrown) {
-        started = Task.fail(asError(thrown) as E);
+        started = failTask(asError(thrown) as E);
       }
       pending.update((count) => count + 1);
-      if (started instanceof Task) {
-        started.run({ ok: succeed, error: fail });
+      if (started instanceof Stream) {
+        run(started, { ok: succeed, error: fail });
         return;
       }
       started.then(succeed, (reason) => fail(asError(reason) as E));

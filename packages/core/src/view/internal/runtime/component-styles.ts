@@ -19,6 +19,7 @@
 import { type AbstractClass } from "../../../utils/types.ts";
 import { getComponentMetadata } from "../authoring/decorators.ts";
 import type { Renderer } from "../renderer.ts";
+import { getOrElse, match, use } from "@tinker/functional/v1";
 
 /** The attributes that scope a component's styles: its elements', and its host's. */
 export interface StyleScope {
@@ -42,8 +43,7 @@ export function styleScopeOf(type: AbstractClass): StyleScope {
 
 /** The scope of `type`, if it is a component with styles; none otherwise. */
 export function scopeOfComponent(type: AbstractClass): StyleScope | undefined {
-  return getComponentMetadata(type)
-    .getOrElse(undefined)?.styles === undefined
+  return getOrElse(getComponentMetadata(type), undefined)?.styles === undefined
     ? undefined
     : styleScopeOf(type);
 }
@@ -62,8 +62,7 @@ export function applyComponentStyles(
   type: AbstractClass,
   host: Element,
 ): () => void {
-  const styles = getComponentMetadata(type)
-    .getOrElse(undefined)?.styles;
+  const styles = getOrElse(getComponentMetadata(type), undefined)?.styles;
   if (styles === undefined) {
     return () => undefined;
   }

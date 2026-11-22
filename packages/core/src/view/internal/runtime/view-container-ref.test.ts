@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ComponentRef } from "../component-ref.ts";
-import { Maybe } from "@tinker/functional";
-import { Left, valueOrThrow } from "@tinker/functional/v1";
+import { Left, valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional/v1";
 import { messageOf } from "../test-support.ts";
 
 let tracked = 0;
@@ -52,11 +51,10 @@ describe("ViewContainerRef", () => {
       .toEqual(["header", "item0", "item1", "#anchor", "footer"]);
     expect(a.host.nativeElement.innerHTML)
       .toBe("<span>item</span>");
-    expect(Maybe.map(
-      Maybe.flatMap(engine.getContext(a.host.nativeElement), (context) => context.componentView),
+    expect(getOrElse(map(
+      flatMap(engine.getContext(a.host.nativeElement), (context) => context.componentView),
       (componentView) => componentView.host,
-    )
-      .getOrElse(undefined))
+    ), undefined))
       .toBe(a.host.nativeElement);
   });
 
@@ -77,8 +75,7 @@ describe("ViewContainerRef", () => {
     const c = valueOrThrow(container.createComponent(Item, 0));
     const d = valueOrThrow(container.createComponent(Item, 2));
 
-    expect([0, 1, 2, 3].map((i) => container.get(i)
-      .getOrElse(undefined)))
+    expect([0, 1, 2, 3].map((i) => getOrElse(container.get(i), undefined)))
       .toEqual([c, a, d, b]);
     expect(layout([c, a, d, b]))
       .toEqual(["header", "item0", "item1", "item2", "item3", "#anchor", "footer"]);
@@ -89,11 +86,9 @@ describe("ViewContainerRef", () => {
     const a = valueOrThrow(container.createComponent(Item));
     const other = valueOrThrow(engine.createComponent(Item));
 
-    expect(container.get(0)
-      .getOrElse(undefined))
+    expect(getOrElse(container.get(0), undefined))
       .toBe(a);
-    expect(container.get(5)
-      .isNone())
+    expect(isNone(container.get(5)))
       .toBe(true);
     expect(container.indexOf(a))
       .toBe(0);
@@ -108,10 +103,11 @@ describe("ViewContainerRef", () => {
     const c = valueOrThrow(container.createComponent(Item));
 
     container.move(a, 2);
-    expect([container.get(0)
-      .getOrElse(undefined), container.get(1)
-      .getOrElse(undefined), container.get(2)
-      .getOrElse(undefined)])
+    expect([
+      getOrElse(container.get(0), undefined),
+      getOrElse(container.get(1), undefined),
+      getOrElse(container.get(2), undefined),
+    ])
       .toEqual([b, c, a]);
     expect(layout([b, c, a]))
       .toEqual(["header", "item0", "item1", "item2", "#anchor", "footer"]);
@@ -132,8 +128,7 @@ describe("ViewContainerRef", () => {
       .toBe(-1);
     expect(b.host.nativeElement.isConnected)
       .toBe(false);
-    expect(engine.getContext(b.host.nativeElement)
-      .isNone())
+    expect(isNone(engine.getContext(b.host.nativeElement)))
       .toBe(true);
     expect(layout([a, c]))
       .toEqual(["header", "item0", "item1", "#anchor", "footer"]);

@@ -4,8 +4,7 @@ import { inject } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { output, type Output } from "../authoring/output.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrElse, map, match } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -98,8 +97,10 @@ describe("output bindings in templates", () => {
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
     const button = view.host.nativeElement.querySelector("button")!;
-    const [pick] = Maybe.map(engine.getContext(button), (context) => context.directives)
-      .getOrElse([]) as [Pick];
+    const [pick] = getOrElse(
+      map(engine.getContext(button), (context) => context.directives),
+      [],
+    ) as [Pick];
     button.click();
     view.destroy();
     pick!.selected.emit(99); // after the end: nothing reaches the template
@@ -265,8 +266,7 @@ describe("output bindings in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
-    const [pick, relay] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives)
-      .getOrElse([]) as [Pick, Relay];
+    const [pick, relay] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives), []) as [Pick, Relay];
     await tick();
     expect(relay.pick)
       .toBe(pick);

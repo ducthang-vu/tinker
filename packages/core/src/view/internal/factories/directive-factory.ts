@@ -19,7 +19,6 @@ import type { Class } from "../../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
 import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
-import { partial } from "@tinker/functional";
 import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
@@ -32,7 +31,7 @@ import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
 import type { View } from "../runtime/view.ts";
-import { type Either, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { type Either, Left, Right, valueOrThrow, Some, None, match, partial } from "@tinker/functional/v1";
 
 @Injectable()
 export class DirectiveFactory {
@@ -46,11 +45,7 @@ export class DirectiveFactory {
 
   /** The @Directive metadata of `type` (components included), or an error if it is not one. */
   metadataOf(type: Class<unknown>): Either<DirectiveMetadata, Error> {
-    return getDirectiveMetadata(type)
-      .match({
-        some: (metadata) => Right.of(metadata),
-        none: () => Left.of(new Error(`${type.name} is not a directive: decorate it with @Directive`)),
-      });
+    return match(getDirectiveMetadata(type), { Some: (metadata) => Right.of(metadata), None: () => Left.of(new Error(`${type.name} is not a directive: decorate it with @Directive`)) });
   }
 
   /**

@@ -45,6 +45,21 @@ describe("<tk-container>", () => {
     app.destroy();
   });
 
+  test("a container with no directive renders its content, and nothing is left behind", async () => {
+    @Component({
+      selector: "tk-plain-container",
+      template: "<p>before</p><tk-container><b>inside</b></tk-container><p>after</p>",
+    })
+    class PlainContainer {}
+    const el = document.createElement("section");
+    const app = valueOrThrow(bootstrap(PlainContainer, { host: el }));
+    await tick();
+    await tick();
+    expect(el.textContent)
+      .toBe("beforeinsideafter");
+    app.destroy();
+  });
+
   test("a directive with an input on a container gets the input's value", async () => {
     @Component({
       selector: "tk-input-container",

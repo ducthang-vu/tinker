@@ -13,7 +13,6 @@
 
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { inject, Injectable, type Injector } from "../../../di/index.ts";
-import { Maybe, partial } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Binding, BindingFactory } from "../runtime/text-binding.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
@@ -49,7 +48,7 @@ import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
 import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
 import { type StyleScope, scopeOfComponent } from "../runtime/component-styles.ts";
-import { match, map, valueOrThrow } from "@tinker/functional/v1";
+import { match, map, valueOrThrow, Some, None, fromNullable, isSome, isNone, use, type Maybe, partial, run } from "@tinker/functional/v1";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -202,10 +201,10 @@ export class TemplateBuilder {
       // A component is only on an element; the node the instances are view queries of.
       const element = placement.kind === "element" ? placement.element : undefined;
       const queried: Node = element ?? (placement as ContainerPlacement).anchor;
-      const parentInjector = parent.match({
-        some: (index) => injectors[index]!,
-        none: () => componentInjector,
-      });
+      const parentInjector = match(
+        parent,
+        { Some: (index) => injectors[index]!, None: () => componentInjector },
+      );
       // Host bindings on this element (its directives', its component's) join
       // this view's watch, except for the classes this template binds on it:
       // the template's own binding takes precedence.
@@ -244,7 +243,7 @@ export class TemplateBuilder {
       };
       let instances = directives;
       let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
-      node.component.match({ some: (type) => {
+      match(node.component, { Some: (type) => {
         // The parent build does not return errors yet: a child that fails to create throws here.
         const child = valueOrThrow(this.components.create(type, element, {
           parentInjector: injector,
@@ -261,7 +260,7 @@ export class TemplateBuilder {
         }));
         instances = [...directives, child.component];
         owner = { type, instance: child.component };
-      }, none: () => bindInputs(this.ownedOf(node.directives, directives)) });
+      }, None: () => bindInputs(this.ownedOf(node.directives, directives)) });
       this.resolveReferences(
         node,
         references,
@@ -376,7 +375,7 @@ export class TemplateBuilder {
       if (qualified) {
         const emitters = outputsNamed(reached(owned, "output", name, owner, node.name), name);
         for (const emitter of emitters) {
-          view.addDestroyCallback(emitter.stream.run({ next: call }));
+          view.addDestroyCallback(run(emitter.stream, { next: call }));
         }
       }
       // A qualified output is the directive's alone: the DOM event of that name is not bound.
@@ -552,7 +551,7 @@ export class TemplateBuilder {
       this.bindings.push(this.bindingFactory.attribute(element, name, expression, this.scope));
     }
     const projected = new Map<string, Node[]>();
-    const content = node.component.isSome() ? new ContentQueries() : undefined;
+    const content = isSome(node.component) ? new ContentQueries() : undefined;
     const index = this.recordDirectives(new ElementPlacement(element), node, projected, pending, {
       sink,
       content,
@@ -564,7 +563,7 @@ export class TemplateBuilder {
         this.renderer.appendChild(element, child);
       }
     }
-    index.ifSome(() => this.enclosing.pop());
+    use(index, { Some: () => this.enclosing.pop(), None: () => undefined });
     return element;
   }
 
@@ -583,7 +582,7 @@ export class TemplateBuilder {
       {},
     );
     const children = this.buildAll(node.children);
-    index.ifSome(() => this.enclosing.pop());
+    use(index, { Some: () => this.enclosing.pop(), None: () => undefined });
     return [...children, anchor];
   }
 
@@ -599,11 +598,11 @@ export class TemplateBuilder {
     links: { readonly sink?: ViewQueries; readonly content?: ContentQueries },
   ): Maybe<number> {
     const hasEvents = node.outputBindings.length > 0;
-    if (node.directives.length === 0 && node.component.isNone() && !hasEvents
+    if (node.directives.length === 0 && isNone(node.component) && !hasEvents
       && references.length === 0) {
-      return Maybe.none();
+      return None.of();
     }
-    const parent = Maybe.from(this.enclosing.at(-1));
+    const parent = fromNullable(this.enclosing.at(-1));
     const index = this.withDirectives.push({
       placement,
       node,
@@ -613,7 +612,7 @@ export class TemplateBuilder {
       ...links,
     }) - 1;
     this.enclosing.push(index);
-    return Maybe.some(index);
+    return Some.of(index);
   }
 }
 

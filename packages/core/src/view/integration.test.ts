@@ -6,8 +6,7 @@
 
 import { afterEach, describe, expect, test } from "vitest";
 import { tick } from "./internal/test-support.ts";
-import { Maybe } from "@tinker/functional";
-import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt } from "@tinker/functional/v1";
+import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt, Some, None, fromNullable, getOrElse, flatMap } from "@tinker/functional/v1";
 import { valueOrThrow } from "@tinker/functional/v1";
 import {
   bootstrap,
@@ -234,13 +233,12 @@ describe("a computed built from functional values, shown in the view", () => {
   })
   class Port {
     readonly raw = signal<string | null>(null);
-    readonly port = computed(() => pipe(
-      Maybe.from(this.raw()),
-      Maybe.flatMap((text) => (text.trim() === "" ? Maybe.none<string>() : Maybe.some(text))),
-      Maybe.map((text) => Number(text)),
-      Maybe.map((n) => (Number.isInteger(n) && n > 0 ? n : 8080)),
-    )
-      .getOrElse(8080));
+    readonly port = computed(() => getOrElse(pipe(
+      fromNullable(this.raw()),
+      flatMap((text) => (text.trim() === "" ? None.of<string>() : Some.of(text))),
+      map((text: string) => Number(text)),
+      map((n: number) => (Number.isInteger(n) && n > 0 ? n : 8080)),
+    ), 8080));
 
     setRaw(text: string): void {
       this.raw.set(text);

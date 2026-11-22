@@ -11,6 +11,7 @@ import {
   signal,
 } from "@tinker/core";
 import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
+import { run } from "@tinker/functional/v1";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
 class Greeting {
@@ -237,7 +238,7 @@ describe("fixture queries", () => {
       .build();
     const pick = ref.root.query(Pick);
     const seen: number[] = [];
-    pick.outputs.picked.run({ next: (value) => seen.push(value) });
+    run(pick.outputs.picked, { next: (value) => seen.push(value) });
     pick.emitOutput("picked", 3);
     expect(() => pick.emitOutput("unknown", 4))
       .toThrow("has no output \"unknown\"");
@@ -428,7 +429,7 @@ describe("mock builders", () => {
       .component(Host)
       .build();
     const seen: number[] = [];
-    ref.root.query(Pick).outputs.picked.run({ next: (value) => seen.push(value) });
+    run(ref.root.query(Pick).outputs.picked, { next: (value) => seen.push(value) });
     ref.root.query(Pick)
       .emitOutput("picked", 3);
     expect(seen)

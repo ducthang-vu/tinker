@@ -6,6 +6,7 @@ import { computed, Directive, Effect, inject, provide, ViewContainerRef } from "
 import { ActivatedRoute } from "./activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
 import { Router } from "./router.ts";
+import { Some, None, use, isEqual } from "@tinker/functional/v1";
 
 @Directive({ selector: "router-outlet" })
 export class RouterOutlet {
@@ -16,18 +17,17 @@ export class RouterOutlet {
   /** Shows the component of the next activated route, replacing the one shown. */
   @Effect() private show(): void {
     this.container.clear();
-    this.next()
-      .ifSome((route) => {
+    use(this.next(), { Some: (route) => {
       // The component injects its own ActivatedRoute, which is the route it is shown for.
-        this.container.createComponent(route.route.component, this.container.length, [
-          provide(ActivatedRoute, { useValue: route }),
-          provide(ChildActivatedRoute, {
-            useValue: computed(
-              () => nextAfter(this.router.activated(), route),
-              (a, b) => a.isEqual(b),
-            ),
-          }),
-        ]);
-      });
+      this.container.createComponent(route.route.component, this.container.length, [
+        provide(ActivatedRoute, { useValue: route }),
+        provide(ChildActivatedRoute, {
+          useValue: computed(
+            () => nextAfter(this.router.activated(), route),
+            (a, b) => isEqual(a, b),
+          ),
+        }),
+      ]);
+    }, None: () => undefined });
   }
 }

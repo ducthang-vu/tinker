@@ -4,7 +4,7 @@ import { booleanAdapter, numberAdapter } from "../authoring/input-adapters.ts";
 import { input, InputNotBoundError } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { signal } from "../../../signals/index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -12,9 +12,8 @@ afterEach(() => {
 
 /** The component instance on `element`, which a parent's template created. */
 function componentOn(engine: Engine, element: Element): object {
-  return engine.getContext(element)
-    .getOrThrow(() => new Error("no context on the element"))
-    .componentView.getOrThrow(() => new Error("no component on the element"))
+  return getOrThrow(getOrThrow(engine.getContext(element), () => new Error("no context on the element"))
+    .componentView, () => new Error("no component on the element"))
     .component as object;
 }
 

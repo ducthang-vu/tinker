@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { defineMetadata, ownMetadata } from "./metadata.ts";
+import { isNone, getOrElse } from "@tinker/functional/v1";
 
 const KEY = Symbol("test metadata");
 
@@ -8,8 +9,7 @@ describe("class metadata", () => {
     class Target {}
     const value = { a: 1 };
     defineMetadata(Target, KEY, value);
-    expect(ownMetadata(Target, KEY)
-      .getOrElse(undefined))
+    expect(getOrElse(ownMetadata(Target, KEY), undefined))
       .toBe(value);
   });
 
@@ -28,19 +28,16 @@ describe("class metadata", () => {
     class Base {}
     defineMetadata(Base, KEY, {});
     class Child extends Base {}
-    expect(ownMetadata(Child, KEY)
-      .isNone())
+    expect(isNone(ownMetadata(Child, KEY)))
       .toBe(true);
   });
 
   test("other keys and undecorated classes have none", () => {
     class Target {}
     defineMetadata(Target, KEY, {});
-    expect(ownMetadata(Target, Symbol("other"))
-      .isNone())
+    expect(isNone(ownMetadata(Target, Symbol("other"))))
       .toBe(true);
-    expect(ownMetadata(class {}, KEY)
-      .isNone())
+    expect(isNone(ownMetadata(class {}, KEY)))
       .toBe(true);
   });
 });

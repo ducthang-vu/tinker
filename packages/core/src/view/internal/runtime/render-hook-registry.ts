@@ -3,8 +3,8 @@
 // ChangeDetection runs them, after a round in which views rendered.
 
 import { Injectable } from "../../../di/index.ts";
-import type { Cancel } from "@tinker/functional";
 import { runAll } from "../../../utils/run-all.ts";
+import { run, type Cancel } from "@tinker/functional/v1";
 
 @Injectable()
 export class RenderHookRegistry {

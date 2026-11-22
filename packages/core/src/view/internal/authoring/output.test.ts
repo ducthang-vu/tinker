@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
-import type { Emitter } from "@tinker/functional";
 import { endOutputs, output, outputsNamed, outputsOf } from "./output.ts";
+import { type Emitter, match, subscribe } from "@tinker/functional/v1";
 
 /** What an output's subscribers hear, as plain data. */
 function listen(emitter: Emitter<unknown, void, never>, log: unknown[]) {
-  return emitter.stream.subscribe({
-    next: (item) => item.match({ left: () => {}, right: (value) => log.push(value) }),
+  return subscribe(emitter.stream, {
+    next: (item) => match(item, { Left: () => {}, Right: (value) => log.push(value) }),
     end: () => log.push("end"),
   });
 }

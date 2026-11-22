@@ -14,6 +14,7 @@ import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { RENDERER } from "../tokens.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import type { TemplateBuilder } from "./template-builder.ts";
+import { Some, None, use } from "@tinker/functional/v1";
 
 @Injectable()
 export class EmbeddedViewFactory {
@@ -45,10 +46,10 @@ export class EmbeddedViewFactory {
     const firstRun = new RunFirstNow(this.changeDetection.views.forNode(builder.node));
     const viewWatch = watch(() => builder.update(), firstRun);
     view.addDestroyCallback(() => viewWatch.destroy());
-    firstRun.failure.ifSome((error) => {
+    use(firstRun.failure, { Some: (error) => {
       view.destroy();
       throw error;
-    });
+    }, None: () => undefined });
     this.changeDetection.viewRendered();
     return view;
   }

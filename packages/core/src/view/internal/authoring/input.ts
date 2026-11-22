@@ -29,9 +29,8 @@
 //   attribute's string into the input's type (see input-adapters.ts). Template
 //   bindings are already typed, so they skip the adapter.
 
-import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal, type Signal, signal, untracked } from "../../../signals/index.ts";
-import { match } from "@tinker/functional/v1";
+import { match, Some, None, fromNullable, getOrThrow, use, type Maybe } from "@tinker/functional/v1";
 
 declare const INPUT_TYPE: unique symbol;
 
@@ -55,7 +54,7 @@ export class InputNotBoundError extends Error {
   /** @param label Which input, e.g. `"text" of Tooltip`, if known yet. */
   constructor(label: Maybe<string>) {
     super(
-      label.match({ some: (name) => `Input ${name} was read before it was bound`, none: () => "An input was read before it was bound (e.g. in the constructor)" }),
+      match(label, { Some: (name) => `Input ${name} was read before it was bound`, None: () => "An input was read before it was bound (e.g. in the constructor)" }),
     );
     this.name = "InputNotBoundError";
   }
@@ -79,7 +78,7 @@ export interface InputOptions<T> {
 /** The framework's side of an input: binds values to the signal the directive reads. */
 export class InputBinding<T> {
   private readonly state: Signal<Maybe<T>>;
-  private label = Maybe.none<string>();
+  private label = None.of<string>();
   /** The signal the directive reads. */
   readonly signal: InputSignal<T>;
   /** The name templates use for the input, if it has one (`input(…, { name })`). */
@@ -91,8 +90,7 @@ export class InputBinding<T> {
     this.alias = options.name;
     this.adapter = options.adapter;
     this.signal = computed(() =>
-      this.state()
-        .getOrThrow(() => new InputNotBoundError(this.label)),
+      getOrThrow(this.state(), () => new InputNotBoundError(this.label)),
     ) as InputSignal<T>;
   }
 
@@ -106,12 +104,12 @@ export class InputBinding<T> {
 
   /** Name the input, for error messages (e.g. `"text" of Tooltip`). */
   describe(label: string): void {
-    this.label = Maybe.some(label);
+    this.label = Some.of(label);
   }
 
   /** Set the input's value. The directive's signal updates like any signal. */
   bind(value: T): void {
-    this.state.set(Maybe.some(value));
+    this.state.set(Some.of(value));
   }
 
   /** Set the input from a plain attribute's string: through the adapter, if it has one. */
@@ -151,12 +149,12 @@ export function input<T>(defaultValue: T, options: InputOptions<T>): InputSignal
 export function input<T>(...args: unknown[]): InputSignal<T> {
   const [first, second] = args;
   if (args.length === 0) {
-    return createInput(Maybe.none<T>(), {});
+    return createInput(None.of<T>(), {});
   }
   if (args.length === 1 && isOptions(first)) {
-    return createInput(Maybe.none<T>(), first as InputOptions<T>);
+    return createInput(None.of<T>(), first as InputOptions<T>);
   }
-  return createInput(Maybe.some(first as T), (second ?? {}) as InputOptions<T>);
+  return createInput(Some.of(first as T), (second ?? {}) as InputOptions<T>);
 }
 
 function createInput<T>(initial: Maybe<T>, options: InputOptions<T>): InputSignal<T> {
@@ -189,11 +187,10 @@ export function registerInput<T>(key: object, binding: InputBinding<T>): void {
 export function inputsOf(directive: object): ReadonlyMap<string, InputBinding<unknown>> {
   const inputs = new Map<string, InputBinding<unknown>>();
   for (const [name, value] of Object.entries(directive)) {
-    Maybe.from(bindings.get(Object(value)))
-      .ifSome((binding) => {
-        binding.describe(`"${name}" of ${directive.constructor.name}`);
-        inputs.set(name, binding);
-      });
+    use(fromNullable(bindings.get(Object(value))), { Some: (binding) => {
+      binding.describe(`"${name}" of ${directive.constructor.name}`);
+      inputs.set(name, binding);
+    }, None: () => undefined });
   }
   return inputs;
 }
@@ -219,8 +216,10 @@ export function bindInputsToAttributes(
 ): void {
   const inputs = templateInputsOf(instance);
   for (const attribute of attributes) {
-    Maybe.from(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase()))
-      .ifSome(([, input]) => input.bindText(attribute.value));
+    use(
+      fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase())),
+      { Some: ([, input]) => input.bindText(attribute.value), None: () => undefined },
+    );
   }
 }
 
