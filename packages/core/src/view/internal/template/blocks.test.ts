@@ -1,13 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { TinkerTemplateParser } from "./tinker-parser.ts";
+import { parseNodes } from "../test-support.ts";
 import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compile.ts";
 import { ExpressionParser } from "./expression.ts";
 import { itemsOf } from "./blocks.ts";
 import { TemplateCompileError } from "./compile-error.ts";
 
 function compile(source: string): readonly CompiledNode[] {
-  return compileTemplate(new TinkerTemplateParser()
-    .parse(source));
+  return compileTemplate(parseNodes(source));
 }
 
 function onlyMatch(source: string): CompiledMatch {
@@ -293,8 +292,7 @@ describe("the body of a case with a parenthesized pattern", () => {
 
 describe("the spans of text split around a block", () => {
   test("each piece records the part of the source it covers", () => {
-    const [first, block, last] = itemsOf(new TinkerTemplateParser()
-      .parse("ab @if (x) { c } d"));
+    const [first, block, last] = itemsOf(parseNodes("ab @if (x) { c } d"));
     expect(first)
       .toMatchObject({ kind: "text", value: "ab ", span: { start: 0, end: 3 } });
     expect(block)
@@ -315,8 +313,7 @@ describe("the spans of text split around a block", () => {
 describe("the place of a block error", () => {
   const blockError = (source: string): TemplateCompileError => {
     try {
-      itemsOf(new TinkerTemplateParser()
-        .parse(source));
+      itemsOf(parseNodes(source));
     } catch (error) {
       return error as TemplateCompileError;
     }
@@ -371,8 +368,7 @@ describe("the place of a block error", () => {
   });
 
   test("a block's span runs from its keyword to its closing brace", () => {
-    const [, block] = itemsOf(new TinkerTemplateParser()
-      .parse("ab @if (x) { c } d"));
+    const [, block] = itemsOf(parseNodes("ab @if (x) { c } d"));
     expect(block)
       .toMatchObject({ kind: "block", span: { start: 3, end: 16 } });
   });
@@ -380,8 +376,7 @@ describe("the place of a block error", () => {
   test("an @else with no @if is located in the template, for the compiler's error", () => {
     const error = (() => {
       try {
-        compileTemplate(new TinkerTemplateParser()
-          .parse("<p>\n@else { x }</p>"));
+        compileTemplate(parseNodes("<p>\n@else { x }</p>"));
       } catch (caught) {
         return caught as TemplateCompileError;
       }

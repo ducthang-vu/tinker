@@ -46,6 +46,7 @@ import {
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { Maybe, partial } from "@tinker/functional";
+import { match } from "@tinker/functional/v1";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
@@ -337,11 +338,28 @@ export class ComponentFactory {
     let nodes = this.templates.get(type);
     if (!nodes) {
       nodes = typeof metadata.template === "string"
-        ? compileTemplate(this.parser.parse(metadata.template), this.candidatesOf(type, metadata))
+        ? this.compileSource(metadata.template, type, metadata)
         : metadata.template;
       this.templates.set(type, nodes);
     }
     return nodes;
+  }
+
+  /**
+   * The template source, parsed and compiled. A syntax error is thrown here: this is where the
+   * factory still throws, until it returns its errors as values.
+   */
+  private compileSource(
+    source: string,
+    type: Class<unknown>,
+    metadata: ComponentMetadata,
+  ): readonly CompiledNode[] {
+    return match(this.parser.parse(source), {
+      Right: (parsed) => compileTemplate(parsed, this.candidatesOf(type, metadata)),
+      Left: (error) => {
+        throw error;
+      },
+    });
   }
 
   /**

@@ -1,3 +1,5 @@
+import { match } from "@tinker/functional/v1";
+import { parseNodes } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import type { ElementNode, TemplateNode } from "./ast.ts";
 import { combineSyntaxErrors, TemplateSyntaxError, TinkerTemplateParser } from "./tinker-parser.ts";
@@ -11,7 +13,7 @@ function withoutSpans(nodes: readonly TemplateNode[]): TemplateNode[] {
     : { kind: "element", name: node.name, attributes: node.attributes, children: withoutSpans(node.children) });
 }
 
-const parse = (source: string) => withoutSpans(parser.parse(source));
+const parse = (source: string) => withoutSpans(parseNodes(source));
 const parseOne = (source: string) => parse(source)[0] as ElementNode;
 
 /** The error the parser throws for `source`, or fails the test if it does not throw. */
@@ -26,7 +28,7 @@ function syntaxError(source: string): TemplateSyntaxError {
 
 describe("TinkerTemplateParser", () => {
   test("records the span of each element and text: the offsets it covers", () => {
-    const [p] = parser.parse("<p>Hi {{ a }}</p>") as ElementNode[];
+    const [p] = parseNodes("<p>Hi {{ a }}</p>") as ElementNode[];
     expect(p!.span)
       .toEqual({ start: 0, end: 17 });
     expect(p!.children[0]!.span)
@@ -34,7 +36,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("a void or self-closing element's span ends at its start tag", () => {
-    const [input, icon] = parser.parse(`<input [value]="a"><tk-icon />`) as ElementNode[];
+    const [input, icon] = parseNodes(`<input [value]="a"><tk-icon />`) as ElementNode[];
     expect(input!.span)
       .toEqual({ start: 0, end: "<input [value]=\"a\">".length });
     expect(icon!.span)
@@ -42,7 +44,7 @@ describe("TinkerTemplateParser", () => {
   });
 
   test("a text inside a script records its span too", () => {
-    const [script] = parser.parse("<script>a</script>") as ElementNode[];
+    const [script] = parseNodes("<script>a</script>") as ElementNode[];
     expect(script!.children[0]!.span)
       .toEqual({ start: 8, end: 9 });
   });
@@ -589,9 +591,10 @@ describe("TinkerTemplateParser", () => {
         .toEqual(["text", "element"]);
     });
 
-    test("parse throws the first error of the template", () => {
-      expect(() => parse("<p a=></p><div>x</span></div>"))
-        .toThrow("1:6: expected an attribute value");
+    test("parse returns the first error of the template as a Left", () => {
+      const parsed = parser.parse("<p a=></p><div>x</span></div>");
+      expect(match(parsed, { Right: () => "ok", Left: (error) => error.message }))
+        .toBe("1:6: expected an attribute value");
     });
 
     test("a problem that is not a syntax error is not taken for one: it is thrown", () => {
