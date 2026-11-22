@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { buildRepoMap, renderRepoMapMarkdown } from "./repo-map.mjs";
+import { buildRepoMap, renderAllMarkdown, renderRepoMapMarkdown, scopesOf } from "./repo-map.mjs";
 
 test("builds a deterministic graph of files, imports, and exported symbols", () => {
   const rootDir = mkdtempSync(path.join(os.tmpdir(), "tinker-repo-map-"));
@@ -152,4 +152,28 @@ test("keeps each export on its own line, whatever its signature or docs contain"
   assert.match(markdown, /^  over: \{ <T>\(a: T\): T; <T>\(b: T\): T; \}$/m);
   assert.match(markdown, /^    Two lines; with \| pipes\.$/m);
   assert.match(markdown, /^  union: string \| undefined$/m);
+});
+
+test("gives each package its own map, and the root the files outside the packages", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "repo-map-scopes-"));
+  try {
+    const write = (file, content) => {
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      writeFileSync(path.join(root, file), content);
+    };
+    write("tsconfig.json", JSON.stringify({ compilerOptions: { module: "esnext", moduleResolution: "bundler", target: "es2022" }, include: ["packages", "scripts"] }));
+    write("packages/a/package.json", "{}");
+    write("packages/a/src/x.ts", "export const x = 1;\n");
+    write("scripts/run.ts", "export const run = 2;\n");
+
+    assert.deepEqual(scopesOf(root), ["packages/a"]);
+    const maps = renderAllMarkdown(buildRepoMap(root), scopesOf(root));
+    assert.deepEqual([...maps.keys()], [".repo-map.md", "packages/a/.repo-map.md"]);
+    assert.match(maps.get(".repo-map.md"), /scripts\/run\.ts/);
+    assert.doesNotMatch(maps.get(".repo-map.md"), /packages\/a\/src\/x\.ts/);
+    assert.match(maps.get("packages/a/.repo-map.md"), /packages\/a\/src\/x\.ts/);
+    assert.doesNotMatch(maps.get("packages/a/.repo-map.md"), /scripts\/run\.ts/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
