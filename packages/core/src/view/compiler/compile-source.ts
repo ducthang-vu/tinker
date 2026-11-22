@@ -6,11 +6,11 @@
 // optionally by their class. A build step has no class references: its compiled
 // nodes name a placeholder class instead, which the check does not read.
 
-import { Either, toError } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { combineSyntaxErrors, TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
+import { match, mapLeft, Right, type Either, toError, Left, attempt, valueOrThrow } from "@tinker/functional/v1";
 
 /** A directive or component a template may use, known by its selector. */
 export interface ImportedSelector {
@@ -34,27 +34,20 @@ export function compileSource(
   source: string,
   imports: readonly ImportedSelector[] = [],
 ): Either<readonly CompiledNode[], Error> {
-  return Either.try(() => {
+  return mapLeft(attempt(() => {
     const { nodes, errors } = new TinkerTemplateParser()
       .parseAll(source);
     if (errors.length > 0) {
       throw combineSyntaxErrors(errors);
     }
     return compileTemplate(nodes, imports.map(candidateOf));
-  })
-    .mapLeft(toError);
+  }, (error): error is unknown => true), toError);
 }
 
 function candidateOf(imported: ImportedSelector): DirectiveCandidate {
   return {
     type: imported.type ?? Unbound,
-    selector: Selector.parse(imported.selector)
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }),
+    selector: valueOrThrow(Selector.parse(imported.selector)),
     isComponent: imported.isComponent,
   };
 }

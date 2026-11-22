@@ -5,6 +5,7 @@ import { compileSource } from "../../compiler/compile-source.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { TEMPLATE_PARSER } from "../tokens.ts";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 /** A parser that fails if it is ever used: a precompiled template must not reach it. */
 const noParsing = provide(TEMPLATE_PARSER, {
@@ -17,13 +18,7 @@ const noParsing = provide(TEMPLATE_PARSER, {
 
 describe("a component with a precompiled template", () => {
   test("renders its tree without parsing or compiling the template", () => {
-    const nodes = compileSource("<p>{{ name() }}</p>")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      });
+    const nodes = valueOrThrow(compileSource("<p>{{ name() }}</p>"));
     @Component({ selector: "tk-greet", template: nodes })
     class Greet {
       readonly name = signal("Ada");
@@ -43,13 +38,7 @@ describe("a component with a precompiled template", () => {
         created += 1;
       }
     }
-    const nodes = compileSource("<p item>x</p>", [{ selector: "[item]", isComponent: false, type: Item }])
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      });
+    const nodes = valueOrThrow(compileSource("<p item>x</p>", [{ selector: "[item]", isComponent: false, type: Item }]));
     @Component({ selector: "tk-list", template: nodes, imports: [Item] })
     class List {}
     const engine = Engine.create({ providers: [noParsing] });

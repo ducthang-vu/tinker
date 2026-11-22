@@ -8,7 +8,7 @@
 // so the branch shows the values it matched. A branch is only recreated when the
 // case changes; while the same case stays chosen, its bound names are updated.
 
-import { Either, Maybe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
 import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledMatch, CompiledNode } from "../template/compile.ts";
@@ -18,6 +18,7 @@ import { Scope } from "../template/scope.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 import type { Binding } from "./text-binding.ts";
 import type { View } from "./view.ts";
+import { Left, match as readBox, Right, type Either } from "@tinker/functional/v1";
 
 /** Renders a branch: its body, the scope its names are read from, and its element's injector. */
 export type BranchRenderer = (
@@ -172,12 +173,12 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
     case "none":
       return value instanceof Maybe && value.isNone() ? new Map() : undefined;
     case "ok":
-      return value instanceof Either && value.isRight()
-        ? match(pattern.pattern, value.get())
+      return isEither(value)
+        ? readBox(value, { Left: () => undefined, Right: (inner) => match(pattern.pattern, inner) })
         : undefined;
     case "error":
-      return value instanceof Either && value.isLeft()
-        ? match(pattern.pattern, value.match({ left: (error) => error, right: () => undefined }))
+      return isEither(value)
+        ? readBox(value, { Left: (error) => match(pattern.pattern, error), Right: () => undefined })
         : undefined;
     case "as": {
       const bound = match(pattern.pattern, value);
@@ -277,4 +278,9 @@ function compare(operator: RelationOperator, left: unknown, right: Literal): boo
 /** `typeof`, except that `null` is its own type, so that `object` does not match it. */
 function typeOf(value: unknown): string {
   return value === null ? "null" : typeof value;
+}
+
+/** Whether a value is an Either (of either case). */
+function isEither(value: unknown): value is Either<unknown, unknown> {
+  return value instanceof Left || value instanceof Right;
 }

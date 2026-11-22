@@ -23,6 +23,7 @@ import type { Selector } from "./selector.ts";
 import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
 import { namesOf, type Pattern, parsePattern, splitGuard } from "./pattern.ts";
 import { isEventAttribute } from "../runtime/url-safety.ts";
+import { match, mapLeft, map, Left, Right } from "@tinker/functional/v1";
 
 /** A node of a compiled template. */
 export type CompiledNode
@@ -312,14 +313,9 @@ function compileMap(block: BlockItem, candidates: readonly DirectiveCandidate[])
 
 /** The `let` of a `@map`: a name, or a pattern that destructures each item. */
 function itemOf(text: string): Pattern {
-  const pattern = parsePattern(text)
-    .mapLeft((error) => new Error(`${error.message}, in @map`))
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  const pattern = match(mapLeft(parsePattern(text), (error) => new Error(`${error.message}, in @map`)), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
   if (!isMapPattern(pattern)) {
     throw new Error(`@map's let takes a name or a pattern, e.g. let todo or let { id }, got "${text}"`);
   }
@@ -380,14 +376,9 @@ function expressionOf(block: BlockItem): Expression {
   if (block.header === "") {
     throw new Error(`@${block.keyword} needs a value, e.g. @match state`);
   }
-  return ExpressionParser.parse(block.header)
-    .mapLeft((error) => new Error(`${error.message}, in @${block.keyword}`))
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  return match(mapLeft(ExpressionParser.parse(block.header), (error) => new Error(`${error.message}, in @${block.keyword}`)), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
 }
 
 /**
@@ -402,14 +393,9 @@ function caseHeader(
   if (split.pattern === "") {
     throw new Error("@case needs a pattern, e.g. @case \"loading\"");
   }
-  const result = parsePattern(split.pattern)
-    .mapLeft((error) => new Error(`${error.message}, in @case`))
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  const result = match(mapLeft(parsePattern(split.pattern), (error) => new Error(`${error.message}, in @case`)), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
   if (subjectless && result.kind !== "any") {
     throw new Error(`A @match without a subject takes "@case _ when …" cases, not "${split.pattern}"`);
   }
@@ -429,13 +415,9 @@ const LET_DECLARATION = /@let\s+([A-Za-z_$][\w$]*)\s*=\s*([^;]+);/g;
 function compileText(value: string): CompiledNode[] {
   const declarations = [...value.matchAll(LET_DECLARATION)];
   if (declarations.length === 0) {
-    return [{ kind: "text", interpolation: parseInterpolation(value)
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }) }];
+    return [{ kind: "text", interpolation: match(parseInterpolation(value), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }) }];
   }
   const nodes: CompiledNode[] = [];
   let rest = 0;
@@ -453,14 +435,9 @@ function textBefore(text: string): CompiledNode[] {
 }
 
 function compileLet(name: string, source: string): CompiledLet {
-  const expression = ExpressionParser.parse(source)
-    .mapLeft((error) => new Error(`${error.message}, in @let ${name}`))
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  const expression = match(mapLeft(ExpressionParser.parse(source), (error) => new Error(`${error.message}, in @let ${name}`)), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
   return { kind: "let", name, expression };
 }
 
@@ -657,14 +634,9 @@ function classifyAttributes(node: ElementNode): {
   const outputBindings: OutputBindingNode[] = [];
   const styleBindings: ValueBindingNode[] = [];
   const attributeBindings: ValueBindingNode[] = [];
-  const parse = (attribute: AttributeNode) => ExpressionParser.parse(attribute.value)
-    .mapLeft((error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`))
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  const parse = (attribute: AttributeNode) => match(mapLeft(ExpressionParser.parse(attribute.value), (error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`)), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
   for (const attribute of node.attributes) {
     if (attribute.name === "[class]") {
       classObjects.push({ name: "", expression: parse(attribute) });
@@ -696,23 +668,13 @@ function classifyAttributes(node: ElementNode): {
     } else if (inputName !== undefined) {
       inputBindings.push({ name: inputName, owner: inputOwner, expression: parse(attribute) });
     } else if (eventName !== undefined) {
-      const { event, modifiers } = parseEventName(eventName, "event binding")
-        .mapLeft((error) => new Error(`${error.message}, on <${node.name}>`))
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        });
-      const handler = parseHandler(attribute.value, "event handler")
-        .mapLeft((error) =>
-          new Error(`${error.message}, on <${node.name}>`))
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        });
+      const { event, modifiers } = match(mapLeft(parseEventName(eventName, "event binding"), (error) => new Error(`${error.message}, on <${node.name}>`)), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value });
+      const handler = match(mapLeft(parseHandler(attribute.value, "event handler"), (error) =>
+        new Error(`${error.message}, on <${node.name}>`)), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value });
       outputBindings.push({
         name: event,
         owner: outputOwner,

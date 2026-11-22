@@ -46,7 +46,7 @@ import {
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { Maybe, partial } from "@tinker/functional";
-import { match } from "@tinker/functional/v1";
+import { mapLeft, match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
@@ -371,14 +371,7 @@ export class ComponentFactory {
       const imported = this.replacements.get(declared) ?? declared;
       return {
         type: imported,
-        selector: Selector.parse(this.directives.metadataOf(imported).selector)
-          .mapLeft((error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))
-          .match({
-            left: (error) => {
-              throw error;
-            },
-            right: (value) => value,
-          }),
+        selector: valueOrThrow(mapLeft(Selector.parse(this.directives.metadataOf(imported).selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
         isComponent: getComponentMetadata(imported)
           .isSome(),
       };

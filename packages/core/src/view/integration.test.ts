@@ -6,7 +6,8 @@
 
 import { afterEach, describe, expect, test } from "vitest";
 import { tick } from "./internal/test-support.ts";
-import { Either, toError, Maybe, pipe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
+import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt } from "@tinker/functional/v1";
 import {
   bootstrap,
   Component,
@@ -264,13 +265,13 @@ describe("a computed built from functional values, shown in the view", () => {
   });
 
   test("a parse error travels as an Either value, not a throw", () => {
-    const parse = (text: string) => Either.try(() => JSON.parse(text) as unknown)
-      .mapLeft(toError);
-    expect(parse("{")
-      .isLeft())
+    const parse = (text: string) => mapLeft(
+      attempt(() => JSON.parse(text) as unknown, (error): error is unknown => true),
+      toError,
+    );
+    expect(match(parse("{"), { Left: () => true, Right: () => false }))
       .toBe(true);
-    expect(parse("[1]")
-      .match({ left: () => null, right: (value) => value }))
+    expect(match(parse("[1]"), { Left: () => null, Right: (value) => value }))
       .toEqual([1]);
   });
 });

@@ -1,4 +1,4 @@
-import { Either } from "@tinker/functional";
+import { flatMap, map, Right, type Either } from "@tinker/functional/v1";
 
 /**
  * Runs `step` on each item, in order. The results, or the first error: the
@@ -9,8 +9,8 @@ export function eachOf<T, U, E>(
   step: (item: T) => Either<U, E>,
 ): Either<readonly U[], E> {
   return items.reduce<Either<readonly U[], E>>(
-    (done, item) => Either.flatMap(done, (results) =>
-      Either.map(step(item), (next) => [...results, next])),
-    Either.right([]),
+    (done, item) => flatMap(done, (results) =>
+      map(step(item), (next) => [...results, next])),
+    Right.of<readonly U[], E>([]),
   );
 }

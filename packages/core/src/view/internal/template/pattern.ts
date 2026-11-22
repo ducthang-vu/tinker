@@ -13,7 +13,7 @@
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
 
-import { Either, toError } from "@tinker/functional";
+import { type Either, Left, Right, flatMap, map, mapLeft, match, toError } from "@tinker/functional/v1";
 import { eachOf } from "../../../utils/each-of.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 
@@ -135,13 +135,15 @@ interface Field {
 
 /** The error for a pattern that is not supported. */
 function fail<T = never>(message: string): Parsed<T> {
-  return Either.left(new PatternError(message));
+  return Left.of(new PatternError(message));
 }
 
 export function parsePattern(text: string): Parsed<Pattern> {
   // Regex literals are masked first, so their braces, bars and quotes are not read as structure.
-  return patternOf(maskRegexes(text.trim()))
-    .mapLeft((error) => new PatternError(restoreRegexes(error.message)));
+  return mapLeft(
+    patternOf(maskRegexes(text.trim())),
+    (error) => new PatternError(restoreRegexes(error.message)),
+  );
 }
 
 function patternOf(text: string): Parsed<Pattern> {
@@ -173,14 +175,14 @@ function patternOf(text: string): Parsed<Pattern> {
   }
   const negated = NOT.exec(text);
   if (negated) {
-    return Either.flatMap(patternOf(negated[1]!.trim()), (pattern): Parsed<Pattern> =>
+    return flatMap(patternOf(negated[1]!.trim()), (pattern): Parsed<Pattern> =>
       namesOf(pattern).length > 0
         ? fail(`"not" cannot bind names: "${text}"`)
-        : Either.right({ kind: "not", pattern }));
+        : Right.of({ kind: "not", pattern }));
   }
   const wrapped = WRAPPED.exec(text);
   if (wrapped) {
-    return Either.map(patternOf(wrapped[2]!.trim()), (pattern): Pattern => {
+    return map(patternOf(wrapped[2]!.trim()), (pattern): Pattern => {
       switch (wrapped[1]) {
         case "some":
           return { kind: "some", pattern };
@@ -197,44 +199,43 @@ function patternOf(text: string): Parsed<Pattern> {
   }
   switch (text) {
     case "truthy":
-      return Either.right({ kind: "truthy" });
+      return Right.of({ kind: "truthy" });
     case "falsy":
-      return Either.right({ kind: "falsy" });
+      return Right.of({ kind: "falsy" });
     case "_":
-      return Either.right({ kind: "any" });
+      return Right.of({ kind: "any" });
     case "present":
-      return Either.right({ kind: "present" });
+      return Right.of({ kind: "present" });
     case "none":
-      return Either.right({ kind: "none" });
+      return Right.of({ kind: "none" });
     case "absent":
       return fail(`"absent" is the pattern of a key, as in { error: absent }`);
     default:
       break;
   }
   if (TYPES.includes(text)) {
-    return Either.right({ kind: "type", type: text as TypeName });
+    return Right.of({ kind: "type", type: text as TypeName });
   }
   const relation = RELATION.exec(text);
   if (relation) {
-    return Either.map(
+    return map(
       literalOf(relation[2]!.trim(), `A relation takes a literal: "${text}"`),
       (value): Pattern => ({ kind: "compare", operator: relation[1] as RelationOperator, value }),
     );
   }
   if (IDENTIFIER.test(text) && !LITERAL_WORDS.includes(text)) {
-    return Either.right({ kind: "bind", name: text });
+    return Right.of({ kind: "bind", name: text });
   }
   const message = `Only literals, types, truthy, falsy, _ and names are patterns: "${text}"`;
-  return Either.map(literalOf(text, message), (value): Pattern => ({ kind: "value", value }));
+  return map(literalOf(text, message), (value): Pattern => ({ kind: "value", value }));
 }
 
 /** The value of a literal, or an error with `message` if the text is not one. */
 function literalOf(text: string, message: string): Parsed<Literal> {
-  return Either.flatMap(
-    ExpressionParser.parse(text)
-      .mapLeft((error) => new PatternError(error.message)),
+  return flatMap(
+    mapLeft(ExpressionParser.parse(text), (error) => new PatternError(error.message)),
     (expression): Parsed<Literal> => (expression.kind === "literal"
-      ? Either.right(expression.value)
+      ? Right.of(expression.value)
       : fail(message)),
   );
 }
@@ -255,11 +256,11 @@ function aliasPattern(text: string, name: string, whole: string): Parsed<Pattern
   if (LITERAL_WORDS.includes(name)) {
     return fail(`"${name}" cannot be a name: "${whole}"`);
   }
-  return Either.flatMap(patternOf(text.trim()), (pattern): Parsed<Pattern> =>
+  return flatMap(patternOf(text.trim()), (pattern): Parsed<Pattern> =>
     namesOf(pattern)
       .includes(name)
       ? fail(`The name "${name}" is bound twice in "${whole}"`)
-      : Either.right({ kind: "as", pattern, name }));
+      : Right.of({ kind: "as", pattern, name }));
 }
 
 /** Whether `index` in `text` is outside every brace, bracket, parenthesis and quote. */
@@ -289,7 +290,7 @@ function rangeOf(low: string | undefined, high: string | undefined, text: string
   if (min !== undefined && max !== undefined && min > max) {
     return fail(`A range goes from the smaller number to the larger: "${text}"`);
   }
-  return Either.right({
+  return Right.of({
     kind: "range",
     ...(min === undefined ? {} : { min }),
     ...(max === undefined ? {} : { max }),
@@ -303,11 +304,11 @@ function rangeOf(low: string | undefined, high: string | undefined, text: string
  */
 function alternatives(options: readonly string[], text: string): Parsed<Pattern> {
   const parsed = eachOf(options, (option) => patternOf(option));
-  return Either.flatMap(parsed, (patterns): Parsed<Pattern> => {
+  return flatMap(parsed, (patterns): Parsed<Pattern> => {
     const [first, ...rest] = patterns.map((pattern) => sortedNames(pattern));
     return rest.some((names) => names.join() !== first!.join())
       ? fail(`Alternatives must bind the same names, or none: "${text}"`)
-      : Either.right({ kind: "alt", options: patterns });
+      : Right.of({ kind: "alt", options: patterns });
   });
 }
 
@@ -323,15 +324,15 @@ function objectPattern(text: string): Parsed<Pattern> {
   }
   const entries = splitTopLevel(text.slice(1, -1))
     .filter((entry) => entry.trim() !== "");
-  return Either.flatMap(fieldsOf(entries, []), (fields): Parsed<Pattern> =>
-    Either.map(distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text), () => ({ kind: "object", fields })));
+  return flatMap(fieldsOf(entries, []), (fields): Parsed<Pattern> =>
+    map(distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text), () => ({ kind: "object", fields })));
 }
 
 /** The fields of an object pattern, one entry at a time: each key must be new. */
 function fieldsOf(entries: readonly string[], fields: readonly Field[]): Parsed<readonly Field[]> {
   const [entry, ...others] = entries;
   if (entry === undefined) {
-    return Either.right(fields);
+    return Right.of(fields);
   }
   const match = FIELD.exec(entry.trim());
   if (!match) {
@@ -341,7 +342,7 @@ function fieldsOf(entries: readonly string[], fields: readonly Field[]): Parsed<
   if (fields.some((field) => field.key === key)) {
     return fail(`The key "${key}" is in the pattern twice`);
   }
-  return Either.flatMap(fieldPattern(key, match[2]), (pattern) =>
+  return flatMap(fieldPattern(key, match[2]), (pattern) =>
     fieldsOf(others, [...fields, { key, pattern }]));
 }
 
@@ -396,9 +397,9 @@ function arrayPattern(text: string): Parsed<Pattern> {
   if (entries.at(-1) === "") {
     entries.pop();
   }
-  return Either.flatMap(arrayItems(entries, text, []), ({ items, rest }): Parsed<Pattern> => {
+  return flatMap(arrayItems(entries, text, []), ({ items, rest }): Parsed<Pattern> => {
     const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
-    return Either.map(distinctNames(namesOf(pattern), text), () => pattern);
+    return map(distinctNames(namesOf(pattern), text), () => pattern);
   });
 }
 
@@ -410,10 +411,10 @@ function arrayItems(
 ): Parsed<{ readonly items: readonly Pattern[]; readonly rest: string | undefined }> {
   const [entry, ...others] = entries;
   if (entry === undefined) {
-    return Either.right({ items, rest: undefined });
+    return Right.of({ items, rest: undefined });
   }
   if (!entry.startsWith("...")) {
-    return Either.flatMap(patternOf(entry), (pattern) =>
+    return flatMap(patternOf(entry), (pattern) =>
       arrayItems(others, text, [...items, pattern]));
   }
   const name = entry.slice(3)
@@ -424,14 +425,14 @@ function arrayItems(
   if (!IDENTIFIER.test(name) || LITERAL_WORDS.includes(name)) {
     return fail(`The rest of an array pattern needs a name: "${entry}"`);
   }
-  return Either.right({ items, rest: name });
+  return Right.of({ items, rest: name });
 }
 
 /** Throws when a name is bound twice: the later binding would replace the earlier. */
 function distinctNames(names: readonly string[], text: string): Parsed<void> {
   const duplicate = names.find((name, index) => names.indexOf(name) !== index);
   return duplicate === undefined
-    ? Either.right(undefined)
+    ? Right.of(undefined)
     : fail(`The name "${duplicate}" is bound twice in "${text}"`);
 }
 
@@ -466,9 +467,9 @@ export function namesOf(pattern: Pattern): string[] {
 /** The pattern of an object field: its key's value, or the key's name when it has none. */
 function fieldPattern(key: string, value: string | undefined): Parsed<Pattern> {
   if (value === undefined) {
-    return Either.right({ kind: "bind", name: key });
+    return Right.of({ kind: "bind", name: key });
   }
-  return value.trim() === "absent" ? Either.right({ kind: "absent" }) : patternOf(value.trim());
+  return value.trim() === "absent" ? Right.of({ kind: "absent" }) : patternOf(value.trim());
 }
 
 /** Split at the `separator`s that are not inside braces, brackets, parentheses or quotes. */
@@ -588,7 +589,7 @@ function regexPattern(literal: string): Parsed<Pattern> {
   if (/[gy]/.test(flags)) {
     return fail(`A regex pattern cannot have the "g" or "y" flag, since they keep state between matches: "${literal}"`);
   }
-  return Either.map(regexNames(source, flags), (names): Pattern => ({ kind: "regex", source, flags, names }));
+  return map(regexNames(source, flags), (names): Pattern => ({ kind: "regex", source, flags, names }));
 }
 
 /**
@@ -598,7 +599,7 @@ function regexPattern(literal: string): Parsed<Pattern> {
  */
 function regexNames(source: string, flags: string): Parsed<string[]> {
   try {
-    return Either.right(Object.keys(new RegExp(`(?:${source})|`, flags)
+    return Right.of(Object.keys(new RegExp(`(?:${source})|`, flags)
       .exec("")!.groups ?? {}));
   } catch (error) {
     return fail(toError(error).message);

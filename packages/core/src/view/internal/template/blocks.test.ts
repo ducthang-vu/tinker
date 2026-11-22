@@ -4,6 +4,7 @@ import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compil
 import { ExpressionParser } from "./expression.ts";
 import { itemsOf } from "./blocks.ts";
 import { TemplateCompileError } from "./compile-error.ts";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 function compile(source: string): readonly CompiledNode[] {
   return compileTemplate(parseNodes(source));
@@ -17,13 +18,7 @@ function onlyMatch(source: string): CompiledMatch {
   return node as CompiledMatch;
 }
 
-const expression = (source: string) => ExpressionParser.parse(source)
-  .match({
-    left: (error) => {
-      throw error;
-    },
-    right: (value) => value,
-  });
+const expression = (source: string) => valueOrThrow(ExpressionParser.parse(source));
 
 describe("@if and @else", () => {
   test("@if is a match with one truthy case, and no default", () => {

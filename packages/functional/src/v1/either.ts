@@ -94,3 +94,16 @@ export function attempt<T, E>(
 export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value), { cause: value });
 }
+
+/**
+ * The value of a Right. A Left throws its error: this is the one place a predictable error is
+ * thrown, at the edge of an API that has no way to return it (use it only there).
+ */
+export function valueOrThrow<T, E>(either: Either<T, E>): T {
+  return match<T, E, T>(either, {
+    Left: (error) => {
+      throw error;
+    },
+    Right: (value) => value,
+  });
+}

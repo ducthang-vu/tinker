@@ -12,6 +12,7 @@ import { Maybe } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
+import { match } from "@tinker/functional/v1";
 
 /** The names the expression uses for `Maybe` and `Selector`. */
 export interface EmitHelpers {
@@ -55,14 +56,10 @@ function emitValue(value: unknown, scope: Scope): string {
       .join(", ")}]`;
   }
   if (value instanceof Maybe) {
-    return value.match({
-      some: (inner) => `${scope.helpers.Maybe}.some(${emitValue(inner, scope)})`,
-      none: () => `${scope.helpers.Maybe}.none()`,
-    });
+    return value.match({ some: (inner) => `${scope.helpers.Maybe}.some(${emitValue(inner, scope)})`, none: () => `${scope.helpers.Maybe}.none()` });
   }
   if (value instanceof Selector) {
-    return `${scope.helpers.Selector}.parse(${JSON.stringify(value.source)})`
-      + ".match({ left: (error) => { throw error; }, right: (value) => value })";
+    return `${scope.helpers.Selector}.parseValid(${JSON.stringify(value.source)})`;
   }
   if (typeof value === "function") {
     return nameOf(value as Class<object>, scope.names);

@@ -1,21 +1,29 @@
 import { describe, expect, test } from "vitest";
 import { Selector } from "./selector.ts";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 const element = (name: string, attributes: Record<string, string> = {}) => ({
   name,
   attributes: Object.entries(attributes)
     .map(([n, value]) => ({ name: n, value })),
 });
-const matches = (selector: string, el: ReturnType<typeof element>) => Selector.parse(selector)
-  .match({
-    left: (error) => {
-      throw error;
-    },
-    right: (value) => value,
-  })
-  .matches(el);
-const error = (selector: string) => Selector.parse(selector)
-  .match({ left: (e) => e.message, right: () => "no error" });
+const matches = (selector: string, el: ReturnType<typeof element>) =>
+  valueOrThrow(Selector.parse(selector))
+    .matches(el);
+const error = (selector: string) => match(Selector.parse(selector), { Left: (e) => e.message, Right: () => "no error" });
+
+describe("Selector.parseValid", () => {
+  test("returns the selector of a valid source", () => {
+    expect(Selector.parseValid("tk-card")
+      .matches({ name: "tk-card", attributes: [] }))
+      .toBe(true);
+  });
+
+  test("throws the error of an invalid source", () => {
+    expect(() => Selector.parseValid(""))
+      .toThrow("Empty selector");
+  });
+});
 
 describe("Selector", () => {
   test("a tag matches elements with that name, case-insensitively", () => {
@@ -131,13 +139,7 @@ describe("Selector", () => {
   });
 
   test("keeps its source", () => {
-    expect(Selector.parse(" [a] ")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }).source)
+    expect(valueOrThrow(Selector.parse(" [a] ")).source)
       .toBe(" [a] ");
   });
 

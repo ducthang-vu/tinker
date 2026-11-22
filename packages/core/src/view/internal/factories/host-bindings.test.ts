@@ -3,16 +3,11 @@ import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "../runtime/component-view.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 /** The bindings of a host option; throws (as the old constructor did) when it is invalid. */
 const bindingsOf = (host?: Readonly<Record<string, string>>): HostBindings =>
-  HostBindings.parse(host)
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  valueOrThrow(HostBindings.parse(host));
 
 const renderer = new DomRenderer();
 const makeView = (host: Element) => new ComponentView(host, {}, [], renderer, {});
@@ -20,9 +15,9 @@ const makeView = (host: Element) => new ComponentView(host, {}, [], renderer, {}
 describe("HostBindings parsing", () => {
   test("parse is a Left, holding one error per invalid entry", () => {
     const result = HostBindings.parse({ "[title]": "open()", "(click)": "go" });
-    expect(result.isLeft())
+    expect(match(result, { Left: () => true, Right: () => false }))
       .toBe(true);
-    const errors = result.match({ left: (error) => error.errors, right: () => [] });
+    const errors = match(result, { Left: (error) => error.errors, Right: () => [] });
     expect(errors)
       .toHaveLength(2);
   });
@@ -60,13 +55,7 @@ describe("HostBindings parsing", () => {
     expect(bindings.classes.map(({ name }) => name))
       .toEqual(["isOpen"]);
     expect(bindings.classes[0]!.expression)
-      .toEqual(ExpressionParser.parse("open()")
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        }));
+      .toEqual(valueOrThrow(ExpressionParser.parse("open()")));
     expect(bindings.listeners.map(({ event }) => event))
       .toEqual(["click"]);
   });

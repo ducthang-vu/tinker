@@ -49,6 +49,7 @@ import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
 import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
 import { type StyleScope, scopeOfComponent } from "../runtime/component-styles.ts";
+import { match, map } from "@tinker/functional/v1";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -243,26 +244,23 @@ export class TemplateBuilder {
       };
       let instances = directives;
       let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
-      node.component.match({
-        some: (type) => {
-          const child = this.components.create(type, element, {
-            parentInjector: injector,
-            parentView: view,
-            node: this.node,
-            attributes: node.attributes,
-            projected,
-            contentQueries: content,
-            adoptHostBindings: hostBindings,
-            bindInputs: (component) => bindInputs([
-              ...this.ownedOf(node.directives, directives),
-              ...this.ownedOf([type], [component]),
-            ]),
-          });
-          instances = [...directives, child.component];
-          owner = { type, instance: child.component };
-        },
-        none: () => bindInputs(this.ownedOf(node.directives, directives)),
-      });
+      node.component.match({ some: (type) => {
+        const child = this.components.create(type, element, {
+          parentInjector: injector,
+          parentView: view,
+          node: this.node,
+          attributes: node.attributes,
+          projected,
+          contentQueries: content,
+          adoptHostBindings: hostBindings,
+          bindInputs: (component) => bindInputs([
+            ...this.ownedOf(node.directives, directives),
+            ...this.ownedOf([type], [component]),
+          ]),
+        });
+        instances = [...directives, child.component];
+        owner = { type, instance: child.component };
+      }, none: () => bindInputs(this.ownedOf(node.directives, directives)) });
       this.resolveReferences(
         node,
         references,

@@ -1,39 +1,30 @@
 import { describe, expect, test } from "vitest";
-import { Either } from "@tinker/functional";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { TemplateSyntaxError } from "../internal/template/tinker-parser.ts";
 import { TemplateCompileError } from "../internal/template/compile-error.ts";
 import { compileSource } from "./compile-source.ts";
+import { match, type Either, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 const item = { selector: "tk-item", isComponent: true };
 
 /** The error of a left result, or fails the test when the result is right. */
 function errorOf(result: Either<readonly CompiledNode[], Error>): Error {
-  return result.match({
-    left: (error) => error,
-    right: () => {
-      throw new Error("expected an error, got compiled nodes");
-    },
-  });
+  return match(result, { Left: (error) => error, Right: () => {
+    throw new Error("expected an error, got compiled nodes");
+  } });
 }
 
 describe("compileSource", () => {
   test("is right, with the compiled nodes, for a template that compiles", () => {
     const result = compileSource(`<p>Hi {{ name() }}</p><tk-item label="x"></tk-item>`, [item]);
-    expect(result.isRight())
+    expect(match(result, { Left: () => false, Right: () => true }))
       .toBe(true);
-    expect(result.match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    }))
+    expect(valueOrThrow(result))
       .toHaveLength(2);
   });
 
   test("is right for a template with no imports", () => {
-    expect(compileSource("<p>plain</p>")
-      .isRight())
+    expect(match(compileSource("<p>plain</p>"), { Left: () => false, Right: () => true }))
       .toBe(true);
   });
 

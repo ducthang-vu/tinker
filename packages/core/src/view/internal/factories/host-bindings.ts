@@ -18,7 +18,7 @@
 // can be added here later. Class names keep their case: unlike templates,
 // host bindings are not read by the browser's HTML parser.
 
-import { Either, Maybe, pipe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
 import { Scope } from "../template/scope.ts";
@@ -28,6 +28,7 @@ import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type { View } from "../runtime/view.ts";
+import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe } from "@tinker/functional/v1";
 
 /** One parsed `"(event)": "method(...)"` entry. */
 export interface HostListener {
@@ -77,14 +78,14 @@ export class HostBindings {
     const parsed = Object.entries(host)
       .map(([key, value]) => parseEntry(key, value));
     const errors = parsed.flatMap((result) =>
-      result.match({ left: (error) => [error], right: () => [] }));
+      match(result, { Left: (error) => [error], Right: () => [] }));
     if (errors.length > 0) {
-      return Either.left(new AggregateError(errors, errors.map((error) => error.message)
+      return Left.of(new AggregateError(errors, errors.map((error) => error.message)
         .join("\n")));
     }
     const entries = parsed.flatMap((result) =>
-      result.match({ left: () => [], right: (entry) => [entry] }));
-    return Either.right(new HostBindings(entries));
+      match(result, { Left: () => [], Right: (entry) => [entry] }));
+    return Right.of(new HostBindings(entries));
   }
 
   /**
@@ -115,33 +116,32 @@ function parseEntry(key: string, value: string): Either<HostListener | HostValue
     return parseListener(key, value);
   }
   if (match[1] === "attr" && isEventAttribute(match[2]!)) {
-    return Either.left(new Error(
+    return Left.of(new Error(
       `[attr.${match[2]}] in host binding "${key}": event attributes cannot be bound; use "(${match[2]!.slice(2)})" instead`,
     ));
   }
   const kind = match[1] === "attr" ? "attribute" : (match[1] as "class" | "style");
   return pipe(
-    ExpressionParser.parse(value)
-      .mapLeft((error) => new Error(`${error.message}, in host binding "${key}"`)),
-    Either.map((expression) => ({ kind, name: match[2]!, expression })),
+    mapLeft(ExpressionParser.parse(value), (error) => new Error(`${error.message}, in host binding "${key}"`)),
+    map((expression: Expression) => ({ kind, name: match[2]!, expression })),
   );
 }
 
 /** One `host` entry as a listener, or the error explaining why it is not supported. */
 function parseListener(key: string, handler: string): Either<HostListener, Error> {
-  const source = Maybe.from(LISTENER_KEY.exec(key)?.[1])
-    .toEither(
-      new Error(
+  const listenerName = LISTENER_KEY.exec(key)?.[1];
+  const source: Either<string, Error> = listenerName === undefined
+    ? Left.of(new Error(
         `Unsupported host binding "${key}": only "(event)" listeners and "[class.name]", `
         + "\"[style.name]\" and \"[attr.name]\" bindings are supported for now",
-      ),
-    );
+      ))
+    : Right.of(listenerName);
   return pipe(
     source,
-    Either.flatMap((name) => parseEventName(name, `host listener "${key}"`)),
-    Either.flatMap((listener) => pipe(
+    flatMap((name) => parseEventName(name, `host listener "${key}"`)),
+    flatMap((listener) => pipe(
       parseHandler(handler, "host handler"),
-      Either.map((parsed) => ({ ...listener, handler: parsed })),
+      map((parsed: Handler) => ({ ...listener, handler: parsed })),
     )),
   );
 }

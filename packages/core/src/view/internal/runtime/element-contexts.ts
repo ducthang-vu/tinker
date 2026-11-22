@@ -5,6 +5,7 @@
 import { Injectable } from "../../../di/index.ts";
 import { Maybe } from "@tinker/functional";
 import { ElementContext } from "./element-context.ts";
+import { match } from "@tinker/functional/v1";
 
 @Injectable()
 export class ElementContexts {

@@ -4,6 +4,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { ClassBinding } from "./class-binding.ts";
 import { Scope } from "../template/scope.ts";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 describe("ClassBinding", () => {
   test("turns the class on while the expression is truthy, writing only changes", () => {
@@ -12,13 +13,7 @@ describe("ClassBinding", () => {
     const remove = vi.spyOn(renderer, "removeClass");
     const element = document.createElement("p");
     const open = signal<unknown>(true);
-    const binding = new ClassBinding(element, "open", ExpressionParser.parse("open()")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), new Scope({ open }), renderer);
+    const binding = new ClassBinding(element, "open", valueOrThrow(ExpressionParser.parse("open()")), new Scope({ open }), renderer);
 
     binding.update();
     binding.update();
@@ -37,13 +32,7 @@ describe("ClassBinding", () => {
   test("a falsy first value removes nothing it did not add, but leaves other classes", () => {
     const element = document.createElement("p");
     element.className = "keep";
-    new ClassBinding(element, "open", ExpressionParser.parse("open")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), new Scope({ open: false }), new DomRenderer())
+    new ClassBinding(element, "open", valueOrThrow(ExpressionParser.parse("open")), new Scope({ open: false }), new DomRenderer())
       .update();
     expect(element.className)
       .toBe("keep");

@@ -3,6 +3,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { Scope } from "../template/scope.ts";
 import { ClassMapBinding } from "./class-map-binding.ts";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 type Value = Record<string, boolean> | null | string;
 
@@ -10,13 +11,7 @@ describe("ClassMapBinding", () => {
   test("adds the classes of the truthy keys and removes the ones that turn falsy", () => {
     const element = document.createElement("p");
     const component: { value: Value } = { value: { a: true, b: false } };
-    const binding = new ClassMapBinding(element, ExpressionParser.parse("value")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), new Scope(component), new DomRenderer());
+    const binding = new ClassMapBinding(element, valueOrThrow(ExpressionParser.parse("value")), new Scope(component), new DomRenderer());
     binding.update();
     expect(element.className)
       .toBe("a");
@@ -32,13 +27,7 @@ describe("ClassMapBinding", () => {
   test("a null or non-object value sets no classes, and clears the ones it had", () => {
     const element = document.createElement("p");
     const component: { value: Value } = { value: { a: true } };
-    const binding = new ClassMapBinding(element, ExpressionParser.parse("value")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), new Scope(component), new DomRenderer());
+    const binding = new ClassMapBinding(element, valueOrThrow(ExpressionParser.parse("value")), new Scope(component), new DomRenderer());
     binding.update();
     component.value = null;
     binding.update();

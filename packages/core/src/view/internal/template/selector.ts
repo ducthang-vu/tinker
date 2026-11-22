@@ -15,7 +15,7 @@
 // when it matches none. Names are compared case-insensitively: the browser's
 // parser lowercases tag and attribute names.
 
-import { Either } from "@tinker/functional";
+import { type Either, Left, Right, flatMap, map, match } from "@tinker/functional/v1";
 import { eachOf } from "../../../utils/each-of.ts";
 
 /** A selector that is not supported: what is wrong with it. */
@@ -53,17 +53,30 @@ export class Selector {
   ) {}
 
   /** Parse `source`, or the error explaining what is not supported. */
+  /**
+   * The selector of a source the build step has already validated. Use `parse` for any other
+   * source: this throws the error of an invalid one.
+   */
+  static parseValid(source: string): Selector {
+    return match(Selector.parse(source), {
+      Left: (error) => {
+        throw error;
+      },
+      Right: (selector) => selector,
+    });
+  }
+
   static parse(source: string): Either<Selector, SelectorError> {
     if (source.trim() === "") {
-      return Either.left(new SelectorError(`Empty selector: write e.g. "[tooltip]" or "tk-card"`));
+      return Left.of(new SelectorError(`Empty selector: write e.g. "[tooltip]" or "tk-card"`));
     }
     const parts = splitList(source);
     if (parts.some((part) => part.trim() === "")) {
-      return Either.left(new SelectorError(
+      return Left.of(new SelectorError(
         `Empty part in selector list "${source}": write e.g. "[tooltip], tk-card"`,
       ));
     }
-    return Either.map(
+    return map(
       eachOf(parts, (part) => Compound.parse(part, source)),
       (alternatives) => new Selector(source, alternatives),
     );
@@ -122,7 +135,7 @@ class Compound {
   static parse(part: string, source: string): Either<Compound, SelectorError> {
     const rest = part.trim();
     const tag = TAG.exec(rest)?.[0];
-    return Either.map(
+    return map(
       Compound.parseParts(
         rest.slice(tag?.length ?? 0),
         { tag, attributes: [], classes: [], negations: [] },
@@ -144,7 +157,7 @@ class Compound {
     source: string,
   ): Either<CompoundParts, SelectorError> {
     if (rest === "") {
-      return Either.right(parts);
+      return Right.of(parts);
     }
     const attribute = ATTRIBUTE.exec(rest);
     const className = CLASS.exec(rest);
@@ -165,13 +178,13 @@ class Compound {
       }, source);
     }
     if (negation) {
-      return Either.flatMap(Compound.parseNegation(source, negation[1]!), (negated) =>
+      return flatMap(Compound.parseNegation(source, negation[1]!), (negated) =>
         Compound.parseParts(rest.slice(negation[0].length), {
           ...parts,
           negations: [...parts.negations, ...negated],
         }, source));
     }
-    return Either.left(new SelectorError(
+    return Left.of(new SelectorError(
       `Unsupported selector "${source}" at "${rest}": `
       + "write a tag, [attr], [attr=value], .class or :not(...)",
     ));
@@ -197,7 +210,7 @@ class Compound {
     body: string,
   ): Either<readonly Compound[], SelectorError> {
     return eachOf(body.split(","), (part) => (part.trim() === ""
-      ? Either.left(new SelectorError(`Empty part in ":not(${body})" of "${source}": write e.g. ":not([disabled])"`))
+      ? Left.of(new SelectorError(`Empty part in ":not(${body})" of "${source}": write e.g. ":not([disabled])"`))
       : Compound.parse(part, source)));
   }
 }
