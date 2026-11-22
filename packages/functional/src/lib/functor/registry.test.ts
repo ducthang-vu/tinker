@@ -21,10 +21,9 @@ describe("implementMap and implementFlatMap", () => {
       .toEqual({ name: "Result", args: [4] });
   });
 
-  test("the data-last map applies the registered implementation", () => {
+  test("the data-first map applies the registered implementation", () => {
     implementMap("RegistryLast", (box, f) => boxOf("RegistryLast", f(box[MATCHABLE].args[0])));
-    const addOne = map((n: number) => n + 1);
-    expect(addOne(boxOf("RegistryLast", 1))[MATCHABLE])
+    expect(map(boxOf("RegistryLast", 1), (n: number) => n + 1)[MATCHABLE])
       .toEqual({ name: "RegistryLast", args: [2] });
   });
 
