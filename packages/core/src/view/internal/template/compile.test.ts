@@ -1,7 +1,7 @@
-import { parseNodes } from "../test-support.ts";
+import { messageOf, parseNodes } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
-import { type CompiledElement, compileTemplate as compileTemplateEither } from "./compile.ts";
+import { type CompiledElement, compileTemplate as compileTemplateEither, type DirectiveCandidate } from "./compile.ts";
 import { valueOrThrow } from "@tinker/functional/v1";
 
 const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
@@ -380,12 +380,37 @@ describe("template references", () => {
   });
 
   test("the three reference forms: the element, an exportAs, and the component", () => {
-    const element = (attributes: { name: string; value: string }[]) =>
-      compileTemplate([{ kind: "element", name: "p", attributes, children: [] }]) as CompiledElement[];
-    expect(element([{ name: "#box", value: "Tip" }])[0]!.references)
+    const tip = { type: class Tip {}, selector: Selector.parseValid("p"), isComponent: false, exportAs: "Tip" };
+    const card = { type: class Card {}, selector: Selector.parseValid("p"), isComponent: true };
+    const element = (
+      attributes: { name: string; value: string }[],
+      candidates: DirectiveCandidate[],
+    ) =>
+      compileTemplate([{ kind: "element", name: "p", attributes, children: [] }], candidates) as CompiledElement[];
+    expect(element([{ name: "#box", value: "Tip" }], [tip])[0]!.references)
       .toEqual([{ name: "box", target: { kind: "export", exportAs: "Tip" } }]);
-    expect(element([{ name: "##item", value: "" }])[0]!.references)
+    expect(element([{ name: "##item", value: "" }], [card])[0]!.references)
       .toEqual([{ name: "item", target: { kind: "component" } }]);
+  });
+
+  test("a name is declared once in a scope: a block sees a copy, and leaves nothing behind", () => {
+    expect(() => compileTemplate(parseNodes(`<p #a></p>@if (x) { <p #b></p> }@if (y) { <p #b></p> }`)))
+      .not.toThrow();
+    expect(() => compileTemplate(parseNodes(`@if (x) { <p #a></p> }<p #a></p>`)))
+      .not.toThrow();
+    expect(() => compileTemplate(parseNodes(`<p #a></p>@if (x) { <p #a></p> }`)))
+      .toThrow("#a is already declared in this template");
+    expect(() => compileTemplate(parseNodes(`<p #a></p><template #a></template>`)))
+      .toThrow("#a is already declared in this template");
+  });
+
+  test("an exportAs needs a directive with it, and ## needs a component on the element", () => {
+    const element = (attributes: { name: string; value: string }[]) =>
+      compileTemplateEither([{ kind: "element", name: "p", attributes, children: [] }]);
+    expect(messageOf(element([{ name: "#box", value: "Tip" }])))
+      .toBe(`#box="Tip": no directive on <p> is exported as "Tip"`);
+    expect(messageOf(element([{ name: "##item", value: "" }])))
+      .toBe("##item: <p> has no component");
   });
 
   test("a reference must be a plain name, declared once, with valid values", () => {

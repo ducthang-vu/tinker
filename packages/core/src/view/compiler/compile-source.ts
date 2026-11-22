@@ -19,6 +19,8 @@ export interface ImportedSelector {
   readonly isComponent: boolean;
   /** The class itself, when there is one: the compiled nodes refer to it. */
   readonly type?: Class<object>;
+  /** The name `#name="exportAs"` gives it, if it has one. */
+  readonly exportAs?: string;
 }
 
 /** The class the compiled nodes refer to in a check, where a build step has none. */
@@ -52,5 +54,6 @@ function candidateOf(imported: ImportedSelector): Either<DirectiveCandidate, Err
     type: imported.type ?? Unbound,
     selector,
     isComponent: imported.isComponent,
+    exportAs: imported.exportAs,
   }));
 }

@@ -12,7 +12,7 @@ import { Maybe } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
-import { match } from "@tinker/functional/v1";
+import { type Either, Left, map, match, Right, sequence } from "@tinker/functional/v1";
 
 /** The names the expression uses for `Maybe` and `Selector`. */
 export interface EmitHelpers {
@@ -27,39 +27,41 @@ interface Scope {
 }
 
 /**
- * The JavaScript expression for `nodes`. `names` gives the name of each class the
- * tree refers to; a class missing from it is an error.
+ * The JavaScript expression for `nodes`, or an error for a value that cannot be written.
+ * `names` gives the name of each class the tree refers to; a class missing from it is an error.
  */
 export function emitCompiled(
   nodes: readonly CompiledNode[],
   names: ReadonlyMap<Class<object>, string>,
   helpers: EmitHelpers = { Maybe: "Maybe", Selector: "Selector" },
-): string {
+): Either<string, Error> {
   return emitValue(nodes, { names, helpers });
 }
 
-function emitValue(value: unknown, scope: Scope): string {
+function emitValue(value: unknown, scope: Scope): Either<string, Error> {
   if (value === undefined) {
-    return "undefined";
+    return Right.of("undefined");
   }
   if (value === null || typeof value === "boolean" || typeof value === "string") {
-    return JSON.stringify(value);
+    return Right.of(JSON.stringify(value));
   }
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new Error(`Cannot emit ${value}: only finite numbers can be written`);
-    }
-    return String(value);
+    return Number.isFinite(value)
+      ? Right.of(String(value))
+      : Left.of(new Error(`Cannot emit ${value}: only finite numbers can be written`));
   }
   if (Array.isArray(value)) {
-    return `[${value.map((item) => emitValue(item, scope))
-      .join(", ")}]`;
+    return map(sequence(value.map((item) => emitValue(item, scope))), (items) =>
+      `[${items.join(", ")}]`);
   }
   if (value instanceof Maybe) {
-    return value.match({ some: (inner) => `${scope.helpers.Maybe}.some(${emitValue(inner, scope)})`, none: () => `${scope.helpers.Maybe}.none()` });
+    return value.match({
+      some: (inner) => map(emitValue(inner, scope), (text) => `${scope.helpers.Maybe}.some(${text})`),
+      none: () => Right.of(`${scope.helpers.Maybe}.none()`),
+    });
   }
   if (value instanceof Selector) {
-    return `${scope.helpers.Selector}.parseValid(${JSON.stringify(value.source)})`;
+    return Right.of(`${scope.helpers.Selector}.parseValid(${JSON.stringify(value.source)})`);
   }
   if (typeof value === "function") {
     return nameOf(value as Class<object>, scope.names);
@@ -67,21 +69,26 @@ function emitValue(value: unknown, scope: Scope): string {
   if (isPlainObject(value)) {
     return emitObject(value, scope);
   }
-  throw new Error(`Cannot emit ${Object.prototype.toString.call(value)}: it is not plain data, a Maybe, a Selector or a class`);
+  return Left.of(new Error(`Cannot emit ${Object.prototype.toString.call(value)}: it is not plain data, a Maybe, a Selector or a class`));
 }
 
-function emitObject(value: object, scope: Scope): string {
-  const fields = Object.entries(value)
-    .map(([key, field]) => `${JSON.stringify(key)}: ${emitValue(field, scope)}`);
-  return `{ ${fields.join(", ")} }`;
+function emitObject(value: object, scope: Scope): Either<string, Error> {
+  return map(
+    sequence(Object.entries(value)
+      .map(([key, field]) =>
+        map(emitValue(field, scope), (text) => `${JSON.stringify(key)}: ${text}`))),
+    (fields) => `{ ${fields.join(", ")} }`,
+  );
 }
 
-function nameOf(type: Class<object>, names: ReadonlyMap<Class<object>, string>): string {
+function nameOf(
+  type: Class<object>,
+  names: ReadonlyMap<Class<object>, string>,
+): Either<string, Error> {
   const name = names.get(type);
-  if (name === undefined) {
-    throw new Error(`Cannot emit the class ${type.name || "(anonymous)"}: it has no name in the module`);
-  }
-  return name;
+  return name === undefined
+    ? Left.of(new Error(`Cannot emit the class ${type.name || "(anonymous)"}: it has no name in the module`))
+    : Right.of(name);
 }
 
 function isPlainObject(value: unknown): value is object {

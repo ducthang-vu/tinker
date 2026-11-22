@@ -17,12 +17,22 @@ describe("readSource", () => {
         selector: "tk-page",
         template: { text: "<p>hi</p>", start: expect.any(Number), end: expect.any(Number) },
         imports: ["Item"],
+        exportAs: undefined,
+        exportAsIsDynamic: false,
       }]);
   });
 
   test("reads a directive, with its selector", () => {
     expect(read(`@Directive({ selector: "[item]" }) class Item {}`).declarations)
-      .toEqual([{ name: "Item", kind: "directive", selector: "[item]", template: undefined, imports: [] }]);
+      .toEqual([{ name: "Item", kind: "directive", selector: "[item]", template: undefined, imports: [],
+        exportAs: undefined, exportAsIsDynamic: false }]);
+  });
+
+  test("reads an exportAs literal, and marks one that is not a literal as dynamic", () => {
+    expect(read(`@Directive({ selector: "[item]", exportAs: "item" }) class Item {}`).declarations[0])
+      .toMatchObject({ exportAs: "item", exportAsIsDynamic: false });
+    expect(read(`@Directive({ selector: "[item]", exportAs: name }) class Item {}`).declarations[0])
+      .toMatchObject({ exportAs: undefined, exportAsIsDynamic: true });
   });
 
   test("reads a template literal with no substitutions, and gives none for one with them", () => {
