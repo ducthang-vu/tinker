@@ -229,9 +229,16 @@ function compileItems(
 
 /** The nodes of a list of results, in order: the first failure is the result. */
 function concatAll(results: readonly Parsed<readonly CompiledNode[]>[]): Parsed<CompiledNode[]> {
-  return results.reduce<Parsed<CompiledNode[]>>((all, next) =>
-    flatMap(all, (nodes: CompiledNode[]) => map(next, (more) => [...nodes, ...more])),
-  Right.of<CompiledNode[], Error>([]));
+  return results.reduce<Parsed<CompiledNode[]>>((all, next) => appendNodes(all, next),
+    Right.of<CompiledNode[], Error>([]));
+}
+
+/** `next`'s nodes added after those collected so far, when both succeed. */
+function appendNodes(
+  all: Parsed<CompiledNode[]>,
+  next: Parsed<readonly CompiledNode[]>,
+): Parsed<CompiledNode[]> {
+  return flatMap(all, (nodes: CompiledNode[]) => map(next, (more) => [...nodes, ...more]));
 }
 
 /** One item, compiled. An error gets the item's span, unless an inner item gave it one. */
@@ -263,25 +270,9 @@ function compileBlock(
     case "elseif":
       return Left.of(new Error("@else if must follow an @if"));
     case "if":
-      return flatMap(condition(block), (subject) => flatMap(
-        compileItems(block.body, candidates),
-        (body) => map(optionalItems(block.otherwise, candidates), (otherwise): CompiledMatch => ({
-          kind: "match",
-          subject,
-          cases: [{ pattern: { kind: "truthy" }, body }],
-          default: otherwise,
-        })),
-      ));
+      return flatMap(condition(block), (subject) => truthyMatch(subject, block, candidates));
     case "match":
-      return flatMap(armsOf(block, candidates), (arms) => map(
-        optionalSubject(block),
-        (subject): CompiledMatch => ({
-          kind: "match",
-          subject,
-          cases: arms.cases,
-          default: arms.fallback,
-        }),
-      ));
+      return flatMap(armsOf(block, candidates), (arms) => matchOf(arms, block));
     case "case":
       return Left.of(new Error("@case must be inside @match"));
     case "default":
@@ -332,10 +323,7 @@ function armOf(
   }
   if (item.keyword === "case") {
     return flatMap(caseHeader(item, block.header === ""), (header) =>
-      map(compileItems(item.body, candidates), (body): Arms => ({
-        ...current,
-        cases: [...current.cases, { ...header, body }],
-      })));
+      caseArm(header, item, current, candidates));
   }
   if (item.keyword === "default") {
     if (current.fallback) {
@@ -365,15 +353,7 @@ function compileMap(
     return Left.of(new Error(`@map needs a list and a name, e.g. @map todos; let todo`));
   }
   return flatMap(expressionOf({ ...block, header: source }), (list) =>
-    flatMap(itemOf(declared[1]!.trim()), (item) =>
-      flatMap(trackOf(block, tracking), (track) =>
-        map(compileItems(block.body, candidates), (body): CompiledMap => ({
-          kind: "map",
-          list,
-          item,
-          track,
-          body,
-        })))));
+    mapOfList(list, block, declared[1]!.trim(), tracking, candidates));
 }
 
 /** The `let` of a `@map`: a name, or a pattern that destructures each item. */
@@ -468,8 +448,7 @@ function caseHeader(
       if (subjectless && result.kind !== "any") {
         return Left.of(new Error(`A @match without a subject takes "@case _ when …" cases, not "${split.pattern}"`));
       }
-      return map(optionalGuard(block, split.guard), (guard) =>
-        (guard ? { pattern: result, guard } : { pattern: result }));
+      return guardedHeader(result, block, split.guard);
     });
 }
 
@@ -581,31 +560,20 @@ function compileElement(
         references,
       })
     : Right.of<void, Error>(undefined);
-  return flatMap(checked, (): Parsed<CompiledNode> => {
-    if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
-      return Left.of(new Error(
-        `[${inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
-        + "and no imported directive or component matches this element",
-      ));
-    }
-    // A component's element has content too: the component shows it in its `<slot>`s.
-    return map(compileTemplate(node.children, candidates), (children): CompiledNode => ({
-      kind: "element",
-      name: node.name,
-      attributes,
-      classBindings,
-      classObjects,
-      inputBindings,
-      outputBindings,
-      styleBindings,
-      attributeBindings,
-      children,
-      references,
-      directives,
-      component,
-      container,
-    }));
-  });
+  const parts: ElementParts = {
+    attributes,
+    classBindings,
+    classObjects,
+    inputBindings,
+    outputBindings,
+    styleBindings,
+    attributeBindings,
+    references,
+    directives,
+    component,
+    container,
+  };
+  return flatMap(checked, () => elementAfterChecks(node, parts, candidates));
 }
 
 /** The element name of a container: a position with no element, for directives. */
@@ -803,20 +771,12 @@ function classifyAttribute(
   if (eventName !== undefined) {
     return flatMap(mapLeft(parseEventName(eventName, "event binding"), (error) =>
       new Error(`${error.message}, on <${node.name}>`)), ({ event, modifiers }) =>
-      map(mapLeft(parseHandler(attribute.value, "event handler"), (error) =>
-        new Error(`${error.message}, on <${node.name}>`)), (handler): Classified => ({
-        ...current,
-        outputBindings: [
-          ...current.outputBindings,
-          {
-            name: event,
-            owner: outputOwner,
-            modifiers,
-            handler,
-            ...(domFallback && { domFallback }),
-          },
-        ],
-      })));
+      handlerBinding(attribute, node, current, {
+        event,
+        modifiers,
+        owner: outputOwner,
+        domFallback,
+      }));
   }
   if (/^[[(]/.test(attribute.name)) {
     return Left.of(new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`));
@@ -875,4 +835,152 @@ function referenceOf(
     return Left.of(new Error(`"${attribute.value}" is not an exportAs name on <${node.name}>`));
   }
   return Right.of({ name, target: { kind: "export", exportAs: attribute.value } });
+}
+
+/** The match an `@if` is: its body when the condition holds, and its `@else` otherwise. */
+function truthyMatch(
+  subject: Expression,
+  block: BlockItem,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledMatch> {
+  return flatMap(compileItems(block.body, candidates), (body) =>
+    elseOf(subject, body, block, candidates));
+}
+
+function elseOf(
+  subject: Expression,
+  body: readonly CompiledNode[],
+  block: BlockItem,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledMatch> {
+  return map(optionalItems(block.otherwise, candidates), (otherwise): CompiledMatch => ({
+    kind: "match",
+    subject,
+    cases: [{ pattern: { kind: "truthy" }, body }],
+    default: otherwise,
+  }));
+}
+
+/** A `@match`, from its arms and its subject. */
+function matchOf(arms: Arms, block: BlockItem): Parsed<CompiledMatch> {
+  return map(optionalSubject(block), (subject): CompiledMatch => ({
+    kind: "match",
+    subject,
+    cases: arms.cases,
+    default: arms.fallback,
+  }));
+}
+
+/** A `@case` added to the arms: its header, and the items of its body. */
+function caseArm(
+  header: { readonly pattern: Pattern; readonly guard?: Expression },
+  item: BlockItem,
+  current: Arms,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<Arms> {
+  return map(compileItems(item.body, candidates), (body): Arms => ({
+    ...current,
+    cases: [...current.cases, { ...header, body }],
+  }));
+}
+
+/** The items of a `@map`, after its list: the item name, then the track, then the body. */
+function mapOfList(
+  list: Expression,
+  block: BlockItem,
+  itemText: string,
+  tracking: string | undefined,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledMap> {
+  return flatMap(itemOf(itemText), (item) => mapOfItem(list, item, block, tracking, candidates));
+}
+
+function mapOfItem(
+  list: Expression,
+  item: Pattern,
+  block: BlockItem,
+  tracking: string | undefined,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledMap> {
+  return flatMap(trackOf(block, tracking), (track) =>
+    mapOfTrack(list, item, track, block, candidates));
+}
+
+function mapOfTrack(
+  list: Expression,
+  item: Pattern,
+  track: CompiledTrack | undefined,
+  block: BlockItem,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledMap> {
+  return map(compileItems(block.body, candidates), (body): CompiledMap => ({
+    kind: "map",
+    list,
+    item,
+    track,
+    body,
+  }));
+}
+
+/** A `@case`'s header, with its guard when it has one. */
+function guardedHeader(
+  pattern: Pattern,
+  block: BlockItem,
+  guard: string | undefined,
+): Parsed<{ pattern: Pattern; guard?: Expression }> {
+  return map(optionalGuard(block, guard), (compiled) =>
+    (compiled ? { pattern, guard: compiled } : { pattern }));
+}
+
+/** The elements of an element's parts, shaped as a `CompiledElement`. */
+type ElementParts = Omit<CompiledElement, "kind" | "name" | "children">;
+
+/** An element, once its checks pass: its content is compiled, and it is returned with its parts. */
+function elementAfterChecks(
+  node: ElementNode,
+  parts: ElementParts,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledNode> {
+  if (parts.inputBindings.length > 0 && parts.directives.length === 0 && parts.component.isNone()) {
+    return Left.of(new Error(
+      `[${parts.inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
+      + "and no imported directive or component matches this element",
+    ));
+  }
+  // A component's element has content too: the component shows it in its `<slot>`s.
+  return map(compileTemplate(node.children, candidates), (children): CompiledNode => ({
+    kind: "element",
+    name: node.name,
+    children,
+    ...parts,
+  }));
+}
+
+/** An output binding of an element, once its event and handler are parsed. */
+function handlerBinding(
+  attribute: AttributeNode,
+  node: ElementNode,
+  current: Classified,
+  binding: {
+    readonly event: string;
+    readonly modifiers: readonly EventModifier[];
+    readonly owner: string | undefined;
+    readonly domFallback: DomFallback | undefined;
+  },
+): Parsed<Classified> {
+  const handler = mapLeft(parseHandler(attribute.value, "event handler"), (error) =>
+    new Error(`${error.message}, on <${node.name}>`));
+  return map(handler, (parsed): Classified => ({
+    ...current,
+    outputBindings: [
+      ...current.outputBindings,
+      {
+        name: binding.event,
+        owner: binding.owner,
+        modifiers: binding.modifiers,
+        handler: parsed,
+        ...(binding.domFallback && { domFallback: binding.domFallback }),
+      },
+    ],
+  }));
 }

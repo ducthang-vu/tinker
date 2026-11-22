@@ -172,23 +172,31 @@ export class ExpressionParser {
    * otherwise. Without a `?`, the value is the test itself.
    */
   private conditional(): Parsed<Expression> {
-    return flatMap(this.coalesce(), (test): Parsed<Expression> => {
-      this.skipWhitespace();
-      if (!this.take(["?"])) {
-        return Right.of(test);
-      }
-      return pipe(
-        this.conditional(),
-        map((then: Expression) => ({ test, then })),
-        flatMap((parts: { test: Expression; then: Expression }) => map(this.colon(), () => parts)),
-        flatMap((parts: { test: Expression; then: Expression }) => map(
-          this.conditional(),
-          (otherwise: Expression) => ({ ...parts, otherwise }),
-        )),
-        map((parts: { test: Expression; then: Expression; otherwise: Expression }): Expression =>
-          ({ kind: "conditional", ...parts })),
-      );
-    });
+    return flatMap(this.coalesce(), (test): Parsed<Expression> => this.conditionalRest(test));
+  }
+
+  /** What follows the test: the `? then : otherwise` part, or nothing when there is no `?`. */
+  private conditionalRest(test: Expression): Parsed<Expression> {
+    this.skipWhitespace();
+    if (!this.take(["?"])) {
+      return Right.of(test);
+    }
+    return flatMap(this.conditional(), (then): Parsed<Expression> =>
+      this.conditionalElse(test, then));
+  }
+
+  /** The `: otherwise` part of a conditional, once its test and `then` are read. */
+  private conditionalElse(test: Expression, then: Expression): Parsed<Expression> {
+    return flatMap(this.colon(), () => this.conditionalOtherwise(test, then));
+  }
+
+  private conditionalOtherwise(test: Expression, then: Expression): Parsed<Expression> {
+    return map(this.conditional(), (otherwise): Expression => ({
+      kind: "conditional",
+      test,
+      then,
+      otherwise,
+    }));
   }
 
   /** The `:` of a conditional, after any spaces. */
@@ -264,13 +272,16 @@ export class ExpressionParser {
 
   /** `**` is right-associative: `2 ** 3 ** 2` is `2 ** (3 ** 2)`. */
   private power(): Parsed<Expression> {
-    return flatMap(this.operand(), (base): Parsed<Expression> => {
-      this.skipWhitespace();
-      if (!this.take(["**"])) {
-        return Right.of(base);
-      }
-      return map(this.power(), (right): Expression => ({ kind: "binary", operator: "**", left: base, right }));
-    });
+    return flatMap(this.operand(), (base): Parsed<Expression> => this.powerRest(base));
+  }
+
+  /** What follows the base of a `**`: the exponent, or nothing when there is no `**`. */
+  private powerRest(base: Expression): Parsed<Expression> {
+    this.skipWhitespace();
+    if (!this.take(["**"])) {
+      return Right.of(base);
+    }
+    return map(this.power(), (right): Expression => ({ kind: "binary", operator: "**", left: base, right }));
   }
 
   private operand(): Parsed<Expression> {
@@ -354,6 +365,11 @@ export class ExpressionParser {
   }
 
   /** One entry: `key: value`, a shorthand `key`, or `"key": value`. */
+  /** The value of an object field whose key is `key`, after its colon. */
+  private fieldValue(key: string): Parsed<Field> {
+    return map(this.conditional(), (value): Field => ({ key, value }));
+  }
+
   private objectField(): Parsed<Field> {
     const quote = this.source[this.position];
     const quoted = quote === "\"" || quote === "'";
@@ -362,7 +378,7 @@ export class ExpressionParser {
       flatMap((key): Parsed<Field> => {
         this.skipWhitespace();
         if (this.take([":"]) !== undefined) {
-          return map(this.conditional(), (value) => ({ key, value }));
+          return this.fieldValue(key);
         }
         if (quoted) {
           return Left.of(this.error(`A quoted key needs a value, as in "${key}": value`));
