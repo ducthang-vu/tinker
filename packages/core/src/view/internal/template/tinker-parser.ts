@@ -19,6 +19,7 @@
 // Comments are dropped.
 
 import { Maybe } from "@tinker/functional";
+import { decodeHTML, decodeHTMLAttribute } from "entities";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
 
@@ -79,15 +80,8 @@ const VOID_ELEMENTS = new Set([
 ]);
 /** Elements whose content is text, not markup, up to their closing tag. */
 const RAW_TEXT_ELEMENTS = new Set(["script", "style"]);
-const NAMED_ENTITIES = new Map([
-  ["amp", "&"],
-  ["lt", "<"],
-  ["gt", ">"],
-  ["quot", "\""],
-  ["apos", "'"],
-  ["nbsp", " "],
-]);
-const ENTITY = /&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi;
+/** Elements whose content is text with references decoded, not markup, up to their closing tag. */
+const ESCAPABLE_RAW_TEXT_ELEMENTS = new Set(["textarea", "title"]);
 
 const TAG_NAME = /[A-Za-z][\w:.-]*/y;
 const ATTRIBUTE_NAME = /[^\s"'<>/=]+/y;
@@ -168,9 +162,10 @@ class Scanner {
       return { kind: "element", name, attributes, children: [], span: { start, end: this.pos } };
     }
     let children: TemplateNode[];
-    if (RAW_TEXT_ELEMENTS.has(name.toLowerCase())) {
+    const lower = name.toLowerCase();
+    if (RAW_TEXT_ELEMENTS.has(lower) || ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower)) {
       // The text ends at the element's own closing tag, which is the one to consume.
-      children = this.rawText(name);
+      children = this.rawText(name, ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower));
       this.closingTag(name, start);
     } else {
       children = this.childrenOf(name, start);
@@ -203,7 +198,7 @@ class Scanner {
     }
     return {
       kind: "text",
-      value: decodeEntities(this.source.slice(start, this.pos)),
+      value: decodeHTML(this.source.slice(start, this.pos)),
       span: { start, end: this.pos },
     };
   }
@@ -214,15 +209,19 @@ class Scanner {
     return Maybe.from(close === -1 ? undefined : close + 2);
   }
 
-  /** Everything up to the closing tag of a raw text element, as one text. */
-  private rawText(name: string): TemplateNode[] {
+  /**
+   * Everything up to the closing tag of a raw text element, as one text. Its references
+   * are decoded when `decode` is set (`textarea`, `title`), and kept as written otherwise.
+   */
+  private rawText(name: string, decode: boolean): TemplateNode[] {
     const closing = new RegExp(`</${name}`, "gi");
     closing.lastIndex = this.pos;
     const match = closing.exec(this.source);
     const start = this.pos;
     const end = match?.index ?? this.source.length;
-    const value = this.source.slice(start, end);
+    const raw = this.source.slice(start, end);
     this.pos = end;
+    const value = decode ? decodeHTML(raw) : raw;
     return value === "" ? [] : [{ kind: "text", value, span: { start, end } }];
   }
 
@@ -318,13 +317,13 @@ class Scanner {
       }
       const value = this.source.slice(this.pos + 1, close);
       this.pos = close + 1;
-      return decodeEntities(value);
+      return decodeHTMLAttribute(value);
     }
     const value = this.take(UNQUOTED_VALUE);
     if (value === "") {
       throw this.error("expected an attribute value");
     }
-    return decodeEntities(value);
+    return decodeHTMLAttribute(value);
   }
 
   private comment(): void {
@@ -387,23 +386,6 @@ class Scanner {
     const column = at - this.source.lastIndexOf("\n", at - 1);
     return new TemplateSyntaxError(message, line, column);
   }
-}
-
-/** Replaces the references this parser knows; any other is left as written. */
-function decodeEntities(text: string): string {
-  return text.replace(ENTITY, (whole: string, body: string) =>
-    decodeEntity(body)
-      .getOrElse(whole));
-}
-
-/** The character a reference names: `&#65;`, `&#x41;` or a named one. None if unknown. */
-function decodeEntity(body: string): Maybe<string> {
-  if (!body.startsWith("#")) {
-    return Maybe.from(NAMED_ENTITIES.get(body));
-  }
-  const hex = /^#x/i.test(body);
-  const code = Number.parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10);
-  return Maybe.from(code <= 0x10ffff ? String.fromCodePoint(code) : undefined);
 }
 
 /** The error a scanner step threw. Anything else is a bug, and is rethrown. */

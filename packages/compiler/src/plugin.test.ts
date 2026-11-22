@@ -344,3 +344,52 @@ describe("compileComponents", () => {
     });
   });
 });
+
+describe("constants across files", () => {
+  test("a constant built from a constant of another file is checked", async () => {
+    const { host, errors } = recordingHost({ "./constants.ts": fixture("constants.ts") });
+    await expect(compileComponents(`
+      import { prefix } from "./constants.ts";
+      const body = prefix + "{{ a + }}</p>";
+      @Component({ template: body }) class A {}
+    `, "/app/a.ts", host))
+      .rejects
+      .toThrow();
+    expect(errors[0])
+      .toContain("a.ts: <A>: Missing a name at the end");
+  });
+
+  test("a constant built in a file that imports from another is read through both imports", async () => {
+    const { host, errors } = recordingHost({ "./chain.ts": fixture("chain.ts"), "./constants.ts": fixture("constants.ts") });
+    await expect(compileComponents(`
+      import { brokenDeeper } from "./chain.ts";
+      @Component({ template: brokenDeeper }) class A {}
+    `, "/app/a.ts", host))
+      .rejects
+      .toThrow();
+    expect(errors[0])
+      .toContain("a.ts: <A>: Missing a name at the end");
+  });
+
+  test("a valid constant built across files compiles, with no warning", async () => {
+    const { host, errors, warnings } = recordingHost({ "./chain.ts": fixture("chain.ts"), "./constants.ts": fixture("constants.ts") });
+    await compileComponents(`
+      import { deeper } from "./chain.ts";
+      @Component({ template: deeper }) class A {}
+    `, "/app/a.ts", host);
+    expect(errors)
+      .toEqual([]);
+    expect(warnings)
+      .toEqual([]);
+  });
+
+  test("constants that depend on each other have no text, and are warned about, not followed forever", async () => {
+    const { host, warnings } = recordingHost({ "./cycle.ts": fixture("cycle.ts") });
+    await compileComponents(`
+      import { loop } from "./cycle.ts";
+      @Component({ template: loop }) class A {}
+    `, "/app/a.ts", host);
+    expect(warnings)
+      .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
+  });
+});

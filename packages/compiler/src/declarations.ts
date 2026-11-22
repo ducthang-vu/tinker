@@ -56,6 +56,8 @@ export interface SourceInfo {
   readonly imports: readonly ImportBinding[];
   /** The `const`s of the file whose value is a string literal or a template without `${}`. */
   readonly constants: ReadonlyMap<string, string>;
+  /** The initializer of every top-level `const`, to evaluate the ones not in `constants`. */
+  readonly expressions: ReadonlyMap<string, t.Node>;
 }
 
 /** The declarations and named imports of one file. */
@@ -75,6 +77,7 @@ export function readSource(code: string, filename: string): SourceInfo {
     declarations: body.flatMap((statement) => declarationOf(statement, constants)),
     imports: body.flatMap(importsOf),
     constants,
+    expressions: expressionsOf(body),
   };
 }
 
@@ -95,6 +98,34 @@ function constantsOf(body: readonly t.Statement[]): ReadonlyMap<string, string> 
     }
   }
   return constants;
+}
+
+/** The initializer of each top-level `const` that has one, by name. */
+function expressionsOf(body: readonly t.Statement[]): ReadonlyMap<string, t.Node> {
+  const expressions = new Map<string, t.Node>();
+  for (const statement of body) {
+    const declared = t.isExportNamedDeclaration(statement) ? statement.declaration : statement;
+    if (!t.isVariableDeclaration(declared) || declared.kind !== "const") {
+      continue;
+    }
+    for (const declarator of declared.declarations) {
+      if (t.isIdentifier(declarator.id) && declarator.init) {
+        expressions.set(declarator.id.name, declarator.init);
+      }
+    }
+  }
+  return expressions;
+}
+
+/** The names of the identifiers that appear in an expression. */
+export function identifiersIn(node: t.Node): string[] {
+  const names: string[] = [];
+  t.traverseFast(node, (child) => {
+    if (t.isIdentifier(child)) {
+      names.push(child.name);
+    }
+  });
+  return names;
 }
 
 /** The declaration of a top-level class (exported or not), if it has one of ours. */
@@ -169,18 +200,29 @@ function literalOf(
   value: t.Node | undefined,
   constants: ReadonlyMap<string, string>,
 ): string | undefined {
+  return textOf(value, (name) => constants.get(name));
+}
+
+/**
+ * The text of a string literal, of a template literal, of a `+` of two such texts, or
+ * of an identifier, which `lookup` gives the text of. Otherwise none.
+ */
+export function textOf(
+  value: t.Node | undefined,
+  lookup: (name: string) => string | undefined,
+): string | undefined {
   if (t.isStringLiteral(value)) {
     return value.value;
   }
   if (t.isIdentifier(value)) {
-    return constants.get(value.name);
+    return lookup(value.name);
   }
   if (t.isTemplateLiteral(value)) {
-    return textOfTemplate(value, constants);
+    return textOfTemplate(value, lookup);
   }
   if (t.isBinaryExpression(value, { operator: "+" })) {
-    const left = literalOf(value.left, constants);
-    const right = literalOf(value.right, constants);
+    const left = textOf(value.left, lookup);
+    const right = textOf(value.right, lookup);
     return left === undefined || right === undefined ? undefined : left + right;
   }
   return undefined;
@@ -189,7 +231,7 @@ function literalOf(
 /** The text of a template literal, when each of its substitutions has a text. */
 function textOfTemplate(
   value: t.TemplateLiteral,
-  constants: ReadonlyMap<string, string>,
+  lookup: (name: string) => string | undefined,
 ): string | undefined {
   let text = "";
   for (const [index, quasi] of value.quasis.entries()) {
@@ -197,7 +239,7 @@ function textOfTemplate(
     text += quasi.value.cooked as string;
     const substitution = value.expressions[index];
     if (substitution !== undefined) {
-      const inner = literalOf(substitution, constants);
+      const inner = textOf(substitution, lookup);
       if (inner === undefined) {
         return undefined;
       }
