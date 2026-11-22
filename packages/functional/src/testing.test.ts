@@ -1,8 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { flatMap as maybeFlatMap, map as maybeMap } from "./functor.ts";
-import { None, Some, type Maybe } from "./maybe.ts";
-import { match } from "./monad.ts";
+import { flatMap as maybeFlatMap, map as maybeMap } from "./lib/functor/functor.ts";
+import { None, Some, type Maybe } from "./lib/monad/maybe.ts";
+import { match } from "./lib/monad/monad.ts";
 import {
   type ChainUnderTest,
   chainLaws,

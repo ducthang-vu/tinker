@@ -1,9 +1,9 @@
 // The public API of the v1 functional library: import it as `@tinker/functional`.
 
-export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./monad.ts";
-export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./monad.ts";
-export { Right, Left, mapLeft, attempt, toError, valueOrThrow } from "./either.ts";
-export type { Either, EitherCases } from "./either.ts";
+export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./lib/monad/monad.ts";
+export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./lib/monad/monad.ts";
+export { Right, Left, mapLeft, attempt, toError, valueOrThrow } from "./lib/monad/either.ts";
+export type { Either, EitherCases } from "./lib/monad/either.ts";
 export {
   Some,
   None,
@@ -16,33 +16,33 @@ export {
   fromEither,
   isSome,
   isNone,
-} from "./maybe.ts";
-export type { Maybe, MaybeCases } from "./maybe.ts";
-export { map, flatMap, sequence, MAP, CHAIN } from "./functor.ts";
+} from "./lib/monad/maybe.ts";
+export type { Maybe, MaybeCases } from "./lib/monad/maybe.ts";
+export { map, flatMap, sequence, MAP, CHAIN } from "./lib/functor/functor.ts";
 export type {
   Functor,
   Chain,
   MapFn,
   EitherFlatMapFn,
   MaybeFlatMapFn,
-} from "./functor.ts";
-export { implementMap, implementFlatMap } from "./registry.ts";
-export type { MapImpl, FlatMapImpl } from "./registry.ts";
+} from "./lib/functor/functor.ts";
+export { implementMap, implementFlatMap } from "./lib/functor/registry.ts";
+export type { MapImpl, FlatMapImpl } from "./lib/functor/registry.ts";
 export {
   Stream,
   run,
   subscribe,
   mapErrors,
-} from "./stream.ts";
+} from "./lib/stream/stream.ts";
 export type {
   Cancel,
   StreamComputation,
   StreamHandlers,
   StreamObserver,
   StreamSink,
-} from "./stream.ts";
-export { pipe, flow, partial } from "./function.ts";
-export { Emitter } from "./emitter.ts";
+} from "./lib/stream/stream.ts";
+export { pipe, flow, partial } from "./lib/function.ts";
+export { Emitter } from "./lib/stream/emitter.ts";
 export {
   type Task,
   type TaskComputation,
@@ -56,4 +56,4 @@ export {
   succeed,
   timeout,
   toPromise,
-} from "./task.ts";
+} from "./lib/stream/task.ts";

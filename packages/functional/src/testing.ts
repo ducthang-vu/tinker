@@ -2,7 +2,7 @@
 // them as `@tinker/functional/testing`. Each checker returns its law checks as [description,
 // check] pairs, so any test framework can run them: see `functorLaws`, `chainLaws` and `monadLaws`.
 
-import { isEqual } from "./monad.ts";
+import { isEqual } from "./lib/monad/monad.ts";
 
 // Normal values and edge cases. Every interaction of a monad is tested on each one.
 export const EDGE_VALUES: readonly unknown[] = [
