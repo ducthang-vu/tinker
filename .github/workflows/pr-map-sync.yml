@@ -1,9 +1,9 @@
 name: PR map sync
 
-# On a pull request, merges main into its branch. When the only conflicts are in the
-# generated repo maps (*.repo-map.md), the maps are regenerated and pushed. Any other
-# conflict is left for the author, with a comment on the pull request. Runs only for
-# branches in this repository: a fork's branch cannot be pushed to.
+# On a pull request, merges main into its branch. When the only conflicts are in generated
+# files (the repo maps, *.repo-map.md, and the API reference), they are regenerated and
+# pushed. Any other conflict is left for the author, with a comment on the pull request.
+# Runs only for branches in this repository: a fork's branch cannot be pushed to.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -53,7 +53,7 @@ jobs:
           fi
 
           conflicts=$(git diff --name-only --diff-filter=U)
-          others=$(printf '%s\n' "$conflicts" | grep -v '\.repo-map\.md$' || true)
+          others=$(printf '%s\n' "$conflicts" | grep -vE '(\.repo-map\.md|^examples/basics/api/api-reference\.json)$' || true)
           if [ -n "$others" ]; then
             git merge --abort
             body=$(printf '%s\n' \
@@ -73,7 +73,9 @@ jobs:
 
       - name: Regenerate the repo maps
         if: steps.merge.outputs.clean != 'false'
-        run: npm run repo-map -- --format markdown
+        run: |
+          npm run repo-map -- --format markdown
+          npm run docs:api
 
       - name: Check the result, then commit and push
         if: steps.merge.outputs.clean != 'false'
