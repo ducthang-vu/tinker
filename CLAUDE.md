@@ -7,7 +7,8 @@ signals, dependency injection, components and directives, change detection.
 
 Run `npm run repo-map -- --format markdown` and read the `.repo-map.md` of the
 folder you work in: `packages/<name>/.repo-map.md` or `examples/<name>/.repo-map.md`,
-and the root `.repo-map.md` for the files outside them. Each is one line per file (its
+`packages/core/src/<module>/.repo-map.md` for a module of core, and the root `.repo-map.md`
+for the files outside them. Each is one line per file (its
 imports), and one line per exported name (its signature). It is about a quarter of the
 size of the generated declarations, so it is the cheapest way to find where something
 lives. The maps are committed, and `npm test` fails when one is out of date: regenerate
