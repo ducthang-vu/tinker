@@ -21,7 +21,7 @@
 // `script` and `style` are read as raw text.
 // Comments are dropped.
 
-import { flatMap, Left, map, match, Right, type Either } from "@tinker/functional/v1";
+import { flatMap, Left, map, match, Right, type Either, use } from "@tinker/functional/v1";
 import { decodeReferences } from "./entities.ts";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
@@ -127,7 +127,7 @@ class Scanner {
     const nodes: TemplateNode[] = [];
     while (!this.atEnd() && !this.startsWith("</")) {
       const start = this.pos;
-      match<TemplateNode[], TemplateSyntaxError, void>(this.node(), {
+      use(this.node(), {
         Right: (items) => {
           nodes.push(...items);
         },
@@ -294,7 +294,7 @@ class Scanner {
         return Right.of({ attributes, selfClosing: true });
       }
       const at = this.pos;
-      match<AttributeNode, TemplateSyntaxError, void>(this.attribute(), {
+      use(this.attribute(), {
         Right: (attribute) => {
           if (names.has(attribute.name)) {
             this.found.push(this.error(`duplicate attribute ${attribute.name}`, at));

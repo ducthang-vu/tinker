@@ -89,21 +89,21 @@ export class Emitter<T, R = void, E = never> {
   }
 
   private subscribe(observer: StreamObserver<T, R, E>): Cancel {
-    return match(this.final, {
-      Some: (result) => {
-        // Already over: tell it, as if it had been there.
-        this.call(() => observer.end?.(result));
-        return () => {};
-      },
-      None: () => {
-        const subscription: Subscription<T, R, E> = { observer, active: true };
-        this.subscriptions.add(subscription);
-        return () => {
-          subscription.active = false;
-          this.subscriptions.delete(subscription);
-        };
-      },
+    const over = match(this.final, {
+      Some: (result) => ({ result }),
+      None: () => undefined,
     });
+    if (over !== undefined) {
+      // Already over: tell it, as if it had been there.
+      this.call(() => observer.end?.(over.result));
+      return () => {};
+    }
+    const subscription: Subscription<T, R, E> = { observer, active: true };
+    this.subscriptions.add(subscription);
+    return () => {
+      subscription.active = false;
+      this.subscriptions.delete(subscription);
+    };
   }
 
   private enqueue(event: Event<T, R, E>): void {

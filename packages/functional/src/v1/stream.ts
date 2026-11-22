@@ -18,8 +18,8 @@
 //   run(upload, { next: showProgress, ok: showResult, error: showError });
 
 import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "./either.ts";
-import { type Chain, CHAIN, type Functor, MAP } from "./functor.ts";
-import { match } from "./monad.ts";
+import { type Chain, CHAIN, flatMap, type Functor, MAP } from "./functor.ts";
+import { match, use } from "./monad.ts";
 
 /** Stops a running stream or task. Calling it after the end does nothing. */
 export type Cancel = () => void;
@@ -194,18 +194,19 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
       let cancelSecond: Cancel | undefined;
       const cancelFirst = subscribe(this, {
         next: (item) => sink.next(item),
-        end: (result) => match(result, {
-          Left: (error) => sink.end(Left.of(error)),
-          Right: (value) => match(attemptAsError(() => f(value)), {
+        end: (result) => {
+          // Pure up to here: the next stream, or the failure that replaces the end.
+          const next = flatMap(result, (value) => attemptAsError(() => f(value)));
+          use(next, {
             Left: (error) => sink.end(Left.of(error)),
-            Right: (next) => {
-              cancelSecond = subscribe(next, {
+            Right: (stream) => {
+              cancelSecond = subscribe(stream, {
                 next: (item) => sink.next(item),
                 end: (end) => sink.end(end),
               });
             },
-          }),
-        }),
+          });
+        },
       });
       return () => (cancelSecond ?? cancelFirst)();
     });
@@ -236,6 +237,7 @@ export function run<T, R, E>(
   stream: Stream<T, R, E>,
   handlers: StreamHandlers<T, R, E> = {},
 ): Cancel {
+  // Without an error handler a failure is re-thrown where it happens (see StreamHandlers).
   const fail = (error: E) => {
     if (!handlers.error) {
       throw error;
@@ -243,8 +245,8 @@ export function run<T, R, E>(
     handlers.error(error);
   };
   return subscribe(stream, {
-    next: (item) => match(item, { Left: fail, Right: (value) => handlers.next?.(value) }),
-    end: (result) => match(result, { Left: fail, Right: (value) => handlers.ok?.(value) }),
+    next: (item) => use(item, { Left: fail, Right: (value) => handlers.next?.(value) }),
+    end: (result) => use(result, { Left: fail, Right: (value) => handlers.ok?.(value) }),
   });
 }
 
