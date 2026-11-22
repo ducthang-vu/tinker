@@ -4,9 +4,9 @@
 // browser. The link is `aria-current="page"` while its path is the current one.
 
 import { computed, Directive, input, inject } from "@tinker/core";
-import { ActivatedRoute } from "./activated-route.ts";
-import { Router } from "./router.ts";
-import { UrlBuilder } from "./url-builder.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import { Router } from "../router/router.ts";
+import { UrlBuilder } from "../router/url-builder.ts";
 
 @Directive({
   selector: "a[routerlink]",

@@ -4,8 +4,8 @@
 // per navigation.
 
 import { } from "@tinker/core";
-import type { RouteParams } from "./match.ts";
-import type { Route } from "./route.ts";
+import type { RouteParams } from "../router/match.ts";
+import type { Route } from "../router/route.ts";
 import { Some, None, match, type Maybe } from "@tinker/functional";
 
 export class ActivatedRoute {

@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 import { inject, Injector, type Maybe, provide, runInInjectionContext } from "@tinker/core";
-import { ActivatedRoute } from "./activated-route.ts";
-import { Location } from "./location.ts";
-import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import { Location } from "../location/location.ts";
+import { PLATFORM_LOCATION, type PlatformLocation } from "../location/platform-location.ts";
 import { NoRouteError, Router } from "./router.ts";
 import type { Route } from "./route.ts";
 import { match, isNone, getOrThrow } from "@tinker/functional";

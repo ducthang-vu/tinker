@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "@tinker/core";
-import { tick } from "../../core/src/view/internal/test-support.ts";
+import { tick } from "../../../../core/src/view/internal/test-support.ts";
 import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
 

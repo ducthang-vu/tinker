@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
 import { Component, getDirectiveMetadata, inject } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
-import { provideRouter } from "./provide-router.ts";
+import { provideRouter } from "../router/provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
-import { ActivatedRoute } from "./activated-route.ts";
-import { Router } from "./router.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import { Router } from "../router/router.ts";
 import { getOrThrow } from "@tinker/functional";
 
 /** How many instances of each routed component were made, to tell a replacement from a keep. */

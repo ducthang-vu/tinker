@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { inject, Injector, runInInjectionContext } from "@tinker/core";
-import { ChildActivatedRoute } from "./child-activated-route.ts";
+import { ChildActivatedRoute } from "../state/child-activated-route.ts";
 import { provideRouter } from "./provide-router.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
