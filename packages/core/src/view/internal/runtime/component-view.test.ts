@@ -5,6 +5,7 @@ import { watch } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "./component-view.ts";
 import { messageOf } from "../test-support.ts";
+import { isNone, getOrElse } from "@tinker/functional/v1";
 
 function makeView() {
   const host = document.createElement("div");
@@ -27,14 +28,11 @@ describe("ComponentView", () => {
     const inputs = inputsOf(tooltip);
     view.addInputs(tooltip, inputs);
 
-    expect(view.input(tooltip, "text")
-      .getOrElse(undefined))
+    expect(getOrElse(view.input(tooltip, "text"), undefined))
       .toBe(inputs.get("text"));
-    expect(view.input(tooltip, "other")
-      .isNone())
+    expect(isNone(view.input(tooltip, "other")))
       .toBe(true);
-    expect(view.input(new Tooltip(), "text")
-      .isNone())
+    expect(isNone(view.input(new Tooltip(), "text")))
       .toBe(true);
   });
 

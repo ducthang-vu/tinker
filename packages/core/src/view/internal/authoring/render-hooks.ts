@@ -37,9 +37,9 @@
 // provides its own RenderHooks. The returned Cancel stops one earlier.
 
 import { inject, Injectable } from "../../../di/index.ts";
-import type { Cancel } from "@tinker/functional";
 import { final } from "../../../utils/final.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
+import { run, type Cancel } from "@tinker/functional/v1";
 
 /**
  * Registers hooks to run after the app rendered. Each component has its own

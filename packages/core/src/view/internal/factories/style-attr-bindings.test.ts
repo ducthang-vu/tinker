@@ -3,8 +3,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrElse, map } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -75,8 +74,10 @@ describe("style and attribute bindings in host bindings", () => {
     await tick();
     expect([p.style.opacity, p.getAttribute("role")])
       .toEqual(["0.25", "status"]);
-    const [fade] = Maybe.map(engine.getContext(p), (context) => context.directives)
-      .getOrElse([]) as [Fade];
+    const [fade] = getOrElse(
+      map(engine.getContext(p), (context) => context.directives),
+      [],
+    ) as [Fade];
     fade!.opacity.set("1");
     fade!.role.set(undefined);
     engine.flush();
@@ -155,11 +156,15 @@ describe("null and undefined attribute values render nothing", () => {
     engine.flush();
     expect(button.hasAttribute("disabled"))
       .toBe(false);
-    expect(button.outerHTML)
+    expect(
+      button.outerHTML,
+    )
       .toBe(`<button toggle="">x</button>`);
 
-    const [toggle] = Maybe.map(engine.getContext(button), (context) => context.directives)
-      .getOrElse([]) as [Toggle];
+    const [toggle] = getOrElse(
+      map(engine.getContext(button), (context) => context.directives),
+      [],
+    ) as [Toggle];
     toggle!.disabled.set("");
     engine.flush();
     expect(button.hasAttribute("disabled"))

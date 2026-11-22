@@ -2,7 +2,20 @@ import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { EDGE_VALUES } from "./testing.ts";
 import { Left, Right } from "./either.ts";
-import { filter, fromEither, isNone, isSome, None, Some, toEither, type Maybe } from "./maybe.ts";
+import {
+  filter,
+  fromEither,
+  fromNullable,
+  getOrElse,
+  getOrThrow,
+  orElse,
+  isNone,
+  isSome,
+  None,
+  Some,
+  toEither,
+  type Maybe,
+} from "./maybe.ts";
 import { flatMap, map } from "./functor.ts";
 import { isEqual, match } from "./monad.ts";
 
@@ -139,3 +152,39 @@ const NOT_A_VALUE: unknown = Symbol("not a value");
 /** The value of a Some, or the marker for a None. */
 const valueOf = (m: Maybe<unknown>): unknown =>
   match(m, { Some: (x) => x, None: () => NOT_A_VALUE });
+
+describe("fromNullable and getOrThrow", () => {
+  test("fromNullable is a None for null and undefined, and a Some for any other value", () => {
+    expect(isNone(fromNullable(null)))
+      .toBe(true);
+    expect(isNone(fromNullable(undefined)))
+      .toBe(true);
+    expect(isSome(fromNullable(0)))
+      .toBe(true);
+    expect(isSome(fromNullable("")))
+      .toBe(true);
+  });
+
+  test("getOrThrow gives the value of a Some, and throws the error it is given for a None", () => {
+    expect(getOrThrow(Some.of(3), () => new Error("unused")))
+      .toBe(3);
+    expect(() => getOrThrow(None.of(), () => new Error("missing")))
+      .toThrow("missing");
+  });
+});
+
+describe("getOrElse and orElse", () => {
+  test("getOrElse gives the value of a Some, or the fallback for a None", () => {
+    expect(getOrElse(Some.of(1), 2))
+      .toBe(1);
+    expect(getOrElse(None.of<number>(), 2))
+      .toBe(2);
+  });
+
+  test("orElse keeps a Some, or gives what the other maybe is", () => {
+    expect(isSome(orElse(Some.of(1), () => None.of())))
+      .toBe(true);
+    expect(orElse(None.of<number>(), () => Some.of(2)))
+      .toEqual(Some.of(2));
+  });
+});

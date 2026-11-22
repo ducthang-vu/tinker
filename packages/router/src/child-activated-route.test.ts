@@ -1,23 +1,21 @@
 import { expect, test } from "vitest";
-import { Maybe } from "@tinker/core";
+import { } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
 import { nextAfter } from "./child-activated-route.ts";
+import { Some, None, isNone, getOrThrow } from "@tinker/functional/v1";
 
 class Page {}
 const ROUTE = { path: "", component: Page };
 
 test("nextAfter is the entry after the given route, and None for the last or an unknown one", () => {
-  const root = new ActivatedRoute(ROUTE, {}, [], Maybe.none());
-  const child = new ActivatedRoute(ROUTE, {}, ["todos"], Maybe.some(root));
+  const root = new ActivatedRoute(ROUTE, {}, [], None.of());
+  const child = new ActivatedRoute(ROUTE, {}, ["todos"], Some.of(root));
   const list = [root, child];
-  expect(nextAfter(list, root)
-    .getOrThrow(() => new Error("none")))
+  expect(getOrThrow(nextAfter(list, root), () => new Error("none")))
     .toBe(child);
-  expect(nextAfter(list, child)
-    .isNone())
+  expect(isNone(nextAfter(list, child)))
     .toBe(true);
-  const stranger = new ActivatedRoute(ROUTE, {}, [], Maybe.none());
-  expect(nextAfter(list, stranger)
-    .isNone())
+  const stranger = new ActivatedRoute(ROUTE, {}, [], None.of());
+  expect(isNone(nextAfter(list, stranger)))
     .toBe(true);
 });

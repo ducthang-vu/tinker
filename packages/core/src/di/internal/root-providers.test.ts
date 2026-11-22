@@ -2,18 +2,16 @@ import { describe, expect, test } from "vitest";
 import { InjectionToken } from "./inject.ts";
 import { Injector } from "./injector.ts";
 import { findRootProvider, registerRootProvider } from "./root-providers.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse } from "@tinker/functional/v1";
 
 describe("root providers", () => {
   test("registered providers can be looked up by token", () => {
     const TOKEN = new InjectionToken<string>("REGISTERED");
     const provider = { token: TOKEN, factory: () => "x" };
     registerRootProvider(provider);
-    expect(findRootProvider(TOKEN)
-      .getOrElse(undefined))
+    expect(getOrElse(findRootProvider(TOKEN), undefined))
       .toBe(provider);
-    expect(findRootProvider(new InjectionToken<string>("OTHER"))
-      .isNone())
+    expect(isNone(findRootProvider(new InjectionToken<string>("OTHER"))))
       .toBe(true);
   });
 

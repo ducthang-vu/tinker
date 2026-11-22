@@ -18,7 +18,6 @@
 // - `flush()`, to run a change detection tick now (see ChangeDetection);
 
 import { inject, Injectable, Injector, provide, type Provider, type ProviderToken, runInInjectionContext, type Token } from "../../di/index.ts";
-import { Maybe, type Task } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { ElementContext } from "./runtime/element-context.ts";
 import { ElementContexts } from "./runtime/element-contexts.ts";
@@ -32,7 +31,7 @@ import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ComponentView, ComponentViewFactory } from "./runtime/component-view.ts";
 import { ComponentRef, refOf } from "./component-ref.ts";
-import { type Either, flatMap, Left, map, Right } from "@tinker/functional/v1";
+import { type Either, flatMap, Left, map, Right, Some, None, fromNullable, match, use, type Maybe } from "@tinker/functional/v1";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
 import { Effects } from "./authoring/effects.ts";
@@ -143,11 +142,7 @@ export class Engine {
       return Right.of(host);
     }
     return flatMap(this.components.metadataOf(type), ({ selector }) =>
-      Maybe.from(this.document.querySelector(selector))
-        .match({
-          some: (element) => Right.of(element),
-          none: () => Left.of(new Error(`No host element matches "${selector}" for ${type.name}`)),
-        }));
+      match(fromNullable(this.document.querySelector(selector)), { Some: (element) => Right.of(element), None: () => Left.of(new Error(`No host element matches "${selector}" for ${type.name}`)) }));
   }
 
   /**

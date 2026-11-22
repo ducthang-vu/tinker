@@ -7,12 +7,12 @@
 // order. `{ read: ElementRef }` gives the elements the instances sit on instead.
 
 import { inject } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
 import { CLASS_REPLACEMENTS } from "../tokens.ts";
+import { fromNullable, getOrThrow, map, match, use, type Maybe } from "@tinker/functional/v1";
 
 /** Where a query looks: the component's own template, or the content it was given. */
 export type QuerySource = "view" | "content";
@@ -61,7 +61,7 @@ function readsElements(options: QueryOptions | undefined): options is ElementQue
 function namedOf<T>(name: string): ReadonlySignal<Maybe<T>> {
   const value = inject(ViewQueries)
     .reference(name);
-  return computed(() => Maybe.from(value() as T | undefined));
+  return computed(() => fromNullable(value() as T | undefined));
 }
 
 /**
@@ -117,8 +117,7 @@ function requiredQuery(
           .firstElement(matchedBy(target))
       : registryOf(options)
           .first(matchedBy(target));
-  return computed(() => first()
-    .getOrThrow(() => new QueryMissingError(written)));
+  return computed(() => getOrThrow(first(), () => new QueryMissingError(written)));
 }
 
 /** `query(Type)`: the first match, as a Maybe. `query.required(Type)`: the match itself. */

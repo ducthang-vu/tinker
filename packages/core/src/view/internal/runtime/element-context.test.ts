@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { ElementContext } from "./element-context.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "./component-view.ts";
+import { isNone, getOrElse } from "@tinker/functional/v1";
 
 const element = () => document.createElement("div");
 const view = () => new ComponentView(element(), {}, [], new DomRenderer(), {});
@@ -14,7 +15,7 @@ describe("ElementContext", () => {
       .toBe(el);
     expect(context.directives)
       .toEqual([]);
-    expect(context.componentView.isNone())
+    expect(isNone(context.componentView))
       .toBe(true);
     expect(context.isEmpty)
       .toBe(true);
@@ -36,13 +37,13 @@ describe("ElementContext", () => {
     const context = new ElementContext(element());
     const first = view();
     context.attachComponent(first);
-    expect(context.componentView.getOrElse(undefined))
+    expect(getOrElse(context.componentView, undefined))
       .toBe(first);
     expect(context.isEmpty)
       .toBe(false);
     expect(() => context.attachComponent(view()))
       .toThrow("The element already holds a component");
-    expect(context.componentView.getOrElse(undefined))
+    expect(getOrElse(context.componentView, undefined))
       .toBe(first);
   });
 
@@ -50,13 +51,13 @@ describe("ElementContext", () => {
     const context = new ElementContext(element());
     context.attachComponent(view());
     context.detachComponent();
-    expect(context.componentView.isNone())
+    expect(isNone(context.componentView))
       .toBe(true);
     expect(context.isEmpty)
       .toBe(true);
     const next = view();
     context.attachComponent(next);
-    expect(context.componentView.getOrElse(undefined))
+    expect(getOrElse(context.componentView, undefined))
       .toBe(next);
   });
 });

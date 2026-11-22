@@ -2,9 +2,10 @@
 // queries find them. A query walks the DOM under an element and asks the engine
 // what is on each element, so it sees every descendant, nested components included.
 
-import { inputsOf, Maybe, outputsOf } from "@tinker/core";
+import { inputsOf, outputsOf } from "@tinker/core";
 import type { Engine } from "@tinker/core";
 import type { TestingElement } from "./api.ts";
+import { getOrElse, map } from "@tinker/functional/v1";
 
 /** What a query looks for: a CSS selector, or a component or directive class. */
 export type QueryTarget = string | (new () => object);
@@ -100,13 +101,11 @@ function queryAll(
   const wanted = scope.replacements.get(target) ?? target;
   return Array.from(root.querySelectorAll("*"))
     .flatMap((element) => {
-      const context = scope.engine.getContext(element)
-        .getOrElse(undefined);
+      const context = getOrElse(scope.engine.getContext(element), undefined);
       if (!context) {
         return [];
       }
-      const component = Maybe.map(context.componentView, (view) => view.component)
-        .getOrElse(null);
+      const component = getOrElse(map(context.componentView, (view) => view.component), null);
       const instances: readonly unknown[] = component === null
         ? context.directives
         : [...context.directives, component];

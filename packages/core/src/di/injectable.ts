@@ -8,11 +8,11 @@
 //
 // The metadata is stored as a static property of the class, like @Component.
 
-import type { Maybe } from "@tinker/functional";
 import { defineMetadata, ownMetadata } from "../utils/metadata.ts";
 import type { AbstractClass, Class } from "../utils/types.ts";
 import { adaptProvider } from "./adapter.ts";
 import { registerRootProvider } from "./internal/root-providers.ts";
+import { type Maybe } from "@tinker/functional/v1";
 
 /** What a service declares about itself. */
 export interface InjectableOptions {

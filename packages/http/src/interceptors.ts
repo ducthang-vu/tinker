@@ -8,7 +8,7 @@
 // FetchHttpBackend runs the interceptors, outermost first, around the send. Every request goes
 // through it, so an interceptor sees all of them.
 
-import { InjectionToken, Task } from "@tinker/core";
+import { InjectionToken, type Task } from "@tinker/core";
 import type { HttpError } from "./backend.ts";
 import type { HttpRequest, HttpResponse } from "./request.ts";
 

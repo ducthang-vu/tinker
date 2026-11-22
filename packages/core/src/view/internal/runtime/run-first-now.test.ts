@@ -4,6 +4,7 @@ import { RunFirstNow } from "./run-first-now.ts";
 import { inject, Injector, runInInjectionContext } from "../../../di/index.ts";
 import { Ticker } from "./ticker.ts";
 import { ViewScheduler } from "./schedulers/view-scheduler.ts";
+import { isNone, getOrElse } from "@tinker/functional/v1";
 
 /** A ViewScheduler from an injector (its ticks are requested, never run here: flush by hand). */
 function views(): ViewScheduler {
@@ -35,7 +36,7 @@ describe("RunFirstNow", () => {
 
   test("keeps the first run's error instead of throwing it", () => {
     const firstRun = new RunFirstNow(views());
-    expect(firstRun.failure.isNone())
+    expect(isNone(firstRun.failure))
       .toBe(true);
 
     const error = new Error("first render failed");
@@ -43,7 +44,7 @@ describe("RunFirstNow", () => {
       throw error;
     }, firstRun);
 
-    expect(firstRun.failure.getOrElse(undefined))
+    expect(getOrElse(firstRun.failure, undefined))
       .toBe(error);
     handle.destroy();
   });
@@ -51,7 +52,7 @@ describe("RunFirstNow", () => {
   test("a successful first run has no failure", () => {
     const firstRun = new RunFirstNow(views());
     watch(() => {}, firstRun);
-    expect(firstRun.failure.isNone())
+    expect(isNone(firstRun.failure))
       .toBe(true);
   });
 
@@ -68,7 +69,7 @@ describe("RunFirstNow", () => {
     fail.set(true);
     expect(() => next.flush())
       .toThrow("later");
-    expect(firstRun.failure.isNone())
+    expect(isNone(firstRun.failure))
       .toBe(true);
   });
 });

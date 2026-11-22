@@ -3,14 +3,14 @@
 // `host: { "[class.open]": "isOpen()" }` on a directive. The view's watch
 // calls `update()`; the DOM is written only when the result changed.
 
-import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Scope } from "../template/scope.ts";
+import { Some, None, isNone, filter } from "@tinker/functional/v1";
 
 export class ClassBinding {
-  private last = Maybe.none<boolean>();
+  private last = None.of<boolean>();
 
   /**
    * @param element The element whose class is toggled.
@@ -36,14 +36,13 @@ export class ClassBinding {
   /** Evaluate the expression, and add or remove the class if that changed. */
   update(): void {
     const on = Boolean(evaluate(this.expression, this.context));
-    if (this.last.filter((last) => last === on)
-      .isNone()) {
+    if (isNone(filter(this.last, (last) => last === on))) {
       if (on) {
         this.renderer.addClass(this.element, this.name);
       } else {
         this.renderer.removeClass(this.element, this.name);
       }
-      this.last = Maybe.some(on);
+      this.last = Some.of(on);
     }
   }
 }

@@ -91,3 +91,33 @@ export function isSome<T>(self: Maybe<T>): boolean {
 export function isNone<T>(self: Maybe<T>): boolean {
   return match(self, { Some: () => false, None: () => true });
 }
+
+/** A Some of `value`, or a None when `value` is null or undefined. */
+export function fromNullable<T>(value: T | null | undefined): Maybe<NonNullable<T>> {
+  return value === null || value === undefined
+    ? None.of<NonNullable<T>>()
+    : Some.of<NonNullable<T>>(value);
+}
+
+/**
+ * The value of a Some. A None throws `makeError()`: this is the one place a missing value is
+ * thrown, at the edge of an API that has no way to return it (use it only there).
+ */
+export function getOrThrow<T>(self: Maybe<T>, makeError: () => unknown): T {
+  return match<T, T>(self, {
+    Some: (value) => value,
+    None: () => {
+      throw makeError();
+    },
+  });
+}
+
+/** The value of a Some, or `fallback` for a None. */
+export function getOrElse<T, U>(self: Maybe<T>, fallback: U): T | U {
+  return match<T, T | U>(self, { Some: (value) => value, None: () => fallback });
+}
+
+/** `self` if it is a Some, or else what `other` gives. */
+export function orElse<T, U>(self: Maybe<T>, other: () => Maybe<U>): Maybe<T | U> {
+  return match<T, Maybe<T | U>>(self, { Some: () => self, None: () => other() });
+}

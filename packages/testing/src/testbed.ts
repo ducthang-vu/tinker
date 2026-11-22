@@ -2,7 +2,7 @@
 // Each builder is immutable: a configuration method returns a new builder, so a chain
 // reads in any order, and a builder can be reused.
 
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isSome, getOrThrow, use } from "@tinker/functional/v1";
 import {
   CLASS_REPLACEMENTS,
   Component,
@@ -238,8 +238,7 @@ export class MockComponentBuilder<F extends object> {
     private readonly type: new () => F,
     private readonly members: MockMembers = NO_MEMBERS,
   ) {
-    const metadata = getComponentMetadata(type)
-      .getOrThrow(() => new Error(`${type.name} is not a component: use MockDirectiveBuilder`));
+    const metadata = getOrThrow(getComponentMetadata(type), () => new Error(`${type.name} is not a component: use MockDirectiveBuilder`));
     this.selector = metadata.selector;
     this.exportAs = metadata.exportAs;
   }
@@ -328,12 +327,10 @@ export class MockDirectiveBuilder<F extends object> {
     private readonly type: new () => F,
     private readonly members: MockMembers = NO_MEMBERS,
   ) {
-    if (getComponentMetadata(type)
-      .isSome()) {
+    if (isSome(getComponentMetadata(type))) {
       throw new Error(`${type.name} is a component: use MockComponentBuilder`);
     }
-    const metadata = getDirectiveMetadata(type)
-      .getOrThrow(() => new Error(`${type.name} is not a directive: nothing to mock`));
+    const metadata = getOrThrow(getDirectiveMetadata(type), () => new Error(`${type.name} is not a directive: nothing to mock`));
     this.selector = metadata.selector;
     this.exportAs = metadata.exportAs;
   }

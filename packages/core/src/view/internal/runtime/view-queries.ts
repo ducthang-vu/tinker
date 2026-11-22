@@ -6,10 +6,10 @@
 // template of a child component records its own.
 
 import { Injectable } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal, type Signal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "./element-ref.ts";
+import { fromNullable, match, use, type Maybe } from "@tinker/functional/v1";
 
 interface Match {
   readonly instance: object;
@@ -73,13 +73,13 @@ export class ViewQueries {
   /** The first instance of `type` in document order, if there is one. */
   first<T extends object>(type: Class<T>): ReadonlySignal<Maybe<T>> {
     const all = this.of(type);
-    return computed(() => Maybe.from(all()[0]));
+    return computed(() => fromNullable(all()[0]));
   }
 
   /** The first element of an instance of `type`, as an ElementRef, if there is one. */
   firstElement<T extends object>(type: Class<T>): ReadonlySignal<Maybe<ElementRef>> {
     const all = this.elementsOf(type);
-    return computed(() => Maybe.from(all()[0]));
+    return computed(() => fromNullable(all()[0]));
   }
 
   private matchesOf<T extends object>(type: Class<T>): ReadonlySignal<readonly Match[]> {

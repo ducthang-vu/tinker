@@ -5,6 +5,7 @@ import { provideRouter } from "./provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { ActivatedRoute } from "./activated-route.ts";
 import { Router } from "./router.ts";
+import { getOrThrow } from "@tinker/functional/v1";
 
 /** How many instances of each routed component were made, to tell a replacement from a keep. */
 const made = { list: 0, detail: 0 };
@@ -52,8 +53,7 @@ function appAt(url: string) {
 }
 
 test("RouterOutlet is a directive for the router-outlet element", () => {
-  const metadata = getDirectiveMetadata(RouterOutlet)
-    .getOrThrow(() => new Error("not a directive"));
+  const metadata = getOrThrow(getDirectiveMetadata(RouterOutlet), () => new Error("not a directive"));
   expect(metadata.selector)
     .toBe("router-outlet");
 });

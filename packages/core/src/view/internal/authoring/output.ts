@@ -18,8 +18,7 @@
 // Output names match case-insensitively, since the browser's parser lowercases
 // attribute names. Outputs of components are not supported yet.
 
-import { Emitter } from "@tinker/functional";
-import { Maybe } from "@tinker/functional";
+import { Some, None, fromNullable, match, use, Emitter } from "@tinker/functional/v1";
 
 /** What a directive emits through: it can emit, and nothing else. */
 export interface Output<T> {
@@ -65,11 +64,10 @@ export function output<T>(): Output<T> {
 export function outputsOf(instance: object): ReadonlyMap<string, Emitter<unknown, void, never>> {
   const outputs = new Map<string, Emitter<unknown, void, never>>();
   for (const [property, value] of Object.entries(instance)) {
-    Maybe.from(emitters.get(Object(value)))
-      .ifSome((emitter) => {
-        const name = changeOutputs.has(Object(value)) ? `${property}Change` : property;
-        outputs.set(name, emitter);
-      });
+    use(fromNullable(emitters.get(Object(value))), { Some: (emitter) => {
+      const name = changeOutputs.has(Object(value)) ? `${property}Change` : property;
+      outputs.set(name, emitter);
+    }, None: () => undefined });
   }
   return outputs;
 }

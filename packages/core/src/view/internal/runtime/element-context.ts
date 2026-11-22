@@ -4,12 +4,12 @@
 // A ComponentView owns the contexts of the elements in its template; the engine maps
 // each element to its context, so "what is on this element?" is one lookup.
 
-import { Maybe } from "@tinker/functional";
 import type { ComponentView } from "./component-view.ts";
+import { Some, None, isSome, isNone, type Maybe } from "@tinker/functional/v1";
 
 export class ElementContext {
   private readonly directiveInstances: object[] = [];
-  private component = Maybe.none<ComponentView<unknown>>();
+  private component = None.of<ComponentView<unknown>>();
 
   /** @param element The element this context describes. */
   constructor(readonly element: Element) {}
@@ -26,7 +26,7 @@ export class ElementContext {
 
   /** Whether nothing is on the element (no directives, no component). */
   get isEmpty(): boolean {
-    return this.directiveInstances.length === 0 && this.component.isNone();
+    return this.directiveInstances.length === 0 && isNone(this.component);
   }
 
   addDirective(directive: object): void {
@@ -43,14 +43,14 @@ export class ElementContext {
 
   /** Put a component on the element. An element can hold only one. */
   attachComponent(view: ComponentView<unknown>): void {
-    if (this.component.isSome()) {
+    if (isSome(this.component)) {
       throw new Error("The element already holds a component");
     }
-    this.component = Maybe.some(view);
+    this.component = Some.of(view);
   }
 
   /** Remove the component from the element. */
   detachComponent(): void {
-    this.component = Maybe.none();
+    this.component = None.of();
   }
 }

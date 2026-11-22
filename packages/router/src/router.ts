@@ -1,21 +1,13 @@
 // The router: the current URL, the matched route and params, the list of activated routes, and
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
-import {
-  computed,
-  Either,
-  Maybe,
-  type ReadonlySignal,
-  type Runnable,
-  signal,
-  untracked,
-  watch,
-} from "@tinker/core";
+import { computed, type Either, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
 import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 import { UrlBuilder } from "./url-builder.ts";
+import { Some, None, fromNullable, match, type Maybe, Left, Right } from "@tinker/functional/v1";
 
 /** The options of `navigate`. */
 export interface NavigateOptions {
@@ -53,7 +45,7 @@ export class Router {
     this.root = root;
     this.location = location;
     this.url = location.url;
-    this.rootRoute = new ActivatedRoute(root, {}, [], Maybe.none());
+    this.rootRoute = new ActivatedRoute(root, {}, [], None.of());
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
     watch(() => {
@@ -74,19 +66,18 @@ export class Router {
     url: string | readonly string[],
     options: NavigateOptions = {},
   ): Either<void, NoRouteError> {
-    const base = Maybe.from(options.relativeTo)
-      .match({
-        some: (route) => route.path,
-        none: () => [],
-      });
+    const base = match(fromNullable(options.relativeTo), {
+      Some: (route) => route.path,
+      None: () => [],
+    });
     const target = UrlBuilder.from(url)
       .resolve(base)
       .build();
     if (matchRoute(this.root, target) === undefined) {
-      return Either.left(new NoRouteError(target));
+      return Left.of(new NoRouteError(target));
     }
     this.location.go(target, options.state ?? null);
-    return Either.right(undefined);
+    return Right.of(undefined);
   }
 }
 
@@ -116,7 +107,7 @@ function activatedFor(
 
 /** The last activated route of a non-empty list, which is the parent of the next level. */
 function lastOf(made: readonly ActivatedRoute[]): Maybe<ActivatedRoute> {
-  return Maybe.from(made[made.length - 1]);
+  return fromNullable(made[made.length - 1]);
 }
 
 /** The previous instances of the leading levels that are still the same, in order. */

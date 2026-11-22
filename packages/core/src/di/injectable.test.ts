@@ -3,6 +3,7 @@ import { inject } from "./inject.ts";
 import { getInjectableMetadata, Injectable } from "./injectable.ts";
 import { Injector, runInInjectionContext } from "./injector.ts";
 import { provide } from "./providers.ts";
+import { isNone, getOrElse } from "@tinker/functional/v1";
 
 describe("@Injectable", () => {
   test("records its options as metadata", () => {
@@ -12,17 +13,13 @@ describe("@Injectable", () => {
     class Marker {}
     class Plain {}
 
-    expect(getInjectableMetadata(InRoot)
-      .getOrElse(undefined))
+    expect(getOrElse(getInjectableMetadata(InRoot), undefined))
       .toEqual({ providedIn: "root" });
-    expect(getInjectableMetadata(Marker)
-      .getOrElse(undefined))
+    expect(getOrElse(getInjectableMetadata(Marker), undefined))
       .toEqual({});
-    expect(getInjectableMetadata(Plain)
-      .isNone())
+    expect(isNone(getInjectableMetadata(Plain)))
       .toBe(true);
-    expect(Object.isFrozen(getInjectableMetadata(InRoot)
-      .getOrElse(undefined)))
+    expect(Object.isFrozen(getOrElse(getInjectableMetadata(InRoot), undefined)))
       .toBe(true);
   });
 

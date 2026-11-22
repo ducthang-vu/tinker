@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import { Task } from "@tinker/functional";
 import { tick } from "../view/internal/test-support.ts";
 import { resource } from "./resource.ts";
 import { mutation } from "./mutation.ts";
+import { succeed, fail, run } from "@tinker/functional/v1";
 
 /** A promise the test settles by hand. */
 function deferred<T>() {
@@ -17,7 +17,7 @@ function deferred<T>() {
 
 describe("mutation", () => {
   test("starts with no outcome and nothing pending", () => {
-    const save = mutation(() => Task.succeed("saved"));
+    const save = mutation(() => succeed("saved"));
     expect(save.pending())
       .toBe(0);
     expect(save.outcome())
@@ -43,7 +43,7 @@ describe("mutation", () => {
   });
 
   test("a failure gives its error, and keeps the last result", async () => {
-    const save = mutation((input: number) => (input > 0 ? Task.succeed("ok") : Task.fail(new Error("bad"))));
+    const save = mutation<number, string, Error>((input) => (input > 0 ? succeed("ok") : fail(new Error("bad"))));
     save.mutate(1);
     save.mutate(0);
     expect(save.outcome())
@@ -117,9 +117,9 @@ describe("mutation", () => {
 
 describe("mutation and its resource", () => {
   test("a success with no onSuccess reloads the resource", async () => {
-    const loader = vi.fn(() => Task.succeed("list"));
+    const loader = vi.fn(() => succeed("list"));
     const list = resource(loader, { default: "empty", lazy: true });
-    const save = mutation(() => Task.succeed("saved"), { resource: list });
+    const save = mutation(() => succeed("saved"), { resource: list });
     save.mutate(undefined);
     await tick();
     expect(loader)
@@ -127,9 +127,9 @@ describe("mutation and its resource", () => {
   });
 
   test("a success with onSuccess updates the resource from the response", async () => {
-    const list = resource(() => Task.succeed<string[]>(["a"]), { default: [] as string[], lazy: true });
+    const list = resource(() => succeed<string[]>(["a"]), { default: [] as string[], lazy: true });
     list.reload();
-    const save = mutation(() => Task.succeed("b"), {
+    const save = mutation(() => succeed("b"), {
       resource: list,
       onSuccess: (current, created) => [...current, created],
     });
@@ -142,9 +142,9 @@ describe("mutation and its resource", () => {
   });
 
   test("a failure leaves the resource alone", async () => {
-    const loader = vi.fn(() => Task.succeed("list"));
+    const loader = vi.fn(() => succeed("list"));
     const list = resource(loader, { default: "empty", lazy: true });
-    const save = mutation(() => Task.fail(new Error("no")), { resource: list });
+    const save = mutation(() => fail(new Error("no")), { resource: list });
     save.mutate(undefined);
     await tick();
     expect(loader)

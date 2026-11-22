@@ -23,10 +23,10 @@
 // The owner keeps the model private. Anyone else that needs to read the value
 // uses `asReadonly()`, which has no way to set it or to emit.
 
-import { Emitter, Maybe } from "@tinker/functional";
 import type { ReadonlySignal } from "../../../signals/index.ts";
 import { InputBinding, type InputSignal, registerInput } from "./input.ts";
 import { registerChangeOutput } from "./output.ts";
+import { Some, None, isSome, filter, Emitter } from "@tinker/functional/v1";
 
 /** A model: readable as a signal, and writable by its owner. */
 export interface ModelSignal<T> extends InputSignal<T> {
@@ -44,14 +44,12 @@ export function model<T>(): ModelSignal<T>;
 export function model<T>(defaultValue: T): ModelSignal<T>;
 export function model<T>(...defaultValue: [] | [T]): ModelSignal<T> {
   // A rest parameter tells "no default" apart from a default of `undefined`.
-  const initial = defaultValue.length === 0 ? Maybe.none<T>() : Maybe.some(defaultValue[0] as T);
+  const initial = defaultValue.length === 0 ? None.of<T>() : Some.of(defaultValue[0] as T);
   const binding = InputBinding.create(initial);
   const emitter = Emitter.create<T, void, never>();
 
   const set = (value: T): void => {
-    const unchanged = binding.current()
-      .filter((current) => Object.is(current, value))
-      .isSome();
+    const unchanged = isSome(filter(binding.current(), (current) => Object.is(current, value)));
     if (!unchanged) {
       binding.bind(value);
       emitter.emit(value);

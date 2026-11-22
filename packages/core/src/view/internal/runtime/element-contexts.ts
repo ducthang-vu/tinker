@@ -3,9 +3,8 @@
 // engine (which answers "what is on this element?").
 
 import { Injectable } from "../../../di/index.ts";
-import { Maybe } from "@tinker/functional";
 import { ElementContext } from "./element-context.ts";
-import { match } from "@tinker/functional/v1";
+import { match, Some, None, fromNullable, type Maybe } from "@tinker/functional/v1";
 
 @Injectable()
 export class ElementContexts {
@@ -14,16 +13,15 @@ export class ElementContexts {
 
   /** What is on `element`, if anything. */
   get(element: Element): Maybe<ElementContext> {
-    return Maybe.from(this.contexts.get(element));
+    return fromNullable(this.contexts.get(element));
   }
 
   /** The context of `element`, created (and remembered) if it has none yet. */
   getOrCreate(element: Element): ElementContext {
-    return this.get(element)
-      .match({
-        some: (context) => context,
-        none: () => this.remember(new ElementContext(element)),
-      });
+    return match(this.get(element), {
+      Some: (context) => context,
+      None: () => this.remember(new ElementContext(element)),
+    });
   }
 
   private remember(context: ElementContext): ElementContext {

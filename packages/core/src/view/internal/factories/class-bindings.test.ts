@@ -4,8 +4,7 @@ import { inject } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrThrow, map, flatMap } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -151,11 +150,10 @@ describe("a child component's host class bindings", () => {
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(List));
     const host = view.host.nativeElement.querySelector("tk-item")!;
-    const item = Maybe.map(
-      Maybe.flatMap(engine.getContext(host), (context) => context.componentView),
+    const item = getOrThrow(map(
+      flatMap(engine.getContext(host), (context) => context.componentView),
       (child) => child.component as Item,
-    )
-      .getOrThrow(() => new Error("no item"));
+    ), () => new Error("no item"));
     await tick();
     expect(childRenders)
       .toBe(1);
@@ -232,8 +230,8 @@ describe("a child component's host class bindings", () => {
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(Bar));
     const host = view.host.nativeElement.querySelector("tk-button")!;
-    Maybe.map(
-      Maybe.flatMap(engine.getContext(host), (context) => context.componentView),
+    map(
+      flatMap(engine.getContext(host), (context) => context.componentView),
       (child) => (child.component as Button).pressable.pressed.set(true),
     );
     engine.flush();

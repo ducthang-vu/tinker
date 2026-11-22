@@ -5,14 +5,13 @@ import { InputNotBoundError, inputsOf } from "./input.ts";
 import { model } from "./model.ts";
 import { outputsOf } from "./output.ts";
 import { Engine } from "../engine.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrThrow, getOrElse, map, flatMap, run } from "@tinker/functional/v1";
 
 /** Subscribe to the `valueChange` output of `owner`, recording the values. */
 function hear(owner: object): unknown[] {
   const heard: unknown[] = [];
-  outputsOf(owner)
-    .get("valueChange")!.stream.run({ next: (v) => heard.push(v) });
+  run(outputsOf(owner)
+    .get("valueChange")!.stream, { next: (v) => heard.push(v) });
   return heard;
 }
 
@@ -120,11 +119,10 @@ describe("two-way binding in templates", () => {
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(Form));
     const itemHost = view.host.nativeElement.querySelector("tk-item")!;
-    const item = Maybe.map(
-      Maybe.flatMap(engine.getContext(itemHost), (context) => context.componentView),
+    const item = getOrThrow(map(
+      flatMap(engine.getContext(itemHost), (context) => context.componentView),
       (child) => child.component as Item,
-    )
-      .getOrThrow(() => new Error("no item"));
+    ), () => new Error("no item"));
     return { engine, form: view, item, span: itemHost.querySelector("span")! };
   }
 
@@ -185,8 +183,7 @@ describe("two-way binding in templates", () => {
     }
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
-    const [pick] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives)
-      .getOrElse([]) as [Pick];
+    const [pick] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives), []) as [Pick];
     expect(pick!.value())
       .toBe("first");
     pick!.choose("second");

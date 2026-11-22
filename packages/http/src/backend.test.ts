@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { Injector, runInInjectionContext, Task } from "@tinker/core";
+import { Injector, runInInjectionContext } from "@tinker/core";
+import { run as runTask, type Task } from "@tinker/functional/v1";
 import { HTTP_TRANSPORT, FetchHttpBackend, HttpError, type HttpTransport, type HttpRequest } from "./index.ts";
 
 /** A fetch that answers with `response` and records each call. */
@@ -22,7 +23,7 @@ function backendWith(fetch: HttpTransport): FetchHttpBackend {
 
 function run<T, E>(task: Task<T, E>): Promise<T> {
   return new Promise((ok, error) => {
-    task.run({ ok, error });
+    runTask(task, { ok, error });
   });
 }
 
@@ -135,9 +136,8 @@ describe("FetchHttpBackend requests", () => {
 
   test("cancelling the task aborts the request", () => {
     const { calls, fetch } = fakeFetch(() => new Promise<Response>(() => {}));
-    const cancel = backendWith(fetch)
-      .handle({ method: "GET", url: "/c" })
-      .run({});
+    const cancel = runTask(backendWith(fetch)
+      .handle({ method: "GET", url: "/c" }), {});
     cancel();
     expect(calls[0]!.init.signal?.aborted)
       .toBe(true);

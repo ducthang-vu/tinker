@@ -1,10 +1,11 @@
 import { expect, test } from "vitest";
-import { inject, Injector, Maybe, provide, runInInjectionContext } from "@tinker/core";
+import { inject, Injector, type Maybe, provide, runInInjectionContext } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
 import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
 import { NoRouteError, Router } from "./router.ts";
 import type { Route } from "./route.ts";
+import { match, isNone, getOrThrow } from "@tinker/functional/v1";
 
 /** A platform location that starts at `url`, and records the entries the router adds. */
 function fakePlatform(url: string) {
@@ -79,17 +80,14 @@ test("navigate with a state gives the state to the history entry", () => {
 test("a URL no route matches is rejected, and the URL does not change", () => {
   const { router, fake } = routerAt("/todos");
   const result = router.navigate("/nowhere", { state: { scroll: 1 } });
-  result.match({
-    left: (failure) => {
-      expect(failure)
-        .toBeInstanceOf(NoRouteError);
-      expect(failure.message)
-        .toBe("Cannot match any route: /nowhere");
-    },
-    right: () => {
-      throw new Error("expected a rejection");
-    },
-  });
+  match(result, { Left: (failure) => {
+    expect(failure)
+      .toBeInstanceOf(NoRouteError);
+    expect(failure.message)
+      .toBe("Cannot match any route: /nowhere");
+  }, Right: () => {
+    throw new Error("expected a rejection");
+  } });
   expect(router.url())
     .toBe("/todos");
   expect(fake.state())
@@ -99,7 +97,7 @@ test("a URL no route matches is rejected, and the URL does not change", () => {
 test("a navigation to a matched URL succeeds", () => {
   const { router } = routerAt("/todos");
   const result = router.navigate("/todos/7");
-  expect(result.match({ left: () => false, right: () => true }))
+  expect(match(result, { Left: () => false, Right: () => true }))
     .toBe(true);
 });
 
@@ -225,10 +223,10 @@ test("a level under a changed parent is made again, though its own params are th
 
 test("the root has no parent, and each level's parent is the level above it", () => {
   const { router, destroy } = routerAt("/todos/7");
-  const [root, leaf] = router.activated();
-  expect(root?.parent.isNone())
+  const [root, leaf] = router.activated() as [ActivatedRoute, ActivatedRoute];
+  expect(isNone(root.parent))
     .toBe(true);
-  expect(leaf?.parent.getOrThrow(() => new Error("no parent")))
+  expect(getOrThrow(leaf.parent, () => new Error("no parent")))
     .toBe(root);
   destroy();
 });
@@ -248,9 +246,9 @@ test("a deeper level's parent chain reaches the root", () => {
   });
   const router = runInInjectionContext(injector, () => inject(Router));
   const [root, orgLevel, teamLevel] = router.activated();
-  expect(teamLevel?.parent.getOrThrow(() => new Error("no parent")))
+  expect(getOrThrow(teamLevel!.parent, () => new Error("no parent")))
     .toBe(orgLevel);
-  expect(orgLevel?.parent.getOrThrow(() => new Error("no parent")))
+  expect(getOrThrow(orgLevel!.parent, () => new Error("no parent")))
     .toBe(root);
   destroy();
 });
@@ -259,10 +257,10 @@ test("a kept level keeps its parent, and a made level gets the kept one as its p
   const { router, destroy } = routerAt("/todos/7");
   const [root, leafBefore] = router.activated();
   router.navigate("/todos/7?tab=done");
-  expect(router.activated()[1]?.parent.getOrThrow(() => new Error("no parent")))
+  expect(getOrThrow(router.activated()[1]!.parent, () => new Error("no parent")))
     .toBe(root);
   router.navigate("/todos/8");
-  expect(router.activated()[1]?.parent.getOrThrow(() => new Error("no parent")))
+  expect(getOrThrow(router.activated()[1]!.parent, () => new Error("no parent")))
     .toBe(root);
   expect(router.activated()[1])
     .not.toBe(leafBefore);
@@ -296,15 +294,12 @@ test("a relative URL is resolved against the path of relativeTo", () => {
 test("a relative URL that matches no route is rejected with its resolved URL", () => {
   const { router, destroy } = routerAt("/todos/7");
   const result = router.navigate("../..", { relativeTo: router.activated()[1] });
-  result.match({
-    left: (failure) => {
-      expect(failure.url)
-        .toBe("/");
-    },
-    right: () => {
-      throw new Error("expected a rejection");
-    },
-  });
+  match(result, { Left: (failure) => {
+    expect(failure.url)
+      .toBe("/");
+  }, Right: () => {
+    throw new Error("expected a rejection");
+  } });
   expect(router.url())
     .toBe("/todos/7");
   destroy();

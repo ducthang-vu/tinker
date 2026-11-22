@@ -18,7 +18,6 @@
 // can be added here later. Class names keep their case: unlike templates,
 // host bindings are not read by the browser's HTML parser.
 
-import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
 import { Scope } from "../template/scope.ts";
@@ -28,7 +27,7 @@ import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type { View } from "../runtime/view.ts";
-import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe, valueOrThrow } from "@tinker/functional/v1";
+import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe, valueOrThrow, use } from "@tinker/functional/v1";
 
 /** One parsed `"(event)": "method(...)"` entry. */
 export interface HostListener {
