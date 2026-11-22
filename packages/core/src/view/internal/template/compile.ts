@@ -11,20 +11,19 @@
 // expressions parsed. Other binding syntax (`[style.x]`, `[attr.x]`,
 // `(event)`) is reported as not supported yet.
 
-import { valueOrThrow } from "@tinker/functional/v1";
 import type { AttributeNode, ElementNode, Span, TemplateNode } from "./ast.ts";
-import { compileError, locatedAt, TemplateCompileError } from "./compile-error.ts";
+import { located, type Parsed } from "./compile-error.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { type Handler, parseHandler } from "./handler.ts";
 import { type EventModifier, expandModifier, isModifier, parseEventName } from "./event-modifiers.ts";
 import { Maybe } from "@tinker/functional";
+import { flatMap, Left, map, mapLeft, Right } from "@tinker/functional/v1";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
 import { namesOf, type Pattern, parsePattern, splitGuard } from "./pattern.ts";
 import { isEventAttribute } from "../runtime/url-safety.ts";
-import { match, mapLeft, map, Left, Right } from "@tinker/functional/v1";
 
 /** A node of a compiled template. */
 export type CompiledNode
@@ -209,27 +208,43 @@ export interface CompiledText {
 }
 
 /**
- * Compile parsed nodes, matching their elements against `candidates`.
- * Throws for the first invalid `{{ }}`, an element matching two components,
- * or content inside a component's element (projection is not supported yet).
+ * Compile parsed nodes, matching their elements against `candidates`. The first invalid `{{ }}`,
+ * an element matching two components, or content inside a component's element (projection is
+ * not supported yet) is the error.
  */
 export function compileTemplate(
   nodes: readonly TemplateNode[],
   candidates: readonly DirectiveCandidate[] = [],
-): readonly CompiledNode[] {
-  return compileItems(valueOrThrow(itemsOf(nodes)), candidates);
+): Parsed<readonly CompiledNode[]> {
+  return flatMap(itemsOf(nodes), (items) => compileItems(items, candidates));
 }
 
+/** Concatenates the nodes of each item, in order: the first failure is the result. */
 function compileItems(
   items: readonly Item[],
   candidates: readonly DirectiveCandidate[],
-): CompiledNode[] {
-  return items.flatMap((item) => locatedAt(spanOf(item), () => {
-    if ("keyword" in item) {
-      return [compileBlock(item, candidates)];
-    }
-    return item.kind === "text" ? compileText(item.value) : [compileNode(item, candidates)];
-  }));
+): Parsed<CompiledNode[]> {
+  return concatAll(items.map((item) => compileItem(item, candidates)));
+}
+
+/** The nodes of a list of results, in order: the first failure is the result. */
+function concatAll(results: readonly Parsed<readonly CompiledNode[]>[]): Parsed<CompiledNode[]> {
+  return results.reduce<Parsed<CompiledNode[]>>((all, next) =>
+    flatMap(all, (nodes: CompiledNode[]) => map(next, (more) => [...nodes, ...more])),
+  Right.of<CompiledNode[], Error>([]));
+}
+
+/** One item, compiled. An error gets the item's span, unless an inner item gave it one. */
+function compileItem(
+  item: Item,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<readonly CompiledNode[]> {
+  const compiled: Parsed<readonly CompiledNode[]> = "keyword" in item
+    ? map(compileBlock(item, candidates), (block): readonly CompiledNode[] => [block])
+    : item.kind === "text"
+      ? compileText(item.value)
+      : map(compileNode(item, candidates), (node): readonly CompiledNode[] => [node]);
+  return mapLeft(compiled, (error) => located(error, spanOf(item)));
 }
 
 /** The span of a text or element; a block has none. */
@@ -241,91 +256,140 @@ function spanOf(item: Item): Span | undefined {
 function compileBlock(
   block: BlockItem,
   candidates: readonly DirectiveCandidate[],
-): CompiledMatch | CompiledMap {
+): Parsed<CompiledMatch | CompiledMap> {
   switch (block.keyword) {
     case "map":
       return compileMap(block, candidates);
     case "elseif":
-      throw new Error("@else if must follow an @if");
+      return Left.of(new Error("@else if must follow an @if"));
     case "if":
-      return {
-        kind: "match",
-        subject: condition(block),
-        cases: [{ pattern: { kind: "truthy" }, body: compileItems(block.body, candidates) }],
-        default: block.otherwise ? compileItems(block.otherwise, candidates) : undefined,
-      };
-    case "match": {
-      const cases: CompiledCase[] = [];
-      let fallback: readonly CompiledNode[] | undefined;
-      for (const item of block.body) {
-        if (!("keyword" in item)) {
-          if (item.kind === "text" && item.value.trim() === "") {
-            continue;
-          }
-          throw new Error("Only @case and @default blocks can be inside @match");
-        }
-        if (item.keyword === "case") {
-          cases.push({ ...caseHeader(item, block.header === ""), body: compileItems(item.body, candidates) });
-        } else if (item.keyword === "default") {
-          if (fallback) {
-            throw new Error("A @match has one @default");
-          }
-          fallback = compileItems(item.body, candidates);
-        } else {
-          throw new Error("Only @case and @default blocks can be inside @match");
-        }
-      }
-      return {
-        kind: "match",
-        subject: block.header === "" ? undefined : expressionOf(block),
-        cases,
-        default: fallback,
-      };
-    }
+      return flatMap(condition(block), (subject) => flatMap(
+        compileItems(block.body, candidates),
+        (body) => map(optionalItems(block.otherwise, candidates), (otherwise): CompiledMatch => ({
+          kind: "match",
+          subject,
+          cases: [{ pattern: { kind: "truthy" }, body }],
+          default: otherwise,
+        })),
+      ));
+    case "match":
+      return flatMap(armsOf(block, candidates), (arms) => map(
+        optionalSubject(block),
+        (subject): CompiledMatch => ({
+          kind: "match",
+          subject,
+          cases: arms.cases,
+          default: arms.fallback,
+        }),
+      ));
     case "case":
-      throw new Error("@case must be inside @match");
+      return Left.of(new Error("@case must be inside @match"));
     case "default":
-      throw new Error("@default must be inside @match");
+      return Left.of(new Error("@default must be inside @match"));
     case "else":
-      throw new Error("@else must follow an @if");
+      return Left.of(new Error("@else must follow an @if"));
   }
+}
+
+/** The compiled items of an optional body: none when there is no body. */
+function optionalItems(
+  items: readonly Item[] | undefined,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<readonly CompiledNode[] | undefined> {
+  return items === undefined ? Right.of(undefined) : compileItems(items, candidates);
+}
+
+/** The subject of a `@match`: none for a match of guards (`@match { … }`). */
+function optionalSubject(block: BlockItem): Parsed<Expression | undefined> {
+  return block.header === "" ? Right.of(undefined) : expressionOf(block);
+}
+
+/** The cases and the default of a `@match`, from its body. */
+interface Arms {
+  readonly cases: readonly CompiledCase[];
+  readonly fallback?: readonly CompiledNode[];
+}
+
+function armsOf(block: BlockItem, candidates: readonly DirectiveCandidate[]): Parsed<Arms> {
+  return block.body.reduce<Parsed<Arms>>(
+    (arms, item) => flatMap(arms, (current) => armOf(item, current, block, candidates)),
+    Right.of<Arms, Error>({ cases: [] }),
+  );
+}
+
+/** One item of a `@match`'s body added to its arms: a `@case`, a `@default`, or whitespace. */
+function armOf(
+  item: Item,
+  current: Arms,
+  block: BlockItem,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<Arms> {
+  if (!("keyword" in item)) {
+    if (item.kind === "text" && item.value.trim() === "") {
+      return Right.of(current);
+    }
+    return Left.of(new Error("Only @case and @default blocks can be inside @match"));
+  }
+  if (item.keyword === "case") {
+    return flatMap(caseHeader(item, block.header === ""), (header) =>
+      map(compileItems(item.body, candidates), (body): Arms => ({
+        ...current,
+        cases: [...current.cases, { ...header, body }],
+      })));
+  }
+  if (item.keyword === "default") {
+    if (current.fallback) {
+      return Left.of(new Error("A @match has one @default"));
+    }
+    return map(compileItems(item.body, candidates), (body): Arms => ({
+      ...current,
+      fallback: body,
+    }));
+  }
+  return Left.of(new Error("Only @case and @default blocks can be inside @match"));
 }
 
 /**
  * `@map list; let item` or `@map list; let item; track key`: the list, the name
  * of its items, and the optional identity of each item.
  */
-function compileMap(block: BlockItem, candidates: readonly DirectiveCandidate[]): CompiledMap {
+function compileMap(
+  block: BlockItem,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledMap> {
   const parts = block.header.split(";")
     .map((part) => part.trim());
   const [source, declaration, tracking] = parts;
   const declared = /^let\s+([\s\S]+)$/.exec(declaration ?? "");
   if (parts.length > 3 || source === undefined || !declared) {
-    throw new Error(`@map needs a list and a name, e.g. @map todos; let todo`);
+    return Left.of(new Error(`@map needs a list and a name, e.g. @map todos; let todo`));
   }
-  return {
-    kind: "map",
-    list: expressionOf({ ...block, header: source }),
-    item: itemOf(declared![1]!.trim()),
-    track: trackOf(block, tracking),
-    body: compileItems(block.body, candidates),
-  };
+  return flatMap(expressionOf({ ...block, header: source }), (list) =>
+    flatMap(itemOf(declared[1]!.trim()), (item) =>
+      flatMap(trackOf(block, tracking), (track) =>
+        map(compileItems(block.body, candidates), (body): CompiledMap => ({
+          kind: "map",
+          list,
+          item,
+          track,
+          body,
+        })))));
 }
 
 /** The `let` of a `@map`: a name, or a pattern that destructures each item. */
-function itemOf(text: string): Pattern {
-  const pattern = match(mapLeft(parsePattern(text), (error) => new Error(`${error.message}, in @map`)), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
-  if (!isMapPattern(pattern)) {
-    throw new Error(`@map's let takes a name or a pattern, e.g. let todo or let { id }, got "${text}"`);
-  }
-  const reserved = namesOf(pattern)
-    .find((name) => name.startsWith("$"));
-  if (reserved !== undefined) {
-    throw new Error(`"${reserved}" is reserved: names starting with $ are the row's variables`);
-  }
-  return pattern;
+function itemOf(text: string): Parsed<Pattern> {
+  return flatMap(mapLeft(parsePattern(text), (error) => new Error(`${error.message}, in @map`)),
+    (pattern): Parsed<Pattern> => {
+      if (!isMapPattern(pattern)) {
+        return Left.of(new Error(`@map's let takes a name or a pattern, e.g. let todo or let { id }, got "${text}"`));
+      }
+      const reserved = namesOf(pattern)
+        .find((name) => name.startsWith("$"));
+      if (reserved !== undefined) {
+        return Left.of(new Error(`"${reserved}" is reserved: names starting with $ are the row's variables`));
+      }
+      return Right.of(pattern);
+    });
 }
 
 function isMapPattern(pattern: Pattern): boolean {
@@ -336,50 +400,55 @@ function isMapPattern(pattern: Pattern): boolean {
 }
 
 /** The `track` after a `@map`'s name: an expression, or `{ field, … }` naming fields. */
-function trackOf(block: BlockItem, tracking: string | undefined): CompiledTrack | undefined {
+function trackOf(
+  block: BlockItem,
+  tracking: string | undefined,
+): Parsed<CompiledTrack | undefined> {
   if (tracking === undefined) {
-    return undefined;
+    return Right.of(undefined);
   }
   const tracked = /^track\s+([\s\S]+)$/.exec(tracking);
   if (!tracked) {
-    throw new Error(`@map takes "track key" after the name, e.g. track todo.id, got "${tracking}"`);
+    return Left.of(new Error(`@map takes "track key" after the name, e.g. track todo.id, got "${tracking}"`));
   }
   const text = tracked[1]!.trim();
   if (text.startsWith("{")) {
-    return { kind: "fields", names: fieldNamesOf(text) };
+    return map(fieldNamesOf(text), (names): CompiledTrack => ({ kind: "fields", names }));
   }
-  return { kind: "value", expression: expressionOf({ ...block, header: text }) };
+  return map(expressionOf({ ...block, header: text }), (expression): CompiledTrack => ({
+    kind: "value",
+    expression,
+  }));
 }
 
 /** The names in `{ id, kind }`: each one a plain name, none twice. */
-function fieldNamesOf(text: string): string[] {
+function fieldNamesOf(text: string): Parsed<string[]> {
   const inner = text.endsWith("}") ? text.slice(1, -1) : undefined;
   const names = inner?.split(",")
     .map((name) => name.trim());
   if (names === undefined || names.some((name) => !/^[A-Za-z_$][\w$]*$/.test(name))) {
-    throw new Error(`@map's track { } takes field names, e.g. track { id, kind }, got "${text}"`);
+    return Left.of(new Error(`@map's track { } takes field names, e.g. track { id, kind }, got "${text}"`));
   }
   if (new Set(names).size !== names.length) {
-    throw new Error(`@map's track names a field twice: "${text}"`);
+    return Left.of(new Error(`@map's track names a field twice: "${text}"`));
   }
-  return names;
+  return Right.of(names);
 }
 
 /** The condition of an `@if`: an expression in parentheses. */
-function condition(block: BlockItem): Expression {
+function condition(block: BlockItem): Parsed<Expression> {
   if (!block.header.startsWith("(") || !block.header.endsWith(")")) {
-    throw new Error(`@${block.keyword} needs a condition in parentheses, e.g. @if (user())`);
+    return Left.of(new Error(`@${block.keyword} needs a condition in parentheses, e.g. @if (user())`));
   }
   return expressionOf({ ...block, header: block.header.slice(1, -1) });
 }
 
-function expressionOf(block: BlockItem): Expression {
+function expressionOf(block: BlockItem): Parsed<Expression> {
   if (block.header === "") {
-    throw new Error(`@${block.keyword} needs a value, e.g. @match state`);
+    return Left.of(new Error(`@${block.keyword} needs a value, e.g. @match state`));
   }
-  return match(mapLeft(ExpressionParser.parse(block.header), (error) => new Error(`${error.message}, in @${block.keyword}`)), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
+  return mapLeft(ExpressionParser.parse(block.header), (error) =>
+    new Error(`${error.message}, in @${block.keyword}`));
 }
 
 /**
@@ -389,21 +458,27 @@ function expressionOf(block: BlockItem): Expression {
 function caseHeader(
   block: BlockItem,
   subjectless: boolean,
-): { pattern: Pattern; guard?: Expression } {
+): Parsed<{ pattern: Pattern; guard?: Expression }> {
   const split = splitGuard(block.header);
   if (split.pattern === "") {
-    throw new Error("@case needs a pattern, e.g. @case \"loading\"");
+    return Left.of(new Error("@case needs a pattern, e.g. @case \"loading\""));
   }
-  const result = match(mapLeft(parsePattern(split.pattern), (error) => new Error(`${error.message}, in @case`)), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
-  if (subjectless && result.kind !== "any") {
-    throw new Error(`A @match without a subject takes "@case _ when …" cases, not "${split.pattern}"`);
-  }
-  const guard = split.guard === undefined
-    ? undefined
-    : expressionOf({ ...block, header: split.guard });
-  return guard ? { pattern: result, guard } : { pattern: result };
+  return flatMap(mapLeft(parsePattern(split.pattern), (error) => new Error(`${error.message}, in @case`)),
+    (result): Parsed<{ pattern: Pattern; guard?: Expression }> => {
+      if (subjectless && result.kind !== "any") {
+        return Left.of(new Error(`A @match without a subject takes "@case _ when …" cases, not "${split.pattern}"`));
+      }
+      return map(optionalGuard(block, split.guard), (guard) =>
+        (guard ? { pattern: result, guard } : { pattern: result }));
+    });
+}
+
+/** The guard of a `@case`, when it has one. */
+function optionalGuard(
+  block: BlockItem,
+  guard: string | undefined,
+): Parsed<Expression | undefined> {
+  return guard === undefined ? Right.of(undefined) : expressionOf({ ...block, header: guard });
 }
 
 /** A `@let` declaration in a text: `@let name = expression;`. */
@@ -413,40 +488,51 @@ const LET_DECLARATION = /@let\s+([A-Za-z_$][\w$]*)\s*=\s*([^;]+);/g;
  * Compile a text: its `{{ }}` interpolation, and any `@let` declarations in
  * it, which become their own nodes. Whitespace between declarations is dropped.
  */
-function compileText(value: string): CompiledNode[] {
+function compileText(value: string): Parsed<readonly CompiledNode[]> {
   const declarations = [...value.matchAll(LET_DECLARATION)];
   if (declarations.length === 0) {
-    return [{ kind: "text", interpolation: match(parseInterpolation(value), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }) }];
+    return map(parseInterpolation(value), (interpolation): CompiledNode[] => [{ kind: "text", interpolation }]);
   }
-  const nodes: CompiledNode[] = [];
+  const parts: Parsed<readonly CompiledNode[]>[] = [];
   let rest = 0;
   for (const declaration of declarations) {
-    nodes.push(...textBefore(value.slice(rest, declaration.index!)));
-    nodes.push(compileLet(declaration[1]!, declaration[2]!));
+    parts.push(textBefore(value.slice(rest, declaration.index!)));
+    parts.push(map(compileLet(declaration[1]!, declaration[2]!), (node): CompiledNode[] => [node]));
     rest = declaration.index! + declaration[0].length;
   }
-  nodes.push(...textBefore(value.slice(rest)));
-  return nodes;
+  parts.push(textBefore(value.slice(rest)));
+  return concatAll(parts);
 }
 
-function textBefore(text: string): CompiledNode[] {
-  return text.trim() === "" ? [] : compileText(text);
+function textBefore(text: string): Parsed<readonly CompiledNode[]> {
+  return text.trim() === "" ? Right.of([]) : compileText(text);
 }
 
-function compileLet(name: string, source: string): CompiledLet {
-  const expression = match(mapLeft(ExpressionParser.parse(source), (error) => new Error(`${error.message}, in @let ${name}`)), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
-  return { kind: "let", name, expression };
+function compileLet(name: string, source: string): Parsed<CompiledLet> {
+  return map(
+    mapLeft(ExpressionParser.parse(source), (error) => new Error(`${error.message}, in @let ${name}`)),
+    (expression): CompiledLet => ({ kind: "let", name, expression }),
+  );
 }
 
-function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[]): CompiledNode {
+function compileNode(
+  node: ElementNode,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledNode> {
   if (node.name === "slot") {
     const name = node.attributes.find((attribute) => attribute.name === "name")?.value ?? "";
-    return { kind: "slot", name };
+    return Right.of<CompiledNode, Error>({ kind: "slot", name });
   }
+  return flatMap(classifyAttributes(node), (classified) =>
+    compileElement(node, classified, candidates));
+}
+
+/** The compiled element, from its classified attributes. */
+function compileElement(
+  node: ElementNode,
+  classified: Classified,
+  candidates: readonly DirectiveCandidate[],
+): Parsed<CompiledNode> {
   const {
     attributes,
     classBindings,
@@ -456,13 +542,16 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
     styleBindings,
     attributeBindings,
     references,
-  } = classifyAttributes(node);
+  } = classified;
   const bound = [classBindings, classObjects, styleBindings, attributeBindings, inputBindings,
     outputBindings]
     .some((list) => list.length > 0);
   if (node.name === "template" && !bound && references.length === 1
     && references[0]!.target.kind === "element") {
-    return declarationOf(node, references[0]!.name, candidates);
+    return map(
+      declarationOf(node, references[0]!.name, candidates),
+      (declaration): CompiledNode => declaration,
+    );
   }
   const matched = candidates.filter((candidate) =>
     candidate.selector.matches({
@@ -475,46 +564,48 @@ function compileNode(node: ElementNode, candidates: readonly DirectiveCandidate[
   if (components.length > 1) {
     const names = components.map(({ type }) => type.name)
       .join(", ");
-    throw new Error(`<${node.name}> matches several components: ${names}`);
+    return Left.of(new Error(`<${node.name}> matches several components: ${names}`));
   }
   const component = Maybe.from(components[0]?.type);
   const directives = matched.filter(({ isComponent }) => !isComponent)
     .map(({ type }) => type);
   const container = node.name === CONTAINER;
-  if (container) {
-    checkContainer(node, {
+  const checked = container
+    ? checkContainer(node, {
+        classBindings,
+        classObjects,
+        styleBindings,
+        attributeBindings,
+        outputBindings,
+        component,
+        references,
+      })
+    : Right.of<void, Error>(undefined);
+  return flatMap(checked, (): Parsed<CompiledNode> => {
+    if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
+      return Left.of(new Error(
+        `[${inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
+        + "and no imported directive or component matches this element",
+      ));
+    }
+    // A component's element has content too: the component shows it in its `<slot>`s.
+    return map(compileTemplate(node.children, candidates), (children): CompiledNode => ({
+      kind: "element",
+      name: node.name,
+      attributes,
       classBindings,
       classObjects,
+      inputBindings,
+      outputBindings,
       styleBindings,
       attributeBindings,
-      outputBindings,
-      component,
+      children,
       references,
-    });
-  }
-  if (inputBindings.length > 0 && directives.length === 0 && component.isNone()) {
-    throw new Error(
-      `[${inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
-      + "and no imported directive or component matches this element",
-    );
-  }
-  return {
-    kind: "element",
-    name: node.name,
-    attributes,
-    classBindings,
-    classObjects,
-    inputBindings,
-    outputBindings,
-    styleBindings,
-    attributeBindings,
-    // A component's element has content too: the component shows it in its `<slot>`s.
-    children: compileTemplate(node.children, candidates),
-    references,
-    directives,
-    component,
-    container,
-  };
+      directives,
+      component,
+      container,
+    }));
+  });
 }
 
 /** The element name of a container: a position with no element, for directives. */
@@ -532,7 +623,7 @@ function checkContainer(
     readonly component: Maybe<Class<object>>;
     readonly references: readonly TemplateReference[];
   },
-): void {
+): Parsed<void> {
   const bound = [
     ...on.classBindings.map(({ name }) => `[class.${name}]`),
     ...on.classObjects.map(() => "[class]"),
@@ -541,15 +632,16 @@ function checkContainer(
     ...on.outputBindings.map(({ name }) => `(${name})`),
   ][0];
   if (bound !== undefined) {
-    throw new Error(`${bound} on <${node.name}>: a container has no element, so only inputs and directives can be on it`);
+    return Left.of(new Error(`${bound} on <${node.name}>: a container has no element, so only inputs and directives can be on it`));
   }
   if (on.component.isSome()) {
-    throw new Error(`<${node.name}> cannot hold a component: it has no element`);
+    return Left.of(new Error(`<${node.name}> cannot hold a component: it has no element`));
   }
   const named = on.references.find(({ target }) => target.kind === "element");
   if (named !== undefined) {
-    throw new Error(`#${named.name} on <${node.name}>: a container has no element to name`);
+    return Left.of(new Error(`#${named.name} on <${node.name}>: a container has no element to name`));
   }
+  return Right.of(undefined);
 }
 
 /** A `<template #name>`: its body, and the `let-` names its context gives. */
@@ -557,19 +649,24 @@ function declarationOf(
   node: ElementNode,
   name: string,
   candidates: readonly DirectiveCandidate[],
-): CompiledDeclaration {
+): Parsed<CompiledDeclaration> {
   const names = node.attributes
     .filter((attribute) => attribute.name.startsWith("let-"))
     .map((attribute) => attribute.name.slice("let-".length));
   const reserved = names.find((letName) => letName.startsWith("$"));
   if (reserved !== undefined) {
-    throw new Error(`"let-${reserved}" on <template #${name}>: names starting with $ are the framework's`);
+    return Left.of(new Error(`"let-${reserved}" on <template #${name}>: names starting with $ are the framework's`));
   }
   const invalid = names.find((letName) => !/^[A-Za-z_][\w$]*$/.test(letName));
   if (invalid !== undefined) {
-    throw new Error(`"let-${invalid}" on <template #${name}> is not a name`);
+    return Left.of(new Error(`"let-${invalid}" on <template #${name}> is not a name`));
   }
-  return { kind: "declaration", name, names, body: compileTemplate(node.children, candidates) };
+  return map(compileTemplate(node.children, candidates), (body): CompiledDeclaration => ({
+    kind: "declaration",
+    name,
+    names,
+    body,
+  }));
 }
 
 /**
@@ -612,93 +709,125 @@ const OUTPUT_BINDING = /^\(([^)\s]+)\)$/;
 const STYLE_BINDING = /^\[style\.([^\]\s]+)\]$/;
 const ATTRIBUTE_BINDING = /^\[attr\.([^\]\s]+)\]$/;
 
+/** An element's attributes, classified by their kind. */
+interface Classified {
+  readonly references: readonly TemplateReference[];
+  readonly attributes: readonly AttributeNode[];
+  readonly classBindings: readonly ClassBindingNode[];
+  readonly classObjects: readonly ValueBindingNode[];
+  readonly inputBindings: readonly InputBindingNode[];
+  readonly outputBindings: readonly OutputBindingNode[];
+  readonly styleBindings: readonly ValueBindingNode[];
+  readonly attributeBindings: readonly ValueBindingNode[];
+}
+
+const NO_ATTRIBUTES: Classified = {
+  references: [],
+  attributes: [],
+  classBindings: [],
+  classObjects: [],
+  inputBindings: [],
+  outputBindings: [],
+  styleBindings: [],
+  attributeBindings: [],
+};
+
 /**
  * Split the attributes of `node` into plain attributes, class bindings and
- * input bindings (parsing their expressions). Throws for other binding
- * syntax, or an invalid expression.
+ * input bindings (parsing their expressions). Other binding syntax, or an
+ * invalid expression, is the error.
  */
-function classifyAttributes(node: ElementNode): {
-  references: TemplateReference[];
-  attributes: AttributeNode[];
-  classBindings: ClassBindingNode[];
-  classObjects: ValueBindingNode[];
-  inputBindings: InputBindingNode[];
-  outputBindings: OutputBindingNode[];
-  styleBindings: ValueBindingNode[];
-  attributeBindings: ValueBindingNode[];
-} {
-  const attributes: AttributeNode[] = [];
-  const references: TemplateReference[] = [];
-  const classBindings: ClassBindingNode[] = [];
-  const classObjects: ValueBindingNode[] = [];
-  const inputBindings: InputBindingNode[] = [];
-  const outputBindings: OutputBindingNode[] = [];
-  const styleBindings: ValueBindingNode[] = [];
-  const attributeBindings: ValueBindingNode[] = [];
-  const parse = (attribute: AttributeNode) => match(mapLeft(ExpressionParser.parse(attribute.value), (error) => new Error(`${error.message}, in ${attribute.name} on <${node.name}>`)), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
-  for (const attribute of node.attributes) {
-    if (attribute.name === "[class]") {
-      classObjects.push({ name: "", expression: parse(attribute) });
-      continue;
-    }
-    if (attribute.name.startsWith("#")) {
-      references.push(referenceOf(attribute, node, references));
-      continue;
-    }
-    const className = CLASS_BINDING.exec(attribute.name)?.[1];
-    const input = INPUT_BINDING.exec(attribute.name);
-    const inputName = input?.[2];
-    const inputOwner = input?.[1];
-    const output = OUTPUT_BINDING.exec(attribute.name)?.[1];
-    const { owner: outputOwner, rest: eventName, domFallback } = splitOwner(output);
-    const styleName = STYLE_BINDING.exec(attribute.name)?.[1];
-    const attrName = ATTRIBUTE_BINDING.exec(attribute.name)?.[1];
-    if (styleName !== undefined) {
-      styleBindings.push({ name: styleName, expression: parse(attribute) });
-    } else if (attrName !== undefined) {
-      if (isEventAttribute(attrName)) {
-        throw new Error(
-          `[attr.${attrName}] on <${node.name}>: event attributes cannot be bound; use (${attrName.slice(2)}) instead`,
-        );
-      }
-      attributeBindings.push({ name: attrName, expression: parse(attribute) });
-    } else if (className !== undefined) {
-      classBindings.push({ name: className, expression: parse(attribute) });
-    } else if (inputName !== undefined) {
-      inputBindings.push({ name: inputName, owner: inputOwner, expression: parse(attribute) });
-    } else if (eventName !== undefined) {
-      const { event, modifiers } = match(mapLeft(parseEventName(eventName, "event binding"), (error) => new Error(`${error.message}, on <${node.name}>`)), { Left: (error) => {
-        throw error;
-      }, Right: (value) => value });
-      const handler = match(mapLeft(parseHandler(attribute.value, "event handler"), (error) =>
-        new Error(`${error.message}, on <${node.name}>`)), { Left: (error) => {
-        throw error;
-      }, Right: (value) => value });
-      outputBindings.push({
-        name: event,
-        owner: outputOwner,
-        modifiers,
-        handler,
-        ...(domFallback && { domFallback }),
-      });
-    } else if (/^[[(]/.test(attribute.name)) {
-      throw new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`);
-    } else {
-      attributes.push(attribute);
-    }
+function classifyAttributes(node: ElementNode): Parsed<Classified> {
+  return node.attributes.reduce<Parsed<Classified>>(
+    (classified, attribute) => flatMap(classified, (current) =>
+      classifyAttribute(attribute, node, current)),
+    Right.of(NO_ATTRIBUTES),
+  );
+}
+
+/** One attribute added to the classified attributes so far. */
+function classifyAttribute(
+  attribute: AttributeNode,
+  node: ElementNode,
+  current: Classified,
+): Parsed<Classified> {
+  if (attribute.name === "[class]") {
+    return map(expressionOfAttribute(attribute, node), (expression): Classified => ({
+      ...current,
+      classObjects: [...current.classObjects, { name: "", expression }],
+    }));
   }
-  return {
-    references,
-    attributes,
-    classBindings,
-    classObjects,
-    inputBindings,
-    outputBindings,
-    styleBindings,
-    attributeBindings,
-  };
+  if (attribute.name.startsWith("#")) {
+    return map(referenceOf(attribute, node, current.references), (reference): Classified => ({
+      ...current,
+      references: [...current.references, reference],
+    }));
+  }
+  const className = CLASS_BINDING.exec(attribute.name)?.[1];
+  const input = INPUT_BINDING.exec(attribute.name);
+  const inputName = input?.[2];
+  const inputOwner = input?.[1];
+  const output = OUTPUT_BINDING.exec(attribute.name)?.[1];
+  const { owner: outputOwner, rest: eventName, domFallback } = splitOwner(output);
+  const styleName = STYLE_BINDING.exec(attribute.name)?.[1];
+  const attrName = ATTRIBUTE_BINDING.exec(attribute.name)?.[1];
+  if (styleName !== undefined) {
+    return map(expressionOfAttribute(attribute, node), (expression): Classified => ({
+      ...current,
+      styleBindings: [...current.styleBindings, { name: styleName, expression }],
+    }));
+  }
+  if (attrName !== undefined) {
+    if (isEventAttribute(attrName)) {
+      return Left.of(new Error(
+        `[attr.${attrName}] on <${node.name}>: event attributes cannot be bound; use (${attrName.slice(2)}) instead`,
+      ));
+    }
+    return map(expressionOfAttribute(attribute, node), (expression): Classified => ({
+      ...current,
+      attributeBindings: [...current.attributeBindings, { name: attrName, expression }],
+    }));
+  }
+  if (className !== undefined) {
+    return map(expressionOfAttribute(attribute, node), (expression): Classified => ({
+      ...current,
+      classBindings: [...current.classBindings, { name: className, expression }],
+    }));
+  }
+  if (inputName !== undefined) {
+    return map(expressionOfAttribute(attribute, node), (expression): Classified => ({
+      ...current,
+      inputBindings: [...current.inputBindings, { name: inputName, owner: inputOwner, expression }],
+    }));
+  }
+  if (eventName !== undefined) {
+    return flatMap(mapLeft(parseEventName(eventName, "event binding"), (error) =>
+      new Error(`${error.message}, on <${node.name}>`)), ({ event, modifiers }) =>
+      map(mapLeft(parseHandler(attribute.value, "event handler"), (error) =>
+        new Error(`${error.message}, on <${node.name}>`)), (handler): Classified => ({
+        ...current,
+        outputBindings: [
+          ...current.outputBindings,
+          {
+            name: event,
+            owner: outputOwner,
+            modifiers,
+            handler,
+            ...(domFallback && { domFallback }),
+          },
+        ],
+      })));
+  }
+  if (/^[[(]/.test(attribute.name)) {
+    return Left.of(new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`));
+  }
+  return Right.of({ ...current, attributes: [...current.attributes, attribute] });
+}
+
+/** The expression of a bound attribute's value, or the error it has. */
+function expressionOfAttribute(attribute: AttributeNode, node: ElementNode): Parsed<Expression> {
+  return mapLeft(ExpressionParser.parse(attribute.value), (error) =>
+    new Error(`${error.message}, in ${attribute.name} on <${node.name}>`));
 }
 
 /** A template reference: a name for the element, for a directive on it, or for its component. */
@@ -724,26 +853,26 @@ function referenceOf(
   attribute: AttributeNode,
   node: ElementNode,
   declared: readonly TemplateReference[],
-): TemplateReference {
+): Parsed<TemplateReference> {
   const component = attribute.name.startsWith("##");
   const name = attribute.name.slice(component ? 2 : 1);
   if (!REFERENCE_NAME.test(name)) {
-    throw new Error(`"${attribute.name}" is not a template reference on <${node.name}>`);
+    return Left.of(new Error(`"${attribute.name}" is not a template reference on <${node.name}>`));
   }
   if (declared.some((reference) => reference.name === name)) {
-    throw new Error(`#${name} is declared twice on <${node.name}>`);
+    return Left.of(new Error(`#${name} is declared twice on <${node.name}>`));
   }
   if (component) {
     if (attribute.value !== "") {
-      throw new Error(`"${attribute.name}" on <${node.name}> takes no value`);
+      return Left.of(new Error(`"${attribute.name}" on <${node.name}> takes no value`));
     }
-    return { name, target: { kind: "component" } };
+    return Right.of({ name, target: { kind: "component" } });
   }
   if (attribute.value === "") {
-    return { name, target: { kind: "element" } };
+    return Right.of({ name, target: { kind: "element" } });
   }
   if (!REFERENCE_NAME.test(attribute.value)) {
-    throw new Error(`"${attribute.value}" is not an exportAs name on <${node.name}>`);
+    return Left.of(new Error(`"${attribute.value}" is not an exportAs name on <${node.name}>`));
   }
-  return { name, target: { kind: "export", exportAs: attribute.value } };
+  return Right.of({ name, target: { kind: "export", exportAs: attribute.value } });
 }

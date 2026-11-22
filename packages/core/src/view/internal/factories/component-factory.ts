@@ -355,7 +355,7 @@ export class ComponentFactory {
     metadata: ComponentMetadata,
   ): readonly CompiledNode[] {
     return match(this.parser.parse(source), {
-      Right: (parsed) => compileTemplate(parsed, this.candidatesOf(type, metadata)),
+      Right: (parsed) => valueOrThrow(compileTemplate(parsed, this.candidatesOf(type, metadata))),
       Left: (error) => {
         throw error;
       },

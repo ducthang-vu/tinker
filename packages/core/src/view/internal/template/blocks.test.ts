@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { parseNodes } from "../test-support.ts";
-import { type CompiledMatch, type CompiledNode, compileTemplate } from "./compile.ts";
+import { type CompiledMatch, type CompiledNode, compileTemplate as compileTemplateEither } from "./compile.ts";
+
+const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
+  valueOrThrow(compileTemplateEither(...args));
 import { ExpressionParser } from "./expression.ts";
 import { itemsOf } from "./blocks.ts";
 import { TemplateCompileError } from "./compile-error.ts";

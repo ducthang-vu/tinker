@@ -21,21 +21,6 @@ export function compileError(message: string, span: Span | undefined): Error {
 }
 
 /**
- * Runs `compile` for the item at `span`. An error it throws gets that span, unless an
- * inner item already gave it one (the innermost place is the useful one).
- */
-export function locatedAt<T>(span: Span | undefined, compile: () => T): T {
-  try {
-    return compile();
-  } catch (error) {
-    if (span === undefined || error instanceof TemplateCompileError) {
-      throw error;
-    }
-    throw compileError((error as Error).message, span);
-  }
-}
-
-/**
  * `error` with the span of the item it is in. An error that already has a span keeps it: the
  * innermost place is the useful one.
  */
