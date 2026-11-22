@@ -4,7 +4,7 @@
 
 import { inputsOf, outputsOf } from "@tinker/core";
 import type { Engine } from "@tinker/core";
-import type { TestingElement } from "./api.ts";
+import type { TestingElement } from "../api/api.ts";
 import { getOrElse, map } from "@tinker/functional";
 
 /** What a query looks for: a CSS selector, or a component or directive class. */
