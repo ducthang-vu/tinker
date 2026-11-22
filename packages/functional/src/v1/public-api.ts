@@ -16,3 +16,16 @@ export type {
 } from "./functor.ts";
 export { implementMap, implementFlatMap } from "./registry.ts";
 export type { MapImpl, FlatMapImpl } from "./registry.ts";
+export {
+  Stream,
+  run,
+  subscribe,
+  mapErrors,
+} from "./stream.ts";
+export type {
+  Cancel,
+  StreamComputation,
+  StreamHandlers,
+  StreamObserver,
+  StreamSink,
+} from "./stream.ts";
