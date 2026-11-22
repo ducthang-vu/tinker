@@ -39,3 +39,24 @@ export function isSafeUrl(value: string): boolean {
     return false;
   }
 }
+
+/**
+ * A URL the author has vouched for (see `trustUrl`): an attribute bound to it is set
+ * without the check above. Its text is the URL.
+ */
+export class TrustedUrl {
+  constructor(readonly url: string) {}
+
+  toString(): string {
+    return this.url;
+  }
+}
+
+/**
+ * Trust `url`: a URL attribute bound to the result is set even when `url` is unsafe, such
+ * as a `data:` image. Use it only for a URL you control, and keep it in a field, so the
+ * template binds a name that says what it is: `[attr.src]="logo"`.
+ */
+export function trustUrl(url: string): TrustedUrl {
+  return new TrustedUrl(url);
+}

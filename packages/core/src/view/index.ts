@@ -27,6 +27,7 @@ export { ChangeDetectionLoopError } from "./internal/runtime/change-detection.ts
 // What can be replaced through providers
 export { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./internal/tokens.ts";
 export { ElementRef } from "./internal/runtime/element-ref.ts";
+export { trustUrl, TrustedUrl } from "./internal/runtime/url-safety.ts";
 export { DomRenderer, type Renderer } from "./internal/renderer.ts";
 export type { TemplateParser } from "./internal/template/parser.ts";
 export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./internal/template/ast.ts";

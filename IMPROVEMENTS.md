@@ -115,15 +115,14 @@ name can appear many times.
 **To do.** `queryAll` with a variable (a list of the one value, or of the rows that
 share the name), and a registry per row if a row variable is to be queried.
 
-### 4. Allow an unsafe URL on purpose
+### 4. Warn when a trusted URL is used
 
-**Problem.** A URL attribute that is bound to `javascript:`, `data:` or another
-unsafe scheme is not set (see `runtime/url-safety.ts`). An app that really needs
-such a URL (a `data:` image, say) has no way to say so.
+**Problem.** `trustUrl(url)` lets a URL attribute hold an unsafe URL on purpose (a `data:`
+image, say), and the bypass is silent. The warning belongs to developer mode, which is not
+built yet (see "Developer mode").
 
-**To do.** Add a trust wrapper, such as `trustUrl(url)`, that a binding accepts
-without the check, with the name making the risk visible in the template. Warn in
-developer mode when a trusted URL is used, so the bypass is never silent.
+**To do.** When developer mode exists, warn each time a trusted URL is set on an attribute,
+naming the element and the attribute. Until then `trustUrl` is the only record of the bypass.
 
 ### 5. Arrow functions
 
