@@ -60,16 +60,40 @@ export function cleanup(): void {
   live.clear();
 }
 
-/**
- * Run `cleanup` after each test, when the test runner offers `afterEach` as a global
- * (Vitest with `globals: true`). Without it, nothing is registered, and the test setup
- * calls `afterEach(cleanup)` itself.
- */
-export function registerCleanup(afterEach: ((hook: () => void) => void) | undefined): void {
-  afterEach?.(cleanup);
+/** What the package takes from the test runner. Both are optional. */
+export interface TestRunner {
+  /** Runs `cleanup` after each test: the runner's `afterEach`. */
+  readonly afterEach?: (hook: () => void) => void;
+  /** Whether a test is running now: a fixture without `manualCleanup()` must be built in one. */
+  readonly inTest?: () => boolean;
 }
 
-registerCleanup((globalThis as { afterEach?: (hook: () => void) => void }).afterEach);
+/** The runner's `inTest`, once `registerRunner` gave one. Until then, no fixture is checked. */
+let inTest: TestRunner["inTest"];
+
+/**
+ * Give the package the test runner's hooks. Call it once in the test setup (a Vitest setup file
+ * does: see vitest.setup.ts). Without a runner, no cleanup is registered and nothing is checked.
+ */
+export function registerRunner(runner: TestRunner | undefined): void {
+  runner?.afterEach?.(cleanup);
+  inTest = runner?.inTest;
+}
+
+registerRunner({ afterEach: (globalThis as { afterEach?: (hook: () => void) => void }).afterEach });
+
+/**
+ * A fixture that `cleanup()` destroys must be built inside a test: outside one (in `beforeAll`,
+ * say) it would be destroyed by the wrong cleanup, or never. Only checked with a runner.
+ */
+function requireTest(): void {
+  if (inTest !== undefined && !inTest()) {
+    throw new Error(
+      "TestBed: a fixture built outside a test is not destroyed by cleanup(). "
+      + "Build it inside a test, or call manualCleanup() and destroy it yourself",
+    );
+  }
+}
 
 class Bed<T extends object> implements TestBedApi<T> {
   constructor(private readonly state: BedState) {}
@@ -106,6 +130,9 @@ class Bed<T extends object> implements TestBedApi<T> {
     const { component, replacements } = this.state;
     if (!component) {
       throw new Error("TestBed.build needs a component: call component(type) first");
+    }
+    if (!this.state.manual) {
+      requireTest();
     }
     const engine = Engine.create({
       providers: [provide(CLASS_REPLACEMENTS, { useValue: replacements }), ...this.state.providers],

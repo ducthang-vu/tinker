@@ -60,6 +60,11 @@ runs `cleanup` after each test. Otherwise the test setup calls `afterEach(cleanu
 A test that must control when its fixture is destroyed uses `TestBed.manualCleanup()`. Such
 a fixture is not destroyed by `cleanup()`.
 
+A fixture without `manualCleanup()` must be built inside a test. Built outside one (in
+`beforeAll`, say), it throws, since `cleanup()` would destroy it at the wrong time. The check
+needs the test runner: `registerRunner({ afterEach, inTest })` in the test setup. This repo's
+Vitest setup is `vitest.setup.ts`; without it nothing is checked.
+
 ## Templates for tests
 
 `ComponentBuilder.template(source).directives(...types).build()` makes a component class
@@ -116,4 +121,5 @@ query for `Gauge`, from the test or from a parent template, finds the mock.
   built, and a parent template binding it reads nothing.
 - Writes from timers are not waited for by `whenStable`.
 - Concurrent tests need `manualCleanup()`, because `cleanup()` is only safe while the tests of
-  a file run one after another. See `IMPROVEMENTS.md`.
+  a file run one after another. The package cannot see whether a test is concurrent, so this
+  is not checked yet. See `IMPROVEMENTS.md`.

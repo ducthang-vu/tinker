@@ -10,7 +10,7 @@ import {
   provide,
   signal,
 } from "@tinker/core";
-import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
+import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerRunner, TestBed } from "./testbed.ts";
 import { run } from "@tinker/functional";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
@@ -347,18 +347,61 @@ describe("cleanup", () => {
   });
 });
 
-describe("registerCleanup", () => {
+describe("registerRunner", () => {
   test("registers cleanup with the runner's afterEach, when there is one", () => {
     const hooks: (() => void)[] = [];
-    registerCleanup((hook) => {
-      hooks.push(hook);
+    registerRunner({
+      afterEach: (hook) => {
+        hooks.push(hook);
+      },
     });
     expect(hooks)
       .toEqual([cleanup]);
   });
 
   test("registers nothing without one", () => {
-    expect(() => registerCleanup(undefined))
+    expect(() => registerRunner(undefined))
+      .not.toThrow();
+  });
+});
+
+describe("a fixture built under a runner must be built inside a test", () => {
+  @Component({ selector: "tk-checked", template: "<p>x</p>" })
+  class Checked {}
+
+  /** Runs `body` with the runner reporting `inTest`, then restores the default. */
+  function withRunner(inTest: () => boolean, body: () => void): void {
+    registerRunner({ inTest });
+    try {
+      body();
+    } finally {
+      registerRunner(undefined);
+    }
+  }
+
+  test("is refused outside a test, unless it is manual", () => {
+    withRunner(() => false, () => {
+      expect(() => TestBed.component(Checked)
+        .build())
+        .toThrow("built outside a test");
+      expect(() => TestBed.component(Checked)
+        .manualCleanup()
+        .build())
+        .not.toThrow();
+    });
+  });
+
+  test("is allowed inside a test", () => {
+    withRunner(() => true, () => {
+      expect(() => TestBed.component(Checked)
+        .build())
+        .not.toThrow();
+    });
+  });
+
+  test("is not checked without a runner", () => {
+    expect(() => TestBed.component(Checked)
+      .build())
       .not.toThrow();
   });
 });
