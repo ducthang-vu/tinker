@@ -4,7 +4,15 @@ import { EDGE_VALUES } from "./edge-values.ts";
 import { flatMap as maybeFlatMap, map as maybeMap } from "./functor.ts";
 import { None, Some, type Maybe } from "./maybe.ts";
 import { match } from "./monad.ts";
-import { type FunctorUnderTest, functorLaws, type LawCheck, monadLaws, type MonadUnderTest } from "./monad-laws.ts";
+import {
+  type ChainUnderTest,
+  chainLaws,
+  type FunctorUnderTest,
+  functorLaws,
+  type LawCheck,
+  monadLaws,
+  type MonadUnderTest,
+} from "./monad-laws.ts";
 
 /** A box holding any value, or nothing. Tags, not `in`, so undefined and null count as values. */
 type Box = { readonly tag: "Some"; readonly value: unknown } | { readonly tag: "None" };
@@ -221,5 +229,60 @@ describe("functorLaws", () => {
     };
     expect(functorLaws(broken)[1]![1])
       .toThrow("map does not compose");
+  });
+});
+
+describe("chainLaws", () => {
+  /** The identity chain: a box holding a value, with flatMap as application. Not matchable. */
+  class Id {
+    constructor(readonly value: unknown) {}
+  }
+  const id = (value: unknown): Id => new Id(value);
+  const sameId = (a: Id, b: Id): boolean => isDeepStrictEqual(a.value, b.value);
+  const lawfulChain: ChainUnderTest<Id, unknown> = {
+    name: "Id",
+    samples: EDGE_VALUES.map(id),
+    values: EDGE_VALUES,
+    of: id,
+    flatMap: (box, f) => f(box.value),
+    equal: sameId,
+    step: (value) => id([value]),
+    nextStep: (value) => (value === null || value === undefined ? id(null) : id(value)),
+  };
+
+  test("returns the three chain laws", () => {
+    expect(chainLaws(lawfulChain)
+      .map(([description]) => description))
+      .toEqual([
+        "Id: flatMap left identity: flatMap(of(a), step) is step(a)",
+        "Id: flatMap right identity: flatMap(box, of) is box",
+        "Id: flatMap associates: flatMap(flatMap(box, step), nextStep) is"
+        + " flatMap(box, a => flatMap(step(a), nextStep))",
+      ]);
+  });
+
+  test("a lawful chain passes every chain law on every edge value", () => {
+    for (const [description, check] of chainLaws(lawfulChain)) {
+      expect(check, description)
+        .not.toThrow();
+    }
+  });
+
+  test("a flatMap that ignores its step fails the left identity law", () => {
+    const broken: ChainUnderTest<Id, unknown> = { ...lawfulChain, flatMap: (box) => box };
+    expect(find(chainLaws(broken), "left identity")[1])
+      .toThrow("flatMap left identity fails");
+  });
+
+  test("an of that wraps its value fails the right identity law", () => {
+    const broken: ChainUnderTest<Id, unknown> = { ...lawfulChain, of: (value) => id([value]) };
+    expect(find(chainLaws(broken), "right identity")[1])
+      .toThrow("flatMap right identity fails");
+  });
+
+  test("without an equal, boxes compare by reference, so a fresh box is not equal", () => {
+    const noEqual: ChainUnderTest<Id, unknown> = { ...lawfulChain, equal: undefined };
+    expect(find(chainLaws(noEqual), "right identity")[1])
+      .toThrow("flatMap right identity fails");
   });
 });

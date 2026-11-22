@@ -1,6 +1,6 @@
-// The law checkers: for a functor or a monad defined outside this package, they return the law
-// checks as [description, check] pairs, so any test framework can run them. See `functorLaws`
-// and `monadLaws`.
+// The law checkers: for a functor, a chain or a monad defined outside this package, they return the
+// law checks as [description, check] pairs, so any test framework can run them. See `functorLaws`,
+// `chainLaws` and `monadLaws`.
 import { isEqual } from "./monad.ts";
 
 /** A functor to check: its boxes, and its map. Map must obey the functor laws. */
@@ -18,23 +18,33 @@ export interface FunctorUnderTest<M, A> {
   readonly g: (value: A) => A;
 }
 
-/** A monad to check: a functor whose boxes also chain, and whose match names each box's case. */
-export interface MonadUnderTest<M, A> extends FunctorUnderTest<M, A> {
+/** A chain to check: its boxes, its of, and its flatMap. FlatMap must obey the chain laws. */
+export interface ChainUnderTest<M, A> {
+  /** The name shown in each description, e.g. "Maybe". */
+  readonly name: string;
+  /** Boxes to test the laws on. Include a success, a failure or none, and a nested box. */
+  readonly samples: readonly M[];
   /** Values to test the left identity on. */
   readonly values: readonly A[];
-  /** Builds a box holding a value: the monad's `of`, e.g. `Some.of`. */
+  /** Builds a box holding a value: the chain's `of`, e.g. `Some.of`. */
   readonly of: (value: A) => M;
-  /** The monad's flatMap, data-first. */
+  /** The chain's flatMap, data-first. */
   readonly flatMap: (box: M, f: (value: A) => M) => M;
+  /** Whether two boxes are equal. Defaults to `isEqual`, which uses the EQUALS protocol. */
+  readonly equal?: (a: M, b: M) => boolean;
+  /** Two steps for the flatMap laws. */
+  readonly step: (value: A) => M;
+  readonly nextStep: (value: A) => M;
+}
+
+/** A monad to check: a functor and a chain, whose match names each box's case. */
+export interface MonadUnderTest<M, A> extends FunctorUnderTest<M, A>, ChainUnderTest<M, A> {
   /** The names of the monad's cases, e.g. ["Some", "None"]. */
   readonly cases: readonly string[];
   /** The case that `of` builds, e.g. "Some". */
   readonly successCase: string;
   /** The case a box is in, read through the monad's match, e.g. `match(box, { Some, None })`. */
   readonly caseOf: (box: M) => string;
-  /** Two steps for the flatMap laws. */
-  readonly step: (value: A) => M;
-  readonly nextStep: (value: A) => M;
 }
 
 /** A check: its description, and a function that throws when the law fails. */
@@ -88,27 +98,24 @@ export function functorLaws<M, A>(functor: FunctorUnderTest<M, A>): LawCheck[] {
 }
 
 /**
- * The monad laws, as checks: the functor laws, the flatMap laws, and the interaction with `map`,
- * `flatMap` and `match`. Use it to test a monad defined outside this package, with the monad's
- * own samples (include edge values, as in `EDGE_VALUES`). Each check is a `[description, check]`
- * pair: `check` throws when its law fails, so any test framework can run it.
+ * The chain laws, as checks: flatMap's left identity, right identity and associativity. Use it
+ * for a type that has `flatMap` and no `map`. Each check is a `[description, check]` pair: `check`
+ * throws when its law fails.
  *
  * @example
  * ```ts
  * import { test } from "vitest";
- * import { monadLaws } from "@tinker/functional/v1/testing";
+ * import { chainLaws } from "@tinker/functional/v1/testing";
  *
- * for (const [description, check] of monadLaws(myMonad)) {
+ * for (const [description, check] of chainLaws(myChain)) {
  *   test(description, check);
  * }
  * ```
  */
-export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
-  const { name, samples, values, of, map, flatMap } = monad;
-  const equal = monad.equal ?? isEqual;
-  const { cases, successCase, caseOf, f, step, nextStep } = monad;
+export function chainLaws<M, A>(chain: ChainUnderTest<M, A>): LawCheck[] {
+  const { name, samples, values, of, flatMap, step, nextStep } = chain;
+  const equal = chain.equal ?? isEqual;
   return [
-    ...functorLaws(monad),
     [`${name}: flatMap left identity: flatMap(of(a), step) is step(a)`, () =>
       holdsForAll(
         values,
@@ -134,6 +141,31 @@ export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
         `${name}: flatMap does not associate`,
       ),
     ],
+  ];
+}
+
+/**
+ * The monad laws, as checks: the functor laws, the chain laws, and the interaction with `map`,
+ * `flatMap` and `match`. Use it to test a monad defined outside this package, with the monad's
+ * own samples (include edge values, as in `EDGE_VALUES`). Each check is a `[description, check]`
+ * pair: `check` throws when its law fails, so any test framework can run it.
+ *
+ * @example
+ * ```ts
+ * import { test } from "vitest";
+ * import { monadLaws } from "@tinker/functional/v1/testing";
+ *
+ * for (const [description, check] of monadLaws(myMonad)) {
+ *   test(description, check);
+ * }
+ * ```
+ */
+export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
+  const { name, samples, values, of, map, flatMap } = monad;
+  const { cases, successCase, caseOf, f } = monad;
+  return [
+    ...functorLaws(monad),
+    ...chainLaws(monad),
     [`${name}: match: every box is in one of the monad's cases`, () =>
       holdsForAll(
         samples,

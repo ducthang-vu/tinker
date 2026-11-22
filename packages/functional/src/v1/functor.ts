@@ -31,6 +31,14 @@ export interface MapFn<T, U> {
   (self: Matchable): Matchable;
 }
 
+/** The chain protocol: a value that chains itself. Any value may implement it, matchable or not. */
+export const CHAIN: unique symbol = Symbol("chain");
+
+/** A chain: a value with a `flatMap` of its own, under the CHAIN symbol. */
+export interface Chain<T> {
+  [CHAIN]<U>(f: (value: T) => Chain<U>): Chain<U>;
+}
+
 /** A data-last `flatMap` returning an Either. */
 export type EitherFlatMapFn<T, U, F> = <E>(self: Either<T, E>) => Either<U, E | F>;
 
@@ -69,24 +77,27 @@ export function map(...args: readonly unknown[]): unknown {
     return (self: Matchable) => map(self, f);
   }
   const [self, f] = args as [unknown, (value: unknown) => unknown];
-  if (isFunctor(self)) {
-    return self[MAP](f);
+  if (hasMethod(self, MAP)) {
+    return (self as Functor<unknown>)[MAP](f);
   }
-  return mapFor(caseNameOf(self))(self as Matchable, f);
+  return mapFor(caseNameOf(self, MAP_NEEDS))(self as Matchable, f);
 }
 
-/** Whether the value has a `map` of its own under the MAP symbol. */
-function isFunctor(value: unknown): value is Functor<unknown> {
-  return typeof value === "object" && value !== null && MAP in value
-    && typeof (value as Functor<unknown>)[MAP] === "function";
+const MAP_NEEDS = "map needs a functor (a value with the MAP method) or a matchable box";
+const FLAT_MAP_NEEDS = "flatMap needs a chain (a value with the CHAIN method) or a matchable box";
+
+/** Whether the value is an object with a function under `key`. */
+function hasMethod(value: unknown, key: symbol): boolean {
+  return typeof value === "object" && value !== null && key in value
+    && typeof (value as Record<symbol, unknown>)[key] === "function";
 }
 
-/** The case name of a matchable box. Throws for a value that is neither a functor nor matchable. */
-function caseNameOf(value: unknown): string {
+/** The case name of a matchable box. Throws `message` for a value that is not matchable. */
+function caseNameOf(value: unknown, message: string): string {
   if (typeof value === "object" && value !== null && MATCHABLE in value) {
     return (value as Matchable)[MATCHABLE].name;
   }
-  throw new Error("map needs a functor (a value with the MAP method) or a matchable box");
+  throw new Error(message);
 }
 
 /**
@@ -111,6 +122,8 @@ export function flatMap<T, U, F>(
   f: (value: T) => Either<U, F>,
 ): <E>(self: Either<T, E>) => Either<U, E | F>;
 export function flatMap<T, U>(f: (value: T) => Maybe<U>): MaybeFlatMapFn<T, U>;
+export function flatMap<T, U>(self: Chain<T>, f: (value: T) => Chain<U>): Chain<U>;
+export function flatMap<T, U>(f: (value: T) => Chain<U>): (self: Chain<T>) => Chain<U>;
 export function flatMap<T, U>(
   self: Matchable,
   f: (value: T) => Matchable,
@@ -120,8 +133,14 @@ export function flatMap(...args: readonly unknown[]): unknown {
     const [f] = args as [(value: unknown) => Matchable];
     return (self: Matchable) => flatMap(self, f);
   }
-  const [self, f] = args as [Matchable, (value: unknown) => Matchable];
-  return flatMapFor(self[MATCHABLE].name)(self, f);
+  const [self, f] = args as [unknown, (value: unknown) => unknown];
+  if (hasMethod(self, CHAIN)) {
+    return (self as Chain<unknown>)[CHAIN](f as (value: unknown) => Chain<unknown>);
+  }
+  return flatMapFor(caseNameOf(self, FLAT_MAP_NEEDS))(
+    self as Matchable,
+    f as (value: unknown) => Matchable,
+  );
 }
 
 /** Maps an Either: `f` is applied to a Right's value; a Left is returned unchanged. */

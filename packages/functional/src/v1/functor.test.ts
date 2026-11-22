@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Right } from "./either.ts";
-import { type Functor, MAP, map } from "./functor.ts";
+import { CHAIN, type Chain, type Functor, flatMap, MAP, map } from "./functor.ts";
 import { MATCHABLE, type Matchable } from "./monad.ts";
 
 /** A functor that is not matchable: it maps itself under the MAP protocol. */
@@ -55,5 +55,49 @@ describe("the MAP protocol", () => {
     const box = { [MATCHABLE]: { name: "Unregistered", args: [1] } } as unknown as Matchable;
     expect(() => map(box, (value: unknown) => value))
       .toThrow("map is not implemented for the case Unregistered");
+  });
+});
+
+/** A chain that is not matchable: it chains itself under the CHAIN protocol. */
+class Boxed<T> implements Chain<T> {
+  constructor(readonly value: T) {}
+
+  [CHAIN]<U>(f: (value: T) => Chain<U>): Chain<U> {
+    return f(this.value);
+  }
+}
+
+describe("the CHAIN protocol", () => {
+  test("flatMap uses the value's own CHAIN method, with no registration", () => {
+    const result = flatMap(new Boxed(2), (n: number) => new Boxed(n * 10));
+    expect(result)
+      .toEqual(new Boxed(20));
+  });
+
+  test("the data-last flatMap applies the value's own CHAIN method", () => {
+    const addOne = flatMap((n: number) => new Boxed(n + 1));
+    expect(addOne(new Boxed(1)))
+      .toEqual(new Boxed(2));
+  });
+
+  test("a matchable Right is still chained through the registry", () => {
+    expect(flatMap(Right.of(1), (n: number) => Right.of(n + 1)))
+      .toEqual(Right.of(2));
+  });
+
+  test("a value with a CHAIN property that is not a function is not a chain", () => {
+    const notAChain = { [CHAIN]: 1 } as unknown as Matchable;
+    expect(() => flatMap(notAChain, (value: unknown) => notAChain))
+      .toThrow("flatMap needs a chain");
+  });
+
+  test("a plain object, null and a primitive are neither a chain nor matchable", () => {
+    const identity = (value: unknown) => value as Matchable;
+    expect(() => flatMap({ value: 1 } as unknown as Matchable, identity))
+      .toThrow("flatMap needs a chain (a value with the CHAIN method) or a matchable box");
+    expect(() => flatMap(null as unknown as Matchable, (value: unknown) => value as Matchable))
+      .toThrow("flatMap needs a chain");
+    expect(() => flatMap(1 as unknown as Matchable, (value: unknown) => value as Matchable))
+      .toThrow("flatMap needs a chain");
   });
 });
