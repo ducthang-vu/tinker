@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Maybe } from "@tinker/functional";
+import { None, Some } from "@tinker/functional/v1";
 import { match as readBox, Left, Right, type Either } from "@tinker/functional/v1";
 import { parsePattern } from "../template/pattern.ts";
 import { match } from "./match-binding.ts";
@@ -111,26 +111,26 @@ describe("match: Maybe and Either", () => {
   test("some matches a Maybe with a value, and binds its payload", () => {
     const bound = match(readBox(parsePattern("some(name)"), { Left: (error) => {
       throw error;
-    }, Right: (value) => value }), Maybe.some("Ada"));
+    }, Right: (value) => value }), Some.of("Ada"));
     expect(bound)
       .toEqual(new Map([["name", "Ada"]]));
-    expect(matches("some(_)", Maybe.none()))
+    expect(matches("some(_)", None.of()))
       .toBe(false);
   });
 
   test("none matches an empty Maybe, and not a value", () => {
-    expect(matches("none", Maybe.none()))
+    expect(matches("none", None.of()))
       .toBe(true);
-    expect(matches("none", Maybe.some(1)))
+    expect(matches("none", Some.of(1)))
       .toBe(false);
     expect(matches("none", null))
       .toBe(false);
   });
 
   test("the payload of some must match its pattern", () => {
-    expect(matches("some(1)", Maybe.some(1)))
+    expect(matches("some(1)", Some.of(1)))
       .toBe(true);
-    expect(matches("some(1)", Maybe.some(2)))
+    expect(matches("some(1)", Some.of(2)))
       .toBe(false);
   });
 
@@ -156,7 +156,7 @@ describe("match: Maybe and Either", () => {
   test("a wrapper matches only its own kind, not a plain value", () => {
     expect(matches("some(_)", "text"))
       .toBe(false);
-    expect(matches("ok(_)", Maybe.some(1)))
+    expect(matches("ok(_)", Some.of(1)))
       .toBe(false);
   });
 
@@ -201,8 +201,8 @@ describe("match: as-patterns", () => {
       .toEqual(new Map([["any", 5]]));
     expect(match(readBox(parsePattern("some(x) as m"), { Left: (error) => {
       throw error;
-    }, Right: (value) => value }), Maybe.some(3)))
-      .toEqual(new Map<string, unknown>([["x", 3], ["m", Maybe.some(3)]]));
+    }, Right: (value) => value }), Some.of(3)))
+      .toEqual(new Map<string, unknown>([["x", 3], ["m", Some.of(3)]]));
   });
 });
 
