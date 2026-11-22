@@ -49,6 +49,9 @@ jobs:
           set -euo pipefail
           git rm -r -q --ignore-unmatch assets index.html
           cp -r ../source/dist/example/. .
+          # A deep link such as /api is not a file: GitHub Pages serves 404.html for it, and that
+          # page is the app, which reads the URL itself.
+          cp index.html 404.html
           touch .nojekyll
           git add -A
           if git diff --cached --quiet; then
