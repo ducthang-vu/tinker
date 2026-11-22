@@ -4,14 +4,14 @@
 // element (the children). The view's watch calls `update()`; the inputs
 // are set only when the value changed.
 
-import { Maybe } from "@tinker/functional";
 import type { InputBinding } from "../authoring/input.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Scope } from "../template/scope.ts";
+import { Some, None, isSome, filter } from "@tinker/functional/v1";
 
 export class InputBinder {
-  private last = Maybe.none<unknown>();
+  private last = None.of<unknown>();
 
   /**
    * @param targets The inputs it sets.
@@ -27,11 +27,10 @@ export class InputBinder {
   /** Evaluate the expression, and set the inputs if the value changed. */
   update(): void {
     const value = evaluate(this.expression, this.context);
-    if (this.last.filter((last) => Object.is(last, value))
-      .isSome()) {
+    if (isSome(filter(this.last, (last) => Object.is(last, value)))) {
       return;
     }
-    this.last = Maybe.some(value);
+    this.last = Some.of(value);
     for (const target of this.targets) {
       target.bind(value);
     }

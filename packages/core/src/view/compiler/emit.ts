@@ -8,15 +8,15 @@
 // `Maybe` and `Selector` can be changed, for a module that declares those already.
 // Anything the tree holds that this cannot write faithfully is an error, not a guess.
 
-import { Maybe } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
-import { type Either, Left, map, match, Right, sequence } from "@tinker/functional/v1";
+import { type Either, Left, map, match, Right, sequence, Some, None, type Maybe } from "@tinker/functional/v1";
 
 /** The names the expression uses for `Maybe` and `Selector`. */
 export interface EmitHelpers {
-  readonly Maybe: string;
+  readonly Some: string;
+  readonly None: string;
   readonly Selector: string;
 }
 
@@ -33,7 +33,7 @@ interface Scope {
 export function emitCompiled(
   nodes: readonly CompiledNode[],
   names: ReadonlyMap<Class<object>, string>,
-  helpers: EmitHelpers = { Maybe: "Maybe", Selector: "Selector" },
+  helpers: EmitHelpers = { Some: "Some", None: "None", Selector: "Selector" },
 ): Either<string, Error> {
   return emitValue(nodes, { names, helpers });
 }
@@ -54,10 +54,10 @@ function emitValue(value: unknown, scope: Scope): Either<string, Error> {
     return map(sequence(value.map((item) => emitValue(item, scope))), (items) =>
       `[${items.join(", ")}]`);
   }
-  if (value instanceof Maybe) {
-    return value.match({
-      some: (inner) => map(emitValue(inner, scope), (text) => `${scope.helpers.Maybe}.some(${text})`),
-      none: () => Right.of(`${scope.helpers.Maybe}.none()`),
+  if (value instanceof Some || value instanceof None) {
+    return match(value, {
+      Some: (inner) => map(emitValue(inner, scope), (text) => `${scope.helpers.Some}.of(${text})`),
+      None: () => Right.of(`${scope.helpers.None}.of()`),
     });
   }
   if (value instanceof Selector) {

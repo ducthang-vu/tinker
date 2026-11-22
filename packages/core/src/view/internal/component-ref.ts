@@ -6,8 +6,7 @@
 // component's author made it public: a private input or output is not in the
 // types, so it cannot be named.
 
-import { Emitter, Maybe } from "@tinker/functional";
-import { type Either, Left, map, Right } from "@tinker/functional/v1";
+import { type Either, Left, map, Right, Some, None, fromNullable, match, Emitter, run } from "@tinker/functional/v1";
 import type { InputName, InputValue } from "./authoring/input.ts";
 import { type OutputName, type OutputValue, outputsOf } from "./authoring/output.ts";
 import { ElementRef } from "./runtime/element-ref.ts";
@@ -44,7 +43,7 @@ export class ComponentRef<T extends object> {
     name: K,
     handler: (value: OutputValue<T[K]>) => void,
   ): Either<() => void, Error> {
-    return map(this.emitterOf(name), (emitter) => emitter.stream.run({
+    return map(this.emitterOf(name), (emitter) => run(emitter.stream, {
       next: (value) => handler(value as OutputValue<T[K]>),
     }));
   }
@@ -59,12 +58,8 @@ export class ComponentRef<T extends object> {
 
   /** The emitter of output `name`, or an error if the component has no such output. */
   private emitterOf(name: string): Either<Emitter<unknown, void, never>, Error> {
-    return Maybe.from(outputsOf(this.view.component)
-      .get(name))
-      .match({
-        some: (emitter) => Right.of(emitter),
-        none: () => Left.of(new Error(`${this.view.component.constructor.name} has no output "${name}"`)),
-      });
+    return match(fromNullable(outputsOf(this.view.component)
+      .get(name)), { Some: (emitter) => Right.of(emitter), None: () => Left.of(new Error(`${this.view.component.constructor.name} has no output "${name}"`)) });
   }
 
   /** Destroy the component and everything it owns. Calling it again does nothing. */

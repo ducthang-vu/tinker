@@ -16,8 +16,7 @@ import { located, type Parsed } from "./compile-error.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { type Handler, parseHandler } from "./handler.ts";
 import { type EventModifier, expandModifier, isModifier, parseEventName } from "./event-modifiers.ts";
-import { Maybe } from "@tinker/functional";
-import { flatMap, Left, map, mapLeft, Right, sequence } from "@tinker/functional/v1";
+import { flatMap, Left, map, mapLeft, Right, sequence, fromNullable, isSome, isNone, match, use, type Maybe } from "@tinker/functional/v1";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
@@ -628,7 +627,7 @@ function compileElement(
       .join(", ");
     return Left.of(new Error(`<${node.name}> matches several components: ${names}`));
   }
-  const component = Maybe.from(components[0]?.type);
+  const component = fromNullable(components[0]?.type);
   const directives = matched.filter(({ isComponent }) => !isComponent)
     .map(({ type }) => type);
   const container = node.name === CONTAINER;
@@ -683,7 +682,7 @@ function referenceChecked(
   component: Maybe<Class<object>>,
 ): Parsed<void> {
   const { name, target } = reference;
-  if (target.kind === "component" && component.isNone()) {
+  if (target.kind === "component" && isNone(component)) {
     return Left.of(new Error(`##${name}: <${node.name}> has no component`));
   }
   if (target.kind === "export" && !matched.some((candidate) => candidate.exportAs === target.exportAs)) {
@@ -720,7 +719,7 @@ function checkContainer(
   if (bound !== undefined) {
     return Left.of(new Error(`${bound} on <${node.name}>: a container has no element, so only inputs and directives can be on it`));
   }
-  if (on.component.isSome()) {
+  if (isSome(on.component)) {
     return Left.of(new Error(`<${node.name}> cannot hold a component: it has no element`));
   }
   const named = on.references.find(({ target }) => target.kind === "element");
@@ -1059,7 +1058,7 @@ function elementAfterChecks(
   parts: ElementParts,
   candidates: readonly DirectiveCandidate[],
 ): Parsed<CompiledNode> {
-  if (parts.inputBindings.length > 0 && parts.directives.length === 0 && parts.component.isNone()) {
+  if (parts.inputBindings.length > 0 && parts.directives.length === 0 && isNone(parts.component)) {
     return Left.of(new Error(
       `[${parts.inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
       + "and no imported directive or component matches this element",

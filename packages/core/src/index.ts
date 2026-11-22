@@ -5,5 +5,7 @@ export * from "./signals/index.ts";
 export * from "./di/index.ts";
 export * from "./view/index.ts";
 export * from "./resource/index.ts";
-export * from "@tinker/functional";
+// The functional values and types an app meets through Tinker's API, from the v1 library.
+export type { Cancel, Either, Maybe, Task } from "@tinker/functional/v1";
+export { Emitter, Left, None, Right, Some } from "@tinker/functional/v1";
 export type { AbstractClass, Class } from "./utils/types.ts";

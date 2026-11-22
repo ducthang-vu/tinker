@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import { Task } from "@tinker/functional";
 import { signal } from "../signals/index.ts";
 import { tick } from "../view/internal/test-support.ts";
 import { resource } from "./resource.ts";
+import { type Task, fromComputation, succeed, fail, run } from "@tinker/functional/v1";
 
 /** A promise the test settles by hand. */
 function deferred<T>() {
@@ -102,10 +102,10 @@ describe("resource states", () => {
 
 describe("resource loaders", () => {
   test("a Task loader's success and failure are the same as a promise's", async () => {
-    const ok = resource(() => Task.succeed("Ada"), { default: "none" });
+    const ok = resource(() => succeed("Ada"), { default: "none" });
     expect(ok.value())
       .toBe("Ada");
-    const failed = resource(() => Task.fail(new Error("gone")), { default: "none" });
+    const failed = resource(() => fail(new Error("gone")), { default: "none" });
     expect(failed.state())
       .toBe("failed");
     expect(failed.error()?.message)
@@ -151,7 +151,7 @@ describe("resource reactivity", () => {
     const cancel = vi.fn();
     resource(() => {
       const current = id();
-      return Task.from<string, Error>(() => cancel);
+      return fromComputation<string, Error>(() => cancel);
     }, { default: "none" });
     id.set(2);
     expect(cancel)
@@ -187,7 +187,7 @@ describe("resource set and reload", () => {
   });
 
   test("a lazy resource is idle until it is reloaded", async () => {
-    const calls = vi.fn(() => Task.succeed("Ada"));
+    const calls = vi.fn(() => succeed("Ada"));
     const res = resource(calls, { default: "none", lazy: true });
     expect(res.state())
       .toBe("idle");
@@ -201,7 +201,7 @@ describe("resource set and reload", () => {
   });
 
   test("reload runs the loader again, and keeps the value while it does", async () => {
-    const loads = [Task.succeed("first"), Task.succeed("second")];
+    const loads = [succeed("first"), succeed("second")];
     const calls = vi.fn(() => loads.shift()!);
     const res = resource(calls, { default: "none" });
     expect(res.value())
@@ -237,7 +237,7 @@ describe("resource that skips its load", () => {
       if (current === 2) {
         return undefined;
       }
-      return current === 1 ? first.promise : Task.succeed("never");
+      return current === 1 ? first.promise : succeed("never");
     }, { default: "none" });
     first.ok("one");
     await tick();

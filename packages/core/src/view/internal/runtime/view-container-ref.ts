@@ -7,7 +7,6 @@
 // A view destroyed from anywhere (through the container or directly) leaves
 // the container, and its host element is removed from the DOM.
 
-import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
 import { inject, Injectable, Injector, type InjectorRef, type Provider } from "../../../di/index.ts";
 import { ComponentFactory } from "../factories/component-factory.ts";
@@ -19,7 +18,7 @@ import type { EmbeddedView } from "./embedded-view.ts";
 import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
-import { type Either, flatMap, Left, map, match, Right, use } from "@tinker/functional/v1";
+import { type Either, flatMap, Left, map, match, Right, use, Some, None, fromNullable, type Maybe } from "@tinker/functional/v1";
 
 /**
  * What a container is disposed with: it hears that it is destroyed, and its
@@ -86,7 +85,7 @@ export class ViewContainerRef {
 
   /** The component at `index`, if there is one. */
   get(index: number): Maybe<ComponentRef<object>> {
-    return Maybe.from(this.refs[index]);
+    return fromNullable(this.refs[index]);
   }
 
   /** The position of `ref` in the container, or -1. */
@@ -167,8 +166,7 @@ export class ViewContainerRef {
 
   /** Destroy the component at `index` (default: the last one). Does nothing if there is none. */
   remove(index: number = this.length - 1): void {
-    this.get(index)
-      .ifSome((ref) => ref.destroy());
+    use(this.get(index), { Some: (ref) => ref.destroy(), None: () => undefined });
   }
 
   /**
@@ -219,8 +217,10 @@ export class ViewContainerRef {
 
   /** The node before which the component at `index` must sit: the next host, or the anchor. */
   private nodeAfter(index: number): Node {
-    return this.get(index + 1)
-      .match({ some: (ref) => ref.host.nativeElement, none: () => this.anchor });
+    return match(this.get(index + 1), {
+      Some: (ref) => ref.host.nativeElement,
+      None: () => this.anchor,
+    });
   }
 
   /** The node the container's components go in, or an error if its anchor is not in the DOM. */

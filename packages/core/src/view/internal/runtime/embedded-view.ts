@@ -10,6 +10,7 @@ import type { ElementContext } from "./element-context.ts";
 import type { View } from "./view.ts";
 
 import type { ViewNode } from "./schedulers/view-scheduler.ts";
+import { Some, None, use } from "@tinker/functional/v1";
 
 export class EmbeddedView implements View {
   private readonly contexts: ElementContext[] = [];
@@ -61,7 +62,7 @@ export class EmbeddedView implements View {
     }
     this.isDestroyed = true;
     for (const context of this.contexts) {
-      context.componentView.ifSome((view) => view.destroy());
+      use(context.componentView, { Some: (view) => view.destroy(), None: () => undefined });
     }
     for (const callback of this.destroyCallbacks.splice(0)
       .reverse()) {

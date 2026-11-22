@@ -1,8 +1,9 @@
 // The providers of the router: the browser's location, the Location that reads it, and the
 // Router over the route tree. An app calls provideRouter once, when it bootstraps.
 
-import { computed, inject, Maybe, provide, type Provider } from "@tinker/core";
+import { computed, inject, type Maybe, provide, type Provider } from "@tinker/core";
 import { Location } from "./location.ts";
+import { isEqual } from "@tinker/functional/v1";
 import { ActivatedRoute } from "./activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
@@ -22,7 +23,7 @@ export function provideRouter(root: Route): readonly Provider[] {
         // Readers run only when the shown route changes, by the content of the Maybe.
         return computed(
           () => nextAfter(router.activated(), router.rootRoute),
-          (a, b) => a.isEqual(b),
+          (a, b) => isEqual(a, b),
         );
       },
     }),

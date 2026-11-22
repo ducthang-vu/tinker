@@ -1,11 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { Maybe } from "@tinker/functional";
 import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { compileSource, type ImportedSelector } from "./compile-source.ts";
 import { emitCompiled as emitCompiledEither } from "./emit.ts";
-import { match, map, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, map, Left, Right, valueOrThrow, Some, None, type Maybe } from "@tinker/functional/v1";
 
 class Item {}
 class Card {}
@@ -20,8 +19,8 @@ const names = new Map<Class<object>, string>([[Item, "Item"], [Card, "Card"]]);
 function roundTrip(source: string, list: ImportedSelector[] = imports) {
   const nodes = valueOrThrow(compileSource(source, list));
   const code = emitCompiled(nodes, names);
-  const build = new Function("Maybe", "Selector", "Item", "Card", `return ${code};`);
-  return { nodes, code, rebuilt: build(Maybe, Selector, Item, Card) as unknown };
+  const build = new Function("Some", "None", "Selector", "Item", "Card", `return ${code};`);
+  return { nodes, code, rebuilt: build(Some, None, Selector, Item, Card) as unknown };
 }
 
 /** Evaluates an emitted expression. */
@@ -33,7 +32,7 @@ const emitCompiled = (...args: Parameters<typeof emitCompiledEither>): string =>
 const emitFailure = (...args: Parameters<typeof emitCompiledEither>): string =>
   match(emitCompiledEither(...args), { Left: (error) => error.message, Right: () => "no error" });
 
-const evaluate = (code: string) => new Function("Maybe", "Selector", `return ${code};`)(Maybe, Selector);
+const evaluate = (code: string) => new Function("Some", "None", "Selector", `return ${code};`)(Some, None, Selector);
 
 describe("emitCompiled", () => {
   test("rebuilds an element with directives, bindings, a reference and a component", () => {
@@ -68,16 +67,16 @@ describe("emitCompiled", () => {
 
   test("writes a Maybe, a Selector, numbers, booleans and null as their own values", () => {
     const code = emitCompiled([
-      { kind: "value", some: Maybe.some(1), none: Maybe.none(), flag: false, nothing: null },
+      { kind: "value", some: Some.of(1), none: None.of(), flag: false, nothing: null },
     ] as unknown as CompiledNode[], names);
     expect(evaluate(code))
-      .toStrictEqual([{ kind: "value", some: Maybe.some(1), none: Maybe.none(), flag: false, nothing: null }]);
+      .toStrictEqual([{ kind: "value", some: Some.of(1), none: None.of(), flag: false, nothing: null }]);
   });
 
   test("uses the helper names it is given", () => {
-    const code = emitCompiled([{ some: Maybe.some(1), none: Maybe.none(), selector: valueOrThrow(Selector.parse("[a]")) }] as unknown as CompiledNode[], names, { Maybe: "__M", Selector: "__S" });
+    const code = emitCompiled([{ some: Some.of(1), none: None.of(), selector: valueOrThrow(Selector.parse("[a]")) }] as unknown as CompiledNode[], names, { Some: "__M", None: "__N", Selector: "__S" });
     expect(code)
-      .toContain("__M.some(1)");
+      .toContain("__M.of(1)");
     expect(code)
       .toContain("__S.parseValid(\"[a]\")");
   });

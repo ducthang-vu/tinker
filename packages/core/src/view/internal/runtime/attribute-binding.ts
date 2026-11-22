@@ -5,15 +5,15 @@
 // The view's watch calls `update()`; the DOM is written only when the
 // result changed.
 
-import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { isSafeUrl, isUrlAttribute } from "./url-safety.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Scope } from "../template/scope.ts";
+import { Some, None, isSome, filter } from "@tinker/functional/v1";
 
 export class AttributeBinding {
-  private last = Maybe.none<string | undefined>();
+  private last = None.of<string | undefined>();
 
   /**
    * @param element The element whose attribute is set.
@@ -46,11 +46,10 @@ export class AttributeBinding {
     const text = raw !== undefined && isUrlAttribute(this.name) && !isSafeUrl(raw)
       ? undefined
       : raw;
-    if (this.last.filter((last) => last === text)
-      .isSome()) {
+    if (isSome(filter(this.last, (last) => last === text))) {
       return;
     }
-    this.last = Maybe.some(text);
+    this.last = Some.of(text);
     if (text === undefined) {
       this.renderer.removeAttribute(this.element, this.name);
     } else {

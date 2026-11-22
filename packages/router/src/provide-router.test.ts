@@ -4,6 +4,7 @@ import { ChildActivatedRoute } from "./child-activated-route.ts";
 import { provideRouter } from "./provide-router.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
+import { getOrThrow } from "@tinker/functional/v1";
 
 class TodoList {}
 class Root {}
@@ -27,8 +28,7 @@ test("ChildActivatedRoute is the activated route after the root, as a signal", (
   window.history.replaceState(null, "", "/todos");
   const { injector, destroy } = Injector.create({ providers: provideRouter(ROOT) });
   const child = runInInjectionContext(injector, () => inject(ChildActivatedRoute));
-  expect(child()
-    .getOrThrow(() => new Error("no child")).route.component)
+  expect(getOrThrow(child(), () => new Error("no child")).route.component)
     .toBe(TodoList);
   destroy();
   window.history.replaceState(null, "", "/");

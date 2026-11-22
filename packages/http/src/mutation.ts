@@ -2,8 +2,9 @@
 // through HTTP_BACKEND, so the interceptors apply. The input of a call is the body (POST, PUT,
 // PATCH) or only used for the URL (DELETE). The result is the body of the response.
 
-import { inject, Task, type Mutation, type MutationOptions, mutation } from "@tinker/core";
+import { inject, type Task, type Mutation, type MutationOptions, mutation } from "@tinker/core";
 import { HTTP_BACKEND, type HttpError } from "./backend.ts";
+import { map } from "@tinker/functional/v1";
 
 /** The URL of a call: fixed, or built from the input of the call. */
 export type HttpUrl<I> = string | ((input: I) => string);
@@ -59,7 +60,7 @@ function httpMutation<I, T, U>(
   const { headers, ...mutationOptions } = options;
   return mutation<I, T, HttpError | Error, U>(
     (input) =>
-      Task.map(
+      map(
         backend.handle({
           method,
           url: typeof url === "string" ? url : url(input),

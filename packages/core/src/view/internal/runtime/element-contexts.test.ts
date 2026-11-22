@@ -2,12 +2,12 @@ import { describe, expect, test } from "vitest";
 import { DomRenderer } from "../renderer.ts";
 import { ElementContexts } from "./element-contexts.ts";
 import { ComponentView } from "./component-view.ts";
+import { None, isNone, getOrElse } from "@tinker/functional/v1";
 
 describe("ElementContexts", () => {
   test("get is None for an element with no context", () => {
-    expect(new ElementContexts()
-      .get(document.createElement("div"))
-      .isNone())
+    expect(isNone(new ElementContexts()
+      .get(document.createElement("div"))))
       .toBe(true);
   });
 
@@ -19,8 +19,7 @@ describe("ElementContexts", () => {
       .toBe(element);
     expect(contexts.getOrCreate(element))
       .toBe(context);
-    expect(contexts.get(element)
-      .getOrElse(undefined))
+    expect(getOrElse(contexts.get(element), undefined))
       .toBe(context);
   });
 
@@ -33,11 +32,9 @@ describe("ElementContexts", () => {
     contexts.forgetIfEmpty(empty);
     contexts.forgetIfEmpty(busy);
 
-    expect(contexts.get(empty.element)
-      .isNone())
+    expect(isNone(contexts.get(empty.element)))
       .toBe(true);
-    expect(contexts.get(busy.element)
-      .getOrElse(undefined))
+    expect(getOrElse(contexts.get(busy.element), undefined))
       .toBe(busy);
   });
 });

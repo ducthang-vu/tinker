@@ -4,14 +4,14 @@
 // (null, undefined, "" or false) removes the property. The view's watch
 // calls `update()`; the DOM is written only when the value changed.
 
-import { Maybe } from "@tinker/functional";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Scope } from "../template/scope.ts";
+import { Some, None, isSome, filter } from "@tinker/functional/v1";
 
 export class StyleBinding {
-  private last = Maybe.none<string | undefined>();
+  private last = None.of<string | undefined>();
 
   /**
    * @param element The element whose style is set.
@@ -40,11 +40,10 @@ export class StyleBinding {
     const text = value === null || value === undefined || value === false || value === ""
       ? undefined
       : String(value);
-    if (this.last.filter((last) => last === text)
-      .isSome()) {
+    if (isSome(filter(this.last, (last) => last === text))) {
       return;
     }
-    this.last = Maybe.some(text);
+    this.last = Some.of(text);
     // Style is only meaningful on elements with a style object (HTML and SVG
     // elements both have one, in this renderer's world; others are not supported).
     const element = this.element as HTMLElement;

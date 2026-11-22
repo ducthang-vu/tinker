@@ -6,8 +6,8 @@
 // and only a class's *own* property counts: static properties are
 // inherited, but a subclass has metadata only if it is decorated itself.
 
-import { Maybe } from "@tinker/functional";
 import type { AbstractClass } from "./types.ts";
+import { Some, None, type Maybe } from "@tinker/functional/v1";
 
 /** Store `value` as a hidden, read-only static property of `target`. */
 export function defineMetadata(target: AbstractClass, key: symbol, value: object): void {
@@ -22,6 +22,6 @@ export function defineMetadata(target: AbstractClass, key: symbol, value: object
 /** The static property `key` of `type` itself (not inherited), if it has one. */
 export function ownMetadata<T>(type: AbstractClass, key: symbol): Maybe<T> {
   return Object.hasOwn(type, key)
-    ? Maybe.some((type as unknown as Record<symbol, T>)[key]!)
-    : Maybe.none();
+    ? Some.of((type as unknown as Record<symbol, T>)[key]!)
+    : None.of();
 }

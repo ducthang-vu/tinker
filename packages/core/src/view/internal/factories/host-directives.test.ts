@@ -4,8 +4,7 @@ import { inject, Injectable, provide } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional/v1";
 import { messageOf } from "../test-support.ts";
 
 afterEach(() => {
@@ -42,8 +41,12 @@ describe("host directives", () => {
 
     expect(order)
       .toEqual(["focusable", "draggable", "menu"]);
-    expect(Maybe.map(engine.getContext(view.host.nativeElement), (context) => context.directives)
-      .getOrElse([]))
+    expect(
+      getOrElse(
+        map(engine.getContext(view.host.nativeElement), (context) => context.directives),
+        [],
+      ),
+    )
       .toEqual([view.instance.focusable, view.instance.draggable]);
   });
 
@@ -120,8 +123,7 @@ describe("host directives", () => {
     }
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(Menu));
-    const [item] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("li")!), (context) => context.directives)
-      .getOrElse([]) as [Item];
+    const [item] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("li")!), (context) => context.directives), []) as [Item];
     await tick();
     expect(item.focusable)
       .toBe(view.instance.focusable);
@@ -143,8 +145,7 @@ describe("host directives", () => {
     await tick();
     expect(destroyed)
       .toEqual(["tracked"]);
-    expect(engine.getContext(view.host.nativeElement)
-      .isNone())
+    expect(isNone(engine.getContext(view.host.nativeElement)))
       .toBe(true);
   });
 

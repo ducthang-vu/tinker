@@ -7,8 +7,7 @@ import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -38,8 +37,7 @@ describe("directives in templates", () => {
     expect(seen)
       .toEqual(["p", "b"]);
     const p = view.host.nativeElement.querySelector("p")!;
-    expect(Maybe.map(engine.getContext(p), (context) => context.directives.length)
-      .getOrElse(0))
+    expect(getOrElse(map(engine.getContext(p), (context) => context.directives.length), 0))
       .toBe(1);
   });
 
@@ -77,8 +75,10 @@ describe("directives in templates", () => {
     const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
-    const [counter] = Maybe.map(engine.getContext(button), (context) => context.directives)
-      .getOrElse([]) as Counter[];
+    const [counter] = getOrElse(
+      map(engine.getContext(button), (context) => context.directives),
+      [],
+    ) as Counter[];
     await tick();
     expect(counter!.count)
       .toBe(2);
@@ -101,8 +101,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
-    const [validator, model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
-      .getOrElse([]) as [Validator, Model];
+    const [validator, model] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives), []) as [Validator, Model];
     await tick();
     expect(validator.model)
       .toBe(model);
@@ -129,10 +128,8 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
-    const [form] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("form")!), (context) => context.directives)
-      .getOrElse([]) as [Form];
-    const [model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
-      .getOrElse([]) as [Model];
+    const [form] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("form")!), (context) => context.directives), []) as [Form];
+    const [model] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives), []) as [Model];
     await tick();
     expect(model.form)
       .toBe(form);
@@ -155,8 +152,7 @@ describe("directives in templates", () => {
     class A {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
-    const [parent] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("div")!), (context) => context.directives)
-      .getOrElse([]) as [Parent];
+    const [parent] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("div")!), (context) => context.directives), []) as [Parent];
     await tick();
     expect(parent.child)
       .toBeNull();
@@ -216,8 +212,7 @@ describe("directives in templates", () => {
     await tick();
     expect(log)
       .toEqual(["effect 1", "destroyed"]);
-    expect(engine.getContext(p)
-      .isNone())
+    expect(isNone(engine.getContext(p)))
       .toBe(true);
   });
 
@@ -245,8 +240,7 @@ describe("directives in templates", () => {
       .toBe("");
     expect(destroyed)
       .toEqual(["ok"]);
-    expect(engine.getContext(host)
-      .isNone())
+    expect(isNone(engine.getContext(host)))
       .toBe(true);
   });
 });
@@ -300,8 +294,7 @@ describe("directive providers", () => {
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
     const directivesOf = (element: Element) =>
-      Maybe.map(engine.getContext(element), (context) => context.directives)
-        .getOrElse([]);
+      getOrElse(map(engine.getContext(element), (context) => context.directives), []);
     const [first, second] = [...view.host.nativeElement.querySelectorAll("div")];
     const [stateful, sibling] = directivesOf(first!) as [Stateful, Sibling];
     const [inner] = directivesOf(view.host.nativeElement.querySelector("p")!) as [Inner];
@@ -364,8 +357,10 @@ describe("directive providers", () => {
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(A));
     const p = view.host.nativeElement.querySelector("p")!;
-    const [first] = Maybe.map(engine.getContext(p), (context) => context.directives)
-      .getOrElse([]) as [First];
+    const [first] = getOrElse(
+      map(engine.getContext(p), (context) => context.directives),
+      [],
+    ) as [First];
     await tick();
     expect(first.host.nativeElement)
       .toBe(p);
@@ -392,8 +387,10 @@ describe("ElementRef", () => {
     const view = valueOrThrow(engine.createComponent(A));
     document.body.append(view.host.nativeElement);
     const input = view.host.nativeElement.querySelector("input")!;
-    const [autofocus] = Maybe.map(engine.getContext(input), (context) => context.directives)
-      .getOrElse([]) as [Autofocus];
+    const [autofocus] = getOrElse(
+      map(engine.getContext(input), (context) => context.directives),
+      [],
+    ) as [Autofocus];
     await tick();
     expect(autofocus.focus())
       .toBe("hi");
@@ -414,8 +411,7 @@ describe("ElementRef", () => {
     class X {}
     const engine = Engine.create();
     const view = valueOrThrow(engine.createComponent(X));
-    const [a, b] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
-      .getOrElse([]) as [A, B];
+    const [a, b] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives), []) as [A, B];
     await tick();
     expect(a.host)
       .toBe(b.host);

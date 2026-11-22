@@ -12,10 +12,10 @@
 // class a directive with the same selector.
 
 import type { Provider } from "../../../di/index.ts";
-import type { Maybe } from "@tinker/functional";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";
 import type { AbstractClass, Class } from "../../../utils/types.ts";
 import type { CompiledNode } from "../template/compile.ts";
+import { match, use, type Maybe } from "@tinker/functional/v1";
 
 /** What a directive declares about itself. */
 export interface DirectiveMetadata {

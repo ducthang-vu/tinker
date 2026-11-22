@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { Injector, provide, runInInjectionContext, resource, Task, type Provider } from "@tinker/core";
+import { Injector, provide, runInInjectionContext, resource, type Task, type Provider } from "@tinker/core";
 import { tick } from "../../core/src/view/internal/test-support.ts";
+import { succeed } from "@tinker/functional/v1";
 import {
   FetchHttpBackend,
   HTTP_BACKEND,
@@ -86,7 +87,7 @@ describe("httpPost", () => {
   test("a success updates the resource through onSuccess", async () => {
     const { transport } = transportWith(() => json({ id: 9 }));
     const { list, create } = inBackend(transport, () => {
-      const list = resource<number[], Error>(() => Task.succeed([1]), { default: [], lazy: true });
+      const list = resource<number[], Error>(() => succeed([1]), { default: [], lazy: true });
       list.reload();
       const create = httpPost<{}, { id: number }, number[]>("/todos", {
         resource: list,

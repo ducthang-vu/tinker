@@ -7,8 +7,7 @@ import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import type { Class } from "../../../utils/types.ts";
-import { Maybe } from "@tinker/functional";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrThrow, map, flatMap } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -16,11 +15,10 @@ afterEach(() => {
 
 /** The component on `element`, through the engine's context. */
 function componentOn<T>(engine: Engine, element: Element): T {
-  return Maybe.map(
-    Maybe.flatMap(engine.getContext(element), (context) => context.componentView),
+  return getOrThrow(map(
+    flatMap(engine.getContext(element), (context) => context.componentView),
     (view) => view.component as T,
-  )
-    .getOrThrow(() => new Error("no component on the element"));
+  ), () => new Error("no component on the element"));
 }
 
 describe("components in templates", () => {
@@ -176,8 +174,7 @@ describe("components in templates", () => {
     await tick();
     expect(log)
       .toEqual(["effect 1", "item destroyed", "list destroyed"]);
-    expect(engine.getContext(itemHost)
-      .isNone())
+    expect(isNone(engine.getContext(itemHost)))
       .toBe(true);
   });
 
@@ -209,8 +206,7 @@ describe("components in templates", () => {
       .toBe("");
     expect(destroyed)
       .toEqual(["ok", "list"]);
-    expect(engine.getContext(host)
-      .isNone())
+    expect(isNone(engine.getContext(host)))
       .toBe(true);
   });
 });
@@ -243,8 +239,7 @@ describe("recursion", () => {
       .toThrow("A contains itself: A → B → A");
     expect(host.innerHTML)
       .toBe("");
-    expect(engine.getContext(host)
-      .isNone())
+    expect(isNone(engine.getContext(host)))
       .toBe(true);
   });
 

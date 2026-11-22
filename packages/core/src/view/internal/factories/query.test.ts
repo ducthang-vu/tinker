@@ -6,7 +6,7 @@ import { Component, ElementRef, input, QueryMissingError, query, queryAll } from
 import { Engine } from "../engine.ts";
 import { CLASS_REPLACEMENTS } from "../tokens.ts";
 import { provide } from "../../../di/index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrThrow, map, match } from "@tinker/functional/v1";
 
 @Component({
   selector: "tk-first-item",
@@ -30,19 +30,16 @@ describe("query", () => {
     const el = document.createElement("section");
     const app = valueOrThrow(bootstrap(First, { host: el }));
     await tick();
-    expect(app.root.instance.first()
-      .isNone())
+    expect(isNone(app.root.instance.first()))
       .toBe(true);
     app.root.instance.labels.set(["a", "b"]);
     await tick();
-    expect(app.root.instance.first()
-      .getOrThrow(() => new Error("expected a first item"))
+    expect(getOrThrow(app.root.instance.first(), () => new Error("expected a first item"))
       .label())
       .toBe("a");
     app.root.instance.labels.set(["b"]);
     await tick();
-    expect(app.root.instance.first()
-      .getOrThrow(() => new Error("expected a first item"))
+    expect(getOrThrow(app.root.instance.first(), () => new Error("expected a first item"))
       .label())
       .toBe("b");
     app.destroy();
@@ -60,8 +57,7 @@ describe("query", () => {
     const el = document.createElement("section");
     const app = valueOrThrow(bootstrap(FirstElement, { host: el }));
     await tick();
-    const ref = app.root.instance.first()
-      .getOrThrow(() => new Error("expected a first element"));
+    const ref = getOrThrow(app.root.instance.first(), () => new Error("expected a first element"));
     expect(ref.nativeElement)
       .toBe(el.querySelector("tk-first-item"));
     app.destroy();
@@ -143,8 +139,7 @@ describe("a query for a replaced class finds its replacement", () => {
     });
     const parent = valueOrThrow(engine.bootstrap(Parent, el));
     engine.flush();
-    expect(parent.instance.first()
-      .getOrThrow(() => new Error("no gauge")))
+    expect(getOrThrow(parent.instance.first(), () => new Error("no gauge")))
       .toBeInstanceOf(GaugeStub);
     expect(parent.instance.required())
       .toBeInstanceOf(GaugeStub);

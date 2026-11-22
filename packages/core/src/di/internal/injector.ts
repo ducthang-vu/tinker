@@ -1,7 +1,7 @@
 // The Injector: gives the value for a token, using its providers.
 // Internal: users never see it (see the design rule in inject.ts).
 
-import { attempt, type Either } from "@tinker/functional/v1";
+import { attempt, type Either, Some, None, isSome, use } from "@tinker/functional/v1";
 import { runInInjectionContext } from "./context/current-injector.ts";
 import { InjectionToken, type Token } from "./inject.ts";
 import {
@@ -147,8 +147,7 @@ export class Injector {
    */
   has(token: Token<unknown>): boolean {
     this.assertNotDestroyed();
-    return this.records.has(token) || (this.isRoot() && findRootProvider(token)
-      .isSome());
+    return this.records.has(token) || (this.isRoot() && isSome(findRootProvider(token)));
   }
 
   /**
@@ -171,8 +170,10 @@ export class Injector {
     this.assertNotDestroyed();
     if (this.isRoot() && !this.records.has(token)) {
       // A root injector also provides root providers: adopt it on first use.
-      findRootProvider(token)
-        .ifSome((provider) => this.records.add(provider));
+      use(
+        findRootProvider(token),
+        { Some: (provider) => this.records.add(provider), None: () => undefined },
+      );
     }
     return this.records.get(token);
   }

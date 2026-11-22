@@ -23,9 +23,9 @@ import type {
   OutputValue,
   Provider,
   ProviderToken,
-  Stream,
   Token,
 } from "@tinker/core";
+import type { Stream } from "@tinker/functional/v1";
 
 /**
  * A builder for one test bed. Each method returns the builder, so the configuration

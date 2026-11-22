@@ -12,9 +12,8 @@
 // one. A loader returns a promise or a Task; a Task's cancellation runs when it is superseded.
 // A loader that returns `undefined` skips the load: nothing runs, and the state is "idle".
 
-import { Task } from "@tinker/functional";
 import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watch } from "../signals/index.ts";
-import { use, Left, Right, type Either } from "@tinker/functional/v1";
+import { run, Stream, type Task, use, Left, Right, type Either } from "@tinker/functional/v1";
 
 /** What the resource is doing, or what it last did. */
 export type ResourceState = "idle" | "loading" | "fetched" | "failed" | "written";
@@ -115,8 +114,8 @@ export function resource<T, E = Error>(
       untracked(() => state.set("idle"));
       return;
     }
-    if (pending instanceof Task) {
-      cancelTask = pending.run({
+    if (pending instanceof Stream) {
+      cancelTask = run(pending, {
         ok: (loaded) => settle(id, Right.of(loaded)),
         error: (failure) => settle(id, Left.of(failure)),
       });

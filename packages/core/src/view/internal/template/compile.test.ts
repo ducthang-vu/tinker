@@ -2,15 +2,13 @@ import { messageOf, parseNodes } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
 import { type CompiledElement, compileTemplate as compileTemplateEither, type DirectiveCandidate } from "./compile.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
 
 const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
   valueOrThrow(compileTemplateEither(...args));
 import { TemplateCompileError } from "./compile-error.ts";
 import { Selector } from "./selector.ts";
-import { Maybe } from "@tinker/functional";
 import { ExpressionParser } from "./expression.ts";
-import { match, map, Left, Right } from "@tinker/functional/v1";
+import { getOrElse, Left, map, match, None, Right, valueOrThrow } from "@tinker/functional/v1";
 
 describe("compileTemplate", () => {
   test("parses the {{ }} of every text, keeping elements and attributes", () => {
@@ -39,7 +37,7 @@ describe("compileTemplate", () => {
           ],
           references: [],
           directives: [],
-          component: Maybe.none(),
+          component: None.of(),
           container: false,
           classObjects: [],
           classBindings: [],
@@ -158,7 +156,7 @@ describe("compileTemplate", () => {
         { type: Tooltip, selector: selector("[tip]"), isComponent: false },
       ],
     ) as CompiledElement[];
-    expect(host!.component.getOrElse(undefined))
+    expect(getOrElse(host!.component, undefined))
       .toBe(Child);
     expect(host!.directives)
       .toEqual([Tooltip]);

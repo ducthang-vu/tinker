@@ -27,7 +27,6 @@
 // the microtasks that request them and then flushes (the test bed does this).
 
 import { inject, Injectable } from "../../../di/index.ts";
-import { Task } from "@tinker/functional";
 import { runAll, runBatches } from "../../../utils/run-all.ts";
 import { EffectScheduler } from "./schedulers/effect-scheduler.ts";
 import { RenderHookRegistry } from "./render-hook-registry.ts";

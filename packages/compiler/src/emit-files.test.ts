@@ -4,6 +4,7 @@ import { join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import type { CheckOutput } from "./check.ts";
 import { emitFiles, parseArguments } from "./emit-files.ts";
+import { type Maybe } from "@tinker/functional/v1";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
 
@@ -73,9 +74,9 @@ describe("emitFiles", () => {
       .toBe(0);
     const written = readFileSync(writtenAt(outDir, "item.ts"), "utf8");
     expect(written)
-      .toContain("__tinkerMaybe.none()");
+      .toContain("__tinkerNone.of()");
     expect(written)
-      .toContain(`import { Maybe as __tinkerMaybe } from "@tinker/functional";`);
+      .toContain(`import { Some as __tinkerSome, None as __tinkerNone } from "@tinker/functional/v1";`);
     expect(output.logs)
       .toEqual([`Compiled 1 file(s) into ${outDir}.`]);
   });
@@ -215,7 +216,7 @@ describe("emitFiles", () => {
     expect(written)
       .toBe(readFileSync(fixture("item.ts"), "utf8"));
     expect(written)
-      .not.toContain("__tinkerMaybe");
+      .not.toContain("__tinkerNone");
   });
 
   test("without --emit, a template that does not compile still fails the file", async () => {

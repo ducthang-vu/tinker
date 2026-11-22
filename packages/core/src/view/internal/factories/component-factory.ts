@@ -45,8 +45,7 @@ import {
   runInInjectionContext,
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
-import { Maybe, partial } from "@tinker/functional";
-import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow } from "@tinker/functional/v1";
+import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow, Some, None, isSome, use, run, partial } from "@tinker/functional/v1";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
@@ -146,11 +145,7 @@ export class ComponentFactory {
 
   /** The @Component metadata of `type`, or an error if it is not a component. */
   metadataOf(type: Class<unknown>): Either<ComponentMetadata, Error> {
-    return getComponentMetadata(type)
-      .match({
-        some: (metadata) => Right.of(metadata),
-        none: () => Left.of(new Error(`${type.name} is not a component: decorate it with @Component`)),
-      });
+    return match(getComponentMetadata(type), { Some: (metadata) => Right.of(metadata), None: () => Left.of(new Error(`${type.name} is not a component: decorate it with @Component`)) });
   }
 
   /**
@@ -224,8 +219,7 @@ export class ComponentFactory {
     host: Element,
     prepared: Prepared,
   ): Either<Prepared, Error> {
-    const holds = Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
-      .isSome();
+    const holds = isSome(flatMap(this.contexts.get(host), (existing) => existing.componentView));
     return holds
       ? Left.of(new Error(`The host element of ${type.name} already holds a component`))
       : Right.of(prepared);
@@ -412,11 +406,7 @@ export class ComponentFactory {
     directive: Class<object>,
   ): Either<Class<object>, Error> {
     return flatMap(this.directives.metadataOf(directive), () =>
-      getComponentMetadata(directive)
-        .match({
-          some: () => Left.of(new Error(`${directive.name} is a component: it cannot be a host directive of ${type.name}`)),
-          none: () => Right.of(directive),
-        }));
+      match(getComponentMetadata(directive), { Some: () => Left.of<Error, Class<object>>(new Error(`${directive.name} is a component: it cannot be a host directive of ${type.name}`)), None: () => Right.of<Class<object>, Error>(directive) }));
   }
 
   /**
@@ -463,8 +453,7 @@ export class ComponentFactory {
       return {
         type: imported,
         selector: valueOrThrow(mapLeft(Selector.parse(metadata.selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
-        isComponent: getComponentMetadata(imported)
-          .isSome(),
+        isComponent: isSome(getComponentMetadata(imported)),
         exportAs: metadata.exportAs,
       };
     });
