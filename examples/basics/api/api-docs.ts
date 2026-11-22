@@ -51,6 +51,19 @@ export class DocBody {
 
 @Component({
   selector: "tk-api-docs",
+  styles: `
+    tk-api-docs { display: block; flex-basis: 100%; }
+      h2 { margin-top: 2.5rem; border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; }
+      article { margin: 1.5rem 0; padding: 0.5rem 1rem; border-left: 3px solid #ccc; }
+      h3 { margin: 0.5rem 0; font-size: 1.1rem; }
+      h4 { margin: 1.2rem 0 0.3rem; }
+      .kind { font-size: 0.8rem; font-weight: normal; color: #555; margin-left: 0.4rem; }
+      .badge { font-size: 0.75rem; border: 1px solid #888; border-radius: 4px; padding: 0 0.3rem; margin-left: 0.3rem; }
+      .deprecated { color: #8a4b00; background: #fff3d6; padding: 0.2rem 0.5rem; }
+      .source { font-size: 0.8rem; color: #666; }
+      pre { background: #f5f5f5; padding: 0.5rem 0.7rem; overflow-x: auto; border-radius: 4px; }
+      nav p { margin: 0.2rem 0; }
+  `,
   template: `
     <h2>Public API</h2>
     <p>

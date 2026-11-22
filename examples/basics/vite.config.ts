@@ -1,5 +1,4 @@
 // The example app's own build and dev server. It imports @tinker/core like any app.
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { tinkerCompiler } from "@tinker/compiler";
 import { standardDecorators, workspaceAlias } from "../../vite.shared.ts";
@@ -17,12 +16,5 @@ export default defineConfig({
   build: {
     outDir: "../../dist/example",
     emptyOutDir: true,
-    rollupOptions: {
-      // Two pages: the demo, and the API reference.
-      input: {
-        main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        api: fileURLToPath(new URL("./api.html", import.meta.url)),
-      },
-    },
   },
 });
