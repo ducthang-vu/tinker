@@ -7,7 +7,11 @@
 //   .card > b:hover { … }   becomes   .card > b[tk-cN]:hover { … }
 //
 // `:host` is the component's host element, which its parent's template creates, so
-// it gets the attribute `tk-hN`: `:host(.big)` becomes `[tk-hN].big`. The rules are
+// it gets the attribute `tk-hN`: `:host(.big)` becomes `[tk-hN].big`.
+//
+// `:deep(…)` is the one exception to the scoping, for the author who must style a
+// child component's elements from the parent (an escape hatch, to be rare): the part
+// inside it is not scoped, so `.card :deep(.title)` becomes `.card[tk-cN] .title`. The rules are
 // added once per component class, to the document's head. Only the rules of the
 // selectors are rewritten: `@media` and `@supports` blocks are scoped inside, and
 // `@keyframes` and `@font-face` are copied as they are.
@@ -128,16 +132,65 @@ function scopeSelectorList(prelude: string, scope: StyleScope): string {
     .join(", ");
 }
 
+/** The escape hatch: `:deep(selector)` leaves what it wraps unscoped (see `scopeBeforeDeep`). */
+const DEEP = ":deep(";
+
 /**
  * One complex selector, scoped. `:host` becomes the host attribute; then the last
  * compound gets the component's attribute, unless it is the host itself (which the
  * parent's template created, and so does not carry the component's attribute).
+ * A `:deep(...)` splits the selector: see `scopeBeforeDeep`.
  */
 function scopeSelector(selector: string, scope: StyleScope): string {
   const host = `[${scope.hostAttribute}]`;
   const replaced = selector
     .replace(/:host\(([^()]*)\)/g, `${host}$1`)
     .replace(/:host\b/g, host);
+  const deep = replaced.indexOf(DEEP);
+  return deep === -1
+    ? markLastCompound(replaced, scope)
+    : scopeBeforeDeep(replaced, deep, scope);
+}
+
+/**
+ * A selector with `:deep(inner)` at `at`, scoped to the component only up to the marker:
+ * `.card :deep(.title)` becomes `.card[tk-cN] .title`, so the rule reaches the `.title`
+ * inside a child component's template. What is before the marker is scoped as usual; a
+ * marker at the start (`:deep(.title)`) is scoped to the host, and a marker after a
+ * combinator (`.card > :deep(.title)`) scopes the `*` it stands for. Only the first
+ * marker has this meaning: any text after it is copied as it is.
+ */
+function scopeBeforeDeep(selector: string, at: number, scope: StyleScope): string {
+  const close = closingParen(selector, at + DEEP.length);
+  const inner = selector.slice(at + DEEP.length, close);
+  const after = selector.slice(close + 1);
+  const before = selector.slice(0, at)
+    .trim();
+  const base = before === ""
+    ? `[${scope.hostAttribute}]`
+    : /[>+~]$/.test(before) ? `${before} *` : before;
+  return `${markLastCompound(base, scope)} ${inner.trim()}${after}`;
+}
+
+/** The index of the `)` closing the parenthesis before `from`, or the end if it is not closed. */
+function closingParen(text: string, from: number): number {
+  let depth = 1;
+  for (let i = from; i < text.length; i += 1) {
+    if (text[i] === "(") {
+      depth += 1;
+    } else if (text[i] === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        return i;
+      }
+    }
+  }
+  return text.length;
+}
+
+/** The last compound of a selector gets the component's attribute, unless it is the host. */
+function markLastCompound(replaced: string, scope: StyleScope): string {
+  const host = `[${scope.hostAttribute}]`;
   const outside = topLevelMask(replaced);
   const lastCombinator = [...replaced].reduce(
     (last, char, index) => (outside[index] && " >+~".includes(char) ? index : last),

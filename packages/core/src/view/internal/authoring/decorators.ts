@@ -50,6 +50,10 @@ export interface ComponentMetadata extends DirectiveMetadata {
   /**
    * The component's CSS. Its selectors match only the elements of its own template
    * (and its host, with `:host`): styles of one component do not leak to others.
+   *
+   * The escape hatch: `:deep(selector)` styles the elements of a child component's
+   * template from here, as in `.card :deep(.title)`. Use it sparingly: the child can
+   * rename or restructure its classes, and the rule breaks without a compile error.
    */
   readonly styles?: string;
   /**
@@ -82,8 +86,23 @@ export function Directive(options: DirectiveMetadata) {
   };
 }
 
+/**
+ * What `@Component` takes: the metadata, with `styleUrl` in place of `styles` when the CSS
+ * is a file. A build reads that file into `styles` (see the compiler's `tinkerCompiler`).
+ */
+export interface ComponentOptions extends ComponentMetadata {
+  /** The CSS file, relative to the source file of the class. Needs the compiler plugin. */
+  readonly styleUrl?: string;
+}
+
 /** Class decorator: marks the class as a component (and therefore a directive). */
-export function Component(options: ComponentMetadata) {
+export function Component(options: ComponentOptions) {
+  if (options.styleUrl !== undefined) {
+    throw new Error(
+      `@Component: styleUrl "${options.styleUrl}" needs the Tinker compiler `
+      + "(tinkerCompiler() in the Vite config), or write the CSS in styles",
+    );
+  }
   return function <C extends AbstractClass>(target: C, _context: ClassDecoratorContext<C>): void {
     defineComponent(target, options);
   };

@@ -9,6 +9,11 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
+test("a component's styleUrl file styles it", async ({ page }) => {
+  await expect(page.locator("tk-notice .notice"))
+    .toHaveCSS("border-left-color", "rgb(0, 102, 204)");
+});
+
 test("the page loads without errors", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));

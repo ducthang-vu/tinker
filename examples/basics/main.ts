@@ -8,6 +8,7 @@
 // - todos.ts: @map over a list, track, the $ variables, destructuring, and the
 //   empty case of @match.
 // - patterns.ts: @match with each pattern form.
+// - notice/notice.ts: a component whose CSS is a file, next to it (styleUrl).
 //
 // This file starts one app per component. Each renders into the element of its
 // selector in index.html, and each is its own engine.
@@ -15,6 +16,7 @@
 import { bootstrap } from "@tinker/core";
 import { valueOrThrow } from "@tinker/functional/v1";
 import { Clock } from "./clock.ts";
+import { Notice } from "./notice/notice.ts";
 import { Counter } from "./counter.ts";
 import { Patterns } from "./patterns.ts";
 import { Todos } from "./todos.ts";
@@ -23,3 +25,4 @@ valueOrThrow(bootstrap(Counter));
 valueOrThrow(bootstrap(Clock));
 valueOrThrow(bootstrap(Todos));
 valueOrThrow(bootstrap(Patterns));
+valueOrThrow(bootstrap(Notice));

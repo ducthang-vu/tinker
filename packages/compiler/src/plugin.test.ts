@@ -36,6 +36,7 @@ function transform(
     id: string,
   ) => Promise<unknown>;
   const context = {
+    addWatchFile: vi.fn(),
     resolve: vi.fn(async (source: string) =>
       (files[source] === undefined ? null : { id: files[source] })),
     error: (message: string): never => {
@@ -391,5 +392,64 @@ describe("constants across files", () => {
     `, "/app/a.ts", host);
     expect(warnings)
       .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
+  });
+});
+
+describe("styleUrl", () => {
+  const card = fixture("card-styles.ts");
+  const code = `@Component({ selector: "tk-card", template: "<p>a</p>", styleUrl: "./card.css" }) class Card {}`;
+  const css = JSON.stringify(".card { color: red; }\n");
+
+  test("the build reads the file next to the source into styles, in place of the property", async () => {
+    const { host } = recordingHost();
+    const replacements = await compileComponents(code, card, host);
+    expect(replacements)
+      .toHaveLength(1);
+    const [replacement] = replacements;
+    expect(replacement!.text)
+      .toBe(`styles: ${css}`);
+    expect(code.slice(replacement!.start, replacement!.end))
+      .toBe(`styleUrl: "./card.css"`);
+  });
+
+  test("the transform gives the file's CSS, and watches the file", async () => {
+    const { result, context } = transform(code, card);
+    const emitted = await result as { code: string };
+    expect(emitted.code)
+      .toContain(`styles: ${css}`);
+    expect(context.addWatchFile)
+      .toHaveBeenCalledWith(fixture("card.css"));
+  });
+
+  test("a missing file fails the build, with the name of the file", async () => {
+    const { host } = recordingHost();
+    await expect(compileComponents(code.replace("./card.css", "./missing.css"), card, host))
+      .rejects
+      .toThrow(/cannot read styleUrl "\.\/missing\.css"/);
+  });
+
+  test("styles and styleUrl together fail the build", async () => {
+    const { host } = recordingHost();
+    const both = `@Component({ selector: "tk-b", template: "<p>a</p>", styles: "p {}", styleUrl: "./card.css" }) class B {}`;
+    await expect(compileComponents(both, card, host))
+      .rejects
+      .toThrow(/either styles or styleUrl, not both/);
+  });
+
+  test("a styleUrl that is not a literal is skipped with a warning", async () => {
+    const { host, warnings } = recordingHost();
+    const computed = `@Component({ selector: "tk-c", template: "<p>a</p>", styleUrl: pick() }) class C {}`;
+    expect(await compileComponents(computed, card, host))
+      .toHaveLength(0);
+    expect(warnings.join("\n"))
+      .toMatch(/its styleUrl is not a literal/);
+  });
+
+  test("the file is watched through the host, when the host can watch", async () => {
+    const watch = vi.fn();
+    const { host } = recordingHost();
+    await compileComponents(code, card, { ...host, watch });
+    expect(watch)
+      .toHaveBeenCalledWith(fixture("card.css"));
   });
 });
