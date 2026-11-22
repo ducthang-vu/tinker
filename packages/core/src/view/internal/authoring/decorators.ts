@@ -50,6 +50,10 @@ export interface ComponentMetadata extends DirectiveMetadata {
   /**
    * The component's CSS. Its selectors match only the elements of its own template
    * (and its host, with `:host`): styles of one component do not leak to others.
+   *
+   * The escape hatch: `:deep(selector)` styles the elements of a child component's
+   * template from here, as in `.card :deep(.title)`. Use it sparingly: the child can
+   * rename or restructure its classes, and the rule breaks without a compile error.
    */
   readonly styles?: string;
   /**

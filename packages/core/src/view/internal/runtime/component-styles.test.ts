@@ -55,6 +55,25 @@ describe("scopeStyles", () => {
       .toBe(squash(`p[tk-c1] { content: "}"; quotes: '{' }`));
   });
 
+  test(":deep(...) leaves its part unscoped, and scopes what is before it", () => {
+    expect(scoped(".card :deep(.title) { }"))
+      .toBe(squash(".card[tk-c1] .title { }"));
+    expect(scoped(".card :deep(.title):hover { }"))
+      .toBe(squash(".card[tk-c1] .title:hover { }"));
+    expect(scoped(".card > :deep(.title) { }"))
+      .toBe(squash(".card > *[tk-c1] .title { }"));
+    expect(scoped(":deep(.title) { }"))
+      .toBe(squash("[tk-h1] .title { }"));
+    expect(scoped(":host(.big) :deep(p) { }"))
+      .toBe(squash("[tk-h1].big p { }"));
+    expect(scoped(".card :deep(.title { }"))
+      .toBe(squash(".card[tk-c1] .title { }"));
+    expect(scoped(":deep(.a(b)) { }"))
+      .toBe(squash("[tk-h1] .a(b) { }"));
+    expect(scoped("@media (x) { .card :deep(.title) { } }"))
+      .toBe(squash("@media (x) { .card[tk-c1] .title { } }"));
+  });
+
   test("a block that is never closed takes the rest of the sheet", () => {
     expect(scoped("p { color: red"))
       .toBe(squash("p[tk-c1] { color: red }"));
@@ -125,6 +144,27 @@ describe("component styles in a view", () => {
       .toBe(false);
     expect(leaf.hasAttribute(hostAttribute))
       .toBe(false);
+  });
+
+  test(":deep(...) in a parent's styles reaches the elements of a child's template", () => {
+    @Component({ selector: "tk-deep-leaf", template: `<p class="title">leaf</p>` })
+    class DeepLeaf {}
+    @Component({
+      selector: "tk-deep-parent",
+      template: `<div class="card"><tk-deep-leaf></tk-deep-leaf></div>`,
+      styles: ".card :deep(.title) { color: red }",
+      imports: [DeepLeaf],
+    })
+    class DeepParent {}
+    const engine = Engine.create();
+    const view = valueOrThrow(engine.createComponent(DeepParent));
+    const { attribute } = styleScopeOf(DeepParent);
+    const title = view.host.nativeElement.querySelector("p.title")!;
+    expect(title.hasAttribute(attribute))
+      .toBe(false);
+    const sheet = document.head.querySelector(`style[data-tk-style="${attribute}"]`)!;
+    expect(squash(sheet.textContent ?? ""))
+      .toBe(squash(`.card[${attribute}] .title { color: red }`));
   });
 
   test("a component without styles adds no attributes and no stylesheet", () => {
