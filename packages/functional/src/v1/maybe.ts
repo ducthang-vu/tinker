@@ -58,36 +58,6 @@ export type MaybeCases<T, R> = {
   readonly None: () => R;
 };
 
-/** `map`: data-first `map(m, f)`, or data-last `map(f)` for `pipe`. */
-export function map<T, U>(self: Maybe<T>, f: (value: T) => U): Maybe<U>;
-export function map<T, U>(f: (value: T) => U): (self: Maybe<T>) => Maybe<U>;
-export function map(...args: readonly unknown[]): unknown {
-  if (args.length === 1) {
-    const [f] = args as [(value: unknown) => unknown];
-    return (self: Maybe<unknown>) => map(self, f);
-  }
-  const [self, f] = args as [Maybe<unknown>, (value: unknown) => unknown];
-  return match<unknown, Maybe<unknown>>(self, {
-    Some: (value) => Some.of(f(value)),
-    None: () => self,
-  });
-}
-
-/** `flatMap`: data-first `flatMap(m, f)`, or data-last `flatMap(f)` for `pipe`. */
-export function flatMap<T, U>(self: Maybe<T>, f: (value: T) => Maybe<U>): Maybe<U>;
-export function flatMap<T, U>(f: (value: T) => Maybe<U>): (self: Maybe<T>) => Maybe<U>;
-export function flatMap(...args: readonly unknown[]): unknown {
-  if (args.length === 1) {
-    const [f] = args as [(value: unknown) => Maybe<unknown>];
-    return (self: Maybe<unknown>) => flatMap(self, f);
-  }
-  const [self, f] = args as [Maybe<unknown>, (value: unknown) => Maybe<unknown>];
-  return match<unknown, Maybe<unknown>>(self, {
-    Some: (value) => f(value),
-    None: () => self,
-  });
-}
-
 /** Keep the value only if `predicate` accepts it. */
 export function filter<T>(self: Maybe<T>, predicate: (value: T) => boolean): Maybe<T> {
   return match<T, Maybe<T>>(self, {

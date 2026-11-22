@@ -57,44 +57,6 @@ export type EitherCases<T, E, R> = {
   readonly Left: (error: E) => R;
 };
 
-/** `map`: data-first `map(e, f)`, or data-last `map(f)` for `pipe`. */
-export function map<T, E, U>(self: Either<T, E>, f: (value: T) => U): Either<U, E>;
-export function map<T, U>(f: (value: T) => U): <E>(self: Either<T, E>) => Either<U, E>;
-export function map(...args: readonly unknown[]): unknown {
-  if (args.length === 1) {
-    const [f] = args as [(value: unknown) => unknown];
-    return (self: Either<unknown, unknown>) => map(self, f);
-  }
-  const [self, f] = args as [Either<unknown, unknown>, (value: unknown) => unknown];
-  return match<unknown, unknown, Either<unknown, unknown>>(self, {
-    Right: (value) => Right.of(f(value)),
-    Left: () => self,
-  });
-}
-
-/** `flatMap`: data-first `flatMap(e, f)`, or data-last `flatMap(f)` for `pipe`. */
-export function flatMap<T, E, U, F>(
-  self: Either<T, E>,
-  f: (value: T) => Either<U, F>,
-): Either<U, E | F>;
-export function flatMap<T, U, F>(
-  f: (value: T) => Either<U, F>,
-): <E>(self: Either<T, E>) => Either<U, E | F>;
-export function flatMap(...args: readonly unknown[]): unknown {
-  if (args.length === 1) {
-    const [f] = args as [(value: unknown) => Either<unknown, unknown>];
-    return (self: Either<unknown, unknown>) => flatMap(self, f);
-  }
-  const [self, f] = args as [
-    Either<unknown, unknown>,
-    (value: unknown) => Either<unknown, unknown>,
-  ];
-  return match<unknown, unknown, Either<unknown, unknown>>(self, {
-    Right: (value) => f(value),
-    Left: () => self,
-  });
-}
-
 /** `mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`. */
 export function mapLeft<T, E, F>(self: Either<T, E>, f: (error: E) => F): Either<T, F>;
 export function mapLeft<E, F>(f: (error: E) => F): <T>(self: Either<T, E>) => Either<T, F>;

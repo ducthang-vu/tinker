@@ -1,9 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { EDGE_VALUES } from "./edge-values.ts";
-import { None, Some, flatMap as maybeFlatMap, map as maybeMap, type Maybe } from "./maybe.ts";
+import { flatMap as maybeFlatMap, map as maybeMap } from "./functor.ts";
+import { None, Some, type Maybe } from "./maybe.ts";
 import { match } from "./monad.ts";
-import { type LawCheck, monadLaws, type MonadUnderTest } from "./monad-laws.ts";
+import { type FunctorUnderTest, functorLaws, type LawCheck, monadLaws, type MonadUnderTest } from "./monad-laws.ts";
 
 /** A box holding any value, or nothing. Tags, not `in`, so undefined and null count as values. */
 type Box = { readonly tag: "Some"; readonly value: unknown } | { readonly tag: "None" };
@@ -153,5 +154,72 @@ describe("monadLaws on the library's Maybe, with the default equality", () => {
       expect(check, description)
         .not.toThrow();
     }
+  });
+});
+
+describe("functorLaws", () => {
+  /** A map-only functor: a tagged value, with no flatMap, so it is not a monad. */
+  type Tagged = { readonly label: string; readonly value: unknown };
+  const tagged = (value: unknown): Tagged => ({ label: "t", value });
+  // Tagged holds plain objects, so its equality is structural: the author supplies it.
+  const sameTag = (a: Tagged, b: Tagged): boolean =>
+    a.label === b.label && isDeepStrictEqual(a.value, b.value);
+  const taggedFunctor: FunctorUnderTest<Tagged, unknown> = {
+    name: "Tagged",
+    samples: EDGE_VALUES.map(tagged),
+    map: (box, f) => ({ ...box, value: f(box.value) }),
+    equal: sameTag,
+    f: (value) => value,
+    g: (value) => value,
+  };
+
+  test("returns the two functor laws", () => {
+    const checks = functorLaws(taggedFunctor);
+    expect(checks.map(([description]) => description))
+      .toEqual([
+        "Tagged: map with the identity leaves each box unchanged",
+        "Tagged: map composes: map(map(box, f), g) is map(box, g after f)",
+      ]);
+  });
+
+  test("a map-only functor passes every functor law on every edge value", () => {
+    for (const [description, check] of functorLaws(taggedFunctor)) {
+      expect(check, description)
+        .not.toThrow();
+    }
+  });
+
+  test("the library's Maybe passes the functor laws with no flatMap", () => {
+    const maybeFunctor: FunctorUnderTest<Maybe<unknown>, unknown> = {
+      name: "Maybe",
+      samples: [...EDGE_VALUES.map((value) => Some.of(value)), None.of()],
+      map: (box, f) => maybeMap(box, f),
+      f: (value) => value,
+      g: (value) => value,
+    };
+    for (const [description, check] of functorLaws(maybeFunctor)) {
+      expect(check, description)
+        .not.toThrow();
+    }
+  });
+
+  test("a map that changes boxes fails the identity law", () => {
+    const broken: FunctorUnderTest<Tagged, unknown> = {
+      ...taggedFunctor,
+      map: (box) => ({ ...box, value: null }),
+    };
+    expect(functorLaws(broken)[0]![1])
+      .toThrow("map(box, identity) changed a box");
+  });
+
+  test("a map that applies f twice fails the composition law", () => {
+    const broken: FunctorUnderTest<Tagged, unknown> = {
+      ...taggedFunctor,
+      map: (box, f) => ({ ...box, value: f(f(box.value)) }),
+      f: (value) => [value],
+      g: (value) => ({ wrapped: value }),
+    };
+    expect(functorLaws(broken)[1]![1])
+      .toThrow("map does not compose");
   });
 });

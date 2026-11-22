@@ -8,6 +8,16 @@
       "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./v1": {
+      "development": "./src/v1/public-api.ts",
+      "types": "./dist/v1/public-api.d.ts",
+      "default": "./dist/v1/public-api.js"
+    },
+    "./v1/testing": {
+      "development": "./src/v1/testing.ts",
+      "types": "./dist/v1/testing.d.ts",
+      "default": "./dist/v1/testing.js"
     }
   },
   "scripts": {
