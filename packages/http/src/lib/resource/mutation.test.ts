@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Injector, provide, runInInjectionContext, resource, type Task, type Provider } from "@tinker/core";
-import { tick } from "../../core/src/view/internal/test-support.ts";
+import { tick } from "../../../../core/src/view/internal/test-support.ts";
 import { succeed } from "@tinker/functional";
 import {
   FetchHttpBackend,
@@ -11,7 +11,7 @@ import {
   httpPost,
   httpPut,
   type HttpTransport,
-} from "./index.ts";
+} from "../../index.ts";
 
 /** A transport that answers each call with `respond`, and records the requests it got. */
 type Sent = { url: string; init: RequestInit };

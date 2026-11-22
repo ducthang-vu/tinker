@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Injector, provide, runInInjectionContext, signal, type Provider } from "@tinker/core";
-import { tick } from "../../core/src/view/internal/test-support.ts";
-import { FetchHttpBackend, HTTP_BACKEND, HTTP_TRANSPORT, httpResource, type HttpTransport } from "./index.ts";
+import { tick } from "../../../../core/src/view/internal/test-support.ts";
+import { FetchHttpBackend, HTTP_BACKEND, HTTP_TRANSPORT, httpResource, type HttpTransport } from "../../index.ts";
 
 /** A transport that answers each call with `respond(url)`, and records the URLs. */
 function transportWith(respond: (url: string) => Response) {

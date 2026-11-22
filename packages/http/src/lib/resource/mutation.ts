@@ -3,7 +3,7 @@
 // PATCH) or only used for the URL (DELETE). The result is the body of the response.
 
 import { inject, type Task, type Mutation, type MutationOptions, mutation } from "@tinker/core";
-import { HTTP_BACKEND, type HttpError } from "./backend.ts";
+import { HTTP_BACKEND, type HttpError } from "../backend/backend.ts";
 import { map } from "@tinker/functional";
 
 /** The URL of a call: fixed, or built from the input of the call. */
