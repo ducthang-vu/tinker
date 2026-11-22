@@ -3,9 +3,9 @@
 // replaced exactly then.
 
 import { computed, Directive, Effect, inject, provide, ViewContainerRef } from "@tinker/core";
-import { ActivatedRoute } from "./activated-route.ts";
-import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
-import { Router } from "./router.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import { ChildActivatedRoute, nextAfter } from "../state/child-activated-route.ts";
+import { Router } from "../router/router.ts";
 import { Some, None, use, isEqual } from "@tinker/functional";
 
 @Directive({ selector: "router-outlet" })

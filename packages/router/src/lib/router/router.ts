@@ -2,8 +2,8 @@
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
 import { computed, type Either, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
-import { ActivatedRoute } from "./activated-route.ts";
-import type { Location } from "./location.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 import { UrlBuilder } from "./url-builder.ts";

@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
 import { Component } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
-import { provideRouter } from "./provide-router.ts";
+import { provideRouter } from "../router/provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
-import { Router } from "./router.ts";
+import { Router } from "../router/router.ts";
 
 @Component({ selector: "tk-child", template: "<p>Child</p>" })
 class Child {}

@@ -2,11 +2,11 @@
 // Router over the route tree. An app calls provideRouter once, when it bootstraps.
 
 import { computed, inject, type Maybe, provide, type Provider } from "@tinker/core";
-import { Location } from "./location.ts";
+import { Location } from "../location/location.ts";
 import { isEqual } from "@tinker/functional";
-import { ActivatedRoute } from "./activated-route.ts";
-import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
-import { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import { ChildActivatedRoute, nextAfter } from "../state/child-activated-route.ts";
+import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
 
