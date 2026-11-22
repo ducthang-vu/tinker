@@ -101,3 +101,32 @@ describe("the CHAIN protocol", () => {
       .toThrow("flatMap needs a chain");
   });
 });
+
+/** A value that is both a functor and a chain: a monad that is not matchable. */
+class Both<T> implements Functor<T>, Chain<T> {
+  constructor(readonly value: T) {}
+
+  [MAP]<U>(f: (value: T) => U): Both<U> {
+    return new Both(f(this.value));
+  }
+
+  [CHAIN]<U>(f: (value: T) => Chain<U>): Chain<U> {
+    return f(this.value);
+  }
+}
+
+describe("a functor that is also a chain", () => {
+  test("it is an argument of map, data-first and data-last", () => {
+    expect(map(new Both(2), (n: number) => n + 1))
+      .toEqual(new Both(3));
+    expect(map((n: number) => n + 1)(new Both(2)))
+      .toEqual(new Both(3));
+  });
+
+  test("it is an argument of flatMap, data-first and data-last", () => {
+    expect(flatMap(new Both(2), (n: number) => new Both(n + 1)))
+      .toEqual(new Both(3));
+    expect(flatMap((n: number) => new Both(n + 1))(new Both(2)))
+      .toEqual(new Both(3));
+  });
+});
