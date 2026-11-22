@@ -4,7 +4,7 @@ import { booleanAdapter, numberAdapter } from "../authoring/input-adapters.ts";
 import { input, InputNotBoundError } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { signal } from "../../../signals/index.ts";
-import { valueOrThrow, getOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow, getOrThrow } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

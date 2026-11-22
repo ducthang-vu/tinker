@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { parseHandler, requireMethod, runHandler } from "./handler.ts";
 import { Scope } from "./scope.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 describe("parseHandler", () => {
   test("accepts a call of a method, with or without arguments, and spaces", () => {

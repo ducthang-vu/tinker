@@ -3,7 +3,7 @@ import { messageOf, tick } from "./internal/test-support.ts";
 import { inject, InjectionToken, provide } from "../di/index.ts";
 import { Component } from "./internal/authoring/decorators.ts";
 import { AppRef, bootstrap } from "./bootstrap.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 const TITLE = new InjectionToken<string>("TITLE");
 

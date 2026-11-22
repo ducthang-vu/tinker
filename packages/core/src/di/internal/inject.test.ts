@@ -3,7 +3,7 @@ import { currentInjector, runInInjectionContext } from "./context/current-inject
 import { inject, InjectionToken, type Token } from "./inject.ts";
 import { INJECTOR, Injector } from "./injector.ts";
 import { CircularDependencyError } from "./provider-records.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 const API_URL = new InjectionToken<string>("API_URL");
 

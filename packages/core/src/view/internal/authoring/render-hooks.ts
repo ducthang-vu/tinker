@@ -39,7 +39,7 @@
 import { inject, Injectable } from "../../../di/index.ts";
 import { final } from "../../../utils/final.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
-import { run, type Cancel } from "@tinker/functional/v1";
+import { run, type Cancel } from "@tinker/functional";
 
 /**
  * Registers hooks to run after the app rendered. Each component has its own

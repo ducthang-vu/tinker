@@ -18,7 +18,7 @@
 // a literal (its template, its `imports` or a directive's selector), or when an
 // imported directive cannot be found. Such a component keeps its template string.
 
-import { type Either, match, map, type Maybe, run } from "@tinker/functional/v1";
+import { type Either, match, map, type Maybe, run } from "@tinker/functional";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
@@ -56,7 +56,7 @@ export interface Replacement {
 /** The names the emitted code uses for the helpers, aliased so they cannot clash with the file. */
 const HELPERS = { Some: "__tinkerSome", None: "__tinkerNone", Selector: "__tinkerSelector" };
 const HELPER_IMPORTS = [
-  `import { Some as ${HELPERS.Some}, None as ${HELPERS.None} } from "@tinker/functional/v1";`,
+  `import { Some as ${HELPERS.Some}, None as ${HELPERS.None} } from "@tinker/functional";`,
   `import { Selector as ${HELPERS.Selector} } from "@tinker/core/compiler";`,
   "",
 ].join("\n");

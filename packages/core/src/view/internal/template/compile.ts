@@ -16,7 +16,7 @@ import { located, type Parsed } from "./compile-error.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 import { type Handler, parseHandler } from "./handler.ts";
 import { type EventModifier, expandModifier, isModifier, parseEventName } from "./event-modifiers.ts";
-import { flatMap, Left, map, mapLeft, Right, sequence, fromNullable, isSome, isNone, match, use, type Maybe } from "@tinker/functional/v1";
+import { flatMap, Left, map, mapLeft, Right, sequence, fromNullable, isSome, isNone, match, use, type Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";

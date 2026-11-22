@@ -1,4 +1,4 @@
-import { type Either, match } from "@tinker/functional/v1";
+import { type Either, match } from "@tinker/functional";
 import type { TemplateNode } from "./template/ast.ts";
 import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 // Helpers for core's own tests. Not part of the public API.

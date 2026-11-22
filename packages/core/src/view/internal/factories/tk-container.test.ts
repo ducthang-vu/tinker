@@ -5,7 +5,7 @@ import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
 import { Component, Directive, ElementRef, input, ViewContainerRef, queryAll } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 @Directive({ selector: "[label]" })
 class Label {

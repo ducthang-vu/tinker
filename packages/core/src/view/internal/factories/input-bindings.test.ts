@@ -4,7 +4,7 @@ import { computed, signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow, isNone, getOrElse, map, match } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map, match } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

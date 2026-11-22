@@ -7,7 +7,7 @@
 // rendered again only when the template changes.
 
 import { inject } from "../../../di/index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 import type { Signal } from "../../../signals/index.ts";
 import { type TemplateContext, type TemplateRef } from "../runtime/template-ref.ts";
 import { ViewContainerRef } from "../runtime/view-container-ref.ts";

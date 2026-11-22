@@ -5,7 +5,7 @@ import { compileSource } from "../../compiler/compile-source.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { TEMPLATE_PARSER } from "../tokens.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 /** A parser that fails if it is ever used: a precompiled template must not reach it. */
 const noParsing = provide(TEMPLATE_PARSER, {

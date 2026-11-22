@@ -18,7 +18,7 @@ const flatMaps = new Map<string, FlatMapImpl>();
  *
  * @example
  * ```ts
- * import { implementMap, type Matchable, MATCHABLE } from "@tinker/functional/v1";
+ * import { implementMap, type Matchable, MATCHABLE } from "@tinker/functional";
  *
  * // A Pending case: it holds no value, so mapping it returns it unchanged.
  * class Pending implements Matchable<"Pending", readonly []> {
@@ -40,7 +40,7 @@ export function implementMap(caseName: string, impl: MapImpl): void {
  *
  * @example
  * ```ts
- * import { implementFlatMap, type Matchable } from "@tinker/functional/v1";
+ * import { implementFlatMap, type Matchable } from "@tinker/functional";
  *
  * // A Pending case: it holds no value, so chaining it returns it unchanged.
  * implementFlatMap("Pending", (box) => box);

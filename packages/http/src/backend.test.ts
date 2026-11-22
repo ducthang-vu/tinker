@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Injector, runInInjectionContext } from "@tinker/core";
-import { run as runTask, type Task } from "@tinker/functional/v1";
+import { run as runTask, type Task } from "@tinker/functional";
 import { HTTP_TRANSPORT, FetchHttpBackend, HttpError, type HttpTransport, type HttpRequest } from "./index.ts";
 
 /** A fetch that answers with `response` and records each call. */

@@ -9,7 +9,7 @@ import { Injectable } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, type Signal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "./element-ref.ts";
-import { fromNullable, match, use, type Maybe } from "@tinker/functional/v1";
+import { fromNullable, match, use, type Maybe } from "@tinker/functional";
 
 interface Match {
   readonly instance: object;

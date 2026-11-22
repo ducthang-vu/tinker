@@ -3,7 +3,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "../runtime/component-view.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 /** The bindings of a host option; throws (as the old constructor did) when it is invalid. */
 const bindingsOf = (host?: Readonly<Record<string, string>>): HostBindings =>

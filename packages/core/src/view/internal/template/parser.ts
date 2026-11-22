@@ -2,7 +2,7 @@
 // parser can be swapped. The engine uses TinkerTemplateParser (tinker-parser.ts),
 // which runs without a DOM.
 
-import type { Either } from "@tinker/functional/v1";
+import type { Either } from "@tinker/functional";
 import type { TemplateNode } from "./ast.ts";
 import type { TemplateSyntaxError } from "./tinker-parser.ts";
 

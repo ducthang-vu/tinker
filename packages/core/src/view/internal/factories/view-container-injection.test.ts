@@ -4,7 +4,7 @@ import { inject, Injectable } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ViewContainerRef } from "../runtime/view-container-ref.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 @Injectable()
 class Store {

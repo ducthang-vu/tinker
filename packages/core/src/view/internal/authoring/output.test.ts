@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { endOutputs, output, outputsNamed, outputsOf } from "./output.ts";
-import { type Emitter, match, subscribe } from "@tinker/functional/v1";
+import { type Emitter, match, subscribe } from "@tinker/functional";
 
 /** What an output's subscribers hear, as plain data. */
 function listen(emitter: Emitter<unknown, void, never>, log: unknown[]) {

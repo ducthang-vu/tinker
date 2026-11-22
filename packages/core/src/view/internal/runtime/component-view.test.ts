@@ -5,7 +5,7 @@ import { watch } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "./component-view.ts";
 import { messageOf } from "../test-support.ts";
-import { isNone, getOrElse } from "@tinker/functional/v1";
+import { isNone, getOrElse } from "@tinker/functional";
 
 function makeView() {
   const host = document.createElement("div");

@@ -13,7 +13,7 @@
 // A loader that returns `undefined` skips the load: nothing runs, and the state is "idle".
 
 import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watch } from "../signals/index.ts";
-import { run, Stream, type Task, use, Left, Right, type Either } from "@tinker/functional/v1";
+import { run, Stream, type Task, use, Left, Right, type Either } from "@tinker/functional";
 
 /** What the resource is doing, or what it last did. */
 export type ResourceState = "idle" | "loading" | "fetched" | "failed" | "written";

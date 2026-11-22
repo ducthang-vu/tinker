@@ -4,7 +4,7 @@ import { input, inputsNamed } from "../authoring/input.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { InputBinder } from "./input-binder.ts";
 import { Scope } from "../template/scope.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const parse = (source: string) => valueOrThrow(ExpressionParser.parse(source));
 

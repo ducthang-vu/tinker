@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { defineMetadata, ownMetadata } from "./metadata.ts";
-import { isNone, getOrElse } from "@tinker/functional/v1";
+import { isNone, getOrElse } from "@tinker/functional";
 
 const KEY = Symbol("test metadata");
 

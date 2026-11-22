@@ -6,7 +6,7 @@ import { ChangeDetectionLoopError } from "../runtime/change-detection.ts";
 import { Component } from "./decorators.ts";
 import { Effects } from "./effects.ts";
 import { AfterEachRender, AfterNextRender, RenderHooks } from "./render-hooks.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

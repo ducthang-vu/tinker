@@ -14,7 +14,7 @@ import { RunFirstNow } from "../runtime/run-first-now.ts";
 import { RENDERER } from "../tokens.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import type { TemplateBuilder } from "./template-builder.ts";
-import { Some, None, use } from "@tinker/functional/v1";
+import { Some, None, use } from "@tinker/functional";
 
 @Injectable()
 export class EmbeddedViewFactory {

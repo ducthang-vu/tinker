@@ -8,7 +8,7 @@
 
 import type { Token } from "./inject.ts";
 import type { Provider } from "./provider-records.ts";
-import { fromNullable, use, type Maybe } from "@tinker/functional/v1";
+import { fromNullable, use, type Maybe } from "@tinker/functional";
 
 const rootProviders = new Map<Token<unknown>, Provider<unknown>>();
 

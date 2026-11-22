@@ -4,7 +4,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { ClassBinding } from "./class-binding.ts";
 import { Scope } from "../template/scope.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 describe("ClassBinding", () => {
   test("turns the class on while the expression is truthy, writing only changes", () => {

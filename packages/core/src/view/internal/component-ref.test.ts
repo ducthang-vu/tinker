@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Component, input, output } from "../index.ts";
 import { Engine } from "./engine.ts";
-import { type Either, valueOrThrow } from "@tinker/functional/v1";
+import { type Either, valueOrThrow } from "@tinker/functional";
 import { messageOf } from "./test-support.ts";
 
 @Component({ selector: "tk-label", template: "<p>{{ label() }}</p>" })

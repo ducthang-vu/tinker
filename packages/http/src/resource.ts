@@ -5,7 +5,7 @@
 import { inject, type Resource, resource, type Task } from "@tinker/core";
 import { HTTP_BACKEND, type HttpError } from "./backend.ts";
 import type { HttpRequest } from "./request.ts";
-import { map } from "@tinker/functional/v1";
+import { map } from "@tinker/functional";
 
 export interface HttpResourceOptions<T> {
   /** The value before the first successful response. */

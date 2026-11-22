@@ -48,7 +48,7 @@ import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
 import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
 import { type StyleScope, scopeOfComponent } from "../runtime/component-styles.ts";
-import { match, map, valueOrThrow, Some, None, fromNullable, isSome, isNone, use, type Maybe, partial, run } from "@tinker/functional/v1";
+import { match, map, valueOrThrow, Some, None, fromNullable, isSome, isNone, use, type Maybe, partial, run } from "@tinker/functional";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()

@@ -1,5 +1,5 @@
 // The testing helpers for functors, chains and monads, and the edge values they are run on. Import
-// them as `@tinker/functional/v1/testing`. Each checker returns its law checks as [description,
+// them as `@tinker/functional/testing`. Each checker returns its law checks as [description,
 // check] pairs, so any test framework can run them: see `functorLaws`, `chainLaws` and `monadLaws`.
 
 import { isEqual } from "./monad.ts";
@@ -82,7 +82,7 @@ const holdsForAll = <X>(
  * @example
  * ```ts
  * import { test } from "vitest";
- * import { functorLaws } from "@tinker/functional/v1/testing";
+ * import { functorLaws } from "@tinker/functional/testing";
  *
  * for (const [description, check] of functorLaws(myFunctor)) {
  *   test(description, check);
@@ -118,7 +118,7 @@ export function functorLaws<M, A>(functor: FunctorUnderTest<M, A>): LawCheck[] {
  * @example
  * ```ts
  * import { test } from "vitest";
- * import { chainLaws } from "@tinker/functional/v1/testing";
+ * import { chainLaws } from "@tinker/functional/testing";
  *
  * for (const [description, check] of chainLaws(myChain)) {
  *   test(description, check);
@@ -166,7 +166,7 @@ export function chainLaws<M, A>(chain: ChainUnderTest<M, A>): LawCheck[] {
  * @example
  * ```ts
  * import { test } from "vitest";
- * import { monadLaws } from "@tinker/functional/v1/testing";
+ * import { monadLaws } from "@tinker/functional/testing";
  *
  * for (const [description, check] of monadLaws(myMonad)) {
  *   test(description, check);

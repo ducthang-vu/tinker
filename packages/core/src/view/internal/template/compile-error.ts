@@ -2,7 +2,7 @@
 // It is its own module so that blocks.ts, which compile.ts uses, can raise them too.
 
 import type { Span } from "./ast.ts";
-import type { Either } from "@tinker/functional/v1";
+import type { Either } from "@tinker/functional";
 
 /** The result of a compile step: its value, or the error that stopped it. */
 export type Parsed<T> = Either<T, Error>;

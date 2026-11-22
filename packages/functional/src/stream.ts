@@ -68,7 +68,7 @@ const starts = new WeakMap<object, Start<unknown, unknown, unknown>>();
  *
  * @example
  * ```ts
- * import { run, Stream } from "@tinker/functional/v1";
+ * import { run, Stream } from "@tinker/functional";
  *
  * run(Stream.fromIterable([1, 2]), { next: (n) => console.log(n) });
  * ```

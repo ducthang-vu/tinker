@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { parseEventName } from "./event-modifiers.ts";
-import { match, type Either, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, type Either, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const messageOf = (result: Either<unknown, Error>) => match(result, { Left: (error) => error.message, Right: () => "no error" });
 

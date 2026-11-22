@@ -15,7 +15,7 @@ import type { Provider } from "../../../di/index.ts";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";
 import type { AbstractClass, Class } from "../../../utils/types.ts";
 import type { CompiledNode } from "../template/compile.ts";
-import { match, use, type Maybe } from "@tinker/functional/v1";
+import { match, use, type Maybe } from "@tinker/functional";
 
 /** What a directive declares about itself. */
 export interface DirectiveMetadata {

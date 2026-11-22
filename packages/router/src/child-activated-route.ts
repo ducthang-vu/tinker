@@ -3,7 +3,7 @@
 
 import { InjectionToken, type ReadonlySignal } from "@tinker/core";
 import type { ActivatedRoute } from "./activated-route.ts";
-import { Some, None, fromNullable, type Maybe } from "@tinker/functional/v1";
+import { Some, None, fromNullable, type Maybe } from "@tinker/functional";
 
 export const ChildActivatedRoute = new InjectionToken<ReadonlySignal<Maybe<ActivatedRoute>>>(
   "ChildActivatedRoute",

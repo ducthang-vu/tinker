@@ -3,7 +3,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow, getOrElse, map } from "@tinker/functional/v1";
+import { valueOrThrow, getOrElse, map } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

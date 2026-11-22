@@ -21,7 +21,7 @@ import { Ticker } from "../runtime/ticker.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
-import { valueOrThrow, isNone, getOrElse, flatMap } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, flatMap } from "@tinker/functional";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory(overrides: readonly Provider[] = []) {

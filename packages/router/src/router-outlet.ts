@@ -6,7 +6,7 @@ import { computed, Directive, Effect, inject, provide, ViewContainerRef } from "
 import { ActivatedRoute } from "./activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
 import { Router } from "./router.ts";
-import { Some, None, use, isEqual } from "@tinker/functional/v1";
+import { Some, None, use, isEqual } from "@tinker/functional";
 
 @Directive({ selector: "router-outlet" })
 export class RouterOutlet {

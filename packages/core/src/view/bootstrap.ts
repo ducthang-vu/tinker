@@ -9,7 +9,7 @@ import type { Provider } from "../di/index.ts";
 import type { Class } from "../utils/types.ts";
 import type { ComponentRef } from "./internal/component-ref.ts";
 import { Engine } from "./internal/engine.ts";
-import { type Either, map, use } from "@tinker/functional/v1";
+import { type Either, map, use } from "@tinker/functional";
 
 /** What `bootstrap` takes besides the root component. Both are optional. */
 export interface BootstrapOptions {
