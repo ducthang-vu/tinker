@@ -42,6 +42,18 @@ export interface Declaration {
   readonly templateRef?: ValueRef;
   /** The names in `imports`, when they are all plain identifiers. */
   readonly imports: readonly string[] | undefined;
+  /** The `styleUrl` property, when the decorator has one. */
+  readonly styleUrl?: StyleUrlSource;
+}
+
+/** A `styleUrl` property: the file it names, when that is a literal, and where the property is. */
+export interface StyleUrlSource {
+  readonly url: string | undefined;
+  /** Where the whole property (`styleUrl: "..."`) starts and ends, for replacing it. */
+  readonly start: number;
+  readonly end: number;
+  /** Whether the component also gives `styles`, which it cannot do with `styleUrl`. */
+  readonly hasStyles: boolean;
 }
 
 /** A named import: `import { imported as local } from "source"`. */
@@ -170,6 +182,27 @@ function decoratorInfo(
     template: templateOf(template, constants),
     templateRef: refOf(template, constants),
     imports: identifiersOf(propertyOf(options, "imports")),
+    ...styleUrlOf(options, constants),
+  };
+}
+
+/** The `styleUrl` of a decorator's options, when it has one: nothing otherwise. */
+function styleUrlOf(
+  options: t.ObjectExpression,
+  constants: ReadonlyMap<string, string>,
+): { readonly styleUrl?: StyleUrlSource } {
+  const property = options.properties.find((candidate) =>
+    t.isObjectProperty(candidate) && keyOf(candidate) === "styleUrl");
+  if (!t.isObjectProperty(property)) {
+    return {};
+  }
+  return {
+    styleUrl: {
+      url: literalOf(property.value as t.Expression, constants),
+      start: property.start as number,
+      end: property.end as number,
+      hasStyles: propertyOf(options, "styles") !== undefined,
+    },
   };
 }
 

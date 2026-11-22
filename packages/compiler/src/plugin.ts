@@ -1,4 +1,6 @@
 // A Vite plugin that compiles the templates of an app's components at build time.
+// It also reads each component's `styleUrl` (a CSS file) into its `styles`, with or
+// without `emit`: a component needs its CSS at run time, and its template may stay a string.
 //
 // For each file that declares a component, it reads the component's template and
 // the directives its `imports` list gives. It runs compileSource on them: a template
@@ -17,7 +19,7 @@
 
 import { match } from "@tinker/functional/v1";
 import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
 import { compileSource, emitCompiled, type ImportedSelector, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
@@ -38,6 +40,8 @@ export interface CheckHost {
   /** Fails the build with `message`. */
   error(message: string): never;
   warn(message: string): void;
+  /** Rebuilds the component that reads `file` when `file` changes. Optional: Vite passes it. */
+  watch?(file: string): void;
 }
 
 /** Text to put in place of a range of the source: a template, now its compiled expression. */
@@ -86,6 +90,7 @@ export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
         resolve: async (source, importer) => (await this.resolve(source, importer))?.id ?? null,
         error: (message) => this.error(message),
         warn: (message) => this.warn(message),
+        watch: (file) => this.addWatchFile(file),
       }, mode);
       return emitted ?? null;
     },
@@ -148,6 +153,10 @@ export async function compileComponents(
       continue;
     }
     const where = `${basename(filename)}: <${declaration.name}>`;
+    const style = styleReplacementFor(declaration, filename, host, mode, where);
+    if (style !== undefined) {
+      replacements.push(style);
+    }
     const template = await templateOf(declaration, source, filename, host);
     if (template === undefined) {
       skip(host, mode, where, "its template is not a literal");
@@ -159,6 +168,39 @@ export async function compileComponents(
     }
   }
   return replacements;
+}
+
+/**
+ * The `styles` a component's `styleUrl` gives: the CSS file's text, in place of the property.
+ * The file is read next to the source file, and watched. Undefined when there is no `styleUrl`.
+ */
+function styleReplacementFor(
+  declaration: Declaration,
+  filename: string,
+  host: CheckHost,
+  mode: CompileMode,
+  where: string,
+): Replacement | undefined {
+  const styleUrl = declaration.styleUrl;
+  if (styleUrl === undefined) {
+    return undefined;
+  }
+  if (styleUrl.hasStyles) {
+    host.error(`${where}: give either styles or styleUrl, not both`);
+  }
+  if (styleUrl.url === undefined) {
+    skip(host, mode, where, "its styleUrl is not a literal");
+    return undefined;
+  }
+  const path = resolve(dirname(filename), styleUrl.url);
+  let css: string;
+  try {
+    css = readFileSync(path, "utf8");
+  } catch (error) {
+    host.error(`${where}: cannot read styleUrl "${styleUrl.url}": ${(error as Error).message}`);
+  }
+  host.watch?.(path);
+  return { start: styleUrl.start, end: styleUrl.end, text: `styles: ${JSON.stringify(css)}` };
 }
 
 /**

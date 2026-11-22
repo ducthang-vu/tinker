@@ -255,3 +255,10 @@ test("@Component records its imports and host directives, frozen", () => {
   expect(Object.isFrozen(metadata.imports) && Object.isFrozen(metadata.hostDirectives))
     .toBe(true);
 });
+
+describe("styleUrl without the compiler", () => {
+  test("@Component throws: the CSS file is read at build time, so the build must run the compiler", () => {
+    expect(() => Component({ selector: "tk-x", template: "", styleUrl: "./x.css" }))
+      .toThrow(/needs the Tinker compiler/);
+  });
+});
