@@ -8,7 +8,7 @@
 // - todos.ts: @map over a list, track, the $ variables, destructuring, and the
 //   empty case of @match.
 // - patterns.ts: @match with each pattern form.
-// - notice/notice.ts: a component whose CSS is a file, next to it (styleUrl).
+// - notice/notice.ts: a component whose template and CSS are files, next to it.
 //
 // This file starts one app per component. Each renders into the element of its
 // selector in index.html, and each is its own engine.

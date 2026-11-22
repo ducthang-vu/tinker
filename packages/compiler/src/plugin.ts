@@ -1,6 +1,7 @@
 // A Vite plugin that compiles the templates of an app's components at build time.
-// It also reads each component's `styleUrl` (a CSS file) into its `styles`, with or
-// without `emit`: a component needs its CSS at run time, and its template may stay a string.
+// It also reads each component's `styleUrl` (a CSS file) into its `styles`, and its
+// `templateUrl` (an HTML file) into its `template`, with or without `emit`: a component
+// needs its CSS and template at run time, and a template that is not emitted stays a string.
 //
 // For each file that declares a component, it reads the component's template and
 // the directives its `imports` list gives. It runs compileSource on them: a template
@@ -31,6 +32,7 @@ import {
   type SourceInfo,
   type TemplateSource,
   textOf,
+  type UrlSource,
 } from "./declarations.ts";
 
 /** What the check needs from its caller: resolving an import, and reporting. */
@@ -157,6 +159,21 @@ export async function compileComponents(
     if (style !== undefined) {
       replacements.push(style);
     }
+    if (declaration.templateUrl !== undefined) {
+      const template = await templateUrlReplacementFor(
+        declaration,
+        declaration.templateUrl,
+        source,
+        filename,
+        host,
+        mode,
+        where,
+      );
+      if (template !== undefined) {
+        replacements.push(template);
+      }
+      continue;
+    }
     const template = await templateOf(declaration, source, filename, host);
     if (template === undefined) {
       skip(host, mode, where, "its template is not a literal");
@@ -172,7 +189,7 @@ export async function compileComponents(
 
 /**
  * The `styles` a component's `styleUrl` gives: the CSS file's text, in place of the property.
- * The file is read next to the source file, and watched. Undefined when there is no `styleUrl`.
+ * Undefined when there is no `styleUrl`.
  */
 function styleReplacementFor(
   declaration: Declaration,
@@ -185,22 +202,74 @@ function styleReplacementFor(
   if (styleUrl === undefined) {
     return undefined;
   }
-  if (styleUrl.hasStyles) {
+  if (styleUrl.hasInline) {
     host.error(`${where}: give either styles or styleUrl, not both`);
   }
   if (styleUrl.url === undefined) {
     skip(host, mode, where, "its styleUrl is not a literal");
     return undefined;
   }
-  const path = resolve(dirname(filename), styleUrl.url);
-  let css: string;
+  const css = readUrlFile(styleUrl.url, "styleUrl", filename, host, where);
+  return { start: styleUrl.start, end: styleUrl.end, text: `styles: ${JSON.stringify(css)}` };
+}
+
+/**
+ * The `template` a component's `templateUrl` gives, in place of the property: the file's
+ * text, or with `emit` its compiled tree. The file is checked as a template is, and its
+ * errors are reported against it. Undefined when the file is skipped.
+ */
+async function templateUrlReplacementFor(
+  declaration: Declaration,
+  templateUrl: UrlSource,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+  mode: CompileMode,
+  where: string,
+): Promise<Replacement | undefined> {
+  if (templateUrl.hasInline) {
+    host.error(`${where}: give either template or templateUrl, not both`);
+  }
+  if (templateUrl.url === undefined) {
+    skip(host, mode, where, "its templateUrl is not a literal");
+    return undefined;
+  }
+  const html = readUrlFile(templateUrl.url, "templateUrl", filename, host, where);
+  const compiled = await replacementFor(
+    declaration,
+    { text: html, start: templateUrl.start, end: templateUrl.end },
+    source,
+    filename,
+    host,
+    mode,
+  );
+  return {
+    start: templateUrl.start,
+    end: templateUrl.end,
+    text: `template: ${compiled?.text ?? JSON.stringify(html)}`,
+  };
+}
+
+/**
+ * The text of a file that a property names, read next to the source file, and watched
+ * by the host. Fails the build, naming the property and the file, when it cannot be read.
+ */
+function readUrlFile(
+  url: string,
+  option: string,
+  filename: string,
+  host: CheckHost,
+  where: string,
+): string {
+  const path = resolve(dirname(filename), url);
+  let text: string;
   try {
-    css = readFileSync(path, "utf8");
+    text = readFileSync(path, "utf8");
   } catch (error) {
-    host.error(`${where}: cannot read styleUrl "${styleUrl.url}": ${(error as Error).message}`);
+    return host.error(`${where}: cannot read ${option} "${url}": ${(error as Error).message}`);
   }
   host.watch?.(path);
-  return { start: styleUrl.start, end: styleUrl.end, text: `styles: ${JSON.stringify(css)}` };
+  return text;
 }
 
 /**

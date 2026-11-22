@@ -487,3 +487,70 @@ describe("styleUrl", () => {
       .toHaveBeenCalledWith(fixture("card.css"));
   });
 });
+
+describe("templateUrl", () => {
+  const card = fixture("card-templates.ts");
+  const html = "<p class=\"card\">card</p>\n";
+  const code = `@Component({ selector: "tk-card", templateUrl: "./card.html" }) class Card {}`;
+
+  test("the build reads the file into template, in place of the property", async () => {
+    const { host } = recordingHost();
+    const replacements = await compileComponents(code, card, host);
+    expect(replacements)
+      .toHaveLength(1);
+    const [replacement] = replacements;
+    expect(replacement!.text)
+      .toBe(`template: ${JSON.stringify(html)}`);
+    expect(code.slice(replacement!.start, replacement!.end))
+      .toBe(`templateUrl: "./card.html"`);
+  });
+
+  test("with emit, the template is the compiled tree of the file", async () => {
+    const { host } = recordingHost();
+    const [replacement] = await compileComponents(code, card, host, { emit: true, strict: false });
+    expect(replacement!.text)
+      .toMatch(/^template: /);
+    expect(replacement!.text)
+      .not.toBe(`template: ${JSON.stringify(html)}`);
+  });
+
+  test("an error in the file is reported as an error of the template", async () => {
+    const { host } = recordingHost();
+    const broken = code.replace("./card.html", "./card-broken.html");
+    await expect(compileComponents(broken, card, host, { emit: true, strict: false }))
+      .rejects
+      .toThrow(/of the template/);
+  });
+
+  test("a missing file fails the build, with the name of the file", async () => {
+    const { host } = recordingHost();
+    await expect(compileComponents(code.replace("./card.html", "./missing.html"), card, host))
+      .rejects
+      .toThrow(/cannot read templateUrl "\.\/missing\.html"/);
+  });
+
+  test("template and templateUrl together fail the build", async () => {
+    const { host } = recordingHost();
+    const both = `@Component({ selector: "tk-b", template: "<p>a</p>", templateUrl: "./card.html" }) class B {}`;
+    await expect(compileComponents(both, card, host))
+      .rejects
+      .toThrow(/either template or templateUrl, not both/);
+  });
+
+  test("a templateUrl that is not a literal is skipped with a warning", async () => {
+    const { host, warnings } = recordingHost();
+    const computed = `@Component({ selector: "tk-c", templateUrl: pick() }) class C {}`;
+    expect(await compileComponents(computed, card, host))
+      .toHaveLength(0);
+    expect(warnings.join("\n"))
+      .toMatch(/its templateUrl is not a literal/);
+  });
+
+  test("the file is watched through the host, when the host can watch", async () => {
+    const watch = vi.fn();
+    const { host } = recordingHost();
+    await compileComponents(code, card, { ...host, watch });
+    expect(watch)
+      .toHaveBeenCalledWith(fixture("card.html"));
+  });
+});
