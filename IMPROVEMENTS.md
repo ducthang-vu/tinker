@@ -264,13 +264,14 @@ rebuilds its tree, and checks that it compiles. Its limits:
 ### 1. Values computed at run time are not compiled
 
 **Problem.** A template or selector that a `const` of the file, or of the file it is
-imported from, gives as a literal is compiled. One computed at run time (a function
-call, a `let`) is skipped with a warning, and keeps its template string. The app still
-works, but the check and the emitted tree do not cover it. A constant that is itself
-computed is not followed either.
+imported from, gives as a literal, or as a `+` of literals and constants of that file,
+is compiled. One computed at run time (a function call, a `let`, a number) is skipped
+with a warning, and keeps its template string. The app still works, but the check and the
+emitted tree do not cover it. A constant built from a constant that the file imports is
+not followed either.
 
-**To do.** Follow a constant that is computed from other constants, and report the
-values that remain as errors in strict mode.
+**To do.** Follow a constant built from an imported constant, and report the values that
+remain as errors in strict mode.
 
 ### 2. An emitted tree is about 2.2 times the gzipped size of its template
 
