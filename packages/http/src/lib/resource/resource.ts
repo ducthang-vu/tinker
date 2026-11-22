@@ -3,8 +3,8 @@
 // cancelled, which aborts it. The value is the response body; a failure is in `error`.
 
 import { inject, type Resource, resource, type Task } from "@tinker/core";
-import { HTTP_BACKEND, type HttpError } from "./backend.ts";
-import type { HttpRequest } from "./request.ts";
+import { HTTP_BACKEND, type HttpError } from "../backend/backend.ts";
+import type { HttpRequest } from "../backend/request.ts";
 import { map } from "@tinker/functional";
 
 export interface HttpResourceOptions<T> {

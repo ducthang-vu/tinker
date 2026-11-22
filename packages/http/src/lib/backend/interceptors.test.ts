@@ -11,7 +11,7 @@ import {
 
   type HttpInterceptor,
   type HttpResponse,
-} from "./index.ts";
+} from "../../index.ts";
 
 /** A fetch that answers with `body` as JSON, and records each call. */
 function fakeFetch(body: unknown = "ok", status = 200) {
