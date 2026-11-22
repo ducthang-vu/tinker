@@ -1,12 +1,12 @@
-// A component whose CSS is a file. `styleUrl` names notice.css, next to this file: the
-// build reads it into the component's styles, so the page links to nothing. The file
-// and the component share this folder, as a component and its stylesheet always do.
+// A component whose template and CSS are files. `templateUrl` names notice.html, and
+// `styleUrl` names notice.css, both next to this file: the build reads them into the
+// component, so the page links to nothing. The component and its files share this folder.
 
 import { Component } from "@tinker/core";
 
 @Component({
   selector: "tk-notice",
-  template: `<aside class="notice"><h3>Notice</h3><p>Styled by notice.css, in this folder.</p></aside>`,
+  templateUrl: "./notice.html",
   styleUrl: "./notice.css",
 })
 export class Notice {}
