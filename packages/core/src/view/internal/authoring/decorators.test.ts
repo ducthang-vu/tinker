@@ -256,9 +256,9 @@ test("@Component records its imports and host directives, frozen", () => {
     .toBe(true);
 });
 
-describe("templateUrl and styleUrl without the compiler", () => {
+describe("templateUrl and styleUrls without the compiler", () => {
   test("@Component throws: the files are read at build time, so the build must run the compiler", () => {
-    expect(() => Component({ selector: "tk-x", template: "", styleUrl: "./x.css" }))
+    expect(() => Component({ selector: "tk-x", template: "", styleUrls: ["./x.css"] }))
       .toThrow(/need the Tinker compiler/);
     expect(() => Component({ selector: "tk-x", templateUrl: "./x.html" }))
       .toThrow(/need the Tinker compiler/);

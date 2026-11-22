@@ -42,8 +42,8 @@ export interface Declaration {
   readonly templateRef?: ValueRef;
   /** The names in `imports`, when they are all plain identifiers. */
   readonly imports: readonly string[] | undefined;
-  /** The `styleUrl` property, when the decorator has one. */
-  readonly styleUrl?: UrlSource;
+  /** The `styleUrls` property, when the decorator has one. */
+  readonly styleUrls?: UrlSource;
   /** The `templateUrl` property, when the decorator has one. */
   readonly templateUrl?: UrlSource;
   /** The `exportAs`, when the decorator gives it as a literal. */
@@ -52,10 +52,13 @@ export interface Declaration {
   readonly exportAsIsDynamic: boolean;
 }
 
-/** A `styleUrl` or `templateUrl` property: the file it names (if a literal), and where it is. */
+/** A `styleUrls` or `templateUrl` property: the file it names (if a literal), and where it is. */
 export interface UrlSource {
-  readonly url: string | undefined;
-  /** Where the whole property (`styleUrl: "..."`) starts and ends, for replacing it. */
+  /** The files it names, when they are all literals: a list's items, or the one string. */
+  readonly urls: readonly string[] | undefined;
+  /** Whether the value is a list (an array literal), as `styleUrls` must be. */
+  readonly isList: boolean;
+  /** Where the whole property (`styleUrls: [...]`) starts and ends, for replacing it. */
   readonly start: number;
   readonly end: number;
   /** Whether the component also gives the inline option (`styles`, `template`), which it cannot. */
@@ -181,7 +184,7 @@ function decoratorInfo(
   }
   const selector = propertyOf(options, "selector");
   const template = propertyOf(options, "template");
-  const styleUrl = urlOf(options, "styleUrl", "styles", constants);
+  const styleUrls = urlOf(options, "styleUrls", "styles", constants);
   const templateUrl = urlOf(options, "templateUrl", "template", constants);
   const exportAs = propertyOf(options, "exportAs");
   return {
@@ -193,9 +196,31 @@ function decoratorInfo(
     imports: identifiersOf(propertyOf(options, "imports")),
     exportAs: literalOf(exportAs, constants),
     exportAsIsDynamic: exportAs !== undefined && literalOf(exportAs, constants) === undefined,
-    ...(styleUrl && { styleUrl }),
+    ...(styleUrls && { styleUrls }),
     ...(templateUrl && { templateUrl }),
   };
+}
+
+/** The file names of a string literal, or of an array of them: undefined if one is not. */
+function urlsOf(
+  value: t.Expression,
+  constants: ReadonlyMap<string, string>,
+): readonly string[] | undefined {
+  if (!t.isArrayExpression(value)) {
+    const url = literalOf(value, constants);
+    return url === undefined ? undefined : [url];
+  }
+  const urls: string[] = [];
+  for (const element of value.elements) {
+    const url = element === null || t.isSpreadElement(element)
+      ? undefined
+      : literalOf(element, constants);
+    if (url === undefined) {
+      return undefined;
+    }
+    urls.push(url);
+  }
+  return urls;
 }
 
 /** The file named by `key` in a decorator's options, when there is one: nothing otherwise. */
@@ -211,7 +236,8 @@ function urlOf(
     return undefined;
   }
   return {
-    url: literalOf(property.value as t.Expression, constants),
+    urls: urlsOf(property.value as t.Expression, constants),
+    isList: t.isArrayExpression(property.value),
     start: property.start as number,
     end: property.end as number,
     hasInline: propertyOf(options, inline) !== undefined,

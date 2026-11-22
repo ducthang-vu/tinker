@@ -1,5 +1,5 @@
 // A Vite plugin that compiles the templates of an app's components at build time.
-// It also reads each component's `styleUrl` (a CSS file) into its `styles`, and its
+// It also reads each component's `styleUrls` (a CSS file) into its `styles`, and its
 // `templateUrl` (an HTML file) into its `template`, with or without `emit`: a component
 // needs its CSS and template at run time, and a template that is not emitted stays a string.
 //
@@ -188,8 +188,8 @@ export async function compileComponents(
 }
 
 /**
- * The `styles` a component's `styleUrl` gives: the CSS file's text, in place of the property.
- * Undefined when there is no `styleUrl`.
+ * The `styles` a component's `styleUrls` gives: the CSS file's text, in place of the property.
+ * Undefined when there is no `styleUrls`.
  */
 function styleReplacementFor(
   declaration: Declaration,
@@ -198,19 +198,25 @@ function styleReplacementFor(
   mode: CompileMode,
   where: string,
 ): Replacement | undefined {
-  const styleUrl = declaration.styleUrl;
-  if (styleUrl === undefined) {
+  const styleUrls = declaration.styleUrls;
+  if (styleUrls === undefined) {
     return undefined;
   }
-  if (styleUrl.hasInline) {
-    host.error(`${where}: give either styles or styleUrl, not both`);
+  if (styleUrls.hasInline) {
+    host.error(`${where}: give either styles or styleUrls, not both`);
   }
-  if (styleUrl.url === undefined) {
-    skip(host, mode, where, "its styleUrl is not a literal");
+  if (!styleUrls.isList) {
+    host.error(`${where}: styleUrls takes a list of files, like ["./a.css"]`);
+  }
+  if (styleUrls.urls === undefined) {
+    skip(host, mode, where, "its styleUrls is not a literal");
     return undefined;
   }
-  const css = readUrlFile(styleUrl.url, "styleUrl", filename, host, where);
-  return { start: styleUrl.start, end: styleUrl.end, text: `styles: ${JSON.stringify(css)}` };
+  // The files are joined in the order they are listed, into one `styles`.
+  const css = styleUrls.urls
+    .map((url) => readUrlFile(url, "styleUrls", filename, host, where))
+    .join("\n");
+  return { start: styleUrls.start, end: styleUrls.end, text: `styles: ${JSON.stringify(css)}` };
 }
 
 /**
@@ -230,11 +236,15 @@ async function templateUrlReplacementFor(
   if (templateUrl.hasInline) {
     host.error(`${where}: give either template or templateUrl, not both`);
   }
-  if (templateUrl.url === undefined) {
+  if (templateUrl.urls === undefined) {
     skip(host, mode, where, "its templateUrl is not a literal");
     return undefined;
   }
-  const html = readUrlFile(templateUrl.url, "templateUrl", filename, host, where);
+  if (templateUrl.isList) {
+    host.error(`${where}: templateUrl takes one file, as a string`);
+  }
+  // A string names one file, so its list has one item.
+  const html = readUrlFile(templateUrl.urls[0]!, "templateUrl", filename, host, where);
   const compiled = await replacementFor(
     declaration,
     { text: html, start: templateUrl.start, end: templateUrl.end },

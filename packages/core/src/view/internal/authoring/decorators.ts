@@ -88,12 +88,15 @@ export function Directive(options: DirectiveMetadata) {
 
 /**
  * The options of `@Component`. The template and the CSS are inline (`template`, `styles`),
- * or files next to the class (`templateUrl`, `styleUrl`). A build reads each file into the
+ * or files next to the class (`templateUrl`, `styleUrls`). A build reads each file into the
  * inline option it replaces (see the compiler's `tinkerCompiler`).
  */
 export type ComponentOptions = Omit<ComponentMetadata, "template"> & {
-  /** The CSS file, relative to the source file of the class. Needs the compiler plugin. */
-  readonly styleUrl?: string;
+  /**
+   * The CSS files, relative to the source file of the class, in a list. They are joined in
+   * order into `styles`. Needs the compiler plugin.
+   */
+  readonly styleUrls?: readonly string[];
 } & (
   | { readonly template: ComponentMetadata["template"]; readonly templateUrl?: undefined }
   | {
@@ -105,9 +108,9 @@ export type ComponentOptions = Omit<ComponentMetadata, "template"> & {
 
 /** Class decorator: marks the class as a component (and therefore a directive). */
 export function Component(options: ComponentOptions) {
-  if (options.templateUrl !== undefined || options.styleUrl !== undefined) {
+  if (options.templateUrl !== undefined || options.styleUrls !== undefined) {
     throw new Error(
-      "@Component: templateUrl and styleUrl are read at build time, so they need the Tinker compiler "
+      "@Component: templateUrl and styleUrls are read at build time, so they need the Tinker compiler "
       + "(tinkerCompiler() in the Vite config). Without it, write the template and styles inline",
     );
   }
