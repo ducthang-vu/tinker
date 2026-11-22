@@ -221,26 +221,12 @@ add a dev-mode check next to the other development warnings.
 
 ## Template syntax (`packages/core/src/view/internal/template/tinker-parser.ts`)
 
-The engine's parser is `TinkerTemplateParser`, which reads without a DOM and
-reports malformed markup as a `TemplateSyntaxError` with its line and column.
-Its limits:
-
-### 1. Only a few named entities are decoded
-
-**Problem.** `&amp; &lt; &gt; &quot; &apos; &nbsp;` and numeric references are
-decoded. Any other name (`&copy;`, `&hellip;`) is kept as written, where the
-browser's parser would decode it.
-
-**To do.** Add the entities an app needs to the table in the parser, or the
-HTML entity list if apps need all of them.
-
-### 2. Only `script` and `style` are raw text
-
-**Problem.** `textarea` and `title` are read as markup, so `<textarea>` cannot
-hold a `<` as text, as HTML allows.
-
-**To do.** Add them to `RAW_TEXT_ELEMENTS`, with their RCDATA rule (entities
-decoded, no tags) for `textarea` and `title`.
+The engine's parser is `TinkerTemplateParser`, which reads without a DOM and reports
+every malformed markup with its line and column. It decodes references with the
+`entities` package, as the browser does, and reads `textarea` and `title` as text with
+references decoded. It has no known limits left in this list. The entity table adds about 16 KB gzipped to the
+example's bundle (38.4 KB to 54.4 KB); a smaller table, covering only common references,
+would trade that for references the browser decodes and this parser would not.
 
 ## Precompiled templates (`packages/core/src/view/internal/factories/component-factory.ts`)
 
@@ -263,60 +249,14 @@ rebuilds its tree, and checks that it compiles. Its limits:
 
 ### 1. Values computed at run time are not compiled
 
-**Problem.** A template or selector that a `const` of the file, or of the file it is
-imported from, gives as a literal, or as a `+` of literals and constants of that file,
-is compiled. One computed at run time (a function call, a `let`, a number) is skipped
+**Problem.** A template or selector that a `const` gives as a literal, or as a `+` of
+literals, template literals and other constants, is compiled, also across the files that
+import them. One computed at run time (a function call, a `let`, a number) is skipped
 with a warning, and keeps its template string. The app still works, but the check and the
-emitted tree do not cover it. A constant built from a constant that the file imports is
-not followed either.
+emitted tree do not cover it. A constant that depends on itself has no text.
 
-**To do.** Follow a constant built from an imported constant, and report the values that
-remain as errors in strict mode.
-
-### 2. An emitted tree is about 2.2 times the gzipped size of its template
-
-**Problem.** Measured on the example's components: the templates are 3,446 B (1,554 B
-gzipped), and their emitted trees are 43,136 B (3,816 B gzipped). Leaving out the
-default fields saves only about 10% of that. The tree's shape, the expressions and the
-nested objects, is the cost. The emitted form is therefore off by default
-(`tinkerCompiler({ emit: true })`), and the check alone keeps the bundle unchanged.
-
-**To do.** Measure the start-up time a precompiled tree saves before recommending
-`emit` for an app. A shorter encoding would need the expressions kept as source and
-parsed at run time, which the template string already allows.
-
-### 3. The helper imports need `@tinker/functional` and `@tinker/core/compiler`
-
-**Problem.** A compiled component's file imports both packages under aliased names. An
-app must be able to resolve them, which the example does through its alias.
-
-**To do.** Document the two dependencies for apps, and check them at build time.
-
-## Compiling a library (`packages/compiler/src/emit-files.ts`)
-
-`tinker-compile --out <dir> [--package <package.json>] [--strict] [--emit] <file.ts>...`
-writes each file into the output directory, at its path relative to the working
-directory. With `--emit`, its compiled templates are replaced by their trees; without it,
-the file keeps its template strings. It fails, and writes nothing, when
-the manifest does not declare `@tinker/functional` and `@tinker/core`, or when a file
-is outside the working directory. `tinker-check` is the same check without writing.
-Both follow relative imports, path aliases of the nearest `tsconfig.json`, and packages that
-export TypeScript source under their `development` condition.
-
-`examples/library` is a sample library built this way, with `--emit`: `npm run build`
-compiles its sources, then emits JavaScript and declarations to `dist/`.
-
-### 1. The packages are built, but still private
-
-**Problem.** `@tinker/core` and `@tinker/functional` now build to JavaScript and
-declarations, and their `exports` point at the built files, so the sample library runs
-in plain Node. Both packages are still `private`, and have no version to publish.
-
-**To do.** Decide the first published version, remove `private`, and check the packed
-output (`npm pack`) before publishing.
-
-Inside the repo, the `development` export condition points at source, so a Vite dev server
-uses the source without a rebuild. Node cannot load that source, so Node uses `dist`.
+**To do.** Report the values that remain as errors in strict mode, and decide whether a
+call with a known result (such as a `const` set from a pure function) should be followed.
 
 ### 2. The start-up gain of emitted trees is measured for one app
 

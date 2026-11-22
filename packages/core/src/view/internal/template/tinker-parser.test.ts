@@ -416,9 +416,21 @@ describe("TinkerTemplateParser", () => {
       .toEqual([{ name: "title", value: "<b> A" }]);
   });
 
-  test("leaves references it does not know as written", () => {
-    expect(parseOne("<p>&copy; &#x110000; &#x41</p>").children)
-      .toEqual([{ kind: "text", value: "&copy; &#x110000; &#x41" }]);
+  test("decodes every reference of the HTML standard, as the browser does", () => {
+    expect(parseOne("<p>&copy; &hellip; &#x110000; &#x41 &notathing;</p>").children)
+      .toEqual([{ kind: "text", value: "© … \uFFFD A ¬athing;" }]);
+  });
+
+  test("textarea and title read their content as text, with references decoded", () => {
+    expect(parse("<textarea>a &amp; <b>x</b></textarea>"))
+      .toEqual([{
+        kind: "element",
+        name: "textarea",
+        attributes: [],
+        children: [{ kind: "text", value: "a & <b>x</b>" }],
+      }]);
+    expect(parseOne("<title>t &lt;</title>").children)
+      .toEqual([{ kind: "text", value: "t <" }]);
   });
 
   describe("errors", () => {

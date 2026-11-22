@@ -16,7 +16,8 @@
     }
   },
   "dependencies": {
-    "@tinker/functional": "*"
+    "@tinker/functional": "*",
+    "entities": "^9.0.0"
   },
   "scripts": {
     "build": "node ../../node_modules/typescript7/bin/tsc -p tsconfig.build.json"
