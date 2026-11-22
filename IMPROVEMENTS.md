@@ -329,3 +329,39 @@ the package index (`packages/core/src/view/index.ts`), so an app can still impor
 
 **To do.** Move them out of the public index, or keep them there and accept that the
 reference does not show them.
+
+## Example app: routing and the GitHub Pages base (`examples/basics/app/`, `.github/workflows/gh-pages.yml`)
+
+### 1. Links are not base-aware
+
+**Problem.** `RouterLink` writes an `href` of the app's own path (`/api`). On GitHub Pages the
+app lives under `/tinker/`, so the href points at the host root. A plain click is handled by the
+router (`basedPlatformLocation` adds the base), but a middle click or "open in a new tab" goes to
+the wrong URL.
+
+**To do.** Let the router know the base: a `base` option on `provideRouter` that prefixes the
+hrefs it writes, rather than only the location it reads and writes.
+
+### 2. Deep links rely on a copy of index.html
+
+**Problem.** GitHub Pages serves a file for each path, so `/tinker/api` is not a file. The
+workflow copies `index.html` to `404.html`, and GitHub Pages serves that page for the URL, so the
+router reads the URL itself. Any other static host needs the same fallback.
+
+**To do.** Nothing in the app; document the fallback for any new host.
+
+### 3. The first provider of a token wins
+
+**Problem.** The router registers the browser's `PLATFORM_LOCATION` itself. The example's own
+location (for the base path) must come first in `bootstrap`'s providers, or it is ignored with no
+error. The router's own tests do not catch this, since they use the browser location directly.
+
+**To do.** Warn when a single-token provider is registered twice, in developer mode, or let a
+later provider replace an earlier one on purpose. Until then, the example's `main.ts` says so.
+
+### 4. The root route's component is never shown
+
+**Problem.** `ROUTES` needs a component for its root route, so the shell (`App`) is given, though
+the outlet shows only the children. A reader could take that for a page.
+
+**To do.** Allow a root route without a component, when it only groups children.

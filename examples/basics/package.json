@@ -12,7 +12,8 @@
     "prebuild": "npm run build -w @tinker/compiler"
   },
   "dependencies": {
-    "@tinker/core": "*"
+    "@tinker/core": "*",
+    "@tinker/router": "*"
   },
   "devDependencies": {
     "@tinker/testing": "*",
