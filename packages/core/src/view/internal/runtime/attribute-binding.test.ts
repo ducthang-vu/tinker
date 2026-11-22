@@ -4,14 +4,11 @@ import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { AttributeBinding } from "./attribute-binding.ts";
 import { Scope } from "../template/scope.ts";
+import { match, Left, Right } from "@tinker/functional/v1";
 
-const parse = (source: string) => ExpressionParser.parse(source)
-  .match({
-    left: (error) => {
-      throw error;
-    },
-    right: (value) => value,
-  });
+const parse = (source: string) => match(ExpressionParser.parse(source), { Left: (error) => {
+  throw error;
+}, Right: (value) => value });
 
 describe("AttributeBinding", () => {
   test("sets the attribute to the value, and changes it when the value changes", () => {

@@ -24,7 +24,7 @@
 //
 // Call arguments, unary minus and strings come later.
 
-import { Either, pipe } from "@tinker/functional";
+import { type Either, Left, Right, flatMap, map, match, pipe } from "@tinker/functional/v1";
 
 /** A parsed template expression. */
 export type Expression
@@ -154,15 +154,15 @@ export class ExpressionParser {
   private parseAll(): Parsed<Expression> {
     this.skipWhitespace();
     if (this.atEnd()) {
-      return Either.left(new ExpressionError(`Empty expression: write a field or a call, e.g. "title" or "count()"`));
+      return Left.of(new ExpressionError(`Empty expression: write a field or a call, e.g. "title" or "count()"`));
     }
     return pipe(
       this.conditional(),
-      Either.flatMap((expression): Parsed<Expression> => {
+      flatMap((expression): Parsed<Expression> => {
         this.skipWhitespace();
         return this.atEnd()
-          ? Either.right(expression)
-          : Either.left(this.error(`Unexpected "${this.source[this.position]}"`));
+          ? Right.of(expression)
+          : Left.of(this.error(`Unexpected "${this.source[this.position]}"`));
       }),
     );
   }
@@ -172,20 +172,21 @@ export class ExpressionParser {
    * otherwise. Without a `?`, the value is the test itself.
    */
   private conditional(): Parsed<Expression> {
-    return Either.flatMap(this.coalesce(), (test): Parsed<Expression> => {
+    return flatMap(this.coalesce(), (test): Parsed<Expression> => {
       this.skipWhitespace();
       if (!this.take(["?"])) {
-        return Either.right(test);
+        return Right.of(test);
       }
       return pipe(
         this.conditional(),
-        Either.map((then) => ({ test, then })),
-        Either.flatMap((parts) => Either.map(this.colon(), () => parts)),
-        Either.flatMap((parts) => Either.map(
+        map((then: Expression) => ({ test, then })),
+        flatMap((parts: { test: Expression; then: Expression }) => map(this.colon(), () => parts)),
+        flatMap((parts: { test: Expression; then: Expression }) => map(
           this.conditional(),
-          (otherwise) => ({ ...parts, otherwise }),
+          (otherwise: Expression) => ({ ...parts, otherwise }),
         )),
-        Either.map((parts): Expression => ({ kind: "conditional", ...parts })),
+        map((parts: { test: Expression; then: Expression; otherwise: Expression }): Expression =>
+          ({ kind: "conditional", ...parts })),
       );
     });
   }
@@ -194,9 +195,9 @@ export class ExpressionParser {
   private colon(): Parsed<void> {
     this.skipWhitespace();
     if (this.take([":"])) {
-      return Either.right(undefined);
+      return Right.of(undefined);
     }
-    return Either.left(this.error(
+    return Left.of(this.error(
       this.atEnd() ? `Missing ":" in the conditional` : `Expected ":", found "${this.source[this.position]}"`,
     ));
   }
@@ -240,53 +241,54 @@ export class ExpressionParser {
     operators: readonly string[],
     operand: () => Parsed<Expression>,
   ): Parsed<Expression> {
-    let result = operand();
-    for (;;) {
-      if (!result.isRight()) {
-        return result;
-      }
-      const left = result.get();
-      this.skipWhitespace();
-      const operator = this.take(operators);
-      if (!operator) {
-        return result;
-      }
-      result = Either.map(operand(), (right): Expression => ({
-        kind: "binary",
-        operator: operator as BinaryOperator,
-        left,
-        right,
-      }));
+    return flatMap(operand(), (first) => this.binaryRest(first, operators, operand));
+  }
+
+  /** The operators and operands after `left`, folded in from the left. */
+  private binaryRest(
+    left: Expression,
+    operators: readonly string[],
+    operand: () => Parsed<Expression>,
+  ): Parsed<Expression> {
+    this.skipWhitespace();
+    const operator = this.take(operators);
+    if (!operator) {
+      return Right.of(left);
     }
+    return flatMap(operand(), (right): Parsed<Expression> => this.binaryRest(
+      { kind: "binary", operator: operator as BinaryOperator, left, right },
+      operators,
+      operand,
+    ));
   }
 
   /** `**` is right-associative: `2 ** 3 ** 2` is `2 ** (3 ** 2)`. */
   private power(): Parsed<Expression> {
-    return Either.flatMap(this.operand(), (base): Parsed<Expression> => {
+    return flatMap(this.operand(), (base): Parsed<Expression> => {
       this.skipWhitespace();
       if (!this.take(["**"])) {
-        return Either.right(base);
+        return Right.of(base);
       }
-      return Either.map(this.power(), (right): Expression => ({ kind: "binary", operator: "**", left: base, right }));
+      return map(this.power(), (right): Expression => ({ kind: "binary", operator: "**", left: base, right }));
     });
   }
 
   private operand(): Parsed<Expression> {
     this.skipWhitespace();
     if (this.take(["!"])) {
-      return Either.map(this.operand(), (operand): Expression => ({ kind: "not", operand }));
+      return map(this.operand(), (operand): Expression => ({ kind: "not", operand }));
     }
     if (this.source[this.position] === "(") {
       this.position++;
-      return Either.flatMap(this.conditional(), (inner): Parsed<Expression> => {
+      return flatMap(this.conditional(), (inner): Parsed<Expression> => {
         this.skipWhitespace();
         if (this.source[this.position] !== ")") {
-          return Either.left(this.error(
+          return Left.of(this.error(
             this.atEnd() ? `Missing ")"` : `Expected ")", found "${this.source[this.position]}"`,
           ));
         }
         this.position++;
-        return Either.right(inner);
+        return Right.of(inner);
       });
     }
     if (this.source[this.position] === "{") {
@@ -297,19 +299,19 @@ export class ExpressionParser {
     }
     const quote = this.source[this.position];
     if (quote === "\"" || quote === "'") {
-      return Either.map(this.string(quote), (value): Expression => literal(value));
+      return map(this.string(quote), (value): Expression => literal(value));
     }
     NUMBER.lastIndex = this.position;
     const number = NUMBER.exec(this.source);
     if (number) {
       this.position = NUMBER.lastIndex;
-      return Either.right(literal(Number(number[0])));
+      return Right.of(literal(Number(number[0])));
     }
     IDENTIFIER.lastIndex = this.position;
     const word = IDENTIFIER.exec(this.source)?.[0];
     if (word !== undefined && KEYWORD_VALUES.has(word)) {
       this.position += word.length;
-      return Either.right(literal(KEYWORD_VALUES.get(word)));
+      return Right.of(literal(KEYWORD_VALUES.get(word)));
     }
     return this.access();
   }
@@ -323,7 +325,7 @@ export class ExpressionParser {
     this.position++;
     while (this.source[this.position] !== quote) {
       if (this.atEnd()) {
-        return Either.left(this.error(`Missing closing ${quote}`));
+        return Left.of(this.error(`Missing closing ${quote}`));
       }
       const char = this.source[this.position]!;
       if (char === "\\") {
@@ -336,7 +338,7 @@ export class ExpressionParser {
       this.position++;
     }
     this.position++;
-    return Either.right(text);
+    return Right.of(text);
   }
 
   /**
@@ -345,7 +347,7 @@ export class ExpressionParser {
    */
   private objectLiteral(): Parsed<Expression> {
     this.position++;
-    return Either.map(
+    return map(
       this.list("}", `Missing "}" in the object`, () => this.objectField()),
       (fields): Expression => ({ kind: "object", fields }),
     );
@@ -357,15 +359,15 @@ export class ExpressionParser {
     const quoted = quote === "\"" || quote === "'";
     return pipe(
       quoted ? this.string(quote) : this.identifier(),
-      Either.flatMap((key): Parsed<Field> => {
+      flatMap((key): Parsed<Field> => {
         this.skipWhitespace();
         if (this.take([":"]) !== undefined) {
-          return Either.map(this.conditional(), (value) => ({ key, value }));
+          return map(this.conditional(), (value) => ({ key, value }));
         }
         if (quoted) {
-          return Either.left(this.error(`A quoted key needs a value, as in "${key}": value`));
+          return Left.of(this.error(`A quoted key needs a value, as in "${key}": value`));
         }
-        return Either.right({ key, value: { kind: "property", receiver: COMPONENT, name: key } });
+        return Right.of({ key, value: { kind: "property", receiver: COMPONENT, name: key } });
       }),
     );
   }
@@ -373,7 +375,7 @@ export class ExpressionParser {
   /** `[a, b]`: the values, in order. */
   private arrayLiteral(): Parsed<Expression> {
     this.position++;
-    return Either.map(
+    return map(
       this.list("]", `Missing "]" in the array`, () => this.conditional()),
       (items): Expression => ({ kind: "array", items }),
     );
@@ -393,28 +395,23 @@ export class ExpressionParser {
     missing: string,
     item: () => Parsed<T>,
   ): Parsed<readonly T[]> {
-    const collected = [...items];
-    for (;;) {
-      this.skipWhitespace();
-      if (this.source[this.position] === close) {
-        this.position++;
-        return Either.right(collected);
-      }
-      if (this.atEnd()) {
-        return Either.left(this.error(missing));
-      }
-      const next = item();
-      if (!next.isRight()) {
-        return next.propagate();
-      }
-      collected.push(next.get());
+    this.skipWhitespace();
+    if (this.source[this.position] === close) {
+      this.position++;
+      return Right.of(items);
+    }
+    if (this.atEnd()) {
+      return Left.of(this.error(missing));
+    }
+    return flatMap(item(), (next): Parsed<readonly T[]> => {
       this.skipWhitespace();
       if (this.take([","]) === undefined && this.source[this.position] !== close) {
-        return Either.left(this.error(
+        return Left.of(this.error(
           `Expected "," or "${close}", found "${this.source[this.position] ?? "the end"}"`,
         ));
       }
-    }
+      return this.listFrom([...items, next], close, missing, item);
+    });
   }
 
   /**
@@ -422,25 +419,25 @@ export class ExpressionParser {
    * link, as in JavaScript: `a?.b.c` throws when `a` is set and `a.b` is missing.
    */
   private access(): Parsed<Expression> {
-    return Either.flatMap(this.identifier(), (name) => this.accessTail({ kind: "property", receiver: COMPONENT, name }));
+    return flatMap(this.identifier(), (name) => this.accessTail({ kind: "property", receiver: COMPONENT, name }));
   }
 
   private accessTail(expression: Expression): Parsed<Expression> {
     this.skipWhitespace();
     if (this.atEnd()) {
-      return Either.right(expression);
+      return Right.of(expression);
     }
     if (this.startsWithOptionalLink()) {
       this.position += 2;
-      return Either.flatMap(this.identifier(), (name) => this.accessTail(
+      return flatMap(this.identifier(), (name) => this.accessTail(
         { kind: "property", receiver: expression, name, optional: true },
       ));
     }
     const char = this.source[this.position];
     if (char !== "." && char !== "(") {
-      return Either.right(expression);
+      return Right.of(expression);
     }
-    return Either.flatMap(this.postfix(expression), (next) => this.accessTail(next));
+    return flatMap(this.postfix(expression), (next) => this.accessTail(next));
   }
 
   /** `?.` followed by a name: not the ternary's `?` before a number such as `.5`. */
@@ -455,9 +452,9 @@ export class ExpressionParser {
     this.position++;
     this.skipWhitespace();
     if (char === ".") {
-      return Either.map(this.identifier(), (name): Expression => ({ kind: "property", receiver, name }));
+      return map(this.identifier(), (name): Expression => ({ kind: "property", receiver, name }));
     }
-    return Either.map(this.arguments(), (args): Expression => ({ kind: "call", callee: receiver, args }));
+    return map(this.arguments(), (args): Expression => ({ kind: "call", callee: receiver, args }));
   }
 
   /** `a, b)`: the arguments, after the `(`. Reads through the `)`. */
@@ -469,12 +466,12 @@ export class ExpressionParser {
     IDENTIFIER.lastIndex = this.position;
     const match = IDENTIFIER.exec(this.source);
     if (!match) {
-      return Either.left(this.error(
+      return Left.of(this.error(
         this.atEnd() ? "Missing a name at the end" : `Expected a name, found "${this.source[this.position]}"`,
       ));
     }
     this.position = IDENTIFIER.lastIndex;
-    return Either.right(match[0]);
+    return Right.of(match[0]);
   }
 
   /** Consume the first of `tokens` found at the position, if any. */

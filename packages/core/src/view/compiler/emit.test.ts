@@ -5,6 +5,7 @@ import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { compileSource, type ImportedSelector } from "./compile-source.ts";
 import { emitCompiled } from "./emit.ts";
+import { match, map, Left, Right } from "@tinker/functional/v1";
 
 class Item {}
 class Card {}
@@ -17,13 +18,9 @@ const names = new Map<Class<object>, string>([[Item, "Item"], [Card, "Card"]]);
 
 /** Compiles `source`, emits it, and evaluates the expression as a module would. */
 function roundTrip(source: string, list: ImportedSelector[] = imports) {
-  const nodes = compileSource(source, list)
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  const nodes = match(compileSource(source, list), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
   const code = emitCompiled(nodes, names);
   const build = new Function("Maybe", "Selector", "Item", "Card", `return ${code};`);
   return { nodes, code, rebuilt: build(Maybe, Selector, Item, Card) as unknown };
@@ -72,13 +69,9 @@ describe("emitCompiled", () => {
   });
 
   test("uses the helper names it is given", () => {
-    const code = emitCompiled([{ some: Maybe.some(1), none: Maybe.none(), selector: Selector.parse("[a]")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }) }] as unknown as CompiledNode[], names, { Maybe: "__M", Selector: "__S" });
+    const code = emitCompiled([{ some: Maybe.some(1), none: Maybe.none(), selector: match(Selector.parse("[a]"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }) }] as unknown as CompiledNode[], names, { Maybe: "__M", Selector: "__S" });
     expect(code)
       .toContain("__M.some(1)");
     expect(code)
@@ -86,13 +79,9 @@ describe("emitCompiled", () => {
   });
 
   test("writes a Selector by its source", () => {
-    const selector = Selector.parse("tk-card[item]")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      });
+    const selector = match(Selector.parse("tk-card[item]"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value });
     expect(evaluate(emitCompiled([{ selector }] as unknown as CompiledNode[], names)))
       .toStrictEqual([{ selector }]);
   });
@@ -108,13 +97,9 @@ describe("emitCompiled", () => {
   });
 
   test("is an error to emit a class that has no name in the module", () => {
-    const nodes = compileSource(`<div item></div>`, imports)
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      });
+    const nodes = match(compileSource(`<div item></div>`, imports), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value });
     expect(() => emitCompiled(nodes, new Map()))
       .toThrow("Cannot emit the class Item: it has no name in the module");
   });

@@ -13,6 +13,7 @@ import { ComponentFactory } from "./component-factory.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateBuilderFactory } from "./template-builder.ts";
 import type { CompiledNode } from "../template/compile.ts";
+import { match, Left, Right } from "@tinker/functional/v1";
 
 let factory!: EmbeddedViewFactory;
 let injector!: Injector;
@@ -90,13 +91,9 @@ describe("EmbeddedViewFactory", () => {
   test("creates the components in its children, and destroys them with it", () => {
     const { owner, host, anchor, app } = setup();
     const candidates: DirectiveCandidate[] = [
-      { type: Child, selector: Selector.parse("tk-child")
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        }), isComponent: true },
+      { type: Child, selector: match(Selector.parse("tk-child"), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value }), isComponent: true },
     ];
     const view = render(owner, compile("<tk-child></tk-child>", candidates), new Scope(owner), anchor);
     expect(host.innerHTML)

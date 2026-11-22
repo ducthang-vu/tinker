@@ -1,17 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { Either, Maybe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
 import { parsePattern } from "../template/pattern.ts";
 import { match } from "./match-binding.ts";
+import { match, Left, Right, type Either } from "@tinker/functional/v1";
 
 /** Whether `text` as a pattern matches `value`. */
 function matches(text: string, value: unknown): boolean {
-  return match(parsePattern(text)
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    }), value) !== undefined;
+  return match(match(parsePattern(text), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value }), value) !== undefined;
 }
 
 describe("match", () => {
@@ -62,13 +59,9 @@ describe("match", () => {
   });
 
   test("alternatives that bind the same names bind them from the option that matched", () => {
-    const ok = match(parsePattern(`{ status: "ok", value } | { status: "cached", value }`)
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), { status: "cached", value: 3 });
+    const ok = match(match(parsePattern(`{ status: "ok", value } | { status: "cached", value }`), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), { status: "cached", value: 3 });
     expect(ok)
       .toEqual(new Map<string, unknown>([["value", 3]]));
     expect(matches(`{ status: "ok", value } | { status: "cached", value }`, { status: "saving", value: 1 }))
@@ -76,13 +69,9 @@ describe("match", () => {
   });
 
   test("an alias over alternatives binds the whole value, and the shared names", () => {
-    const bound = match(parsePattern(`{ id } | { key: id } as item`)
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), { key: 9 });
+    const bound = match(match(parsePattern(`{ id } | { key: id } as item`), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), { key: 9 });
     expect(bound)
       .toEqual(new Map<string, unknown>([["id", 9], ["item", { key: 9 }]]));
   });
@@ -120,13 +109,9 @@ describe("match", () => {
 
 describe("match: Maybe and Either", () => {
   test("some matches a Maybe with a value, and binds its payload", () => {
-    const bound = match(parsePattern("some(name)")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), Maybe.some("Ada"));
+    const bound = match(match(parsePattern("some(name)"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), Maybe.some("Ada"));
     expect(bound)
       .toEqual(new Map([["name", "Ada"]]));
     expect(matches("some(_)", Maybe.none()))
@@ -150,25 +135,17 @@ describe("match: Maybe and Either", () => {
   });
 
   test("ok matches a Right and binds its value; error matches a Left and binds its error", () => {
-    expect(match(parsePattern("ok(n)")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), Either.right(3)))
+    expect(match(match(parsePattern("ok(n)"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), Right.of(3)))
       .toEqual(new Map([["n", 3]]));
-    expect(match(parsePattern("error(e)")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), Either.left("down")))
+    expect(match(match(parsePattern("error(e)"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), Left.of("down")))
       .toEqual(new Map([["e", "down"]]));
-    expect(matches("ok(_)", Either.left("down")))
+    expect(matches("ok(_)", Left.of("down")))
       .toBe(false);
-    expect(matches("error(_)", Either.right(3)))
+    expect(matches("error(_)", Right.of(3)))
       .toBe(false);
   });
 
@@ -180,29 +157,17 @@ describe("match: Maybe and Either", () => {
   });
 
   test("alternatives must bind the same names, or none", () => {
-    expect(() => parsePattern("some(a) | none")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }))
+    expect(() => match(parsePattern("some(a) | none"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }))
       .toThrow("Alternatives must bind the same names, or none");
-    expect(() => parsePattern("{ a } | { b }")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }))
+    expect(() => match(parsePattern("{ a } | { b }"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }))
       .toThrow("Alternatives must bind the same names, or none");
-    expect(() => parsePattern("not ok(a)")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }))
+    expect(() => match(parsePattern("not ok(a)"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }))
       .toThrow("\"not\" cannot bind names");
   });
 });
@@ -210,13 +175,9 @@ describe("match: Maybe and Either", () => {
 describe("match: as-patterns", () => {
   test("an alias binds the whole value, and the pattern's names too", () => {
     const user = { id: 7, name: "Ada" };
-    expect(match(parsePattern("{ id, name } as user")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), user))
+    expect(match(match(parsePattern("{ id, name } as user"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), user))
       .toEqual(new Map<string, unknown>([["id", 7], ["name", "Ada"], ["user", user]]));
   });
 
@@ -230,21 +191,13 @@ describe("match: as-patterns", () => {
   });
 
   test("an alias binds the value of an alias that matches nothing else", () => {
-    expect(match(parsePattern("_ as any")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), 5))
+    expect(match(match(parsePattern("_ as any"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), 5))
       .toEqual(new Map([["any", 5]]));
-    expect(match(parsePattern("some(x) as m")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), Maybe.some(3)))
+    expect(match(match(parsePattern("some(x) as m"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), Maybe.some(3)))
       .toEqual(new Map<string, unknown>([["x", 3], ["m", Maybe.some(3)]]));
   });
 });
@@ -273,13 +226,9 @@ describe("match: regex patterns", () => {
   });
 
   test("named groups bind the group's text, or undefined when it did not take part", () => {
-    const pattern = parsePattern(String.raw`/(?<id>\d+)-(?<tag>\w+)?/`)
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      });
+    const pattern = match(parsePattern(String.raw`/(?<id>\d+)-(?<tag>\w+)?/`), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value });
     expect(match(pattern, "12-"))
       .toEqual(new Map<string, unknown>([["id", "12"], ["tag", undefined]]));
     expect(match(pattern, "12-ok"))
@@ -287,21 +236,13 @@ describe("match: regex patterns", () => {
   });
 
   test("a regex without groups binds nothing, and an alias binds the string", () => {
-    expect(match(parsePattern("/a/")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), "a"))
+    expect(match(match(parsePattern("/a/"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), "a"))
       .toEqual(new Map());
-    expect(match(parsePattern("/(?<x>a)/ as s")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }), "a"))
+    expect(match(match(parsePattern("/(?<x>a)/ as s"), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }), "a"))
       .toEqual(new Map<string, unknown>([["x", "a"], ["s", "a"]]));
   });
 });

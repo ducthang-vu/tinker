@@ -5,6 +5,7 @@
 import { Injectable } from "../../../di/index.ts";
 import { Maybe } from "@tinker/functional";
 import { ElementContext } from "./element-context.ts";
+import { match } from "@tinker/functional/v1";
 
 @Injectable()
 export class ElementContexts {
@@ -18,11 +19,7 @@ export class ElementContexts {
 
   /** The context of `element`, created (and remembered) if it has none yet. */
   getOrCreate(element: Element): ElementContext {
-    return this.get(element)
-      .match({
-        some: (context) => context,
-        none: () => this.remember(new ElementContext(element)),
-      });
+    return match(this.get(element), { Some: (context) => context, None: () => this.remember(new ElementContext(element)) });
   }
 
   private remember(context: ElementContext): ElementContext {

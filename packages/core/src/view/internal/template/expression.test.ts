@@ -1,31 +1,23 @@
 import { describe, expect, test } from "vitest";
 import { type Expression, ExpressionParser } from "./expression.ts";
+import { match, Left, Right } from "@tinker/functional/v1";
 
 /** Parse, failing the test on an error. */
 function parse(source: string): Expression {
-  return ExpressionParser.parse(source)
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  return match(ExpressionParser.parse(source), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
 }
 
 /** The error message for `source`. */
 function parsed(source: string) {
-  return ExpressionParser.parse(source)
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  return match(ExpressionParser.parse(source), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
 }
 
 function error(source: string): string {
-  return ExpressionParser.parse(source)
-    .match({ left: (e) => e.message, right: () => "no error" });
+  return match(ExpressionParser.parse(source), { Left: (e) => e.message, Right: () => "no error" });
 }
 
 const component = { kind: "component" } as const;
@@ -156,52 +148,42 @@ describe("the conditional operator: parsing", () => {
   });
 
   test("a missing ':' is an error that says so", () => {
-    expect(ExpressionParser.parse("a ? b")
-      .isLeft())
+    expect(match(ExpressionParser.parse("a ? b"), { Left: () => true, Right: () => false }))
       .toBe(true);
-    expect(ExpressionParser.parse("a ? b c")
-      .isLeft())
+    expect(match(ExpressionParser.parse("a ? b c"), { Left: () => true, Right: () => false }))
       .toBe(true);
   });
 });
 
 describe("the new expression forms: parsing errors", () => {
   test("an unclosed object or array, or a missing comma, is an error", () => {
-    expect(ExpressionParser.parse("{ a: 1")
-      .isLeft())
+    expect(match(ExpressionParser.parse("{ a: 1"), { Left: () => true, Right: () => false }))
       .toBe(true);
-    expect(ExpressionParser.parse("[1, 2")
-      .isLeft())
+    expect(match(ExpressionParser.parse("[1, 2"), { Left: () => true, Right: () => false }))
       .toBe(true);
-    expect(ExpressionParser.parse("{ a: 1 b: 2 }")
-      .isLeft())
+    expect(match(ExpressionParser.parse("{ a: 1 b: 2 }"), { Left: () => true, Right: () => false }))
       .toBe(true);
-    expect(ExpressionParser.parse("[1 2]")
-      .isLeft())
+    expect(match(ExpressionParser.parse("[1 2]"), { Left: () => true, Right: () => false }))
       .toBe(true);
   });
 
   test("a quoted key needs a value", () => {
-    expect(ExpressionParser.parse("{ 'a' }")
-      .isLeft())
+    expect(match(ExpressionParser.parse("{ 'a' }"), { Left: () => true, Right: () => false }))
       .toBe(true);
   });
 });
 
 describe("unterminated object and array literals", () => {
   test("an object or an array that runs out of input is an error", () => {
-    expect(ExpressionParser.parse("{")
-      .isLeft())
+    expect(match(ExpressionParser.parse("{"), { Left: () => true, Right: () => false }))
       .toBe(true);
-    expect(ExpressionParser.parse("[")
-      .isLeft())
+    expect(match(ExpressionParser.parse("["), { Left: () => true, Right: () => false }))
       .toBe(true);
   });
 });
 
 test("a ?. at the end of the input is an error, not a link", () => {
-  expect(ExpressionParser.parse("a?.")
-    .isLeft())
+  expect(match(ExpressionParser.parse("a?."), { Left: () => true, Right: () => false }))
     .toBe(true);
 });
 

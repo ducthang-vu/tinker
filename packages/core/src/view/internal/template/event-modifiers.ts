@@ -1,3 +1,4 @@
+import { Left, Right, type Either } from "@tinker/functional/v1";
 // Event modifiers: what a DOM event listener does around its handler.
 //
 //   (click.self.prevent)="go()"      in a template
@@ -19,8 +20,6 @@
 //
 // `primary` and `secondary` pick the mouse button: 0 (the left button) and 2 (the
 // right button) of a `MouseEvent`. A keyboard event has no button, so it never passes.
-
-import { Either } from "@tinker/functional";
 
 /** The keys a keyboard event can be filtered to, by name. */
 const KEY_VALUES = {
@@ -145,17 +144,17 @@ export function expandModifier(name: EventModifier | AliasName): readonly EventM
 export function parseEventName(source: string, what: string): Either<EventName, Error> {
   const [event = "", ...names] = source.split(".");
   if (event === "") {
-    return Either.left(new Error(`Missing event name in ${what} "${source}"`));
+    return Left.of(new Error(`Missing event name in ${what} "${source}"`));
   }
   const unknown = names.find((name) => !isModifier(name));
   if (unknown !== undefined) {
-    return Either.left(new Error(
+    return Left.of(new Error(
       `Unknown modifier ".${unknown}" in ${what} "${source}": `
       + `supported are ${SUPPORTED.map((name) => `.${name}`)
         .join(", ")}`,
     ));
   }
-  return Either.right({
+  return Right.of({
     event,
     modifiers: names.filter(isModifier)
       .flatMap(expandModifier),

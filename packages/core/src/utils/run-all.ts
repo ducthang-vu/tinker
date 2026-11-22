@@ -1,7 +1,8 @@
 // Run tasks where one failing must not stop the others: cleanups, queued
 // updates, callbacks. Every task runs; the first error is re-thrown at the end.
 
-import { Either, Maybe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
+import { match, type Either, Left, Right } from "@tinker/functional/v1";
 
 /** Run every task, in order, even if some throw; then re-throw the first error. */
 export function runAll(tasks: Iterable<() => void>): void {
@@ -29,7 +30,7 @@ function firstFailure(tasks: Iterable<() => void>): Maybe<unknown> {
   let failure = Maybe.none<unknown>();
   for (const task of tasks) {
     const outcome = Either.try(task);
-    failure = failure.orElse(() => outcome.match({ left: Maybe.some, right: () => Maybe.none() }));
+    failure = failure.orElse(() => match(outcome, { Left: Maybe.some, Right: () => Maybe.none() }));
   }
   return failure;
 }

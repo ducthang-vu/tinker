@@ -5,6 +5,7 @@ import { TemplateCompileError } from "./compile-error.ts";
 import { Selector } from "./selector.ts";
 import { Maybe } from "@tinker/functional";
 import { ExpressionParser } from "./expression.ts";
+import { match, map, Left, Right } from "@tinker/functional/v1";
 
 describe("compileTemplate", () => {
   test("parses the {{ }} of every text, keeping elements and attributes", () => {
@@ -26,13 +27,9 @@ describe("compileTemplate", () => {
           children: [
             {
               kind: "text",
-              interpolation: { strings: ["Hi ", ""], expressions: [ExpressionParser.parse("name()")
-                .match({
-                  left: (error) => {
-                    throw error;
-                  },
-                  right: (value) => value,
-                })] },
+              interpolation: { strings: ["Hi ", ""], expressions: [match(ExpressionParser.parse("name()"), { Left: (error) => {
+                throw error;
+              }, Right: (value) => value })] },
             },
           ],
           references: [],
@@ -91,13 +88,9 @@ describe("compileTemplate", () => {
     expect(p!.attributes)
       .toEqual([{ name: "class", value: "note" }, { name: "title", value: "x" }]);
     expect(p!.classBindings)
-      .toEqual([{ name: "done", expression: ExpressionParser.parse("todo.done()")
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        }) }]);
+      .toEqual([{ name: "done", expression: match(ExpressionParser.parse("todo.done()"), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value }) }]);
   });
 
   test("sorts style and attribute bindings apart, with their expression", () => {
@@ -105,21 +98,13 @@ describe("compileTemplate", () => {
       element("p", { "[style.background-color]": "bg()", "[attr.aria-label]": "label()" }),
     ]) as CompiledElement[];
     expect(p!.styleBindings)
-      .toEqual([{ name: "background-color", expression: ExpressionParser.parse("bg()")
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        }) }]);
+      .toEqual([{ name: "background-color", expression: match(ExpressionParser.parse("bg()"), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value }) }]);
     expect(p!.attributeBindings)
-      .toEqual([{ name: "aria-label", expression: ExpressionParser.parse("label()")
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        }) }]);
+      .toEqual([{ name: "aria-label", expression: match(ExpressionParser.parse("label()"), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value }) }]);
     expect(p!.classBindings)
       .toEqual([]);
   });
@@ -138,13 +123,9 @@ describe("compileTemplate", () => {
       [{ type: Item, selector: selector("tk-item"), isComponent: true }],
     ) as CompiledElement[];
     expect(host!.inputBindings)
-      .toEqual([{ name: "label", expression: ExpressionParser.parse("item().name")
-        .match({
-          left: (error) => {
-            throw error;
-          },
-          right: (value) => value,
-        }) }]);
+      .toEqual([{ name: "label", expression: match(ExpressionParser.parse("item().name"), { Left: (error) => {
+        throw error;
+      }, Right: (value) => value }) }]);
     expect(host!.classBindings.map(({ name }) => name))
       .toEqual(["done"]);
   });
@@ -208,13 +189,9 @@ describe("compileTemplate", () => {
 });
 
 function selector(source: string) {
-  return Selector.parse(source)
-    .match({
-      left: (error) => {
-        throw error;
-      },
-      right: (value) => value,
-    });
+  return match(Selector.parse(source), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value });
 }
 
 function element(

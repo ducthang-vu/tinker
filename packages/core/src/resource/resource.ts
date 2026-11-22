@@ -12,8 +12,9 @@
 // one. A loader returns a promise or a Task; a Task's cancellation runs when it is superseded.
 // A loader that returns `undefined` skips the load: nothing runs, and the state is "idle".
 
-import { Either, Task } from "@tinker/functional";
+import { Task } from "@tinker/functional";
 import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watch } from "../signals/index.ts";
+import { match, Left, Right, type Either } from "@tinker/functional/v1";
 
 /** What the resource is doing, or what it last did. */
 export type ResourceState = "idle" | "loading" | "fetched" | "failed" | "written";
@@ -81,19 +82,16 @@ export function resource<T, E = Error>(
     }
     cancelTask = undefined;
     untracked(() => {
-      outcome.match({
-        left: (failure) => {
-          error.set(failure);
-          state.set("failed");
-        },
-        right: (loaded) => {
-          value.set(loaded);
-          error.set(undefined);
-          sourced.set(true);
-          lastUpdated.set(new Date());
-          state.set("fetched");
-        },
-      });
+      match(outcome, { Left: (failure) => {
+        error.set(failure);
+        state.set("failed");
+      }, Right: (loaded) => {
+        value.set(loaded);
+        error.set(undefined);
+        sourced.set(true);
+        lastUpdated.set(new Date());
+        state.set("fetched");
+      } });
     });
   };
 
@@ -109,7 +107,7 @@ export function resource<T, E = Error>(
     try {
       pending = loader(controller.signal);
     } catch (thrown) {
-      settle(id, Either.left(asError(thrown) as E));
+      settle(id, Left.of(asError(thrown) as E));
       return;
     }
     if (pending === undefined) {
@@ -119,14 +117,14 @@ export function resource<T, E = Error>(
     }
     if (pending instanceof Task) {
       cancelTask = pending.run({
-        ok: (loaded) => settle(id, Either.right(loaded)),
-        error: (failure) => settle(id, Either.left(failure)),
+        ok: (loaded) => settle(id, Right.of(loaded)),
+        error: (failure) => settle(id, Left.of(failure)),
       });
       return;
     }
     pending.then(
-      (loaded) => settle(id, Either.right(loaded)),
-      (reason) => settle(id, Either.left(asError(reason) as E)),
+      (loaded) => settle(id, Right.of(loaded)),
+      (reason) => settle(id, Left.of(asError(reason) as E)),
     );
   };
 

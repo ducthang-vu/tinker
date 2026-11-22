@@ -31,6 +31,7 @@
 
 import { Maybe } from "@tinker/functional";
 import { computed, type ReadonlySignal, type Signal, signal, untracked } from "../../../signals/index.ts";
+import { match } from "@tinker/functional/v1";
 
 declare const INPUT_TYPE: unique symbol;
 
@@ -54,10 +55,7 @@ export class InputNotBoundError extends Error {
   /** @param label Which input, e.g. `"text" of Tooltip`, if known yet. */
   constructor(label: Maybe<string>) {
     super(
-      label.match({
-        some: (name) => `Input ${name} was read before it was bound`,
-        none: () => "An input was read before it was bound (e.g. in the constructor)",
-      }),
+      match(label, { Some: (name) => `Input ${name} was read before it was bound`, None: () => "An input was read before it was bound (e.g. in the constructor)" }),
     );
     this.name = "InputNotBoundError";
   }

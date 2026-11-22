@@ -1,21 +1,17 @@
 import { describe, expect, test } from "vitest";
 import { Selector } from "./selector.ts";
+import { match, Left, Right } from "@tinker/functional/v1";
 
 const element = (name: string, attributes: Record<string, string> = {}) => ({
   name,
   attributes: Object.entries(attributes)
     .map(([n, value]) => ({ name: n, value })),
 });
-const matches = (selector: string, el: ReturnType<typeof element>) => Selector.parse(selector)
-  .match({
-    left: (error) => {
-      throw error;
-    },
-    right: (value) => value,
-  })
+const matches = (selector: string, el: ReturnType<typeof element>) => match(Selector.parse(selector), { Left: (error) => {
+  throw error;
+}, Right: (value) => value })
   .matches(el);
-const error = (selector: string) => Selector.parse(selector)
-  .match({ left: (e) => e.message, right: () => "no error" });
+const error = (selector: string) => match(Selector.parse(selector), { Left: (e) => e.message, Right: () => "no error" });
 
 describe("Selector", () => {
   test("a tag matches elements with that name, case-insensitively", () => {
@@ -131,13 +127,9 @@ describe("Selector", () => {
   });
 
   test("keeps its source", () => {
-    expect(Selector.parse(" [a] ")
-      .match({
-        left: (error) => {
-          throw error;
-        },
-        right: (value) => value,
-      }).source)
+    expect(match(Selector.parse(" [a] "), { Left: (error) => {
+      throw error;
+    }, Right: (value) => value }).source)
       .toBe(" [a] ");
   });
 

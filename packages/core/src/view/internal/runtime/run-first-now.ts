@@ -14,8 +14,9 @@
 //   const viewWatch = watch(() => template.update(), firstRun);
 //   firstRun.failure.ifSome((error) => { cleanUp(); throw error; });
 
-import { Either, Maybe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
 import type { Runnable, WatchScheduler } from "../../../signals/index.ts";
+import { match, type Either, Left, Right } from "@tinker/functional/v1";
 
 export class RunFirstNow implements WatchScheduler {
   private first = true;
@@ -35,10 +36,6 @@ export class RunFirstNow implements WatchScheduler {
       return;
     }
     this.first = false;
-    this.firstFailure = Either.try(() => task.run())
-      .match({
-        left: Maybe.some,
-        right: () => Maybe.none(),
-      });
+    this.firstFailure = match(Either.try(() => task.run()), { Left: Maybe.some, Right: () => Maybe.none() });
   }
 }

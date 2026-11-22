@@ -8,7 +8,7 @@
 // so the branch shows the values it matched. A branch is only recreated when the
 // case changes; while the same case stays chosen, its bound names are updated.
 
-import { Either, Maybe } from "@tinker/functional";
+import { Maybe } from "@tinker/functional";
 import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledMatch, CompiledNode } from "../template/compile.ts";
@@ -18,6 +18,7 @@ import { Scope } from "../template/scope.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 import type { Binding } from "./text-binding.ts";
 import type { View } from "./view.ts";
+import { match, map, type Either, Left, Right } from "@tinker/functional/v1";
 
 /** Renders a branch: its body, the scope its names are read from, and its element's injector. */
 export type BranchRenderer = (
@@ -172,12 +173,12 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
     case "none":
       return value instanceof Maybe && value.isNone() ? new Map() : undefined;
     case "ok":
-      return value instanceof Either && value.isRight()
+      return value instanceof Either && match(value, { Left: () => false, Right: () => true })
         ? match(pattern.pattern, value.get())
         : undefined;
     case "error":
-      return value instanceof Either && value.isLeft()
-        ? match(pattern.pattern, value.match({ left: (error) => error, right: () => undefined }))
+      return value instanceof Either && match(value, { Left: () => true, Right: () => false })
+        ? match(pattern.pattern, match(value, { Left: (error) => error, Right: () => undefined }))
         : undefined;
     case "as": {
       const bound = match(pattern.pattern, value);

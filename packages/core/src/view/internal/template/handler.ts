@@ -10,11 +10,11 @@
 // `$event` is the DOM event, or the value an output emits. Used by template
 // event bindings `(name)="..."` and by host listeners `"(click)": "..."`.
 
-import { Either } from "@tinker/functional";
 import { signal, type ReadonlySignal } from "../../../signals/index.ts";
 import { evaluate } from "./evaluate.ts";
 import { type Call, ExpressionParser } from "./expression.ts";
 import { Scope } from "./scope.ts";
+import { match, Left, Right, type Either } from "@tinker/functional/v1";
 
 /** A parsed handler: the method it calls, and the call as written. */
 export interface Handler {
@@ -34,29 +34,25 @@ export interface Handler {
  */
 export function parseHandler(source: string, what: string): Either<Handler, Error> {
   const unsupported = (reason: string) =>
-    Either.left(new Error(`Unsupported ${what} "${source}": ${reason}`));
-  return ExpressionParser.parse(source)
-    .match({
-      left: (error) => unsupported(error.message),
-      right: (expression) => {
-        const shape = `write a call of a method, as in "method()", "method($event)" or "g.method()"`;
-        if (expression.kind !== "call") {
-          return unsupported(shape);
-        }
-        const { callee } = expression;
-        if (callee.kind !== "property") {
-          return unsupported(shape);
-        }
-        if (callee.receiver.kind === "component") {
-          return Either.right({ method: callee.name, call: expression });
-        }
-        const { receiver } = callee;
-        if (receiver.kind === "property" && receiver.receiver.kind === "component") {
-          return Either.right({ method: callee.name, target: receiver.name, call: expression });
-        }
-        return unsupported(shape);
-      },
-    });
+    Left.of(new Error(`Unsupported ${what} "${source}": ${reason}`));
+  return match(ExpressionParser.parse(source), { Left: (error) => unsupported(error.message), Right: (expression) => {
+    const shape = `write a call of a method, as in "method()", "method($event)" or "g.method()"`;
+    if (expression.kind !== "call") {
+      return unsupported(shape);
+    }
+    const { callee } = expression;
+    if (callee.kind !== "property") {
+      return unsupported(shape);
+    }
+    if (callee.receiver.kind === "component") {
+      return Right.of({ method: callee.name, call: expression });
+    }
+    const { receiver } = callee;
+    if (receiver.kind === "property" && receiver.receiver.kind === "component") {
+      return Right.of({ method: callee.name, target: receiver.name, call: expression });
+    }
+    return unsupported(shape);
+  } });
 }
 
 /**
