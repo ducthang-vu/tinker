@@ -90,10 +90,10 @@ describe("pipe with every kind of box, no annotations", () => {
       .toBeDefined();
   });
 
-  test("a registered matchable case through data-last map infers Matchable", () => {
+  test("a registered matchable case through data-first map infers Matchable", () => {
     implementMap("PipeCase", (box, f) => ({ [MATCHABLE]: { name: "PipeCase", args: [f(box[MATCHABLE].args[0])] } }));
     const box: Matchable = { [MATCHABLE]: { name: "PipeCase", args: [1] } };
-    const result = pipe(box, map((n: number) => n + 1));
+    const result = map(box, (n: number) => n + 1);
     const typed: Matchable = result;
     expect(typed[MATCHABLE])
       .toEqual({ name: "PipeCase", args: [2] });
@@ -129,5 +129,20 @@ describe("partial", () => {
       .toBe(6);
     expect(partial(sum3, 1, 2, 3)())
       .toBe(6);
+  });
+});
+
+describe("data-last map annotations", () => {
+  test("a parameter annotation that does not match the box is a type error", () => {
+    // @ts-expect-error the box holds a string, so a number parameter does not fit
+    const wrong = pipe(Some.of("a"), map((n: number) => n + 1));
+    expect(wrong)
+      .toBeDefined();
+  });
+
+  test("a parameter annotation that matches the box is accepted", () => {
+    const right = pipe(Some.of("ab"), map((text: string) => text.length));
+    expect(right)
+      .toEqual(Some.of(2));
   });
 });
