@@ -12,13 +12,16 @@
 // - Text between `{{` and `}}` is not read as markup, so an expression can hold `<`.
 //
 // Errors are TemplateSyntaxError, with the line and column where the problem starts.
-// The parser goes on after an error (parseAll returns them all); parse throws the first.
+// A predictable error is a value: each step of the scanner returns an Either, and
+// nothing inside the scanner throws. The scanner goes on after an error (parseAll
+// returns them all). `parse` is the one place that throws, the first error, because
+// TemplateParser's callers still expect it.
 // Each element and text node carries its span, the offsets it covers in the source.
 // Known limits (see IMPROVEMENTS.md): only a few named entities are decoded, and
 // `script` and `style` are read as raw text.
 // Comments are dropped.
 
-import { Maybe } from "@tinker/functional";
+import { flatMap, Left, map, match, Right, type Either } from "@tinker/functional/v1";
 import { decodeReferences } from "./entities.ts";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
@@ -38,6 +41,9 @@ export class TemplateSyntaxError extends Error {
     this.reason = reason;
   }
 }
+
+/** The result of one scanner step: the value, or the error that stopped it. */
+type Parsed<T> = Either<T, TemplateSyntaxError>;
 
 /** The errors of a template as one error: the first one's place, and every problem in it. */
 export function combineSyntaxErrors(errors: readonly TemplateSyntaxError[]): TemplateSyntaxError {
@@ -121,13 +127,16 @@ class Scanner {
     const nodes: TemplateNode[] = [];
     while (!this.atEnd() && !this.startsWith("</")) {
       const start = this.pos;
-      try {
-        nodes.push(...this.node());
-      } catch (error) {
-        // The node is dropped; scanning goes on at the next tag after the problem.
-        this.found.push(asSyntaxError(error));
-        this.resume(Math.max(this.pos, start));
-      }
+      match<TemplateNode[], TemplateSyntaxError, void>(this.node(), {
+        Right: (items) => {
+          nodes.push(...items);
+        },
+        Left: (error) => {
+          // The node is dropped; scanning goes on at the next tag after the problem.
+          this.found.push(error);
+          this.resume(Math.max(this.pos, start));
+        },
+      });
     }
     return nodes;
   }
@@ -139,53 +148,66 @@ class Scanner {
   }
 
   /** One node, or none for a comment. */
-  private node(): TemplateNode[] {
+  private node(): Parsed<TemplateNode[]> {
     if (this.startsWith("<!--")) {
-      this.comment();
-      return [];
+      return map(this.comment(), (): TemplateNode[] => []);
     }
     if (this.startsWith("<!")) {
-      throw this.error("only comments can start with <!");
+      return Left.of(this.error("only comments can start with <!"));
     }
     if (this.matches(ELEMENT_START)) {
-      return [this.element()];
+      return map(this.element(), (element): TemplateNode[] => [element]);
     }
-    return [this.text()];
+    return Right.of<TemplateNode[], TemplateSyntaxError>([this.text()]);
   }
 
-  private element(): ElementNode {
+  private element(): Parsed<ElementNode> {
     const start = this.pos;
     this.pos += 1;
-    const name = this.name();
-    const { attributes, selfClosing } = this.startTagRest(start, name);
-    if (selfClosing || VOID_ELEMENTS.has(name.toLowerCase())) {
-      return { kind: "element", name, attributes, children: [], span: { start, end: this.pos } };
-    }
-    let children: TemplateNode[];
+    return flatMap(this.name(), (name) =>
+      flatMap(this.startTagRest(start, name), ({ attributes, selfClosing }) => {
+        if (selfClosing || VOID_ELEMENTS.has(name.toLowerCase())) {
+          return Right.of<ElementNode, TemplateSyntaxError>({
+            kind: "element",
+            name,
+            attributes,
+            children: [],
+            span: { start, end: this.pos },
+          });
+        }
+        return map(this.contentOf(name, start), (children): ElementNode => ({
+          kind: "element",
+          name,
+          attributes,
+          children,
+          span: { start, end: this.pos },
+        }));
+      }));
+  }
+
+  /** The children of an element, up to and including its closing tag. */
+  private contentOf(name: string, start: number): Parsed<TemplateNode[]> {
     const lower = name.toLowerCase();
     if (RAW_TEXT_ELEMENTS.has(lower) || ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower)) {
       // The text ends at the element's own closing tag, which is the one to consume.
-      children = this.rawText(name, ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower));
-      this.closingTag(name, start);
-    } else {
-      children = this.childrenOf(name, start);
+      const children = this.rawText(name, ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower));
+      return map(this.closingTag(name, start), () => children);
     }
-    return { kind: "element", name, attributes, children, span: { start, end: this.pos } };
+    return this.childrenOf(name, start);
   }
 
   /** The children of an element, up to its closing tag, which is consumed. */
-  private childrenOf(name: string, start: number): TemplateNode[] {
+  private childrenOf(name: string, start: number): Parsed<TemplateNode[]> {
     this.open.push(name);
-    try {
-      const children: TemplateNode[] = [];
-      for (;;) {
-        children.push(...this.nodes());
-        if (this.closingTag(name, start)) {
-          return children;
-        }
+    const children: TemplateNode[] = [];
+    for (;;) {
+      children.push(...this.nodes());
+      const closed = this.closingTag(name, start);
+      // A Left stops the element too: its error goes up with it.
+      if (match(closed, { Left: () => true, Right: (isClosed) => isClosed })) {
+        this.open.pop();
+        return map(closed, () => children);
       }
-    } finally {
-      this.open.pop();
     }
   }
 
@@ -193,8 +215,7 @@ class Scanner {
   private text(): TextNode {
     const start = this.pos;
     while (!this.atEnd() && !this.matches(MARKUP)) {
-      this.pos = this.interpolationEnd()
-        .getOrElse(this.pos + 1);
+      this.pos = this.interpolationEnd() ?? this.pos + 1;
     }
     return {
       kind: "text",
@@ -203,10 +224,10 @@ class Scanner {
     };
   }
 
-  /** Where the `{{ }}` starting here ends, or none when there is none here. */
-  private interpolationEnd(): Maybe<number> {
+  /** Where the `{{ }}` starting here ends, or undefined when there is none here. */
+  private interpolationEnd(): number | undefined {
     const close = this.startsWith("{{") ? this.source.indexOf("}}", this.pos + 2) : -1;
-    return Maybe.from(close === -1 ? undefined : close + 2);
+    return close === -1 ? undefined : close + 2;
   }
 
   /**
@@ -225,66 +246,69 @@ class Scanner {
     return value === "" ? [] : [{ kind: "text", value, span: { start, end } }];
   }
 
-  /** Consumes `</name>`, which must close the element opened at `openedAt`. */
   /**
-   * The closing tag of the element `name`, at the current position. True when the
-   * element is closed by it (consumed), or when it is left unclosed for an enclosing
-   * element (not consumed). False for a closing tag that closes nothing open: it is
-   * reported and skipped, and the element goes on.
+   * The closing tag of the element `name`, at the current position. True when the element is
+   * closed by it (consumed), or when it is left unclosed for an enclosing element (not consumed).
+   * False for a closing tag that closes nothing open: it is reported and skipped, and the element
+   * goes on. Left when the source ends first, or the tag is malformed.
    */
-  private closingTag(name: string, openedAt: number): boolean {
+  private closingTag(name: string, openedAt: number): Parsed<boolean> {
     if (this.atEnd()) {
-      throw this.error(`<${name}> is never closed`, openedAt);
+      return Left.of(this.error(`<${name}> is never closed`, openedAt));
     }
     const at = this.pos;
     this.pos += 2;
-    const closing = this.name();
-    this.take(SPACES);
-    this.expect(">");
-    if (sameName(closing, name)) {
-      return true;
-    }
-    if (this.open.some((open) => sameName(open, closing))) {
-      this.found.push(this.error(`<${name}> is never closed`, openedAt));
-      this.pos = at;
-      return true;
-    }
-    this.found.push(this.error(`</${closing}> does not close <${name}>`, at));
-    return false;
+    return flatMap(this.name(), (closing) => {
+      this.take(SPACES);
+      return map(this.expect(">"), (): boolean => {
+        if (sameName(closing, name)) {
+          return true;
+        }
+        if (this.open.some((open) => sameName(open, closing))) {
+          this.found.push(this.error(`<${name}> is never closed`, openedAt));
+          this.pos = at;
+          return true;
+        }
+        this.found.push(this.error(`</${closing}> does not close <${name}>`, at));
+        return false;
+      });
+    });
   }
 
   /** The attributes of a start tag, up to and including its `>` or `/>`. */
   private startTagRest(
     openedAt: number,
     name: string,
-  ): { attributes: AttributeNode[]; selfClosing: boolean } {
+  ): Parsed<{ attributes: AttributeNode[]; selfClosing: boolean }> {
     const attributes: AttributeNode[] = [];
     const names = new Set<string>();
     for (;;) {
       this.take(SPACES);
       if (this.atEnd()) {
-        throw this.error(`<${name} is never closed`, openedAt);
+        return Left.of(this.error(`<${name} is never closed`, openedAt));
       }
       if (this.consume(">")) {
-        return { attributes, selfClosing: false };
+        return Right.of({ attributes, selfClosing: false });
       }
       if (this.consume("/>")) {
-        return { attributes, selfClosing: true };
+        return Right.of({ attributes, selfClosing: true });
       }
       const at = this.pos;
-      try {
-        const attribute = this.attribute();
-        if (names.has(attribute.name)) {
-          this.found.push(this.error(`duplicate attribute ${attribute.name}`, at));
-        } else {
-          names.add(attribute.name);
-          attributes.push(attribute);
-        }
-      } catch (error) {
-        // The attribute is dropped, and the tag goes on at its end.
-        this.found.push(asSyntaxError(error));
-        this.skipToTagEnd();
-      }
+      match<AttributeNode, TemplateSyntaxError, void>(this.attribute(), {
+        Right: (attribute) => {
+          if (names.has(attribute.name)) {
+            this.found.push(this.error(`duplicate attribute ${attribute.name}`, at));
+          } else {
+            names.add(attribute.name);
+            attributes.push(attribute);
+          }
+        },
+        Left: (error) => {
+          // The attribute is dropped, and the tag goes on at its end.
+          this.found.push(error);
+          this.skipToTagEnd();
+        },
+      });
     }
   }
 
@@ -295,57 +319,59 @@ class Scanner {
   }
 
   /** `name`, `name=value`, or `name="value"` (or with single quotes). */
-  private attribute(): AttributeNode {
+  private attribute(): Parsed<AttributeNode> {
     const name = this.take(ATTRIBUTE_NAME);
     if (name === "") {
-      throw this.error("expected an attribute name");
+      return Left.of(this.error("expected an attribute name"));
     }
     this.take(SPACES);
     if (!this.consume("=")) {
-      return { name, value: "" };
+      return Right.of({ name, value: "" });
     }
     this.take(SPACES);
-    return { name, value: this.attributeValue() };
+    return map(this.attributeValue(), (value): AttributeNode => ({ name, value }));
   }
 
-  private attributeValue(): string {
+  private attributeValue(): Parsed<string> {
     const quote = this.source[this.pos];
     if (quote === "\"" || quote === "'") {
       const close = this.source.indexOf(quote, this.pos + 1);
       if (close === -1) {
-        throw this.error("attribute value is never closed");
+        return Left.of(this.error("attribute value is never closed"));
       }
       const value = this.source.slice(this.pos + 1, close);
       this.pos = close + 1;
-      return decodeReferences(value);
+      return Right.of(decodeReferences(value));
     }
     const value = this.take(UNQUOTED_VALUE);
     if (value === "") {
-      throw this.error("expected an attribute value");
+      return Left.of(this.error("expected an attribute value"));
     }
-    return decodeReferences(value);
+    return Right.of(decodeReferences(value));
   }
 
-  private comment(): void {
+  private comment(): Parsed<void> {
     const close = this.source.indexOf("-->", this.pos + 4);
     if (close === -1) {
-      throw this.error("comment is never closed");
+      return Left.of(this.error("comment is never closed"));
     }
     this.pos = close + 3;
+    return Right.of(undefined);
   }
 
-  private name(): string {
+  private name(): Parsed<string> {
     const name = this.take(TAG_NAME);
     if (name === "") {
-      throw this.error("expected an element name");
+      return Left.of(this.error("expected an element name"));
     }
-    return name;
+    return Right.of(name);
   }
 
-  private expect(text: string): void {
+  private expect(text: string): Parsed<void> {
     if (!this.consume(text)) {
-      throw this.error(`expected ${text}`);
+      return Left.of(this.error(`expected ${text}`));
     }
+    return Right.of(undefined);
   }
 
   /** Moves past `text` if the source is at it. */
@@ -386,14 +412,6 @@ class Scanner {
     const column = at - this.source.lastIndexOf("\n", at - 1);
     return new TemplateSyntaxError(message, line, column);
   }
-}
-
-/** The error a scanner step threw. Anything else is a bug, and is rethrown. */
-function asSyntaxError(error: unknown): TemplateSyntaxError {
-  if (error instanceof TemplateSyntaxError) {
-    return error;
-  }
-  throw error;
 }
 
 /** Whether two element names are the same: names are compared without their case. */
