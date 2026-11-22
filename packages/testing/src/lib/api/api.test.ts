@@ -4,7 +4,7 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { input, output } from "@tinker/core";
 import type { Fixture, TestBed, TestingElement } from "./api.ts";
-import { ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder } from "./testbed.ts";
+import { ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder } from "../testbed/testbed.ts";
 
 class Button {
   readonly pressed = output<number>();

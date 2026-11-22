@@ -31,7 +31,7 @@ import type {
   TestBed as TestBedApi,
   Fixture,
   TestBedStatic,
-} from "./api.ts";
+} from "../api/api.ts";
 
 export type TestBed<T extends object = object> = TestBedApi<T>;
 export type ComponentBuilder = ComponentBuilderApi;
