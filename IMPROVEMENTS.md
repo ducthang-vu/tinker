@@ -227,20 +227,6 @@ Known deviations from the browser:
 - A reference without its semicolon (`&copy`) is kept as written; the browser decodes some
   of them.
 
-## Precompiled templates (`packages/core/src/view/internal/factories/component-factory.ts`)
-
-A component's template can be a compiled tree a build step wrote, which the engine
-uses as it is (see `@tinker/core/compiler`).
-
-### 1. CLASS_REPLACEMENTS does not apply to a precompiled tree
-
-**Problem.** The tree names the real classes of its directives and component. A test
-that replaces a class through `CLASS_REPLACEMENTS` gets the original in such a tree.
-
-**To do.** Either walk the tree and replace the classes the same way (once per class,
-where the factory caches the nodes), or keep precompiled templates out of tests and
-say so. Until then, a test of a replaced class uses a string template.
-
 ## Build-time template compiler (`packages/compiler`)
 
 The plugin compiles each component's literal template into the expression that
