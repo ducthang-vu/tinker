@@ -3,13 +3,11 @@ import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "../runtime/component-view.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { HostBindings } from "./host-bindings.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 /** The bindings of a host option; throws (as the old constructor did) when it is invalid. */
 const bindingsOf = (host?: Readonly<Record<string, string>>): HostBindings =>
-  match(HostBindings.parse(host), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
+  valueOrThrow(HostBindings.parse(host));
 
 const renderer = new DomRenderer();
 const makeView = (host: Element) => new ComponentView(host, {}, [], renderer, {});
@@ -57,9 +55,7 @@ describe("HostBindings parsing", () => {
     expect(bindings.classes.map(({ name }) => name))
       .toEqual(["isOpen"]);
     expect(bindings.classes[0]!.expression)
-      .toEqual(match(ExpressionParser.parse("open()"), { Left: (error) => {
-        throw error;
-      }, Right: (value) => value }));
+      .toEqual(valueOrThrow(ExpressionParser.parse("open()")));
     expect(bindings.listeners.map(({ event }) => event))
       .toEqual(["click"]);
   });

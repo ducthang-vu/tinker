@@ -1,31 +1,23 @@
 import { describe, expect, test, vi } from "vitest";
 import { parseHandler, requireMethod, runHandler } from "./handler.ts";
 import { Scope } from "./scope.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 describe("parseHandler", () => {
   test("accepts a call of a method, with or without arguments, and spaces", () => {
-    expect(match(parseHandler("pick()", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value })
+    expect(valueOrThrow(parseHandler("pick()", "event handler"))
       .method)
       .toBe("pick");
-    expect(match(parseHandler(" pick( $event ) ", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value })
+    expect(valueOrThrow(parseHandler(" pick( $event ) ", "event handler"))
       .method)
       .toBe("pick");
-    expect(match(parseHandler("select(item.id, $event.key)", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value })
+    expect(valueOrThrow(parseHandler("select(item.id, $event.key)", "event handler"))
       .method)
       .toBe("select");
   });
 
   test("a call of a template variable's method is accepted, with its target", () => {
-    const handler = match(parseHandler("g.show(3)", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value });
+    const handler = valueOrThrow(parseHandler("g.show(3)", "event handler"));
     expect(handler.method)
       .toBe("show");
     expect(handler.target)
@@ -50,9 +42,7 @@ describe("runHandler", () => {
     const pick = vi.fn();
     const component = { pick };
     const event = { key: "Enter" };
-    runHandler(match(parseHandler("pick($event)", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }), new Scope(component), event);
+    runHandler(valueOrThrow(parseHandler("pick($event)", "event handler")), new Scope(component), event);
     expect(pick)
       .toHaveBeenCalledWith(event);
   });
@@ -60,9 +50,7 @@ describe("runHandler", () => {
   test("evaluates the arguments: $event fields and the component's fields", () => {
     const select = vi.fn();
     const component = { select, id: 7 };
-    runHandler(match(parseHandler("select(id, $event.key)", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }), new Scope(component), { key: "a" });
+    runHandler(valueOrThrow(parseHandler("select(id, $event.key)", "event handler")), new Scope(component), { key: "a" });
     expect(select)
       .toHaveBeenCalledWith(7, "a");
   });
@@ -75,9 +63,7 @@ describe("runHandler", () => {
         seen.push(this.name);
       },
     };
-    runHandler(match(parseHandler("go()", "event handler"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }), new Scope(component), undefined);
+    runHandler(valueOrThrow(parseHandler("go()", "event handler")), new Scope(component), undefined);
     expect(seen)
       .toEqual(["tinker"]);
   });

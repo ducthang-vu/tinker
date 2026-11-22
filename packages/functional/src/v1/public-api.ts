@@ -2,7 +2,7 @@
 
 export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./monad.ts";
 export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./monad.ts";
-export { Right, Left, mapLeft, attempt, toError } from "./either.ts";
+export { Right, Left, mapLeft, attempt, toError, valueOrThrow } from "./either.ts";
 export type { Either, EitherCases } from "./either.ts";
 export { Some, None, filter, toEither, fromEither, isSome, isNone } from "./maybe.ts";
 export type { Maybe, MaybeCases } from "./maybe.ts";

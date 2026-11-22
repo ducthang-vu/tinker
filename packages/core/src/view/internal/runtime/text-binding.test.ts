@@ -6,15 +6,14 @@ import { inject, Injector, provide, runInInjectionContext } from "../../../di/in
 import { RENDERER } from "../tokens.ts";
 import { BindingFactory, TextBinding } from "./text-binding.ts";
 import { Scope } from "../template/scope.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 function bind(text: string, component: object) {
   const renderer = new DomRenderer();
   const setText = vi.spyOn(renderer, "setText");
   const node = document.createTextNode("");
-  const binding = new TextBinding(node, match(parseInterpolation(text), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value }), new Scope(component), renderer);
+  const interpolation = valueOrThrow(parseInterpolation(text));
+  const binding = new TextBinding(node, interpolation, new Scope(component), renderer);
   return { binding, node, setText };
 }
 
@@ -57,9 +56,7 @@ describe("BindingFactory", () => {
     const factory = runInInjectionContext(injector, () => inject(BindingFactory));
     const node = document.createTextNode("");
 
-    const binding = factory.text(node, match(parseInterpolation("{{ a }}"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }), new Scope({ a: "x" }));
+    const binding = factory.text(node, valueOrThrow(parseInterpolation("{{ a }}")), new Scope({ a: "x" }));
     binding.update();
 
     expect(binding)

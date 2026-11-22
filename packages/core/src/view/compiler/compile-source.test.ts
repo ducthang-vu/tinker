@@ -3,7 +3,7 @@ import type { CompiledNode } from "../internal/template/compile.ts";
 import { TemplateSyntaxError } from "../internal/template/tinker-parser.ts";
 import { TemplateCompileError } from "../internal/template/compile-error.ts";
 import { compileSource } from "./compile-source.ts";
-import { match, type Either, Left, Right } from "@tinker/functional/v1";
+import { match, type Either, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 const item = { selector: "tk-item", isComponent: true };
 
@@ -19,9 +19,7 @@ describe("compileSource", () => {
     const result = compileSource(`<p>Hi {{ name() }}</p><tk-item label="x"></tk-item>`, [item]);
     expect(match(result, { Left: () => false, Right: () => true }))
       .toBe(true);
-    expect(match(result, { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }))
+    expect(valueOrThrow(result))
       .toHaveLength(2);
   });
 

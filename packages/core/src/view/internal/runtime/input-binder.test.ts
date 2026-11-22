@@ -4,11 +4,9 @@ import { input, inputsNamed } from "../authoring/input.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { InputBinder } from "./input-binder.ts";
 import { Scope } from "../template/scope.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
-const parse = (source: string) => match(ExpressionParser.parse(source), { Left: (error) => {
-  throw error;
-}, Right: (value) => value });
+const parse = (source: string) => valueOrThrow(ExpressionParser.parse(source));
 
 describe("InputBinder", () => {
   test("sets its inputs to the expression's value, only when it changed", () => {

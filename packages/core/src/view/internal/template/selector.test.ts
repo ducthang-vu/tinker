@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Selector } from "./selector.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 const element = (name: string, attributes: Record<string, string> = {}) => ({
   name,
@@ -8,9 +8,7 @@ const element = (name: string, attributes: Record<string, string> = {}) => ({
     .map(([n, value]) => ({ name: n, value })),
 });
 const matches = (selector: string, el: ReturnType<typeof element>) =>
-  match(Selector.parse(selector), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })
+  valueOrThrow(Selector.parse(selector))
     .matches(el);
 const error = (selector: string) => match(Selector.parse(selector), { Left: (e) => e.message, Right: () => "no error" });
 
@@ -141,9 +139,7 @@ describe("Selector", () => {
   });
 
   test("keeps its source", () => {
-    expect(match(Selector.parse(" [a] "), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }).source)
+    expect(valueOrThrow(Selector.parse(" [a] ")).source)
       .toBe(" [a] ");
   });
 

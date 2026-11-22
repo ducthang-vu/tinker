@@ -14,7 +14,7 @@
 
 import { Task } from "@tinker/functional";
 import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watch } from "../signals/index.ts";
-import { match, Left, Right, type Either } from "@tinker/functional/v1";
+import { use, Left, Right, type Either } from "@tinker/functional/v1";
 
 /** What the resource is doing, or what it last did. */
 export type ResourceState = "idle" | "loading" | "fetched" | "failed" | "written";
@@ -82,7 +82,7 @@ export function resource<T, E = Error>(
     }
     cancelTask = undefined;
     untracked(() => {
-      match(outcome, { Left: (failure) => {
+      use(outcome, { Left: (failure) => {
         error.set(failure);
         state.set("failed");
       }, Right: (loaded) => {

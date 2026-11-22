@@ -1,19 +1,15 @@
 import { describe, expect, test } from "vitest";
 import { type Expression, ExpressionParser } from "./expression.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 /** Parse, failing the test on an error. */
 function parse(source: string): Expression {
-  return match(ExpressionParser.parse(source), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
+  return valueOrThrow(ExpressionParser.parse(source));
 }
 
 /** The error message for `source`. */
 function parsed(source: string) {
-  return match(ExpressionParser.parse(source), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value });
+  return valueOrThrow(ExpressionParser.parse(source));
 }
 
 function error(source: string): string {

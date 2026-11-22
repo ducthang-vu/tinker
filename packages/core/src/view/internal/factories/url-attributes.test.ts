@@ -6,7 +6,7 @@ import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Maybe } from "@tinker/functional";
 import { HostBindings } from "./host-bindings.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 /** Render `<a [attr.name]="value()">` for `value`, and return the attribute `attribute`. */
 function attributeFor(attribute: string, value: string | null): string | null {
@@ -109,9 +109,7 @@ describe("event attributes cannot be bound", () => {
   });
 
   test("a host binding to an on… attribute is refused the same way", () => {
-    expect(() => match(HostBindings.parse({ "[attr.onclick]": "code()" }), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }))
+    expect(() => valueOrThrow(HostBindings.parse({ "[attr.onclick]": "code()" })))
       .toThrow("[attr.onclick] in host binding \"[attr.onclick]\": event attributes cannot be bound");
   });
 });

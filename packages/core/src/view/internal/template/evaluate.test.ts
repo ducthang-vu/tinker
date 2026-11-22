@@ -3,12 +3,10 @@ import { signal } from "../../../signals/index.ts";
 import { evaluate, print } from "./evaluate.ts";
 import { ExpressionParser } from "./expression.ts";
 import { Scope } from "./scope.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 const run = (source: string, component: object) =>
-  evaluate(match(ExpressionParser.parse(source), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value }), new Scope(component));
+  evaluate(valueOrThrow(ExpressionParser.parse(source)), new Scope(component));
 
 describe("evaluate", () => {
   test("reads fields of the component, and fields of fields", () => {
@@ -73,28 +71,18 @@ describe("evaluate", () => {
 
 test("print writes an expression back", () => {
   for (const source of ["title", "count()", "user().name", "a.b()()"]) {
-    expect(print(match(ExpressionParser.parse(source), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value })))
+    expect(print(valueOrThrow(ExpressionParser.parse(source))))
       .toBe(source);
   }
   expect(print({ kind: "component" }))
     .toBe("");
-  expect(print(match(ExpressionParser.parse("count() * 2 + 1"), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })))
+  expect(print(valueOrThrow(ExpressionParser.parse("count() * 2 + 1"))))
     .toBe("count() * 2 + 1");
-  expect(print(match(ExpressionParser.parse("!done"), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })))
+  expect(print(valueOrThrow(ExpressionParser.parse("!done"))))
     .toBe("!done");
-  expect(print(match(ExpressionParser.parse("\"loading\""), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })))
+  expect(print(valueOrThrow(ExpressionParser.parse("\"loading\""))))
     .toBe("\"loading\"");
-  expect(print(match(ExpressionParser.parse("true"), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })))
+  expect(print(valueOrThrow(ExpressionParser.parse("true"))))
     .toBe("true");
 });
 
@@ -242,9 +230,7 @@ describe("the conditional operator", () => {
   });
 
   test("print writes it back", () => {
-    expect(print(match(ExpressionParser.parse("a ? b : c"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value })))
+    expect(print(valueOrThrow(ExpressionParser.parse("a ? b : c"))))
       .toBe("a ? b : c");
   });
 });
@@ -288,23 +274,17 @@ describe("safe navigation, defaults, and literals", () => {
   });
 
   test("print writes the new forms back", () => {
-    expect(print(match(ExpressionParser.parse("a?.b ?? { k: c }"), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value })))
+    expect(print(valueOrThrow(ExpressionParser.parse("a?.b ?? { k: c }"))))
       .toBe("a?.b ?? { k: c }");
   });
 });
 
 test("print writes an array literal back", () => {
-  expect(print(match(ExpressionParser.parse("[a, 1]"), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })))
+  expect(print(valueOrThrow(ExpressionParser.parse("[a, 1]"))))
     .toBe("[a, 1]");
 });
 
 test("print writes call arguments back", () => {
-  expect(print(match(ExpressionParser.parse("pick(item.id, $event.key)"), { Left: (error) => {
-    throw error;
-  }, Right: (value) => value })))
+  expect(print(valueOrThrow(ExpressionParser.parse("pick(item.id, $event.key)"))))
     .toBe("pick(item.id, $event.key)");
 });

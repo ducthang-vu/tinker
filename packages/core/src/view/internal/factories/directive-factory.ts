@@ -32,7 +32,7 @@ import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
 import type { View } from "../runtime/view.ts";
-import { match, Left, Right } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 @Injectable()
 export class DirectiveFactory {
@@ -174,9 +174,7 @@ export class DirectiveFactory {
     if (!bindings) {
       // The view builder above this call does not return errors yet, so an invalid host
       // option is thrown here, where the directive is first used. (See IMPROVEMENTS.md.)
-      bindings = match(HostBindings.parse(this.metadataOf(type).host), { Left: (error) => {
-        throw error;
-      }, Right: (value) => value });
+      bindings = valueOrThrow(HostBindings.parse(this.metadataOf(type).host));
       this.hostBindings.set(type, bindings);
     }
     return bindings;

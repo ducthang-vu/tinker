@@ -7,15 +7,13 @@ import { Scope } from "../template/scope.ts";
 import { MapBinding } from "./map-binding.ts";
 import { ViewQueries } from "./view-queries.ts";
 import type { View } from "./view.ts";
-import { match, map, Left, Right } from "@tinker/functional/v1";
+import { match, map, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 describe("MapBinding", () => {
   test("a map whose anchor is not in the DOM cannot place its rows", () => {
     const node: CompiledMap = {
       kind: "map",
-      list: match(ExpressionParser.parse("items"), { Left: (error) => {
-        throw error;
-      }, Right: (value) => value }),
+      list: valueOrThrow(ExpressionParser.parse("items")),
       item: { kind: "bind", name: "item" },
       body: [],
     };

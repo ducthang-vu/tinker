@@ -10,7 +10,7 @@ import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { combineSyntaxErrors, TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
-import { match, mapLeft, Right, type Either, toError, Left, attempt } from "@tinker/functional/v1";
+import { match, mapLeft, Right, type Either, toError, Left, attempt, valueOrThrow } from "@tinker/functional/v1";
 
 /** A directive or component a template may use, known by its selector. */
 export interface ImportedSelector {
@@ -47,9 +47,7 @@ export function compileSource(
 function candidateOf(imported: ImportedSelector): DirectiveCandidate {
   return {
     type: imported.type ?? Unbound,
-    selector: match(Selector.parse(imported.selector), { Left: (error) => {
-      throw error;
-    }, Right: (value) => value }),
+    selector: valueOrThrow(Selector.parse(imported.selector)),
     isComponent: imported.isComponent,
   };
 }
