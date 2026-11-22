@@ -1,8 +1,9 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { EDGE_VALUES } from "./edge-values.ts";
-import { attempt, Left, Right, map, mapLeft, flatMap, toError, type Either } from "./either.ts";
-import { match } from "./monad.ts";
+import { EDGE_VALUES } from "./testing.ts";
+import { attempt, Left, mapLeft, Right, toError, type Either } from "./either.ts";
+import { flatMap, map } from "./functor.ts";
+import { isEqual, match } from "./monad.ts";
 
 const show = (e: Either<unknown, unknown>): string =>
   match(e, { Right: (value) => `right ${String(value)}`, Left: (error) => `left ${String(error)}` });
@@ -121,6 +122,13 @@ describe("Either on every edge value", () => {
   test.each(cases)("mapLeft with the identity keeps a Left holding %s", (_, value) => {
     expect(Object.is(unwrapLeft(mapLeft(Left.of(value), (x: unknown) => x)), value))
       .toBe(true);
+  });
+
+  test.each(cases)("a Right of a Right of %s equals another, and not a Left", (_, value) => {
+    expect(isEqual(Right.of(Right.of(value)), Right.of(Right.of(value))))
+      .toBe(true);
+    expect(isEqual(Right.of(Right.of(value)), Left.of(value)))
+      .toBe(false);
   });
 
   test.each(cases)("match tells a Right of %s from a Left of it", (_, value) => {

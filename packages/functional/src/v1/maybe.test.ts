@@ -1,9 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { EDGE_VALUES } from "./edge-values.ts";
+import { EDGE_VALUES } from "./testing.ts";
 import { Left, Right } from "./either.ts";
-import { filter, flatMap, fromEither, isNone, isSome, map, None, Some, toEither, type Maybe } from "./maybe.ts";
-import { match } from "./monad.ts";
+import { filter, fromEither, isNone, isSome, None, Some, toEither, type Maybe } from "./maybe.ts";
+import { flatMap, map } from "./functor.ts";
+import { isEqual, match } from "./monad.ts";
 
 const show = (m: Maybe<unknown>): string =>
   match(m, { Some: (value) => `some ${String(value)}`, None: () => "none" });
@@ -115,6 +116,13 @@ describe("Maybe on every edge value", () => {
   test.each(cases)("toEither of a Some of %s is a Right of it", (_, value) => {
     expect(match(toEither(Some.of(value), "missing"), { Right: (x) => x, Left: () => NOT_A_VALUE }))
       .toBe(value);
+  });
+
+  test.each(cases)("a Some of a Some of %s equals another, and not a None", (_, value) => {
+    expect(isEqual(Some.of(Some.of(value)), Some.of(Some.of(value))))
+      .toBe(true);
+    expect(isEqual(Some.of(Some.of(value)), None.of()))
+      .toBe(false);
   });
 
   test.each(cases)("filter keeps a Some of %s when the predicate accepts it", (_, value) => {
