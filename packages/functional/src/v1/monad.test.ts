@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Left, Right } from "./either.ts";
-import { EQUALS, type Equatable, isEqual, match } from "./monad.ts";
+import { EQUALS, type Equatable, isEqual, match, use } from "./monad.ts";
 import { None, Some } from "./maybe.ts";
 
 describe("match", () => {
@@ -86,5 +86,37 @@ describe("isEqual", () => {
       .toBe(false);
     expect(isEqual(Some.of(1), null))
       .toBe(false);
+  });
+});
+
+describe("use", () => {
+  test("runs the handler of the case, and returns nothing", () => {
+    const seen: unknown[] = [];
+    expect(use(Right.of(1), { Right: (value) => seen.push(value), Left: () => {} }))
+      .toBeUndefined();
+    expect(seen)
+      .toEqual([1]);
+  });
+
+  test("runs only the handler of the box's case", () => {
+    const seen: string[] = [];
+    use(Left.of("bad"), { Right: () => seen.push("right"), Left: () => seen.push("left") });
+    expect(seen)
+      .toEqual(["left"]);
+  });
+
+  test("a Maybe runs its Some or None handler", () => {
+    const seen: string[] = [];
+    use(Some.of(2), { Some: (value) => seen.push(`some ${value}`), None: () => seen.push("none") });
+    use(None.of(), { Some: () => seen.push("some"), None: () => seen.push("none") });
+    expect(seen)
+      .toEqual(["some 2", "none"]);
+  });
+
+  test("a read with match stays pure: it runs no handler", () => {
+    const seen: string[] = [];
+    match(Right.of(1), { Right: () => seen.push("read"), Left: () => seen.push("left") });
+    expect(seen)
+      .toEqual(["read"]);
   });
 });

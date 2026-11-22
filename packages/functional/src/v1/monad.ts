@@ -31,8 +31,53 @@ export function match(
   self: Matchable,
   cases: Record<string, (...args: never[]) => unknown>,
 ): unknown {
+  return readCase(self, cases);
+}
+
+/** The handler for a box's case, called with its arguments: the read `match` and `use` share. */
+function readCase(
+  self: Matchable,
+  cases: Record<string, (...args: never[]) => unknown>,
+): unknown {
   const kase = self[MATCHABLE];
   return cases[kase.name]!(...(kase.args as never[]));
+}
+
+/** The effect handlers of an Either, one per case. */
+export interface EitherEffects<T, E> {
+  readonly Right: (value: T) => void;
+  readonly Left: (error: E) => void;
+}
+
+/** The effect handlers of a Maybe, one per case. */
+export interface MaybeEffects<T> {
+  readonly Some: (value: T) => void;
+  readonly None: () => void;
+}
+
+/**
+ * Run the handler of the box's case, for its effect. An effect is
+ * the edge of a program: pure code reads a box with `match` instead, and uses `use` only where
+ * something has to happen (a value sent to a subscriber, an error reported).
+ *
+ * @example
+ * ```ts
+ * use(Left.of("offline"), { Right: (value) => show(value), Left: (error) => report(error) });
+ * ```
+ */
+export function use<T, E>(self: Either<T, E>, cases: EitherEffects<T, E>): void;
+export function use<T>(self: Maybe<T>, cases: MaybeEffects<T>): void;
+export function use(self: Matchable, cases: object): void {
+  // Each handler becomes a thunk, so the read is pure and the effect runs once, here.
+  const handlers = cases as Record<string, (...args: never[]) => void>;
+  const thunks = Object.fromEntries(
+    Object.entries(handlers)
+      .map(([name, handler]) => [
+        name,
+        (...args: never[]) => () => handler(...args),
+      ]),
+  );
+  (readCase(self, thunks) as () => void)();
 }
 
 /** The equality protocol: a value that can say whether it equals another value. */

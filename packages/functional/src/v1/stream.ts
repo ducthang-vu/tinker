@@ -17,9 +17,9 @@
 //   const upload = Stream.from<number, Response>((sink) => { ... });
 //   run(upload, { next: showProgress, ok: showResult, error: showError });
 
-import { attempt, Left, mapLeft as mapLeftEither, outcomeOf, Right, toError, type Either } from "./either.ts";
-import { type Chain, CHAIN, type Functor, MAP } from "./functor.ts";
-import { match } from "./monad.ts";
+import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "./either.ts";
+import { type Chain, CHAIN, flatMap, type Functor, MAP } from "./functor.ts";
+import { match, use } from "./monad.ts";
 
 /** Stops a running stream or task. Calling it after the end does nothing. */
 export type Cancel = () => void;
@@ -195,19 +195,16 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
       const cancelFirst = subscribe(this, {
         next: (item) => sink.next(item),
         end: (result) => {
-          const outcome = outcomeOf(result);
-          if (outcome.kind === "failed") {
-            sink.end(Left.of(outcome.error));
-            return;
-          }
-          const next = outcomeOf(attemptAsError(() => f(outcome.value)));
-          if (next.kind === "failed") {
-            sink.end(Left.of(next.error));
-            return;
-          }
-          cancelSecond = subscribe(next.value, {
-            next: (item) => sink.next(item),
-            end: (end) => sink.end(end),
+          // Pure up to here: the next stream, or the failure that replaces the end.
+          const next = flatMap(result, (value) => attemptAsError(() => f(value)));
+          use(next, {
+            Left: (error) => sink.end(Left.of(error)),
+            Right: (stream) => {
+              cancelSecond = subscribe(stream, {
+                next: (item) => sink.next(item),
+                end: (end) => sink.end(end),
+              });
+            },
           });
         },
       });
@@ -247,17 +244,9 @@ export function run<T, R, E>(
     }
     handlers.error(error);
   };
-  const deliver = <A>(either: Either<A, E>, onValue: ((value: A) => void) | undefined): void => {
-    const outcome = outcomeOf(either);
-    if (outcome.kind === "failed") {
-      fail(outcome.error);
-    } else {
-      onValue?.(outcome.value);
-    }
-  };
   return subscribe(stream, {
-    next: (item) => deliver(item, handlers.next),
-    end: (result) => deliver(result, handlers.ok),
+    next: (item) => use(item, { Left: fail, Right: (value) => handlers.next?.(value) }),
+    end: (result) => use(result, { Left: fail, Right: (value) => handlers.ok?.(value) }),
   });
 }
 

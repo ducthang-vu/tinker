@@ -94,25 +94,3 @@ export function attempt<T, E>(
 export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value), { cause: value });
 }
-
-/** An Either as plain data, for code that acts on its outcome: read it, then branch on it. */
-export type Outcome<T, E>
-  = | { readonly kind: "ok"; readonly value: T }
-    | { readonly kind: "failed"; readonly error: E };
-
-/**
- * The outcome of an Either as plain data. It is `match` used to read a value: the branching that
- * acts on the outcome is left to ordinary code.
- *
- * @example
- * ```ts
- * const outcome = outcomeOf(Right.of(1));
- * if (outcome.kind === "ok") console.log(outcome.value);
- * ```
- */
-export function outcomeOf<T, E>(either: Either<T, E>): Outcome<T, E> {
-  return match<T, E, Outcome<T, E>>(either, {
-    Right: (value) => ({ kind: "ok", value }),
-    Left: (error) => ({ kind: "failed", error }),
-  });
-}
