@@ -9,6 +9,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Gives @tinker/testing the runner's hooks: see vitest.setup.ts.
+    setupFiles: ["./vitest.setup.ts"],
     // Tests live next to the files they test. The example's tests run here too.
     include: ["packages/*/src/**/*.test.ts", "examples/*/**/*.test.ts"],
     coverage: {

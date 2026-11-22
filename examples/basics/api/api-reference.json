@@ -6654,7 +6654,7 @@
         {
           "name": "MockComponentBuilder",
           "kind": "class",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:228",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:255",
           "description": "A builder for a mock of a component: a component with the same selector and exportAs,\nthe inputs and outputs named here, and no template. Immutable, like the other builders.",
           "params": [],
           "examples": [],
@@ -6667,7 +6667,7 @@
             {
               "name": "requiredInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:247",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:274",
               "description": "Required inputs of `F` that the mock has too: a parent template must bind them.",
               "params": [],
               "examples": [],
@@ -6680,7 +6680,7 @@
             {
               "name": "optionalInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:255",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:282",
               "description": "Optional inputs of `F` that the mock has too, each with the default the real input has.",
               "params": [],
               "examples": [],
@@ -6693,7 +6693,7 @@
             {
               "name": "fields",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:265",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:292",
               "description": "Fields of the mock, with their values: the template reads them as the real class's.",
               "params": [],
               "examples": [],
@@ -6706,7 +6706,7 @@
             {
               "name": "methods",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:278",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:305",
               "description": "Methods of the mock, each with its implementation: the mock's method has the real\nsignature and passes its arguments to the implementation. A spy is an implementation.",
               "params": [],
               "examples": [],
@@ -6719,7 +6719,7 @@
             {
               "name": "outputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:291",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:318",
               "description": "Outputs of `F` that the mock has too, so a parent template can listen to them.",
               "params": [],
               "examples": [],
@@ -6732,7 +6732,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:299",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:326",
               "description": "Create the mock class. It renders nothing.",
               "params": [],
               "examples": [],
@@ -6745,7 +6745,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:233",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:260",
               "description": "The same as `new MockComponentBuilder(type)`: the start of a chain.",
               "params": [],
               "examples": [],
@@ -6761,7 +6761,7 @@
         {
           "name": "MockDirectiveBuilder",
           "kind": "class",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:317",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:344",
           "description": "A builder for a mock of a directive: a directive with the same selector and exportAs,\nthe inputs and outputs named here, and nothing else. Immutable, like the other builders.",
           "params": [],
           "examples": [],
@@ -6774,7 +6774,7 @@
             {
               "name": "requiredInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:339",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:366",
               "description": "Required inputs of `F` that the mock has too: a parent template must bind them.",
               "params": [],
               "examples": [],
@@ -6787,7 +6787,7 @@
             {
               "name": "optionalInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:347",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:374",
               "description": "Optional inputs of `F` that the mock has too, each with the default the real input has.",
               "params": [],
               "examples": [],
@@ -6800,7 +6800,7 @@
             {
               "name": "fields",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:357",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:384",
               "description": "Fields of the mock, with their values: the template reads them as the real class's.",
               "params": [],
               "examples": [],
@@ -6813,7 +6813,7 @@
             {
               "name": "methods",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:370",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:397",
               "description": "Methods of the mock, each with its implementation: the mock's method has the real\nsignature and passes its arguments to the implementation. A spy is an implementation.",
               "params": [],
               "examples": [],
@@ -6826,7 +6826,7 @@
             {
               "name": "outputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:383",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:410",
               "description": "Outputs of `F` that the mock has too, so a parent template can listen to them.",
               "params": [],
               "examples": [],
@@ -6839,7 +6839,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:391",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:418",
               "description": "Create the mock class.",
               "params": [],
               "examples": [],
@@ -6852,7 +6852,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:322",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:349",
               "description": "The same as `new MockDirectiveBuilder(type)`: the start of a chain.",
               "params": [],
               "examples": [],
@@ -6910,6 +6910,40 @@
           "declaration": "export type TestBed<T extends object = object> = TestBedApi<T>;"
         },
         {
+          "name": "TestRunner",
+          "kind": "interface",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:64",
+          "description": "What the package takes from the test runner. Both are optional.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "afterEach",
+              "kind": "property",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:66",
+              "description": "Runs `cleanup` after each test: the runner's `afterEach`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "((hook: () => void) => void) | undefined"
+            },
+            {
+              "name": "inTest",
+              "kind": "property",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:68",
+              "description": "Whether a test is running now: a fixture without `manualCleanup()` must be built in one.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "(() => boolean) | undefined"
+            }
+          ]
+        },
+        {
           "name": "TestingElement",
           "kind": "type",
           "source": "packages/testing/src/lib/api/api.ts:129",
@@ -6931,6 +6965,19 @@
           "throws": [],
           "signatures": [
             "cleanup(): void"
+          ]
+        },
+        {
+          "name": "registerRunner",
+          "kind": "function",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:78",
+          "description": "Give the package the test runner's hooks. Call it once in the test setup (a Vitest setup file\ndoes: see vitest.setup.ts). Without a runner, no cleanup is registered and nothing is checked.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "registerRunner(runner: TestRunner | undefined): void"
           ]
         }
       ]

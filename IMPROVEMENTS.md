@@ -263,18 +263,13 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 
 ## Testing: concurrent tests
 
-`cleanup()` destroys every fixture that is not `manualCleanup()`, so it is safe only
-while tests in a file run one after another (Vitest's default). A concurrent test
-(`test.concurrent`) that is still running when another finishes would have its fixture
-destroyed by that cleanup. Today a concurrent test must use `manualCleanup()`.
+A fixture built outside a test now throws unless it is `manualCleanup()` (see `docs/testing.md`).
+A concurrent test still needs `manualCleanup()` by hand, because `cleanup()` would destroy its
+fixture while other tests run.
 
-Ideas to choose from:
-
-- Tie each fixture to the test that built it, through the runner's per-test hook
-  (`onTestFinished` in Vitest). The setup passes the hook to the package, and cleanup
-  destroys only that test's fixtures.
-- Fail loudly when a fixture is built inside a concurrent test without `manualCleanup()`,
-  if the runner exposes that the test is concurrent.
+**To do.** Vitest's public API does not say whether the running test is concurrent. Either
+the package takes that from the runner when Vitest exposes it, or each fixture is tied to the
+test that built it through `onTestFinished`, so `cleanup()` destroys only that test's fixtures.
 
 ## Template patterns: regex (`packages/core/src/view/internal/template/`)
 
