@@ -290,6 +290,56 @@ describe("compileComponents", () => {
       .toHaveLength(1);
   });
 
+  describe("directives re-exported by another file", () => {
+    const index = { "./index.ts": fixture("reexports/index.ts") };
+    const everything = {
+      ...index,
+      "./item-impl.ts": fixture("reexports/item-impl.ts"),
+      "./more.ts": fixture("reexports/more.ts"),
+      "./loop.ts": fixture("reexports/loop.ts"),
+    };
+
+    test("reads a directive re-exported under a new name", async () => {
+      const { host, warnings } = recordingHost(everything);
+      await compileComponents(`
+      import { Renamed } from "./index.ts";
+      @Component({ template: "<p renamed></p>", imports: [Renamed] }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toEqual([]);
+    });
+
+    test("reads a directive re-exported by export *", async () => {
+      const { host, warnings } = recordingHost(everything);
+      await compileComponents(`
+      import { More } from "./index.ts";
+      @Component({ template: "<p more></p>", imports: [More] }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toEqual([]);
+    });
+
+    test("warns for a name no re-export provides, and stops at a file that re-exports itself", async () => {
+      const { host, warnings } = recordingHost(everything);
+      await compileComponents(`
+      import { Missing } from "./index.ts";
+      @Component({ template: "<p></p>", imports: [Missing] }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toEqual(["a.ts: <A> is not compiled: Missing has no literal selector, or is not found"]);
+    });
+
+    test("warns when a re-exporting file cannot be found", async () => {
+      const { host, warnings } = recordingHost(index);
+      await compileComponents(`
+      import { More } from "./index.ts";
+      @Component({ template: "<p></p>", imports: [More] }) class A {}
+    `, "/app/a.ts", host);
+      expect(warnings)
+        .toHaveLength(1);
+    });
+  });
+
   test("does not check a directive as a component", async () => {
     const { host, errors } = recordingHost();
     await compileComponents(`@Directive({ selector: "[a]", template: "<p>{{ a + }}</p>" }) class A {}`, "/app/a.ts", host);
