@@ -25,14 +25,32 @@ export interface Functor<T> {
 }
 
 /** A data-last `map`: applied to a box, it maps the box. */
-export interface MapFn<T, U> {
-  <E>(self: Either<T, E>): Either<U, E>;
-  (self: readonly T[]): U[];
-  <X, E>(self: Stream<X, T, E>): Stream<X, U, E | Error>;
-  (self: Maybe<T>): Maybe<U>;
-  (self: Functor<T>): Functor<U>;
-  (self: Matchable): Matchable;
-}
+/**
+ * The box `B` mapped from values of type `T` to values of type `U`: the same kind of box, holding
+ * `U`. The library's boxes are listed. Another functor maps to a `Functor<U>`, and any other
+ * matchable box to a `Matchable`.
+ */
+export type Mapped<B, T, U> = [B] extends [Either<T, infer E>] ? Either<U, E>
+  : [B] extends [Maybe<T>] ? Maybe<U>
+      : [B] extends [readonly T[]] ? U[]
+          : [B] extends [Stream<infer X, T, infer E>] ? Stream<X, U, E | Error>
+              : [B] extends [Functor<T>] ? Functor<U>
+                  : Matchable;
+
+/**
+ * A data-last `map`: one generic function, so `pipe` infers the result type from the box it is
+ * given, with no annotations.
+ */
+export type MapFn<T, U> = <B extends MappableBox<T>>(self: B) => Mapped<B, T, U>;
+
+/** The boxes a data-last `map` accepts: the library's, any functor, and any matchable box. */
+type MappableBox<T>
+  = | Either<T, unknown>
+    | Maybe<T>
+    | readonly T[]
+    | Stream<unknown, T, unknown>
+    | Functor<T>
+    | Matchable;
 
 /** The chain protocol: a value that chains itself. Any value may implement it, matchable or not. */
 export const CHAIN: unique symbol = Symbol("chain");

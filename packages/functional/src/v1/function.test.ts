@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Right, type Either } from "./either.ts";
+import { Some, type Maybe } from "./maybe.ts";
 import { flatMap, map } from "./functor.ts";
 import { flow, pipe } from "./function.ts";
 
@@ -14,15 +15,23 @@ describe("pipe", () => {
       .toBe(30);
   });
 
-  test("passes an Either through data-last map and flatMap", () => {
-    // The types are given: an overloaded data-last map is inferred from its last signature.
-    const result = pipe<Either<number, string>, Either<number, string>, Either<number, string>>(
+  test("passes an Either through data-last map and flatMap, with no annotations", () => {
+    const result = pipe(
       Right.of<number, string>(2),
       map((n: number) => n + 1),
       flatMap((n: number) => Right.of<number, string>(n * 10)),
     );
-    expect(result)
+    // The type is inferred: this assignment fails to compile if it is not Either<number, string>.
+    const typed: Either<number, string> = result;
+    expect(typed)
       .toEqual(Right.of(30));
+  });
+
+  test("passes a Maybe through data-last map, with no annotations", () => {
+    const result = pipe(Some.of(2), map((n: number) => n + 1));
+    const typed: Maybe<number> = result;
+    expect(typed)
+      .toEqual(Some.of(3));
   });
 });
 
