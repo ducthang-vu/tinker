@@ -1,6 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { EDGE_VALUES } from "./edge-values.ts";
 import { flatMap as maybeFlatMap, map as maybeMap } from "./functor.ts";
 import { None, Some, type Maybe } from "./maybe.ts";
 import { match } from "./monad.ts";
@@ -12,7 +11,8 @@ import {
   type LawCheck,
   monadLaws,
   type MonadUnderTest,
-} from "./monad-laws.ts";
+  EDGE_VALUES,
+} from "./testing.ts";
 
 /** A box holding any value, or nothing. Tags, not `in`, so undefined and null count as values. */
 type Box = { readonly tag: "Some"; readonly value: unknown } | { readonly tag: "None" };

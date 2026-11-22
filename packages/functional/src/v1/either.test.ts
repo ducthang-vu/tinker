@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { EDGE_VALUES } from "./edge-values.ts";
+import { EDGE_VALUES } from "./testing.ts";
 import { attempt, Left, mapLeft, Right, toError, type Either } from "./either.ts";
 import { flatMap, map } from "./functor.ts";
 import { isEqual, match } from "./monad.ts";
