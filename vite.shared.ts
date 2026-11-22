@@ -1,6 +1,7 @@
 // What the Vite configs of this repo share: the standard decorators step, and the
 // alias that reads each workspace package (`@tinker/<name>`) from its source.
 
+import { readdirSync, readFileSync } from "node:fs";
 import { transformAsync } from "@babel/core";
 import type { Plugin, Rolldown } from "vite";
 
@@ -35,20 +36,26 @@ export function standardDecorators(): Plugin {
   };
 }
 
-/** A workspace package is read from its source, not from an install. */
-export const workspaceAlias = [
-  // A subpath with its own entry point, from packages/core's "exports" field.
-  {
-    find: /^@tinker\/core\/compiler$/,
-    replacement: new URL("./packages/core/src/view/compiler/index.ts", import.meta.url).pathname,
-  },
-  // The subpath of packages/functional's "exports" field.
-  {
-    find: /^@tinker\/functional\/testing$/,
-    replacement: new URL("./packages/functional/src/testing.ts", import.meta.url).pathname,
-  },
-  {
-    find: /^@tinker\/(.+)$/,
-    replacement: new URL("./packages/$1/src/index.ts", import.meta.url).pathname,
-  },
-];
+/**
+ * A workspace package is read from its source, not from an install. Each entry of a package's
+ * `exports` field is an alias: `@tinker/<name>` and each subpath, as the package declares them.
+ */
+function workspaceAliases(): { find: RegExp; replacement: string }[] {
+  const packages = new URL("./packages/", import.meta.url);
+  return readdirSync(packages)
+    .flatMap((dir) => {
+      const manifest = JSON.parse(readFileSync(new URL(`${dir}/package.json`, packages), "utf8"));
+      const exports = (manifest.exports ?? {}) as Record<string, string | { development: string }>;
+      return Object.entries(exports)
+        .map(([key, target]) => {
+          const source = typeof target === "string" ? target : target.development;
+          const specifier = key === "." ? manifest.name : `${manifest.name}${key.slice(1)}`;
+          return {
+            find: new RegExp(`^${specifier.replace(/[/.]/g, "\\$&")}$`),
+            replacement: new URL(`${dir}/${source}`, packages).pathname,
+          };
+        });
+    });
+}
+
+export const workspaceAlias = workspaceAliases();

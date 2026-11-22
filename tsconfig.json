@@ -17,9 +17,6 @@
     "rewriteRelativeImportExtensions": true,
     "noEmit": true,
     "paths": {
-      "@tinker/functional/testing": [
-        "./packages/functional/src/testing.ts"
-      ],
       "@tinker/core/compiler": [
         "./packages/core/src/view/compiler/index.ts"
       ],
