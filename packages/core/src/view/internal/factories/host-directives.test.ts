@@ -5,6 +5,8 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
+import { messageOf } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -34,7 +36,7 @@ describe("host directives", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Menu);
+    const view = valueOrThrow(engine.createComponent(Menu));
 
     await tick();
 
@@ -59,8 +61,8 @@ describe("host directives", () => {
       readonly clickable = inject(Clickable);
       readonly host = inject(ElementRef);
     }
-    const view = Engine.create()
-      .createComponent(Button);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(Button));
     (view.host.nativeElement.querySelector("span") as HTMLElement).click(); // bubbles to the host
     await tick();
     expect(view.instance.clickable.host.nativeElement)
@@ -91,8 +93,8 @@ describe("host directives", () => {
       readonly dragState = inject(DragState);
       readonly menuState = inject(MenuState);
     }
-    const { instance: component } = Engine.create()
-      .createComponent(Menu);
+    const { instance: component } = valueOrThrow(Engine.create()
+      .createComponent(Menu));
     await tick();
     expect(component.dragState)
       .toBe(component.draggable.state);
@@ -117,7 +119,7 @@ describe("host directives", () => {
       readonly focusable = inject(Focusable);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Menu);
+    const view = valueOrThrow(engine.createComponent(Menu));
     const [item] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("li")!), (context) => context.directives)
       .getOrElse([]) as [Item];
     await tick();
@@ -136,7 +138,7 @@ describe("host directives", () => {
     @Component({ selector: "tk-a", template: "", hostDirectives: [Tracked] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     view.destroy();
     await tick();
     expect(destroyed)
@@ -152,8 +154,8 @@ describe("host directives", () => {
     class A {
       readonly host = inject(ElementRef);
     }
-    const view = Engine.create()
-      .createComponent(A);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(A));
     await tick();
     expect(view.instance.host.nativeElement)
       .toBe(view.host.nativeElement);
@@ -168,9 +170,9 @@ describe("host directives", () => {
     @Component({ selector: "tk-b", template: "", hostDirectives: [Other] })
     class WithComponent {}
     const engine = Engine.create();
-    expect(() => engine.createComponent(WithPlain))
-      .toThrow("Plain is not a directive: decorate it with @Directive");
-    expect(() => engine.createComponent(WithComponent))
-      .toThrow("Other is a component: it cannot be a host directive of WithComponent");
+    expect(messageOf(engine.createComponent(WithPlain)))
+      .toBe("Plain is not a directive: decorate it with @Directive");
+    expect(messageOf(engine.createComponent(WithComponent)))
+      .toBe("Other is a component: it cannot be a host directive of WithComponent");
   });
 });

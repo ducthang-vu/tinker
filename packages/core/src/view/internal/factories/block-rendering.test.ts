@@ -3,6 +3,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 describe("@if and @else", () => {
   test("shows its body when the condition is truthy, and nothing when it is not", async () => {
@@ -11,7 +12,7 @@ describe("@if and @else", () => {
       readonly on = signal(true);
     }
     const el = document.createElement("section");
-    const app = bootstrap(If, { host: el });
+    const app = valueOrThrow(bootstrap(If, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("yes");
@@ -28,7 +29,7 @@ describe("@if and @else", () => {
       readonly on = signal(false);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Else, { host: el });
+    const app = valueOrThrow(bootstrap(Else, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("B");
@@ -48,7 +49,7 @@ describe("@if and @else", () => {
       readonly a = signal(0);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Chain, { host: el });
+    const app = valueOrThrow(bootstrap(Chain, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("none");
@@ -78,7 +79,7 @@ describe("@match", () => {
       readonly state = signal("loading");
     }
     const el = document.createElement("section");
-    const app = bootstrap(Match, { host: el });
+    const app = valueOrThrow(bootstrap(Match, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("wait");
@@ -99,7 +100,7 @@ describe("@match", () => {
       readonly n = signal(1);
     }
     const el = document.createElement("section");
-    const app = bootstrap(NoDefault, { host: el });
+    const app = valueOrThrow(bootstrap(NoDefault, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("one");
@@ -127,7 +128,7 @@ describe("@match", () => {
       readonly n = signal(1);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Keep, { host: el });
+    const app = valueOrThrow(bootstrap(Keep, { host: el }));
     await tick();
     expect(made)
       .toBe(1);
@@ -152,7 +153,7 @@ describe("@match", () => {
       }
     }
     const el = document.createElement("section");
-    const app = bootstrap(Lets, { host: el });
+    const app = valueOrThrow(bootstrap(Lets, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("Ana");
@@ -178,7 +179,7 @@ describe("@match", () => {
     })
     class OwnerMatch {}
     const el = document.createElement("section");
-    const app = bootstrap(OwnerMatch, { host: el });
+    const app = valueOrThrow(bootstrap(OwnerMatch, { host: el }));
     await tick();
     expect(el.querySelector("tk-gone"))
       .not.toBeNull();
@@ -198,7 +199,7 @@ describe("@match", () => {
       readonly n = signal(0);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Falsy, { host: el });
+    const app = valueOrThrow(bootstrap(Falsy, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("zero");
@@ -255,7 +256,7 @@ describe("@match", () => {
       readonly score = signal(10);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Guards, { host: el });
+    const app = valueOrThrow(bootstrap(Guards, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("C");
@@ -318,7 +319,7 @@ describe("@match", () => {
       readonly n = signal(10);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Rel, { host: el });
+    const app = valueOrThrow(bootstrap(Rel, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("C");
@@ -342,7 +343,7 @@ describe("@match", () => {
       readonly res = signal<{ status: string; index: number }>({ status: "paid", index: 1 });
     }
     const el = document.createElement("section");
-    const app = bootstrap(ObjectMatch, { host: el });
+    const app = valueOrThrow(bootstrap(ObjectMatch, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("paid");
@@ -362,7 +363,7 @@ describe("@match", () => {
       readonly age = signal(30);
     }
     const el = document.createElement("section");
-    const app = bootstrap(OpenRange, { host: el });
+    const app = valueOrThrow(bootstrap(OpenRange, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("adult");
@@ -380,7 +381,7 @@ describe("@match", () => {
       readonly res = signal<{ status: string; value: number }>({ status: "cached", value: 7 });
     }
     const el2 = document.createElement("section");
-    const app2 = bootstrap(SameNames, { host: el2 });
+    const app2 = valueOrThrow(bootstrap(SameNames, { host: el2 }));
     await tick();
     expect(el2.textContent!.trim())
       .toBe("7");
@@ -400,7 +401,7 @@ describe("@match", () => {
       readonly pair = signal<unknown[]>(["x", { id: 2 }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(TupleMatch, { host: el });
+    const app = valueOrThrow(bootstrap(TupleMatch, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("x-2");
@@ -420,7 +421,7 @@ describe("@match", () => {
       readonly code = signal<unknown>("42");
     }
     const el = document.createElement("section");
-    const app = bootstrap(RegexMatch, { host: el });
+    const app = valueOrThrow(bootstrap(RegexMatch, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("number");
@@ -444,7 +445,7 @@ describe("@match", () => {
       readonly user = signal<{ id: number; name: string } | null>({ id: 4, name: "Ada" });
     }
     const el = document.createElement("section");
-    const app = bootstrap(AliasMatch, { host: el });
+    const app = valueOrThrow(bootstrap(AliasMatch, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("Ada#4");
@@ -468,7 +469,7 @@ describe("@match", () => {
       readonly res = signal<unknown>({ index: "one" });
     }
     const el = document.createElement("section");
-    const app = bootstrap(Shape, { host: el });
+    const app = valueOrThrow(bootstrap(Shape, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("other");
@@ -522,7 +523,7 @@ describe("@match", () => {
       readonly n = signal(7);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Ops, { host: el });
+    const app = valueOrThrow(bootstrap(Ops, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("eq");
@@ -604,7 +605,7 @@ describe("@match with array patterns", () => {
       readonly items = signal<string[]>([]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(EmptyCase, { host: el });
+    const app = valueOrThrow(bootstrap(EmptyCase, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("none");
@@ -624,7 +625,7 @@ describe("@match with array patterns", () => {
       readonly items = signal<string[]>([]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(RestCase, { host: el });
+    const app = valueOrThrow(bootstrap(RestCase, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("empty");
@@ -646,7 +647,7 @@ describe("@case with an array literal pattern", () => {
       readonly value = signal<unknown>([1, 2]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(LiteralArray, { host: el });
+    const app = valueOrThrow(bootstrap(LiteralArray, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("yes");
@@ -676,7 +677,7 @@ describe("@match with the remaining patterns", () => {
       readonly value = signal<unknown>("saving");
     }
     const el = document.createElement("section");
-    const app = bootstrap(Remaining, { host: el });
+    const app = valueOrThrow(bootstrap(Remaining, { host: el }));
     await tick();
     const shown = async (value: unknown) => {
       app.root.instance.value.set(value);
@@ -705,7 +706,7 @@ describe("@match with the remaining patterns", () => {
       readonly result = signal<object>({ value: 1 });
     }
     const el = document.createElement("section");
-    const app = bootstrap(Absent, { host: el });
+    const app = valueOrThrow(bootstrap(Absent, { host: el }));
     await tick();
     expect(el.textContent!.trim())
       .toBe("ok");

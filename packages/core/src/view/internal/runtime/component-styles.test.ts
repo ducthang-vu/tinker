@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { scopeStyles, styleScopeOf } from "./component-styles.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 const scope = { attribute: "tk-c1", hostAttribute: "tk-h1" };
 /** The scoped CSS, without its whitespace, so the layout of the output does not matter. */
@@ -79,7 +80,7 @@ describe("component styles in a view", () => {
     @Component({ selector: "tk-styled", template: "<p>a</p>", styles: "p { color: red }" })
     class Styled {}
     const engine = Engine.create();
-    const view = engine.createComponent(Styled);
+    const view = valueOrThrow(engine.createComponent(Styled));
     const styled = styleScopeOf(Styled);
     expect(view.host.nativeElement.hasAttribute(styled.hostAttribute))
       .toBe(true);
@@ -112,7 +113,7 @@ describe("component styles in a view", () => {
     })
     class Parent {}
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const { attribute, hostAttribute } = styleScopeOf(Parent);
     const own = view.host.nativeElement.querySelector("p")!;
     const leaf = view.host.nativeElement.querySelector("tk-leaf")!;
@@ -130,7 +131,7 @@ describe("component styles in a view", () => {
     @Component({ selector: "tk-plain", template: "<p>a</p>" })
     class Plain {}
     const engine = Engine.create();
-    const view = engine.createComponent(Plain);
+    const view = valueOrThrow(engine.createComponent(Plain));
     expect(view.host.nativeElement.querySelector("p")!.attributes)
       .toHaveLength(0);
     expect(document.head.querySelectorAll("style[data-tk-style]"))

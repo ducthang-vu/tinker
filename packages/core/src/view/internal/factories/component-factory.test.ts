@@ -1,5 +1,5 @@
 import { ElementScope } from "../factories/element-scope.ts";
-import { tick } from "../test-support.ts";
+import { messageOf, tick } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, type Provider, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
@@ -22,6 +22,7 @@ import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { Maybe } from "@tinker/functional";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 /** A ComponentFactory created the way the engine creates it: through an injector. */
 function makeFactory(overrides: readonly Provider[] = []) {
@@ -54,17 +55,15 @@ function makeFactory(overrides: readonly Provider[] = []) {
 }
 
 describe("ComponentFactory", () => {
-  test("metadataOf gives the component's metadata, or throws", () => {
+  test("metadataOf gives the component's metadata, or an error", () => {
     @Component({ selector: "tk-a", template: "<p>a</p>" })
     class A {}
     class NotAComponent {}
     const { factory } = makeFactory();
-    expect(factory.metadataOf(A))
+    expect(valueOrThrow(factory.metadataOf(A)))
       .toEqual({ selector: "tk-a", template: "<p>a</p>" });
-    expect(() => factory.metadataOf(NotAComponent))
-      .toThrow(
-        "NotAComponent is not a component: decorate it with @Component",
-      );
+    expect(messageOf(factory.metadataOf(NotAComponent)))
+      .toBe("NotAComponent is not a component: decorate it with @Component");
   });
 
   test("create renders into the host and registers the view in the shared contexts", async () => {
@@ -73,7 +72,7 @@ describe("ComponentFactory", () => {
     const { factory, contexts } = makeFactory();
     const host = document.createElement("section");
 
-    const view = factory.create(A, host);
+    const view = valueOrThrow(factory.create(A, host));
 
     await tick();
 
@@ -92,7 +91,7 @@ describe("ComponentFactory", () => {
       readonly title = input<string>();
       readonly size = input(1);
     }
-    const view = makeFactory().factory.create(Card);
+    const view = valueOrThrow(makeFactory().factory.create(Card));
 
     view.setInput("title", "Hello");
 
@@ -108,7 +107,7 @@ describe("ComponentFactory", () => {
     @Component({ selector: "tk-a", template: "" })
     class A {}
     const { factory, contexts } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     view.destroy();
     await tick();
     expect(contexts.get(view.host)
@@ -120,7 +119,7 @@ describe("ComponentFactory", () => {
     @Component({ selector: "tk-b[flag]", template: "" })
     class B {}
     await tick();
-    expect(makeFactory().factory.create(B).host.outerHTML)
+    expect(valueOrThrow(makeFactory().factory.create(B)).host.outerHTML)
       .toBe(`<tk-b flag=""></tk-b>`);
   });
 });
@@ -138,7 +137,7 @@ describe("ComponentFactory host listeners", () => {
         this.open = !this.open;
       }
     }
-    const view = makeFactory().factory.create(Toggle);
+    const view = valueOrThrow(makeFactory().factory.create(Toggle));
     (view.host.querySelector("span") as HTMLElement).click(); // bubbles to the host
     await tick();
     expect(view.component.open)
@@ -166,7 +165,7 @@ describe("ComponentFactory view watch", () => {
       count = signal(1);
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     expect(scheduler.pending)
       .toBe(1);
     expect(view.host.innerHTML)
@@ -184,7 +183,7 @@ describe("ComponentFactory view watch", () => {
       count = signal(1);
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     scheduler.flush();
 
     view.component.count.set(2);
@@ -204,7 +203,7 @@ describe("ComponentFactory view watch", () => {
       b = signal("b");
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     scheduler.flush();
     const [first, second] = [...view.host.querySelectorAll("p")].map((p) => p.firstChild as Text);
     const writes: string[] = [];
@@ -234,7 +233,7 @@ describe("ComponentFactory view watch", () => {
       title = "Tinker";
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     scheduler.flush();
     view.component.title = "changed";
     await tick();
@@ -250,7 +249,7 @@ describe("ComponentFactory view watch", () => {
       readonly title = input("untitled");
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(Card);
+    const view = valueOrThrow(factory.create(Card));
     scheduler.flush();
     await tick();
     expect(view.host.textContent)
@@ -287,7 +286,7 @@ describe("ComponentFactory view watch", () => {
       };
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     scheduler.flush();
     view.component.fail.set(true);
     expect(() => scheduler.flush())
@@ -304,7 +303,7 @@ describe("ComponentFactory view watch", () => {
       count = signal(1);
     }
     const { factory, scheduler } = makeFactory();
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
     scheduler.flush();
     view.destroy();
     view.component.count.set(2);
@@ -351,7 +350,7 @@ describe("ComponentFactory collaborators", () => {
       provide(ComponentViewFactory, { useClass: RecordingViewFactory }),
     ]);
 
-    const view = factory.create(A);
+    const view = valueOrThrow(factory.create(A));
 
     await tick();
 
@@ -366,7 +365,7 @@ describe("the owner of a component's view", () => {
 
   test("a root component has no owner", async () => {
     const { factory } = makeFactory();
-    const view = factory.create(Owned, document.createElement("div"));
+    const view = valueOrThrow(factory.create(Owned, document.createElement("div")));
     await tick();
     expect(view.node.owner)
       .toBeUndefined();
@@ -375,7 +374,7 @@ describe("the owner of a component's view", () => {
   test("a component created with an owner is owned by that node", async () => {
     const { factory } = makeFactory();
     const owner: ViewNode = {};
-    const view = factory.create(Owned, document.createElement("div"), undefined, undefined, owner);
+    const view = valueOrThrow(factory.create(Owned, document.createElement("div"), undefined, undefined, owner));
     await tick();
     expect(view.node.owner)
       .toBe(owner);

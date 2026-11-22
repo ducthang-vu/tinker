@@ -6,6 +6,7 @@ import { ChangeDetectionLoopError } from "../runtime/change-detection.ts";
 import { Component } from "./decorators.ts";
 import { Effects } from "./effects.ts";
 import { AfterEachRender, AfterNextRender, RenderHooks } from "./render-hooks.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -16,8 +17,8 @@ test("RenderHooks only registers: running the hooks is not part of its API", () 
   class A {
     readonly render = inject(RenderHooks);
   }
-  const { render } = Engine.create()
-    .createComponent(A).instance;
+  const { render } = valueOrThrow(Engine.create()
+    .createComponent(A)).instance;
   // Registering, and onDestroy() (called by its injector, which only cancels): nothing runs hooks.
   // The class is wrapped by @final, so its methods are one prototype up: walk the chain.
   const names = new Set<string>();
@@ -44,7 +45,7 @@ describe("RenderHooks in change detection", () => {
       readonly count = signal(1);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     engine.flush();
     return { engine, view, component: view.instance };
   }
@@ -71,8 +72,8 @@ describe("RenderHooks in change detection", () => {
           .afterNextRender(() => seen.push(view.host.nativeElement.textContent!));
       }
     }
-    const view = Engine.create()
-      .createComponent(B);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(B));
     expect(seen)
       .toEqual([]); // not during create
     await Promise.resolve();
@@ -127,7 +128,7 @@ describe("RenderHooks in change detection", () => {
       }
     }
     const engine = Engine.create();
-    const { instance: component } = engine.createComponent(A);
+    const { instance: component } = valueOrThrow(engine.createComponent(A));
     engine.flush();
     component.count.set(2);
     engine.flush();
@@ -172,7 +173,7 @@ describe("@AfterEachRender() and @AfterNextRender()", () => {
       }
     }
     const engine = Engine.create();
-    const { instance: component } = engine.createComponent(A);
+    const { instance: component } = valueOrThrow(engine.createComponent(A));
     engine.flush(); // the hooks run for the first render, made during create
     component.count.set(2);
     engine.flush();
@@ -205,7 +206,7 @@ describe("RenderHooks lifetime", () => {
       readonly count = signal(1);
     }
     const engine = Engine.create();
-    const { instance: component } = engine.createComponent(A);
+    const { instance: component } = valueOrThrow(engine.createComponent(A));
     engine.flush();
     const cancelNext = component.render.afterNextRender(() => runs.push("next"));
     component.render.afterEachRender(() => runs.push("each"));

@@ -6,6 +6,7 @@ import { model } from "./model.ts";
 import { outputsOf } from "./output.ts";
 import { Engine } from "../engine.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 /** Subscribe to the `valueChange` output of `owner`, recording the values. */
 function hear(owner: object): unknown[] {
@@ -117,7 +118,7 @@ describe("two-way binding in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Form);
+    const view = valueOrThrow(engine.createComponent(Form));
     const itemHost = view.host.nativeElement.querySelector("tk-item")!;
     const item = Maybe.map(
       Maybe.flatMap(engine.getContext(itemHost), (context) => context.componentView),
@@ -183,7 +184,7 @@ describe("two-way binding in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const [pick] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives)
       .getOrElse([]) as [Pick];
     expect(pick!.value())

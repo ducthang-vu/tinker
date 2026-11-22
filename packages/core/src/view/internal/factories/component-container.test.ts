@@ -11,6 +11,7 @@ import { Effects } from "../authoring/effects.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementRef as ElementRefToken } from "../runtime/element-ref.ts";
 import { ViewContainerRef } from "../runtime/view-container-ref.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 @Injectable()
 class ListStore {
@@ -50,7 +51,7 @@ describe("a component's ViewContainerRef", () => {
     const el = document.createElement("section");
     wrapper.append(el);
     document.body.append(wrapper);
-    const app = bootstrap(List, { host: el });
+    const app = valueOrThrow(bootstrap(List, { host: el }));
     await tick();
     app.root.instance.add();
     await tick();
@@ -72,7 +73,7 @@ describe("a component's ViewContainerRef", () => {
     const el = document.createElement("section");
     wrapper.append(el);
     document.body.append(wrapper);
-    const app = bootstrap(List, { host: el });
+    const app = valueOrThrow(bootstrap(List, { host: el }));
     await tick();
     app.root.instance.add();
     expect(wrapper.querySelectorAll("li"))

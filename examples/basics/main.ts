@@ -13,12 +13,13 @@
 // selector in index.html, and each is its own engine.
 
 import { bootstrap } from "@tinker/core";
+import { valueOrThrow } from "@tinker/functional/v1";
 import { Clock } from "./clock.ts";
 import { Counter } from "./counter.ts";
 import { Patterns } from "./patterns.ts";
 import { Todos } from "./todos.ts";
 
-bootstrap(Counter);
-bootstrap(Clock);
-bootstrap(Todos);
-bootstrap(Patterns);
+valueOrThrow(bootstrap(Counter));
+valueOrThrow(bootstrap(Clock));
+valueOrThrow(bootstrap(Todos));
+valueOrThrow(bootstrap(Patterns));

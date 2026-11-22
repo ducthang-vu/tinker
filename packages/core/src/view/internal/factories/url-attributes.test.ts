@@ -19,7 +19,7 @@ function attributeFor(attribute: string, value: string | null): string | null {
   }
   const el = document.createElement("section");
   const engine = Engine.create();
-  const app = engine.bootstrap(Link, el);
+  const app = valueOrThrow(engine.bootstrap(Link, el));
   engine.flush();
   const result = el.querySelector("a")!.getAttribute(attribute);
   app.destroy();
@@ -56,7 +56,7 @@ describe("host attribute bindings to URL attributes", () => {
     @Component({ selector: "tk-links", template: "<a link>x</a>", imports: [Link] })
     class Links {}
     const engine = Engine.create();
-    const view = engine.createComponent(Links);
+    const view = valueOrThrow(engine.createComponent(Links));
     const a = view.host.nativeElement.querySelector("a")!;
     engine.flush();
     expect(a.getAttribute("href"))
@@ -86,7 +86,7 @@ describe("host attribute bindings to URL attributes", () => {
     }
     const el = document.createElement("section");
     const engine = Engine.create();
-    const app = engine.bootstrap(Card, el);
+    const app = valueOrThrow(engine.bootstrap(Card, el));
     engine.flush();
     expect(el.hasAttribute("href"))
       .toBe(false);

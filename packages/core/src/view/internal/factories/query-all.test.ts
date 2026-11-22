@@ -3,6 +3,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, ElementRef, input, queryAll } from "../../index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 @Component({
   selector: "tk-item",
@@ -33,7 +34,7 @@ describe("queryAll", () => {
       readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
-    const app = bootstrap(List, { host: el });
+    const app = valueOrThrow(bootstrap(List, { host: el }));
     await tick();
     expect(app.root.instance.items()
       .map((item) => item.label()))
@@ -52,7 +53,7 @@ describe("queryAll", () => {
       readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Rows, { host: el });
+    const app = valueOrThrow(bootstrap(Rows, { host: el }));
     await tick();
     const shown = () => app.root.instance.items()
       .map((item) => item.label());
@@ -80,7 +81,7 @@ describe("queryAll", () => {
       readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Branch, { host: el });
+    const app = valueOrThrow(bootstrap(Branch, { host: el }));
     await tick();
     expect(app.root.instance.items()
       .map((item) => item.label()))
@@ -102,7 +103,7 @@ describe("queryAll", () => {
       readonly marks = queryAll(Mark);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Marks, { host: el });
+    const app = valueOrThrow(bootstrap(Marks, { host: el }));
     await tick();
     expect(app.root.instance.marks())
       .toHaveLength(2);
@@ -121,7 +122,7 @@ describe("queryAll", () => {
       readonly items = queryAll(Item);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Outer, { host: el });
+    const app = valueOrThrow(bootstrap(Outer, { host: el }));
     await tick();
     expect(app.root.instance.items())
       .toEqual([]);
@@ -139,7 +140,7 @@ describe("queryAll", () => {
       readonly elements = queryAll(Item, { read: ElementRef });
     }
     const el = document.createElement("section");
-    const app = bootstrap(Elements, { host: el });
+    const app = valueOrThrow(bootstrap(Elements, { host: el }));
     await tick();
     const tags = () => app.root.instance.elements()
       .map((ref) => ref.nativeElement.tagName);

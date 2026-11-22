@@ -5,6 +5,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -31,7 +32,7 @@ describe("input bindings", () => {
       readonly name = signal("Milk");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const span = view.host.nativeElement.querySelector("span")!;
     await tick();
     expect(span.textContent)
@@ -56,7 +57,7 @@ describe("input bindings", () => {
       readonly hint = signal("save");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const [tooltip] = instancesOn(engine, view.host.nativeElement.querySelector("button")!) as [Tooltip];
     await tick();
     expect(tooltip.shout())
@@ -108,7 +109,7 @@ describe("input bindings", () => {
       readonly other = "Bread";
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const [labelled, item] = instancesOn(engine, view.host.nativeElement.querySelector("tk-item")!) as [Labelled, Item];
     await tick();
     expect([labelled.label(), item.label()])
@@ -129,7 +130,7 @@ describe("input bindings", () => {
       readonly width = "200";
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     engine.flush();
     expect(view.host.nativeElement.querySelector("tk-box")!.textContent)
       .toBe("200");
@@ -155,7 +156,7 @@ describe("input bindings", () => {
       readonly name = signal("Milk");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     await tick();
     expect(childRenders)
       .toBe(1);

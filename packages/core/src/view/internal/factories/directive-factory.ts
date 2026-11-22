@@ -32,7 +32,7 @@ import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
 import type { View } from "../runtime/view.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { type Either, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 @Injectable()
 export class DirectiveFactory {
@@ -44,12 +44,13 @@ export class DirectiveFactory {
   /** Parsed host bindings, per class: each `host` option is parsed only once. */
   private readonly hostBindings = new WeakMap<Class<unknown>, HostBindings>();
 
-  /** The @Directive metadata of `type` (components included). Throws if it is not a directive. */
-  metadataOf(type: Class<unknown>): DirectiveMetadata {
+  /** The @Directive metadata of `type` (components included), or an error if it is not one. */
+  metadataOf(type: Class<unknown>): Either<DirectiveMetadata, Error> {
     return getDirectiveMetadata(type)
-      .getOrThrow(
-        () => new Error(`${type.name} is not a directive: decorate it with @Directive`),
-      );
+      .match({
+        some: (metadata) => Right.of(metadata),
+        none: () => Left.of(new Error(`${type.name} is not a directive: decorate it with @Directive`)),
+      });
   }
 
   /**
@@ -83,7 +84,7 @@ export class DirectiveFactory {
       providers: [
         ...types,
         ...this.elementScope.providers(placement, () => elementInjector.injector, view),
-        ...types.flatMap((type) => this.metadataOf(type).providers ?? []),
+        ...types.flatMap((type) => valueOrThrow(this.metadataOf(type)).providers ?? []),
       ],
       parent,
     });
@@ -114,7 +115,7 @@ export class DirectiveFactory {
    * bindings. Its outputs are over with it, and its inputs are its own.
    */
   private attachToAnchor<T extends object>(type: Class<T>, instance: T, view: View): Binding[] {
-    if (Object.keys(this.metadataOf(type).host ?? {}).length > 0) {
+    if (Object.keys(valueOrThrow(this.metadataOf(type)).host ?? {}).length > 0) {
       throw new Error(`${type.name} has host bindings, so it needs an element: it cannot be on <tk-container>`);
     }
     view.addDestroyCallback(partial(endOutputs, instance));
@@ -174,7 +175,8 @@ export class DirectiveFactory {
     if (!bindings) {
       // The view builder above this call does not return errors yet, so an invalid host
       // option is thrown here, where the directive is first used. (See IMPROVEMENTS.md.)
-      bindings = valueOrThrow(HostBindings.parse(this.metadataOf(type).host));
+      const metadata = valueOrThrow(this.metadataOf(type));
+      bindings = valueOrThrow(HostBindings.parse(metadata.host));
       this.hostBindings.set(type, bindings);
     }
     return bindings;

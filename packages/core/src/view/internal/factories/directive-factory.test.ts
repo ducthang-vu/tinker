@@ -18,6 +18,7 @@ import { ComponentView } from "../runtime/component-view.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 /** A DirectiveFactory created the way the engine creates it: through an injector. */
 function setup() {
@@ -141,7 +142,7 @@ describe("DirectiveFactory", () => {
     class X {
       go() {}
     }
-    expect(setup().factory.metadataOf(X).host)
+    expect(valueOrThrow(setup().factory.metadataOf(X)).host)
       .toEqual({ "(click)": "go()" });
   });
 
