@@ -60,6 +60,7 @@ import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
+import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
 import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ElementScope } from "./element-scope.ts";
@@ -412,14 +413,15 @@ export class ComponentFactory {
   /**
    * The compiled template of `type`, its elements matched against the
    * directives it imports: compiled on first use, then cached per class.
-   * A precompiled tree is used as it is, so CLASS_REPLACEMENTS does not apply to it.
+   * A precompiled tree names the real classes, so CLASS_REPLACEMENTS is applied to it.
    */
   private templateOf(type: Class<unknown>, metadata: ComponentMetadata): readonly CompiledNode[] {
     let nodes = this.templates.get(type);
     if (!nodes) {
       nodes = typeof metadata.template === "string"
         ? this.compileSource(metadata.template, type, metadata)
-        : metadata.template;
+        : replaceClasses(metadata.template, (declared) =>
+            this.replacements.get(declared) ?? declared);
       this.templates.set(type, nodes);
     }
     return nodes;
