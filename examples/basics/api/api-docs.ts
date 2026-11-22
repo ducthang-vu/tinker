@@ -55,7 +55,7 @@ export class DocBody {
     <h2>Public API</h2>
     <p>
       Generated from the TSDoc of each package's public exports by
-      <code>npm run docs:api</code>. Items marked <code>@privateAPI</code> are listed.
+      <code>npm run docs:api</code>. Items marked <code>@privateAPI</code> are left out.
     </p>
     <nav>
       @map sections; let section {

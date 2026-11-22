@@ -8,9 +8,10 @@
 //
 // Tags:
 // - `@deprecated` and `@final` are shown (`final` marks a class that cannot be subclassed).
-// - `@privateAPI`, `@protected` and `@public` are read and not shown as tags.
-// - `@internal` hides the item, as does a `private` or `#private` member. A `protected`
-//   member is not part of the API an app uses, so it is not listed either.
+// - `@privateAPI` and `@internal` hide the item (an export or a member).
+// - `@protected` and `@public` are read and not shown as tags.
+// - A `private` or `#private` member, and a `protected` one, are not listed: they are not
+//   part of the API an app uses.
 //
 // `npm run docs:api` writes examples/basics/api/api-reference.json; `--check` fails when the
 // file is out of date (`npm test` runs it), as `repo-map:check` does.
@@ -77,6 +78,7 @@ function readDoc(symbol, checker) {
     see: [],
     throws: [],
     internal: false,
+    privateApi: false,
   };
   for (const tag of symbol.getJsDocTags(checker)) {
     const text = ts.displayPartsToString(tag.text ?? [])
@@ -107,8 +109,11 @@ function readDoc(symbol, checker) {
       case "internal":
         doc.internal = true;
         break;
+      case "privateAPI":
+        doc.privateApi = true;
+        break;
       default:
-        // @privateAPI, @protected, @public and any other tag: read, not shown.
+        // @protected, @public and any other tag: read, not shown.
         break;
     }
   }
@@ -169,8 +174,9 @@ function ownMembers(properties, symbol) {
   });
 }
 
+/** Whether the item is left out of the reference: marked @internal or @privateAPI. */
 function isHidden(declaration, doc) {
-  if (doc.internal) return true;
+  if (doc.internal || doc.privateApi) return true;
   const modifiers = ts.getCombinedModifierFlags(declaration);
   if (modifiers & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected)) return true;
   return declaration.name !== undefined && ts.isPrivateIdentifier(declaration.name);
@@ -240,7 +246,7 @@ function describeExport(exported, checker, rootDir) {
     : exported;
   const declaration = symbol.declarations?.[0];
   const doc = readDoc(symbol, checker);
-  if (declaration === undefined || doc.internal) return undefined;
+  if (declaration === undefined || isHidden(declaration, doc)) return undefined;
 
   const kind = kindOf(symbol);
   const item = {

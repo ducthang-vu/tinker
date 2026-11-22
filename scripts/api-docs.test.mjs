@@ -42,6 +42,7 @@ const LIBRARY = {
     "export { Mode } from \"./helpers.ts\";",
     "export { Frozen } from \"./helpers.ts\";",
     "export { Tagged } from \"./helpers.ts\";",
+    "export { Shown } from \"./helpers.ts\";",
     "export const VERSION = \"1.0\";",
     "",
   ].join("\n"),
@@ -96,8 +97,10 @@ const LIBRARY = {
     "export enum Mode { On = 1, Off = 2 }",
     "/** @final @deprecated Replaced by `Counter`. */",
     "export interface Frozen { readonly value: number }",
-    "/** @privateAPI @public @protected Tags read but not shown. */",
+    "/** @privateAPI Not for apps: left out of the reference. */",
     "export const Tagged = 1;",
+    "/** @public @protected Read, not shown as tags. */",
+    "export const Shown = 2;",
     "",
   ].join("\n"),
   "packages/demo/src/extra.ts": "/** An extra export. */\nexport const extra = true;\n",
@@ -161,12 +164,12 @@ test("shows @final and @deprecated, and reads the ignored tags without showing t
     assert.equal(byName.Frozen.final, true);
     assert.equal(byName.Frozen.deprecated, "Replaced by `Counter`.");
 
-    // @privateAPI, @protected and @public are not fields of the output.
-    assert.equal(byName.Tagged.privateAPI, undefined);
-    assert.equal(byName.Tagged.protected, undefined);
-    assert.equal(byName.Tagged.public, undefined);
+    // @privateAPI hides the export; @public and @protected are not fields of the output.
+    assert.equal(byName.Tagged, undefined);
+    assert.equal(byName.Shown.public, undefined);
+    assert.equal(byName.Shown.protected, undefined);
     // The text after a tag belongs to that tag, so this comment has no description.
-    assert.equal(byName.Tagged.description, "");
+    assert.equal(byName.Shown.description, "");
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }
@@ -179,7 +182,8 @@ test("lists public members, hides @internal, private and protected ones", () => 
       .find((item) => item.name === "Counter");
     const names = counter.members.map((member) => member.name);
 
-    assert.deepEqual(names, ["count", "add", "peek", "created"]);
+    // peek is @privateAPI, so it is left out with the private and protected members.
+    assert.deepEqual(names, ["count", "add", "created"]);
     const add = counter.members.find((member) => member.name === "add");
     assert.equal(add.kind, "method");
     assert.deepEqual(add.signatures, ["add(amount: number): number"]);
