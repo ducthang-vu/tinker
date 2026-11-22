@@ -139,9 +139,14 @@ function parseListener(key: string, handler: string): Either<HostListener, Error
   return pipe(
     source,
     flatMap((name) => parseEventName(name, `host listener "${key}"`)),
-    flatMap((listener) => pipe(
-      parseHandler(handler, "host handler"),
-      map((parsed: Handler) => ({ ...listener, handler: parsed })),
-    )),
+    flatMap((listener) => withHandler(listener, handler)),
   );
+}
+
+/** `listener` with its handler parsed from `handler` (the source of a method call). */
+function withHandler<L extends object>(
+  listener: L,
+  handler: string,
+): Either<L & { readonly handler: Handler }, Error> {
+  return map(parseHandler(handler, "host handler"), (parsed: Handler) => ({ ...listener, handler: parsed }));
 }

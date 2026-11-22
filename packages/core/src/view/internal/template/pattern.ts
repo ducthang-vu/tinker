@@ -324,8 +324,15 @@ function objectPattern(text: string): Parsed<Pattern> {
   }
   const entries = splitTopLevel(text.slice(1, -1))
     .filter((entry) => entry.trim() !== "");
-  return flatMap(fieldsOf(entries, []), (fields): Parsed<Pattern> =>
-    map(distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text), () => ({ kind: "object", fields })));
+  return flatMap(fieldsOf(entries, []), (fields) => objectOf(fields, text));
+}
+
+/** An object pattern of `fields`, if no name is bound twice. */
+function objectOf(fields: readonly Field[], text: string): Parsed<Pattern> {
+  return map(
+    distinctNames(fields.flatMap((field) => namesOf(field.pattern)), text),
+    (): Pattern => ({ kind: "object", fields }),
+  );
 }
 
 /** The fields of an object pattern, one entry at a time: each key must be new. */
@@ -397,10 +404,16 @@ function arrayPattern(text: string): Parsed<Pattern> {
   if (entries.at(-1) === "") {
     entries.pop();
   }
-  return flatMap(arrayItems(entries, text, []), ({ items, rest }): Parsed<Pattern> => {
-    const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
-    return map(distinctNames(namesOf(pattern), text), () => pattern);
-  });
+  return flatMap(arrayItems(entries, text, []), (parts) => arrayOf(parts, text));
+}
+
+/** An array pattern of `parts` (its items, and its rest name), if no name is bound twice. */
+function arrayOf(
+  { items, rest }: { readonly items: readonly Pattern[]; readonly rest: string | undefined },
+  text: string,
+): Parsed<Pattern> {
+  const pattern: Pattern = rest === undefined ? { kind: "array", items } : { kind: "array", items, rest };
+  return map(distinctNames(namesOf(pattern), text), () => pattern);
 }
 
 /** The items of an array pattern, and the rest name if its last entry is one. */

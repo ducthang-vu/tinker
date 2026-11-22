@@ -42,9 +42,12 @@ const BLOCK_START = /@(else\s+if|if|else|match|case|default|map)(?![\w$])/y;
 
 /** The items of a list of nodes: blocks nested by braces, `@else`s attached to their `@if`. */
 export function itemsOf(nodes: readonly TemplateNode[]): Parsed<readonly Item[]> {
-  return flatMap(tokensOf(nodes), (tokens) =>
-    map(read(tokens, { position: 0, closed: undefined }, undefined), (items) =>
-      attachElses(items)));
+  return flatMap(tokensOf(nodes), (tokens) => itemsOfTokens(tokens));
+}
+
+/** The items of the tokens, with each `@else` attached to its `@if`. */
+function itemsOfTokens(tokens: readonly Token[]): Parsed<readonly Item[]> {
+  return map(read(tokens, { position: 0, closed: undefined }, undefined), attachElses);
 }
 
 /** The tokens of every node, in order: the first failure stops the rest. */
