@@ -294,9 +294,22 @@ markup is shown as written: a `{@link X}` may appear as text, and lists, heading
 are not rendered. Spaces around a code span are also wrong when the text is next to a
 punctuation mark, such as "`inject(Injector)` , the token".
 
-**To do.** Render the TSDoc inline tags (`{@link}`) as links to the reference anchors, and
-fix the template whitespace in `api-docs.ts` (`DocBody`) so a code span has no space before
-the text after it.
+**What was tried.** The spaces are not in the data: each paragraph's parts are rendered
+by a `@map` loop in `DocBody`, and the engine keeps the whitespace-only text between the
+rows as text, as HTML does. Two template changes were tried and reverted:
+
+- Removing the spaces inside the `@if` and `@else` braces: the spaces between rows stayed.
+- Putting the loop body on one line: the spaces went, but the rows came out in reverse order
+  (`.`, `create()`, `, then`, `inject(Injector)`, `Use`), even with `track $index`.
+
+The reverse order is a bug in the engine's `@map` row placement when a row has no whitespace
+around it; it is not specific to this page. A regression test (a paragraph with two code spans,
+checked for its exact text) reproduces the spaces.
+
+**To do.** Fix the engine's `@map` for rows without surrounding whitespace first (it is the
+cause of the reverse order), then drop the whitespace between the rows in `DocBody`. Or render
+each paragraph as one element, with the code spans as children it places by position. Also
+render the TSDoc inline tags (`{@link}`) as links to the reference anchors.
 
 ### 2. Inherited members are not listed
 
