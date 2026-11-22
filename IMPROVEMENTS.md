@@ -300,3 +300,32 @@ matching its Left and throwing, and the error is thrown there instead of being r
 **To do.** Make the view builder (`template-builder.ts` and its callers) return an `Either`
 for the directive's bindings, so the caller that creates the directive decides what to do
 with the error. This follows from converting the template compiler to `Either`.
+
+## API reference (`scripts/api-docs.mjs`, `examples/basics/api/`)
+
+### 1. Descriptions are plain text with code spans and fences
+
+**Problem.** The page shows TSDoc as paragraphs, `code spans` and fenced code blocks. Other
+markup is shown as written: a `{@link X}` may appear as text, and lists, headings and links
+are not rendered. Spaces around a code span are also wrong when the text is next to a
+punctuation mark, such as "`inject(Injector)` , the token".
+
+**To do.** Render the TSDoc inline tags (`{@link}`) as links to the reference anchors, and
+fix the template whitespace in `api-docs.ts` (`DocBody`) so a code span has no space before
+the text after it.
+
+### 2. Inherited members are not listed
+
+**Problem.** A class's members are listed only where it declares them. A member a class
+inherits from its base class is missing from the subclass's entry.
+
+**To do.** Include inherited public members, marked with the class they come from, if the
+reference should be complete for subclasses.
+
+### 3. The public index and `@privateAPI`
+
+**Problem.** `@privateAPI` items are left out of the reference, but they stay exported from
+the package index (`packages/core/src/view/index.ts`), so an app can still import them.
+
+**To do.** Move them out of the public index, or keep them there and accept that the
+reference does not show them.
