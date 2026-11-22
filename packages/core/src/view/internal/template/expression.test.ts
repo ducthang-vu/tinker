@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { type Expression, ExpressionParser } from "./expression.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 /** Parse, failing the test on an error. */
 function parse(source: string): Expression {

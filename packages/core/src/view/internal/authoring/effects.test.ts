@@ -4,7 +4,7 @@ import { signal } from "../../../signals/index.ts";
 import { Engine } from "../engine.ts";
 import { Component } from "./decorators.ts";
 import { Effect, type EffectContext, Effects } from "./effects.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

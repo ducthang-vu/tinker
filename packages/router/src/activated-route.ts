@@ -6,7 +6,7 @@
 import { } from "@tinker/core";
 import type { RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
-import { Some, None, match, type Maybe } from "@tinker/functional/v1";
+import { Some, None, match, type Maybe } from "@tinker/functional";
 
 export class ActivatedRoute {
   /** The path of this level: the segments of every level from the root down to it. */

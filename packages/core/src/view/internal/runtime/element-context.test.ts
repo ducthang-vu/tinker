@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { ElementContext } from "./element-context.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "./component-view.ts";
-import { isNone, getOrElse } from "@tinker/functional/v1";
+import { isNone, getOrElse } from "@tinker/functional";
 
 const element = () => document.createElement("div");
 const view = () => new ComponentView(element(), {}, [], new DomRenderer(), {});

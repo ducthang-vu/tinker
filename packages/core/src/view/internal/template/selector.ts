@@ -15,7 +15,7 @@
 // when it matches none. Names are compared case-insensitively: the browser's
 // parser lowercases tag and attribute names.
 
-import { type Either, Left, Right, flatMap, map, match } from "@tinker/functional/v1";
+import { type Either, Left, Right, flatMap, map, match } from "@tinker/functional";
 import { eachOf } from "../../../utils/each-of.ts";
 
 /** A selector that is not supported: what is wrong with it. */

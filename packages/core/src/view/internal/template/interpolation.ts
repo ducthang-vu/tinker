@@ -8,7 +8,7 @@
 // `{{` has one string and no expressions.
 
 import { type Expression, ExpressionParser } from "./expression.ts";
-import { Left, map, sequence, type Either } from "@tinker/functional/v1";
+import { Left, map, sequence, type Either } from "@tinker/functional";
 
 export interface Interpolation {
   readonly strings: readonly string[];

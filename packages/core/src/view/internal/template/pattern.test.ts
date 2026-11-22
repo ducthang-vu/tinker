@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { namesOf, parsePattern, splitGuard } from "./pattern.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 describe("parsePattern", () => {
   test("an array pattern needs its closing ]", () => {

@@ -3,7 +3,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 describe("@if and @else", () => {
   test("shows its body when the condition is truthy, and nothing when it is not", async () => {

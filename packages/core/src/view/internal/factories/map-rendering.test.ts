@@ -4,7 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 /** The text of each row's element, in the page's order. */
 function rows(el: HTMLElement): string[] {

@@ -5,7 +5,7 @@ import { Location } from "./location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "./platform-location.ts";
 import { NoRouteError, Router } from "./router.ts";
 import type { Route } from "./route.ts";
-import { match, isNone, getOrThrow } from "@tinker/functional/v1";
+import { match, isNone, getOrThrow } from "@tinker/functional";
 
 /** A platform location that starts at `url`, and records the entries the router adds. */
 function fakePlatform(url: string) {

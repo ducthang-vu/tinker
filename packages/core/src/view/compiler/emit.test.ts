@@ -4,7 +4,7 @@ import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { compileSource, type ImportedSelector } from "./compile-source.ts";
 import { emitCompiled as emitCompiledEither } from "./emit.ts";
-import { match, map, Left, Right, valueOrThrow, Some, None, type Maybe } from "@tinker/functional/v1";
+import { match, map, Left, Right, valueOrThrow, Some, None, type Maybe } from "@tinker/functional";
 
 class Item {}
 class Card {}

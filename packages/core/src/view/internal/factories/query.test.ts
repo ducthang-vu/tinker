@@ -6,7 +6,7 @@ import { Component, ElementRef, input, QueryMissingError, query, queryAll } from
 import { Engine } from "../engine.ts";
 import { CLASS_REPLACEMENTS } from "../tokens.ts";
 import { provide } from "../../../di/index.ts";
-import { valueOrThrow, isNone, getOrThrow, map, match } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrThrow, map, match } from "@tinker/functional";
 
 @Component({
   selector: "tk-first-item",

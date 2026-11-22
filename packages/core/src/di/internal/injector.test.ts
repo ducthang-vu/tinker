@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { InjectionToken, type Token } from "./inject.ts";
 import { INJECTOR, Injector } from "./injector.ts";
-import { type Either, match, valueOrThrow } from "@tinker/functional/v1";
+import { type Either, match, valueOrThrow } from "@tinker/functional";
 
 const USER_SERVICE = new InjectionToken<UserService>("UserService");
 class UserService {

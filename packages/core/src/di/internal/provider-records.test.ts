@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { InjectionToken, type Token } from "./inject.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 import {
   CircularDependencyError,
   type CreationHooks,

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ComponentRef } from "../component-ref.ts";
-import { Left, valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional/v1";
+import { Left, valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional";
 import { messageOf } from "../test-support.ts";
 
 let tracked = 0;

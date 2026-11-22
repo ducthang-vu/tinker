@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 test("a DOM handler gets arguments, including a field of $event", () => {
   const calls: unknown[][] = [];

@@ -1,4 +1,4 @@
-import { Left, Right, type Either } from "@tinker/functional/v1";
+import { Left, Right, type Either } from "@tinker/functional";
 // Event modifiers: what a DOM event listener does around its handler.
 //
 //   (click.self.prevent)="go()"      in a template

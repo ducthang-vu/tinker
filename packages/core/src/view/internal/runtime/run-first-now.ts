@@ -15,7 +15,7 @@
 //   firstRun.failure.ifSome((error) => { cleanUp(); throw error; });
 
 import type { Runnable, WatchScheduler } from "../../../signals/index.ts";
-import { match, type Either, Left, Right, attempt, Some, None, type Maybe } from "@tinker/functional/v1";
+import { match, type Either, Left, Right, attempt, Some, None, type Maybe } from "@tinker/functional";
 
 export class RunFirstNow implements WatchScheduler {
   private first = true;

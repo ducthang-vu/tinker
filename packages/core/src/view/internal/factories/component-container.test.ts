@@ -11,7 +11,7 @@ import { Effects } from "../authoring/effects.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementRef as ElementRefToken } from "../runtime/element-ref.ts";
 import { ViewContainerRef } from "../runtime/view-container-ref.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 @Injectable()
 class ListStore {

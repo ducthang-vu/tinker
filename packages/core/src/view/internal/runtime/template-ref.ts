@@ -5,7 +5,7 @@
 // closure does.
 
 import type { Injector } from "../../../di/index.ts";
-import { type Either, Left, map, Right, sequence } from "@tinker/functional/v1";
+import { type Either, Left, map, Right, sequence } from "@tinker/functional";
 import { type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";

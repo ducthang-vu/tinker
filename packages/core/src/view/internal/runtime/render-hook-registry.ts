@@ -4,7 +4,7 @@
 
 import { Injectable } from "../../../di/index.ts";
 import { runAll } from "../../../utils/run-all.ts";
-import { run, type Cancel } from "@tinker/functional/v1";
+import { run, type Cancel } from "@tinker/functional";
 
 @Injectable()
 export class RenderHookRegistry {

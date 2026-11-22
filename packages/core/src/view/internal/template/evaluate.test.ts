@@ -3,7 +3,7 @@ import { signal } from "../../../signals/index.ts";
 import { evaluate, print } from "./evaluate.ts";
 import { ExpressionParser } from "./expression.ts";
 import { Scope } from "./scope.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const run = (source: string, component: object) =>
   evaluate(valueOrThrow(ExpressionParser.parse(source)), new Scope(component));

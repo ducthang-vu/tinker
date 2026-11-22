@@ -4,7 +4,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { AttributeBinding } from "./attribute-binding.ts";
 import { Scope } from "../template/scope.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const parse = (source: string) => valueOrThrow(ExpressionParser.parse(source));
 

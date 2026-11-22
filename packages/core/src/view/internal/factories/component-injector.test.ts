@@ -6,7 +6,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Effect, Effects } from "../authoring/effects.ts";
 import { AfterEachRender, RenderHooks } from "../authoring/render-hooks.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow, getOrElse, map } from "@tinker/functional/v1";
+import { valueOrThrow, getOrElse, map } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

@@ -42,14 +42,10 @@ export const workspaceAlias = [
     find: /^@tinker\/core\/compiler$/,
     replacement: new URL("./packages/core/src/view/compiler/index.ts", import.meta.url).pathname,
   },
-  // The v1 subpaths of packages/functional's "exports" field.
+  // The subpath of packages/functional's "exports" field.
   {
-    find: /^@tinker\/functional\/v1\/testing$/,
-    replacement: new URL("./packages/functional/src/v1/testing.ts", import.meta.url).pathname,
-  },
-  {
-    find: /^@tinker\/functional\/v1$/,
-    replacement: new URL("./packages/functional/src/v1/public-api.ts", import.meta.url).pathname,
+    find: /^@tinker\/functional\/testing$/,
+    replacement: new URL("./packages/functional/src/testing.ts", import.meta.url).pathname,
   },
   {
     find: /^@tinker\/(.+)$/,

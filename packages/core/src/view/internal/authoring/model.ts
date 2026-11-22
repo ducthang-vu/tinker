@@ -26,7 +26,7 @@
 import type { ReadonlySignal } from "../../../signals/index.ts";
 import { InputBinding, type InputSignal, registerInput } from "./input.ts";
 import { registerChangeOutput } from "./output.ts";
-import { Some, None, isSome, filter, Emitter } from "@tinker/functional/v1";
+import { Some, None, isSome, filter, Emitter } from "@tinker/functional";
 
 /** A model: readable as a signal, and writable by its owner. */
 export interface ModelSignal<T> extends InputSignal<T> {

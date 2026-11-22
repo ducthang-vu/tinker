@@ -5,7 +5,7 @@ import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { HostBindings } from "./host-bindings.ts";
-import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional";
 
 /** Render `<a [attr.name]="value()">` for `value`, and return the attribute `attribute`. */
 function attributeFor(attribute: string, value: string | null): string | null {

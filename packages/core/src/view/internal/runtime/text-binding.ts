@@ -14,7 +14,7 @@ import { InputBinder } from "./input-binder.ts";
 import { StyleBinding } from "./style-binding.ts";
 import { RENDERER } from "../tokens.ts";
 import type { Scope } from "../template/scope.ts";
-import { Some, None, isNone, filter } from "@tinker/functional/v1";
+import { Some, None, isNone, filter } from "@tinker/functional";
 
 /**
  * Creates the bindings of templates, with the app's renderer. One method

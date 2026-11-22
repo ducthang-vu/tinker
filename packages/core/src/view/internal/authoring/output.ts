@@ -18,7 +18,7 @@
 // Output names match case-insensitively, since the browser's parser lowercases
 // attribute names. Outputs of components are not supported yet.
 
-import { Some, None, fromNullable, match, use, Emitter } from "@tinker/functional/v1";
+import { Some, None, fromNullable, match, use, Emitter } from "@tinker/functional";
 
 /** What a directive emits through: it can emit, and nothing else. */
 export interface Output<T> {

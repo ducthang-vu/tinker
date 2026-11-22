@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { InjectionToken, type Token } from "../inject.ts";
 import { Injector } from "../injector.ts";
 import { currentInjector, runInInjectionContext } from "./current-injector.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 const API_URL = new InjectionToken<string>("API_URL");
 

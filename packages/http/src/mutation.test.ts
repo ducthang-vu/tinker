@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Injector, provide, runInInjectionContext, resource, type Task, type Provider } from "@tinker/core";
 import { tick } from "../../core/src/view/internal/test-support.ts";
-import { succeed } from "@tinker/functional/v1";
+import { succeed } from "@tinker/functional";
 import {
   FetchHttpBackend,
   HTTP_BACKEND,

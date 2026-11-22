@@ -6,8 +6,8 @@
 
 import { afterEach, describe, expect, test } from "vitest";
 import { tick } from "./internal/test-support.ts";
-import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt, Some, None, fromNullable, getOrElse, flatMap } from "@tinker/functional/v1";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt, Some, None, fromNullable, getOrElse, flatMap } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional";
 import {
   bootstrap,
   Component,

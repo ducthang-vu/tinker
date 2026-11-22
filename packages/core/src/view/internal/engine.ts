@@ -31,7 +31,7 @@ import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ComponentView, ComponentViewFactory } from "./runtime/component-view.ts";
 import { ComponentRef, refOf } from "./component-ref.ts";
-import { type Either, flatMap, Left, map, Right, Some, None, fromNullable, match, use, type Maybe } from "@tinker/functional/v1";
+import { type Either, flatMap, Left, map, Right, Some, None, fromNullable, match, use, type Maybe } from "@tinker/functional";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
 import { Effects } from "./authoring/effects.ts";

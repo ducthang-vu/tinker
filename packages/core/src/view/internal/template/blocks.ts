@@ -14,7 +14,7 @@
 import type { Span, TemplateNode, TextNode } from "./ast.ts";
 import { compileError, located, type Parsed } from "./compile-error.ts";
 import { blankRegexes, QuoteTracker } from "./pattern.ts";
-import { flatMap, Left, map, match, mapLeft, Right, sequence } from "@tinker/functional/v1";
+import { flatMap, Left, map, match, mapLeft, Right, sequence } from "@tinker/functional";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 

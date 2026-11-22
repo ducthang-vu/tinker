@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { tick } from "../view/internal/test-support.ts";
 import { resource } from "./resource.ts";
 import { mutation } from "./mutation.ts";
-import { succeed, fail, run } from "@tinker/functional/v1";
+import { succeed, fail, run } from "@tinker/functional";
 
 /** A promise the test settles by hand. */
 function deferred<T>() {

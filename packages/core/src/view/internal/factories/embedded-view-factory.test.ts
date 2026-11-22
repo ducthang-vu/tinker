@@ -16,7 +16,7 @@ import { ComponentFactory } from "./component-factory.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateBuilderFactory } from "./template-builder.ts";
 import type { CompiledNode } from "../template/compile.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 let factory!: EmbeddedViewFactory;
 let injector!: Injector;

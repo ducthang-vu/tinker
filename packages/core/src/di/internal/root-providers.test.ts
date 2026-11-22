@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { InjectionToken } from "./inject.ts";
 import { Injector } from "./injector.ts";
 import { findRootProvider, registerRootProvider } from "./root-providers.ts";
-import { valueOrThrow, isNone, getOrElse } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse } from "@tinker/functional";
 
 describe("root providers", () => {
   test("registered providers can be looked up by token", () => {

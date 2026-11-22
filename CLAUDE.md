@@ -19,8 +19,9 @@ package changes only its map.
 
 - `packages/core` (`@tinker/core`): signals, di, view and utils, each module with a public
   `index.ts`. `packages/core/src/index.ts` re-exports them as `tinker`.
-- `packages/functional` (`@tinker/functional`): the functional helpers (Maybe, Either, Task,
-  Stream, Emitter). Its public API is `src/public-api.ts`, and `src/index.ts` re-exports it.
+- `packages/functional` (`@tinker/functional`): the functional library (Maybe, Either, Task,
+  Stream, Emitter). Its public API is `src/index.ts`; its law checkers for monads are
+  `@tinker/functional/testing` (`src/testing.ts`).
 - `packages/testing` (`@tinker/testing`): helpers for testing Tinker apps. It has no API yet, and the core package's own tests do not use it.
 - `packages/http` (`@tinker/http`): HTTP. Callers inject `HTTP_BACKEND` (`FetchHttpBackend`), which runs the interceptors around `HTTP_TRANSPORT` (native `fetch`).
 - `packages/router` (`@tinker/router`): routing. `provideRouter(routes)` provides a `Router` (the URL and the matched route as signals, and `navigate`), over `Location` (the URL and history state), which reads the browser through `PlatformLocation`.

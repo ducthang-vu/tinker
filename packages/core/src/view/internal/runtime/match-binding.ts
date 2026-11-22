@@ -25,7 +25,7 @@ import {
   Some,
   type Either,
   type Maybe,
-} from "@tinker/functional/v1";
+} from "@tinker/functional";
 
 /** Renders a branch: its body, the scope its names are read from, and its element's injector. */
 export type BranchRenderer = (

@@ -4,7 +4,7 @@
 
 import { Injectable } from "../../../di/index.ts";
 import { ElementContext } from "./element-context.ts";
-import { match, Some, None, fromNullable, type Maybe } from "@tinker/functional/v1";
+import { match, Some, None, fromNullable, type Maybe } from "@tinker/functional";
 
 @Injectable()
 export class ElementContexts {

@@ -31,7 +31,7 @@ import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
 import type { View } from "../runtime/view.ts";
-import { type Either, Left, Right, valueOrThrow, Some, None, match, partial } from "@tinker/functional/v1";
+import { type Either, Left, Right, valueOrThrow, Some, None, match, partial } from "@tinker/functional";
 
 @Injectable()
 export class DirectiveFactory {

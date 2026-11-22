@@ -4,7 +4,7 @@ import { join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import type { CheckOutput } from "./check.ts";
 import { emitFiles, parseArguments } from "./emit-files.ts";
-import { type Maybe } from "@tinker/functional/v1";
+import { type Maybe } from "@tinker/functional";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
 
@@ -76,7 +76,7 @@ describe("emitFiles", () => {
     expect(written)
       .toContain("__tinkerNone.of()");
     expect(written)
-      .toContain(`import { Some as __tinkerSome, None as __tinkerNone } from "@tinker/functional/v1";`);
+      .toContain(`import { Some as __tinkerSome, None as __tinkerNone } from "@tinker/functional";`);
     expect(output.logs)
       .toEqual([`Compiled 1 file(s) into ${outDir}.`]);
   });

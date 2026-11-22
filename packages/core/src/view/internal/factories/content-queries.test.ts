@@ -3,7 +3,7 @@ import { ElementRef } from "../runtime/element-ref.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { query, queryAll } from "../authoring/query.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

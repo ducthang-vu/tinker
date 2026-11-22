@@ -5,7 +5,7 @@ import { Scope } from "../template/scope.ts";
 import { type Context } from "./context.ts";
 import { TemplateRef } from "./template-ref.ts";
 import { messageOf } from "../test-support.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 describe("TemplateRef", () => {
   test("an instance sees the declared names from its context, and the names around the declaration", () => {

@@ -45,7 +45,7 @@ import {
   runInInjectionContext,
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
-import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow, Some, None, isSome, use, run, partial } from "@tinker/functional/v1";
+import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow, Some, None, isSome, use, run, partial } from "@tinker/functional";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";

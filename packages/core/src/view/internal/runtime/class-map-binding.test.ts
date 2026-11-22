@@ -3,7 +3,7 @@ import { DomRenderer } from "../renderer.ts";
 import { ExpressionParser } from "../template/expression.ts";
 import { Scope } from "../template/scope.ts";
 import { ClassMapBinding } from "./class-map-binding.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 type Value = Record<string, boolean> | null | string;
 

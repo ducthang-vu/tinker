@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, test } from "vitest";
 import { adaptProvider, adaptToken, classToken, registerClassToken } from "./adapter.ts";
 import { inject, InjectionToken, type Token } from "./internal/inject.ts";
 import { Injector } from "./internal/injector.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 abstract class Logger {
   abstract log(message: string): string;

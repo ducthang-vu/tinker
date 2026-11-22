@@ -12,7 +12,7 @@ import { defineMetadata, ownMetadata } from "../utils/metadata.ts";
 import type { AbstractClass, Class } from "../utils/types.ts";
 import { adaptProvider } from "./adapter.ts";
 import { registerRootProvider } from "./internal/root-providers.ts";
-import { type Maybe } from "@tinker/functional/v1";
+import { type Maybe } from "@tinker/functional";
 
 /** What a service declares about itself. */
 export interface InjectableOptions {

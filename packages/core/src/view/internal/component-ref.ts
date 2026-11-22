@@ -6,7 +6,7 @@
 // component's author made it public: a private input or output is not in the
 // types, so it cannot be named.
 
-import { type Either, Left, map, Right, Some, None, fromNullable, match, Emitter, run } from "@tinker/functional/v1";
+import { type Either, Left, map, Right, Some, None, fromNullable, match, Emitter, run } from "@tinker/functional";
 import type { InputName, InputValue } from "./authoring/input.ts";
 import { type OutputName, type OutputValue, outputsOf } from "./authoring/output.ts";
 import { ElementRef } from "./runtime/element-ref.ts";

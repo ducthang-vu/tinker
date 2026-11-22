@@ -10,7 +10,7 @@ import type { ElementContext } from "./element-context.ts";
 import type { View } from "./view.ts";
 
 import type { ViewNode } from "./schedulers/view-scheduler.ts";
-import { Some, None, use } from "@tinker/functional/v1";
+import { Some, None, use } from "@tinker/functional";
 
 export class EmbeddedView implements View {
   private readonly contexts: ElementContext[] = [];

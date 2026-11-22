@@ -2,7 +2,7 @@
 // Each builder is immutable: a configuration method returns a new builder, so a chain
 // reads in any order, and a builder can be reused.
 
-import { valueOrThrow, isSome, getOrThrow, use } from "@tinker/functional/v1";
+import { valueOrThrow, isSome, getOrThrow, use } from "@tinker/functional";
 import {
   CLASS_REPLACEMENTS,
   Component,

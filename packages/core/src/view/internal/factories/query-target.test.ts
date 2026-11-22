@@ -4,7 +4,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { query } from "../authoring/query.ts";
 import { QueryMissingError } from "../authoring/query.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow, isNone, getOrElse } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse } from "@tinker/functional";
 
 @Directive({ selector: "[marker]", exportAs: "marker" })
 class Marker {

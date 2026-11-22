@@ -5,7 +5,7 @@
 // each element to its context, so "what is on this element?" is one lookup.
 
 import type { ComponentView } from "./component-view.ts";
-import { Some, None, isSome, isNone, type Maybe } from "@tinker/functional/v1";
+import { Some, None, isSome, isNone, type Maybe } from "@tinker/functional";
 
 export class ElementContext {
   private readonly directiveInstances: object[] = [];
