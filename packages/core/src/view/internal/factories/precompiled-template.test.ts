@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { provide } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { compileSource } from "../../compiler/compile-source.ts";
+import { CLASS_REPLACEMENTS } from "../tokens.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { TEMPLATE_PARSER } from "../tokens.ts";
@@ -56,5 +57,28 @@ describe("a component with a precompiled template", () => {
     engine.flush();
     expect(view.host.nativeElement.textContent)
       .toBe("plain");
+  });
+});
+
+describe("CLASS_REPLACEMENTS and a precompiled template", () => {
+  test("a class the tree names is replaced, as it is for a string template", () => {
+    @Component({ selector: "tk-real", template: "<p>real</p>" })
+    class Real {}
+    @Component({ selector: "tk-fake", template: "<p>fake</p>" })
+    class Fake {}
+    const nodes = valueOrThrow(compileSource("<tk-real></tk-real>", [
+      { selector: "tk-real", isComponent: true, type: Real },
+    ]));
+    @Component({ selector: "tk-host", template: nodes, imports: [Real] })
+    class Host {}
+    const el = document.createElement("section");
+    const engine = Engine.create({
+      providers: [provide(CLASS_REPLACEMENTS, { useValue: new Map([[Real, Fake]]) })],
+    });
+    const view = valueOrThrow(engine.bootstrap(Host, el));
+    engine.flush();
+    expect(el.querySelector("tk-real p")?.textContent)
+      .toBe("fake");
+    view.destroy();
   });
 });
