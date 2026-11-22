@@ -1,24 +1,27 @@
 import { describe, expect, test } from "vitest";
 import { Engine } from "../engine.ts";
 import { Component } from "../authoring/decorators.ts";
+import { inject } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { HostBindings } from "../factories/host-bindings.ts";
-import { attributeText, refusalOf, styleText, trustHtml, trustStyle, trustUrl, TrustedHtml, TrustedStyle, TrustedUrl } from "./sanitization.ts";
+import { attributeText, refusalOf, Sanitizer, styleText, TrustedHtml, TrustedStyle, TrustedUrl } from "./sanitization.ts";
+
+const sanitizer = new Sanitizer();
 import { valueOrThrow } from "@tinker/functional";
 
 describe("trusted values", () => {
   test("each trust function makes a value of its own kind, whose text is its content", () => {
-    expect(trustUrl("u"))
+    expect(sanitizer.trustUrl("u"))
       .toBeInstanceOf(TrustedUrl);
-    expect(trustHtml("<b>h</b>"))
+    expect(sanitizer.trustHtml("<b>h</b>"))
       .toBeInstanceOf(TrustedHtml);
-    expect(trustStyle("color: red"))
+    expect(sanitizer.trustStyle("color: red"))
       .toBeInstanceOf(TrustedStyle);
-    expect(String(trustUrl("u")))
+    expect(String(sanitizer.trustUrl("u")))
       .toBe("u");
-    expect(String(trustHtml("<b>h</b>")))
+    expect(String(sanitizer.trustHtml("<b>h</b>")))
       .toBe("<b>h</b>");
-    expect(String(trustStyle("color: red")))
+    expect(String(sanitizer.trustStyle("color: red")))
       .toBe("color: red");
   });
 });
@@ -41,14 +44,14 @@ describe("attributeText", () => {
   test("srcdoc is set only from a TrustedHtml", () => {
     expect(attributeText("srcdoc", "<script>alert(1)</script>"))
       .toBeUndefined();
-    expect(attributeText("srcdoc", trustHtml("<b>x</b>")))
+    expect(attributeText("srcdoc", sanitizer.trustHtml("<b>x</b>")))
       .toBe("<b>x</b>");
   });
 
   test("style as an attribute is set only from a TrustedStyle", () => {
     expect(attributeText("style", "background:url(https://evil.example/x)"))
       .toBeUndefined();
-    expect(attributeText("style", trustStyle("color: red")))
+    expect(attributeText("style", sanitizer.trustStyle("color: red")))
       .toBe("color: red");
   });
 
@@ -57,7 +60,7 @@ describe("attributeText", () => {
       .toBe("https://example.com");
     expect(attributeText("href", "javascript:alert(1)"))
       .toBeUndefined();
-    expect(attributeText("href", trustUrl("javascript:void(0)")))
+    expect(attributeText("href", sanitizer.trustUrl("javascript:void(0)")))
       .toBe("javascript:void(0)");
   });
 
@@ -110,7 +113,7 @@ describe("styleText", () => {
   });
 
   test("a TrustedStyle property is set, whatever it says", () => {
-    expect(styleText(trustStyle("url(https://a.example/x)")))
+    expect(styleText(sanitizer.trustStyle("url(https://a.example/x)")))
       .toBe("url(https://a.example/x)");
   });
 });
@@ -162,7 +165,7 @@ describe("sanitization in a view", () => {
     })
     class Styled {
       readonly bg = signal<unknown>("url(https://evil.example/x)");
-      readonly color = signal<unknown>(trustStyle("red"));
+      readonly color = signal<unknown>(sanitizer.trustStyle("red"));
     }
     const el = document.createElement("section");
     const engine = Engine.create();
@@ -190,5 +193,22 @@ describe("sanitization in a view", () => {
   test("a host binding to is is refused", () => {
     expect(() => valueOrThrow(HostBindings.parse({ "[attr.is]": "name()" })))
       .toThrow("[attr.is] in host binding \"[attr.is]\": is cannot be bound");
+  });
+});
+
+describe("the Sanitizer service", () => {
+  test("a component injects it, and binds the value it trusts", () => {
+    @Component({ selector: "tk-logo", template: `<img [attr.src]="logo">` })
+    class Logo {
+      readonly logo = inject(Sanitizer)
+        .trustUrl("data:image/png;base64,AAAA");
+    }
+    const el = document.createElement("section");
+    const engine = Engine.create();
+    const app = valueOrThrow(engine.bootstrap(Logo, el));
+    engine.flush();
+    expect(el.querySelector("img")!.getAttribute("src"))
+      .toBe("data:image/png;base64,AAAA");
+    app.destroy();
   });
 });

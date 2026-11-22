@@ -117,7 +117,7 @@ share the name), and a registry per row if a row variable is to be queried.
 
 ### 4. Warn when a trusted value is used
 
-**Problem.** `trustUrl`, `trustHtml` and `trustStyle` let an attribute hold a value that the
+**Problem.** `Sanitizer.trustUrl`, `trustHtml` and `trustStyle` let an attribute hold a value that the
 checks would remove (see `docs/sanitization.md`). The bypass is silent. The warning belongs
 to developer mode, which is not built yet (see "Developer mode").
 

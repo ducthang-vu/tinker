@@ -4,7 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
-import { trustUrl } from "../runtime/sanitization.ts";
+import { Sanitizer } from "../runtime/sanitization.ts";
 import { HostBindings } from "./host-bindings.ts";
 import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional";
 
@@ -33,7 +33,8 @@ describe("URL attributes", () => {
       template: `<a [attr.href]="link">{{ link }}</a>`,
     })
     class Trusted {
-      readonly link = trustUrl("javascript:void(0)");
+      readonly link = new Sanitizer()
+        .trustUrl("javascript:void(0)");
     }
     const el = document.createElement("section");
     const engine = Engine.create();

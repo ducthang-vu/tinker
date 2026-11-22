@@ -2,8 +2,9 @@
 
 Where a value from a template or a component can reach the DOM, and what happens to it.
 Each case says what the code does today, how it was checked, and the rule proposed for it.
-The trust wrappers are one family: `trustUrl` (see PR #168) and, proposed, `trustHtml` and
-`trustStyle`, in the same style as Angular's `DomSanitizer`.
+The trust wrappers are methods of one service, `Sanitizer` (`trustUrl`, `trustHtml`,
+`trustStyle`), in the same style as Angular's `DomSanitizer`. The service is injectable
+(`inject(Sanitizer)`), and the trusted classes can only be made by it.
 
 Today's only check is `runtime/url-safety.ts`: a fixed list of URL attributes must hold a
 safe scheme, and event attributes (`on…`) are refused.
@@ -97,7 +98,7 @@ Planned in `IMPROVEMENTS.md`, Templates item 1. Each needs its rule before it sh
 These are the defaults the code now follows. Change one by changing the rule in
 `runtime/sanitization.ts` and its tests.
 
-1. **One wrapper per kind:** `trustUrl`, `trustHtml`, `trustStyle`, each with its own class.
+1. **One wrapper per kind:** `trustUrl`, `trustHtml`, `trustStyle` on `Sanitizer`, each returning its own class.
 2. **`style` attribute:** removed unless it is a `TrustedStyle` (A7).
 3. **`url(` in a style value:** removed unless it is a `TrustedStyle`. Also `image(`,
    `image-set(`, `src(`, `expression(`, and any backslash, since a CSS escape can spell

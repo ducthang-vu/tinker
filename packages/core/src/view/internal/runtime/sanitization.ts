@@ -8,13 +8,21 @@
 // - an event attribute (`on…`), `xmlns` and `is`: refused when the template or the host
 //   metadata is read, so no value can set them.
 // A value that is not allowed is not set: the attribute or property is removed, as for a
-// missing value. The `trust…` functions are the author's way to allow one value on purpose.
+// missing value. The Sanitizer service is the author's way to allow one value on purpose.
 
+import { Injectable } from "../../../di/index.ts";
 import { isEventAttribute, isSafeUrlValue, isUrlAttribute } from "./url-safety.ts";
+
+/**
+ * The seal that only the Sanitizer has: the trusted classes take it in their constructor, and
+ * its type cannot be named outside this module, so `new TrustedUrl(…)` from app code does not
+ * compile. Trusted values are made by the Sanitizer service.
+ */
+const SEAL: unique symbol = Symbol("the Sanitizer");
 
 /** A URL the author vouches for: a URL attribute bound to it is set without the check. */
 export class TrustedUrl {
-  constructor(readonly url: string) {}
+  constructor(readonly url: string, _seal: typeof SEAL) {}
 
   toString(): string {
     return this.url;
@@ -23,7 +31,7 @@ export class TrustedUrl {
 
 /** HTML the author vouches for: `srcdoc` bound to it is set. */
 export class TrustedHtml {
-  constructor(readonly html: string) {}
+  constructor(readonly html: string, _seal: typeof SEAL) {}
 
   toString(): string {
     return this.html;
@@ -32,7 +40,7 @@ export class TrustedHtml {
 
 /** CSS the author vouches for: a `style` attribute or property bound to it is set. */
 export class TrustedStyle {
-  constructor(readonly css: string) {}
+  constructor(readonly css: string, _seal: typeof SEAL) {}
 
   toString(): string {
     return this.css;
@@ -40,22 +48,28 @@ export class TrustedStyle {
 }
 
 /**
- * Trust `url`: a URL attribute bound to the result is set even when `url` is unsafe, such as
- * a `data:` image. Use it only for a URL you control, and keep it in a field, so the template
- * binds a name that says what it is: `[attr.src]="logo"`.
+ * The service that makes trusted values. Inject it, and trust constant values in your own code:
+ *
+ *   readonly logo = inject(Sanitizer).trustUrl("data:image/png;base64,…");
+ *
+ * Trusting a value that comes from user input (a query string, say) defeats the check.
  */
-export function trustUrl(url: string): TrustedUrl {
-  return new TrustedUrl(url);
-}
+@Injectable({ providedIn: "root" })
+export class Sanitizer {
+  /** Trust `url`: a URL attribute bound to the result is set even when `url` is unsafe. */
+  trustUrl(url: string): TrustedUrl {
+    return new TrustedUrl(url, SEAL);
+  }
 
-/** Trust `html`: `[attr.srcdoc]` bound to the result is set. Use it only for HTML you control. */
-export function trustHtml(html: string): TrustedHtml {
-  return new TrustedHtml(html);
-}
+  /** Trust `html`: `[attr.srcdoc]` bound to the result is set. */
+  trustHtml(html: string): TrustedHtml {
+    return new TrustedHtml(html, SEAL);
+  }
 
-/** Trust `css`: a `[attr.style]` or `[style.x]` bound to the result is set. Only for your CSS. */
-export function trustStyle(css: string): TrustedStyle {
-  return new TrustedStyle(css);
+  /** Trust `css`: a `[attr.style]` or `[style.x]` bound to the result is set. */
+  trustStyle(css: string): TrustedStyle {
+    return new TrustedStyle(css, SEAL);
+  }
 }
 
 /**
