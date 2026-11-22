@@ -1,5 +1,5 @@
 // The practical examples: each card is one part of the framework, working. Their source is in
-// examples/basics/demos, one folder per topic (see the comment at the top of main.ts).
+// examples/basics/src/features/examples/demos, one folder per topic (see main.ts).
 
 import { Component } from "@tinker/core";
 import { Clock } from "../demos/clock/clock.ts";
@@ -16,7 +16,7 @@ import { Todos } from "../demos/todos/todos.ts";
       <h1>Examples</h1>
       <p class="lede">
         Each card is a small, working part of Tinker. The source of each is in
-        <code>examples/basics/demos</code>, one folder per topic.
+        <code>examples/basics/src/features/examples/demos</code>, one folder per topic.
       </p>
     </header>
     <div class="demos">

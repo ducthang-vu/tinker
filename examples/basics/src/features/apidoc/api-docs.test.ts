@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { TestBed } from "@tinker/testing";
-import { nth } from "../support/testing-helpers.ts";
+import { nth } from "../../../testing/testing-helpers.ts";
 import { ApiDocs, DocBody } from "./api-docs.ts";
 
 describe("the API page, rendered from the generated reference", () => {

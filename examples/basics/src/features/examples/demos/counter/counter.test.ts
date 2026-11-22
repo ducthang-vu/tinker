@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { MockComponentBuilder, MockDirectiveBuilder, TestBed } from "@tinker/testing";
 import { Counter, Step } from "./counter.ts";
 import { Highlight } from "../highlight/highlight.ts";
-import { buttonNamed } from "../../support/testing-helpers.ts";
+import { buttonNamed } from "../../../../../testing/testing-helpers.ts";
 
 describe("Counter", () => {
   test("starts at zero, which is even, with no change yet", () => {

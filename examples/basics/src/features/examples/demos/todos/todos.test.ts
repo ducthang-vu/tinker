@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { TestBed } from "@tinker/testing";
 import { Toggle, Todos } from "./todos.ts";
-import { buttonNamed, nth } from "../../support/testing-helpers.ts";
+import { buttonNamed, nth } from "../../../../../testing/testing-helpers.ts";
 
 describe("Todos", () => {
   test("starts with three rows, one of them done", () => {

@@ -4,6 +4,7 @@
 
 /// <reference types="node" />
 
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 
 const PORT = 4173;
@@ -19,7 +20,7 @@ export default defineConfig({
   webServer: {
     // Build the example, then serve the build the way it would be published.
     command: "npm run build && npm run preview",
-    cwd: "..",
+    cwd: fileURLToPath(new URL("../../../..", import.meta.url)),
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

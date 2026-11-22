@@ -3,7 +3,7 @@ import { Component } from "@tinker/core";
 import { provideRouter } from "@tinker/router";
 import { TestBed } from "@tinker/testing";
 import { App } from "./app.ts";
-import { nth } from "../support/testing-helpers.ts";
+import { nth } from "../../../../testing/testing-helpers.ts";
 
 // Stub pages, so the shell is tested without the demos or the reference.
 @Component({ selector: "tk-stub-home", template: "<h1>Home stub</h1>" })
