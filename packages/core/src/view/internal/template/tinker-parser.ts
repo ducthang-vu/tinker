@@ -19,7 +19,7 @@
 // Comments are dropped.
 
 import { Maybe } from "@tinker/functional";
-import { decodeHTML, decodeHTMLAttribute } from "entities";
+import { decodeReferences } from "./entities.ts";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import type { TemplateParser } from "./parser.ts";
 
@@ -198,7 +198,7 @@ class Scanner {
     }
     return {
       kind: "text",
-      value: decodeHTML(this.source.slice(start, this.pos)),
+      value: decodeReferences(this.source.slice(start, this.pos)),
       span: { start, end: this.pos },
     };
   }
@@ -221,7 +221,7 @@ class Scanner {
     const end = match?.index ?? this.source.length;
     const raw = this.source.slice(start, end);
     this.pos = end;
-    const value = decode ? decodeHTML(raw) : raw;
+    const value = decode ? decodeReferences(raw) : raw;
     return value === "" ? [] : [{ kind: "text", value, span: { start, end } }];
   }
 
@@ -317,13 +317,13 @@ class Scanner {
       }
       const value = this.source.slice(this.pos + 1, close);
       this.pos = close + 1;
-      return decodeHTMLAttribute(value);
+      return decodeReferences(value);
     }
     const value = this.take(UNQUOTED_VALUE);
     if (value === "") {
       throw this.error("expected an attribute value");
     }
-    return decodeHTMLAttribute(value);
+    return decodeReferences(value);
   }
 
   private comment(): void {
