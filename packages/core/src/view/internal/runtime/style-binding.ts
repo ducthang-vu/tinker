@@ -8,7 +8,7 @@ import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Scope } from "../template/scope.ts";
-import { Some, None, isSome, filter } from "@tinker/functional/v1";
+import { Some, None, isSome, filter } from "@tinker/functional";
 
 export class StyleBinding {
   private last = None.of<string | undefined>();

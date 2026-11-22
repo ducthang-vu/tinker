@@ -12,7 +12,7 @@ import type { Class } from "../../../utils/types.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
 import { CLASS_REPLACEMENTS } from "../tokens.ts";
-import { fromNullable, getOrThrow, map, match, use, type Maybe } from "@tinker/functional/v1";
+import { fromNullable, getOrThrow, map, match, use, type Maybe } from "@tinker/functional";
 
 /** Where a query looks: the component's own template, or the content it was given. */
 export type QuerySource = "view" | "content";

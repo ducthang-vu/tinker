@@ -11,7 +11,7 @@
 import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
-import { type Either, Left, map, match, Right, sequence, Some, None, type Maybe } from "@tinker/functional/v1";
+import { type Either, Left, map, match, Right, sequence, Some, None, type Maybe } from "@tinker/functional";
 
 /** The names the expression uses for `Maybe` and `Selector`. */
 export interface EmitHelpers {

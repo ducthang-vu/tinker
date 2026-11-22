@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { } from "@tinker/core";
 import { ActivatedRoute } from "./activated-route.ts";
 import { nextAfter } from "./child-activated-route.ts";
-import { Some, None, isNone, getOrThrow } from "@tinker/functional/v1";
+import { Some, None, isNone, getOrThrow } from "@tinker/functional";
 
 class Page {}
 const ROUTE = { path: "", component: Page };

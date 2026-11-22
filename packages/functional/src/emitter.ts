@@ -40,7 +40,7 @@ type Event<T, R, E>
  *
  * @example
  * ```ts
- * import { Emitter, run } from "@tinker/functional/v1";
+ * import { Emitter, run } from "@tinker/functional";
  *
  * const selected = Emitter.create<number>();
  * run(selected.stream, { next: (id) => console.log(id) });

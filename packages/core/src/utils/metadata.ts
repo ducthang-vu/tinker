@@ -7,7 +7,7 @@
 // inherited, but a subclass has metadata only if it is decorated itself.
 
 import type { AbstractClass } from "./types.ts";
-import { Some, None, type Maybe } from "@tinker/functional/v1";
+import { Some, None, type Maybe } from "@tinker/functional";
 
 /** Store `value` as a hidden, read-only static property of `target`. */
 export function defineMetadata(target: AbstractClass, key: symbol, value: object): void {

@@ -5,7 +5,7 @@ import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
 import { Component, Directive, input, Outlet, type TemplateRef, ViewContainerRef, queryAll } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 describe("<template #name> and the outlet", () => {
   test("the declaration renders nothing; the outlet on a container renders it after the container's content", async () => {

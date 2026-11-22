@@ -24,7 +24,7 @@
 //
 // Call arguments and strings come later.
 
-import { type Either, Left, Right, flatMap, map, match, pipe } from "@tinker/functional/v1";
+import { type Either, Left, Right, flatMap, map, match, pipe } from "@tinker/functional";
 
 /** A parsed template expression. */
 export type Expression

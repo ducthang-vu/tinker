@@ -5,7 +5,7 @@
 import { inject, Injectable, InjectionToken, type Task } from "@tinker/core";
 import { HTTP_INTERCEPTORS, type HttpOutcome } from "./interceptors.ts";
 import type { HttpRequest, HttpResponse } from "./request.ts";
-import { flatMap, fromPromise, succeed, fail } from "@tinker/functional/v1";
+import { flatMap, fromPromise, succeed, fail } from "@tinker/functional";
 
 /** The transport: what sends one request. Native fetch is the one instance. */
 export type HttpTransport = (url: string, init: RequestInit) => Promise<Response>;

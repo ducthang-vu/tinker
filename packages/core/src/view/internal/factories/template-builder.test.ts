@@ -7,7 +7,7 @@ import { inject, Injector, provide, runInInjectionContext } from "../../../di/in
 import { signal } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { compileTemplate as compileTemplateEither } from "../template/compile.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
   valueOrThrow(compileTemplateEither(...args));

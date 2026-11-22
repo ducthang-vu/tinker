@@ -3,7 +3,7 @@
 // array patterns. Each button moves the value to the next one in its list.
 
 import { signal } from "@tinker/core";
-import { Left, match, None, Right, Some, type Either, isSome, type Maybe } from "@tinker/functional/v1";
+import { Left, match, None, Right, Some, type Either, isSome, type Maybe } from "@tinker/functional";
 import { Component } from "@tinker/core";
 
 type Status = "idle" | "loading" | "saving" | "failed";

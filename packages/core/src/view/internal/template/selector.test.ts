@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Selector } from "./selector.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const element = (name: string, attributes: Record<string, string> = {}) => ({
   name,

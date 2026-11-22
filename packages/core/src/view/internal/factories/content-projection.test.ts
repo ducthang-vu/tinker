@@ -3,7 +3,7 @@ import { tick } from "../test-support.ts";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { signal } from "../../../signals/index.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 @Component({ selector: "tk-card", template: "<div><slot></slot></div>" })
 class Card {}

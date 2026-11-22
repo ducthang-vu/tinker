@@ -4,7 +4,7 @@ import { inject } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow, getOrThrow, map, flatMap } from "@tinker/functional/v1";
+import { valueOrThrow, getOrThrow, map, flatMap } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

@@ -18,7 +18,7 @@ import type { EmbeddedView } from "./embedded-view.ts";
 import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
-import { type Either, flatMap, Left, map, match, Right, use, Some, None, fromNullable, type Maybe } from "@tinker/functional/v1";
+import { type Either, flatMap, Left, map, match, Right, use, Some, None, fromNullable, type Maybe } from "@tinker/functional";
 
 /**
  * What a container is disposed with: it hears that it is destroyed, and its

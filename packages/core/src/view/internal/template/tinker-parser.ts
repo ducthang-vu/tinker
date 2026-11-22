@@ -21,7 +21,7 @@
 // `script` and `style` are read as raw text.
 // Comments are dropped.
 
-import { Left, match, Right, type Either } from "@tinker/functional/v1";
+import { Left, match, Right, type Either } from "@tinker/functional";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import { decodeReferences } from "./entities.ts";
 import type { TemplateParser } from "./parser.ts";

@@ -1,4 +1,4 @@
-// The public API of the v1 functional library: import it as `@tinker/functional/v1`.
+// The public API of the v1 functional library: import it as `@tinker/functional`.
 
 export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./monad.ts";
 export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./monad.ts";

@@ -27,7 +27,7 @@ import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type { View } from "../runtime/view.ts";
-import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe, valueOrThrow, use } from "@tinker/functional/v1";
+import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe, valueOrThrow, use } from "@tinker/functional";
 
 /** One parsed `"(event)": "method(...)"` entry. */
 export interface HostListener {

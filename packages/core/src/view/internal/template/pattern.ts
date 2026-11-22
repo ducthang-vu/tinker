@@ -13,7 +13,7 @@
 // A header can also say `when` a condition: `@case truthy when ok()`. The
 // guard is split off first, at the top level only, since `when` can be a key.
 
-import { type Either, Left, Right, flatMap, map, mapLeft, match, toError } from "@tinker/functional/v1";
+import { type Either, Left, Right, flatMap, map, mapLeft, match, toError } from "@tinker/functional";
 import { eachOf } from "../../../utils/each-of.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
 

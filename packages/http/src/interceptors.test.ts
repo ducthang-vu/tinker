@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Injector, inject, provide, runInInjectionContext, type Task, type Provider } from "@tinker/core";
-import { map, succeed, run as runTask } from "@tinker/functional/v1";
+import { map, succeed, run as runTask } from "@tinker/functional";
 import {
   HTTP_TRANSPORT,
   FetchHttpBackend,

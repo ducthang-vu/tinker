@@ -10,7 +10,7 @@ import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { combineSyntaxErrors, TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
-import { flatMap, Left, map, sequence, type Either } from "@tinker/functional/v1";
+import { flatMap, Left, map, sequence, type Either } from "@tinker/functional";
 
 /** A directive or component a template may use, known by its selector. */
 export interface ImportedSelector {

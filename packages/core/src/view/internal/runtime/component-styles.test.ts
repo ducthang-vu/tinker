@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { scopeStyles, styleScopeOf } from "./component-styles.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 
 const scope = { attribute: "tk-c1", hostAttribute: "tk-h1" };
 /** The scoped CSS, without its whitespace, so the layout of the output does not matter. */

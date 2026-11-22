@@ -7,7 +7,7 @@ const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
 import { ExpressionParser } from "./expression.ts";
 import { itemsOf } from "./blocks.ts";
 import { TemplateCompileError } from "./compile-error.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 function compile(source: string): readonly CompiledNode[] {
   return compileTemplate(parseNodes(source));

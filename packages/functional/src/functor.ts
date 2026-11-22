@@ -74,14 +74,14 @@ export type MaybeFlatMapFn<T, U> = (self: Maybe<T>) => Maybe<U>;
  *
  * @example
  * ```ts
- * import { map, Some } from "@tinker/functional/v1";
+ * import { map, Some } from "@tinker/functional";
  *
  * map(Some.of(2), (n: number) => n * 10); // Some(20)
  * ```
  *
  * @example
  * ```ts
- * import { map, Right } from "@tinker/functional/v1";
+ * import { map, Right } from "@tinker/functional";
  *
  * const addOne = map((n: number) => n + 1);
  * addOne(Right.of<number, string>(2)); // Right(3)
@@ -136,7 +136,7 @@ function caseNameOf(value: unknown, message: string): string {
  *
  * @example
  * ```ts
- * import { flatMap, None, Some } from "@tinker/functional/v1";
+ * import { flatMap, None, Some } from "@tinker/functional";
  *
  * const positive = (n: number) => (n > 0 ? Some.of(n) : None.of<number>());
  * flatMap(Some.of(-1), positive); // None

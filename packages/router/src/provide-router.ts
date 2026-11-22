@@ -3,7 +3,7 @@
 
 import { computed, inject, type Maybe, provide, type Provider } from "@tinker/core";
 import { Location } from "./location.ts";
-import { isEqual } from "@tinker/functional/v1";
+import { isEqual } from "@tinker/functional";
 import { ActivatedRoute } from "./activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "./child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "./platform-location.ts";

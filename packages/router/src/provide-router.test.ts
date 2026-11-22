@@ -4,7 +4,7 @@ import { ChildActivatedRoute } from "./child-activated-route.ts";
 import { provideRouter } from "./provide-router.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
-import { getOrThrow } from "@tinker/functional/v1";
+import { getOrThrow } from "@tinker/functional";
 
 class TodoList {}
 class Root {}

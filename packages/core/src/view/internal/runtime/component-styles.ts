@@ -19,7 +19,7 @@
 import { type AbstractClass } from "../../../utils/types.ts";
 import { getComponentMetadata } from "../authoring/decorators.ts";
 import type { Renderer } from "../renderer.ts";
-import { getOrElse, match, use } from "@tinker/functional/v1";
+import { getOrElse, match, use } from "@tinker/functional";
 
 /** The attributes that scope a component's styles: its elements', and its host's. */
 export interface StyleScope {

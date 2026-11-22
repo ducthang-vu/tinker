@@ -4,7 +4,7 @@ import { RunFirstNow } from "./run-first-now.ts";
 import { inject, Injector, runInInjectionContext } from "../../../di/index.ts";
 import { Ticker } from "./ticker.ts";
 import { ViewScheduler } from "./schedulers/view-scheduler.ts";
-import { isNone, getOrElse } from "@tinker/functional/v1";
+import { isNone, getOrElse } from "@tinker/functional";
 
 /** A ViewScheduler from an injector (its ticks are requested, never run here: flush by hand). */
 function views(): ViewScheduler {

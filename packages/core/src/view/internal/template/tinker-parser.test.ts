@@ -1,4 +1,4 @@
-import { match } from "@tinker/functional/v1";
+import { match } from "@tinker/functional";
 import { parseNodes } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import type { ElementNode, TemplateNode } from "./ast.ts";

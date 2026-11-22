@@ -1,4 +1,4 @@
-import { flatMap, map, Right, type Either } from "@tinker/functional/v1";
+import { flatMap, map, Right, type Either } from "@tinker/functional";
 
 /**
  * Runs `step` on each item, in order. The results, or the first error: the

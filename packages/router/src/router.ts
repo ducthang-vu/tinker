@@ -7,7 +7,7 @@ import type { Location } from "./location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 import { UrlBuilder } from "./url-builder.ts";
-import { Some, None, fromNullable, match, type Maybe, Left, Right } from "@tinker/functional/v1";
+import { Some, None, fromNullable, match, type Maybe, Left, Right } from "@tinker/functional";
 
 /** The options of `navigate`. */
 export interface NavigateOptions {

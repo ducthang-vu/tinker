@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Right } from "@tinker/functional/v1";
+import { Right } from "@tinker/functional";
 import { messageOf } from "./test-support.ts";
 
 describe("messageOf", () => {

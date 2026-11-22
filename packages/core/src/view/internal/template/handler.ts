@@ -14,7 +14,7 @@ import { signal, type ReadonlySignal } from "../../../signals/index.ts";
 import { evaluate } from "./evaluate.ts";
 import { type Call, ExpressionParser } from "./expression.ts";
 import { Scope } from "./scope.ts";
-import { match, Left, Right, type Either } from "@tinker/functional/v1";
+import { match, Left, Right, type Either } from "@tinker/functional";
 
 /** A parsed handler: the method it calls, and the call as written. */
 export interface Handler {

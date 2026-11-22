@@ -1,7 +1,7 @@
 // Run tasks where one failing must not stop the others: cleanups, queued
 // updates, callbacks. Every task runs; the first error is re-thrown at the end.
 
-import { match, type Either, Left, Right, attempt, Some, None, orElse, use, type Maybe } from "@tinker/functional/v1";
+import { match, type Either, Left, Right, attempt, Some, None, orElse, use, type Maybe } from "@tinker/functional";
 
 /** Run every task, in order, even if some throw; then re-throw the first error. */
 export function runAll(tasks: Iterable<() => void>): void {

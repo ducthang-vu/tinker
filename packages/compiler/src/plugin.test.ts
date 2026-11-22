@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { describe, expect, test, vi } from "vitest";
 import type { Plugin } from "vite";
 import { compileComponents, type CheckHost, type CompilerOptions, tinkerCompiler } from "./plugin.ts";
-import { map, type Maybe, fail } from "@tinker/functional/v1";
+import { map, type Maybe, fail } from "@tinker/functional";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
 
@@ -73,7 +73,7 @@ describe("tinkerCompiler", () => {
     );
     const output = (await result) as { code: string; map: unknown };
     expect(output.code)
-      .toContain(`import { Some as __tinkerSome, None as __tinkerNone } from "@tinker/functional/v1";`);
+      .toContain(`import { Some as __tinkerSome, None as __tinkerNone } from "@tinker/functional";`);
     expect(output.code)
       .toContain(`"kind": "element"`);
     expect(output.code)

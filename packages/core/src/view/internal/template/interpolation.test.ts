@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { ExpressionParser } from "./expression.ts";
 import { parseInterpolation } from "./interpolation.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const expr = (source: string) => valueOrThrow(ExpressionParser.parse(source));
 

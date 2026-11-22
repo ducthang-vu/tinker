@@ -27,7 +27,7 @@ function changeDetection(): ChangeDetection {
 }
 import { ComponentRef } from "./component-ref.ts";
 import type { ComponentView } from "./runtime/component-view.ts";
-import { valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

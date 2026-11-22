@@ -4,7 +4,7 @@ import { inject, Injectable, provide } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
-import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional";
 import { messageOf } from "../test-support.ts";
 
 afterEach(() => {

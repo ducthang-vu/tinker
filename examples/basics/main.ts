@@ -14,7 +14,7 @@
 // selector in index.html, and each is its own engine.
 
 import { bootstrap } from "@tinker/core";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional";
 import { Clock } from "./clock.ts";
 import { Notice } from "./notice/notice.ts";
 import { Counter } from "./counter.ts";

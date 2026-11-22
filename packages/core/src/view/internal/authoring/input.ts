@@ -30,7 +30,7 @@
 //   bindings are already typed, so they skip the adapter.
 
 import { computed, type ReadonlySignal, type Signal, signal, untracked } from "../../../signals/index.ts";
-import { match, Some, None, fromNullable, getOrThrow, use, type Maybe } from "@tinker/functional/v1";
+import { match, Some, None, fromNullable, getOrThrow, use, type Maybe } from "@tinker/functional";
 
 declare const INPUT_TYPE: unique symbol;
 

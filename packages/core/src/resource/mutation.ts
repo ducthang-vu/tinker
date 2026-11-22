@@ -7,7 +7,7 @@
 //   save.mutate(todo);
 //   save.outcome();   // "none" | "succeeded" | "failed": the last call to finish
 
-import { fail as failTask, run, Stream, type Task } from "@tinker/functional/v1";
+import { fail as failTask, run, Stream, type Task } from "@tinker/functional";
 import { signal, type ReadonlySignal } from "../signals/index.ts";
 import type { Resource } from "./resource.ts";
 

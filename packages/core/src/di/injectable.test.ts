@@ -3,7 +3,7 @@ import { inject } from "./inject.ts";
 import { getInjectableMetadata, Injectable } from "./injectable.ts";
 import { Injector, runInInjectionContext } from "./injector.ts";
 import { provide } from "./providers.ts";
-import { isNone, getOrElse } from "@tinker/functional/v1";
+import { isNone, getOrElse } from "@tinker/functional";
 
 describe("@Injectable", () => {
   test("records its options as metadata", () => {

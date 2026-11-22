@@ -11,7 +11,7 @@ import {
   signal,
 } from "@tinker/core";
 import { cleanup, ComponentBuilder, MockComponentBuilder, MockDirectiveBuilder, registerCleanup, TestBed } from "./testbed.ts";
-import { run } from "@tinker/functional/v1";
+import { run } from "@tinker/functional";
 
 @Component({ selector: "tk-greeting", template: "<h1>Hello {{ name() }}</h1>" })
 class Greeting {

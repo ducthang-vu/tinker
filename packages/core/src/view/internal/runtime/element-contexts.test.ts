@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { DomRenderer } from "../renderer.ts";
 import { ElementContexts } from "./element-contexts.ts";
 import { ComponentView } from "./component-view.ts";
-import { None, isNone, getOrElse } from "@tinker/functional/v1";
+import { None, isNone, getOrElse } from "@tinker/functional";
 
 describe("ElementContexts", () => {
   test("get is None for an element with no context", () => {

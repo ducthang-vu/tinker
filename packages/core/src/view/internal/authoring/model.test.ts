@@ -5,7 +5,7 @@ import { InputNotBoundError, inputsOf } from "./input.ts";
 import { model } from "./model.ts";
 import { outputsOf } from "./output.ts";
 import { Engine } from "../engine.ts";
-import { valueOrThrow, getOrThrow, getOrElse, map, flatMap, run } from "@tinker/functional/v1";
+import { valueOrThrow, getOrThrow, getOrElse, map, flatMap, run } from "@tinker/functional";
 
 /** Subscribe to the `valueChange` output of `owner`, recording the values. */
 function hear(owner: object): unknown[] {

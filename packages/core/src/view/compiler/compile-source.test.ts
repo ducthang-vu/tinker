@@ -3,7 +3,7 @@ import type { CompiledNode } from "../internal/template/compile.ts";
 import { TemplateSyntaxError } from "../internal/template/tinker-parser.ts";
 import { TemplateCompileError } from "../internal/template/compile-error.ts";
 import { compileSource } from "./compile-source.ts";
-import { match, type Either, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, type Either, Left, Right, valueOrThrow } from "@tinker/functional";
 
 const item = { selector: "tk-item", isComponent: true };
 

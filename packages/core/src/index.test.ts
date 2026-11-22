@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import * as di from "./di/index.ts";
-import * as functional from "@tinker/functional/v1";
+import * as functional from "@tinker/functional";
 import * as tinker from "./index.ts";
 import * as resource from "./resource/index.ts";
 import * as signals from "./signals/index.ts";

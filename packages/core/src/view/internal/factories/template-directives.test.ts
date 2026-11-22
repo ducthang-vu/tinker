@@ -7,7 +7,7 @@ import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
-import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional/v1";
+import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional";
 
 afterEach(() => {
   document.body.innerHTML = "";

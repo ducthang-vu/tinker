@@ -6,7 +6,7 @@ import { inject, Injector, provide, runInInjectionContext } from "../../../di/in
 import { RENDERER } from "../tokens.ts";
 import { BindingFactory, TextBinding } from "./text-binding.ts";
 import { Scope } from "../template/scope.ts";
-import { match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { match, Left, Right, valueOrThrow } from "@tinker/functional";
 
 function bind(text: string, component: object) {
   const renderer = new DomRenderer();

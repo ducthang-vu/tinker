@@ -1,7 +1,7 @@
 // The Injector: gives the value for a token, using its providers.
 // Internal: users never see it (see the design rule in inject.ts).
 
-import { attempt, type Either, Some, None, isSome, use } from "@tinker/functional/v1";
+import { attempt, type Either, Some, None, isSome, use } from "@tinker/functional";
 import { runInInjectionContext } from "./context/current-injector.ts";
 import { InjectionToken, type Token } from "./inject.ts";
 import {

@@ -8,7 +8,7 @@ const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
 import { TemplateCompileError } from "./compile-error.ts";
 import { Selector } from "./selector.ts";
 import { ExpressionParser } from "./expression.ts";
-import { getOrElse, Left, map, match, None, Right, valueOrThrow } from "@tinker/functional/v1";
+import { getOrElse, Left, map, match, None, Right, valueOrThrow } from "@tinker/functional";
 
 describe("compileTemplate", () => {
   test("parses the {{ }} of every text, keeping elements and attributes", () => {

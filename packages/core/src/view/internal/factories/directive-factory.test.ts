@@ -17,7 +17,7 @@ import { RENDERER } from "../tokens.ts";
 import { ComponentView } from "../runtime/component-view.ts";
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
-import { valueOrThrow, Some, None, isNone, getOrElse, map, use } from "@tinker/functional/v1";
+import { valueOrThrow, Some, None, isNone, getOrElse, map, use } from "@tinker/functional";
 
 /** A DirectiveFactory created the way the engine creates it: through an injector. */
 function setup() {

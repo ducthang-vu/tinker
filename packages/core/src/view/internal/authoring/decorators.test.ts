@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Component, Directive, getComponentMetadata, getDirectiveMetadata } from "./decorators.ts";
-import { isNone, getOrElse, map } from "@tinker/functional/v1";
+import { isNone, getOrElse, map } from "@tinker/functional";
 
 describe("@Directive", () => {
   test("records the selector on the class", () => {

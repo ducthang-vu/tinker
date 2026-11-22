@@ -4,7 +4,7 @@
 
 import { inject, type Task, type Mutation, type MutationOptions, mutation } from "@tinker/core";
 import { HTTP_BACKEND, type HttpError } from "./backend.ts";
-import { map } from "@tinker/functional/v1";
+import { map } from "@tinker/functional";
 
 /** The URL of a call: fixed, or built from the input of the call. */
 export type HttpUrl<I> = string | ((input: I) => string);

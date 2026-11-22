@@ -4,16 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./v1": {
-      "development": "./src/v1/public-api.ts",
-      "types": "./dist/v1/public-api.d.ts",
-      "default": "./dist/v1/public-api.js"
-    },
-    "./v1/testing": {
-      "development": "./src/v1/testing.ts",
-      "types": "./dist/v1/testing.d.ts",
-      "default": "./dist/v1/testing.js"
-    }
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "build": "node ../../node_modules/typescript7/bin/tsc -p tsconfig.build.json"

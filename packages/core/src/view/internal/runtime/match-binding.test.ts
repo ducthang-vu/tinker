@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { None, Some } from "@tinker/functional/v1";
-import { match as readBox, Left, Right, type Either } from "@tinker/functional/v1";
+import { None, Some } from "@tinker/functional";
+import { match as readBox, Left, Right, type Either } from "@tinker/functional";
 import { parsePattern } from "../template/pattern.ts";
 import { match } from "./match-binding.ts";
 
