@@ -2,7 +2,7 @@
 // for a box's case name here, so a new monad only has to register its cases. A case name can be
 // registered once: a second registration throws, so one case never has two behaviours.
 
-import type { Matchable } from "./monad.ts";
+import type { Matchable } from "../monad/monad.ts";
 
 /** Maps a box of one case: applies `f` to its value and returns a box. */
 export type MapImpl = (box: Matchable, f: (value: unknown) => unknown) => Matchable;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { Left, Right, type Either } from "./either.ts";
-import { match } from "./monad.ts";
+import { Left, Right, type Either } from "../monad/either.ts";
+import { match } from "../monad/monad.ts";
 import { Emitter } from "./emitter.ts";
 import { subscribe, run } from "./stream.ts";
 import { withUnhandledReporter } from "./unhandled.ts";

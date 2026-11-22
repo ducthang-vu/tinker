@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { EDGE_VALUES } from "./testing.ts";
+import { EDGE_VALUES } from "../../testing.ts";
 import { Left, Right } from "./either.ts";
 import {
   filter,
@@ -16,7 +16,7 @@ import {
   toEither,
   type Maybe,
 } from "./maybe.ts";
-import { flatMap, map } from "./functor.ts";
+import { flatMap, map } from "../functor/functor.ts";
 import { isEqual, match } from "./monad.ts";
 
 const show = (m: Maybe<unknown>): string =>

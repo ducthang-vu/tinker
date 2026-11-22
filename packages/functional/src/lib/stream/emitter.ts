@@ -18,9 +18,9 @@
 // - An exception thrown by a listener is the listener's bug, not the stream's failure. The other
 //   listeners still run, and it is reported (see unhandled.ts) rather than thrown into `emit`.
 
-import { Right, Left, type Either } from "./either.ts";
-import { None, Some, type Maybe } from "./maybe.ts";
-import { match } from "./monad.ts";
+import { Right, Left, type Either } from "../monad/either.ts";
+import { None, Some, type Maybe } from "../monad/maybe.ts";
+import { match } from "../monad/monad.ts";
 import { reportUnhandled } from "./unhandled.ts";
 import { type Cancel, Stream, type StreamObserver } from "./stream.ts";
 

@@ -3,10 +3,10 @@
 // implementation (see registry.ts). The built-in cases are registered at the bottom of this file:
 // Right and Left for Either, Some and None for Maybe.
 
-import { Right, type Either } from "./either.ts";
-import type { Stream } from "./stream.ts";
-import { Some, type Maybe } from "./maybe.ts";
-import { MATCHABLE, match, type Matchable } from "./monad.ts";
+import { Right, type Either } from "../monad/either.ts";
+import type { Stream } from "../stream/stream.ts";
+import { Some, type Maybe } from "../monad/maybe.ts";
+import { MATCHABLE, match, type Matchable } from "../monad/monad.ts";
 import {
   flatMapFor,
   implementFlatMap,

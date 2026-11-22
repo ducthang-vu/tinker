@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { Right, type Either } from "./either.ts";
-import { None, Some, type Maybe } from "./maybe.ts";
-import { type Functor, MAP } from "./functor.ts";
-import { implementMap } from "./registry.ts";
-import { MATCHABLE, type Matchable } from "./monad.ts";
-import { Stream, run } from "./stream.ts";
-import { flatMap, map } from "./functor.ts";
+import { Right, type Either } from "./monad/either.ts";
+import { None, Some, type Maybe } from "./monad/maybe.ts";
+import { type Functor, MAP } from "./functor/functor.ts";
+import { implementMap } from "./functor/registry.ts";
+import { MATCHABLE, type Matchable } from "./monad/monad.ts";
+import { Stream, run } from "./stream/stream.ts";
+import { flatMap, map } from "./functor/functor.ts";
 import { flow, partial, pipe } from "./function.ts";
 
 describe("pipe", () => {
