@@ -29,3 +29,4 @@ export type {
   StreamObserver,
   StreamSink,
 } from "./stream.ts";
+export { pipe, flow } from "./function.ts";
