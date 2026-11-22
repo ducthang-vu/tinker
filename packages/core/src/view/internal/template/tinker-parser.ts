@@ -12,18 +12,19 @@
 // - Text between `{{` and `}}` is not read as markup, so an expression can hold `<`.
 //
 // Errors are TemplateSyntaxError, with the line and column where the problem starts.
-// A predictable error is a value: each step of the scanner returns an Either, and
-// nothing inside the scanner throws. The scanner goes on after an error (parseAll
-// returns them all). `parse` is the one place that throws, the first error, because
-// TemplateParser's callers still expect it.
+// The scanner is pure: each step takes the state it was given (where it is, which elements
+// are open, the errors found so far) and returns the value it read with the next state. A
+// predictable error is a value, and nothing in the scanner throws. The scanner goes on after
+// an error (parseAll returns them all). `parse` is the one place that throws, the first error,
+// because TemplateParser's callers still expect it.
 // Each element and text node carries its span, the offsets it covers in the source.
 // Known limits (see IMPROVEMENTS.md): only a few named entities are decoded, and
 // `script` and `style` are read as raw text.
 // Comments are dropped.
 
-import { flatMap, Left, map, match, Right, type Either, use } from "@tinker/functional/v1";
-import { decodeReferences } from "./entities.ts";
+import { Left, match, Right, type Either } from "@tinker/functional/v1";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
+import { decodeReferences } from "./entities.ts";
 import type { TemplateParser } from "./parser.ts";
 
 /** A template that does not follow the syntax. `line` and `column` are 1-based. */
@@ -41,9 +42,6 @@ export class TemplateSyntaxError extends Error {
     this.reason = reason;
   }
 }
-
-/** The result of one scanner step: the value, or the error that stopped it. */
-type Parsed<T> = Either<T, TemplateSyntaxError>;
 
 /** The errors of a template as one error: the first one's place, and every problem in it. */
 export function combineSyntaxErrors(errors: readonly TemplateSyntaxError[]): TemplateSyntaxError {
@@ -97,180 +95,213 @@ const SPACES = /\s*/y;
 const MARKUP = /<[A-Za-z/!]/y;
 const ELEMENT_START = /<[A-Za-z]/y;
 
-/** Reads the source from left to right, one node at a time. */
+/** The scanner's state: where it is, which elements are open, and the errors found so far. */
+interface State {
+  readonly pos: number;
+  readonly open: readonly string[];
+  readonly found: readonly TemplateSyntaxError[];
+}
+
+/** A step's result, and the state after it. A failed step leaves the state where it stopped. */
+interface Step<T> {
+  readonly result: Either<T, TemplateSyntaxError>;
+  readonly state: State;
+}
+
+const done = <T>(value: T, state: State): Step<T> => ({
+  result: Right.of<T, TemplateSyntaxError>(value),
+  state,
+});
+
+const failed = <T>(error: TemplateSyntaxError, state: State): Step<T> => ({
+  result: Left.of<TemplateSyntaxError, T>(error),
+  state,
+});
+
+/** The next step, run on the value of this one: the state threads through, and a failure stops. */
+function then<T, U>(step: Step<T>, next: (value: T, state: State) => Step<U>): Step<U> {
+  return match<T, TemplateSyntaxError, Step<U>>(step.result, {
+    Right: (value) => next(value, step.state),
+    Left: (error) => failed<U>(error, step.state),
+  });
+}
+
+/** The state with `error` added to the errors found. */
+const addError = (state: State, error: TemplateSyntaxError): State => ({
+  ...state,
+  found: [...state.found, error],
+});
+
+/** The state moved to the next `<` after `from`, or to the end of the source. */
+function resume(source: string, state: State, from: number): State {
+  const next = source.indexOf("<", from + 1);
+  return { ...state, pos: next === -1 ? source.length : next };
+}
+
+/** Reads the source from left to right, one node at a time, with no state kept between calls. */
 class Scanner {
-  private pos = 0;
-
   constructor(private readonly source: string) {}
-
-  /** Every error found, in the order they were found. */
-  private readonly found: TemplateSyntaxError[] = [];
-  /** The names of the elements being read, outermost first. */
-  private readonly open: string[] = [];
 
   /** The whole template: its nodes, and the errors found in it. */
   scan(): { nodes: TemplateNode[]; errors: TemplateSyntaxError[] } {
     const nodes: TemplateNode[] = [];
+    let state: State = { pos: 0, open: [], found: [] };
     for (;;) {
-      nodes.push(...this.nodes());
-      if (this.atEnd()) {
-        return { nodes, errors: this.found };
+      const read = this.nodes(state);
+      nodes.push(...read.nodes);
+      state = read.state;
+      if (this.atEnd(state)) {
+        return { nodes, errors: [...state.found] };
       }
       // A closing tag with no element open: report it, and go on after it.
-      this.found.push(this.error("closing tag with no element open"));
-      this.resume(this.pos);
+      state = resume(
+        this.source,
+        addError(state, this.error("closing tag with no element open", state.pos)),
+        state.pos,
+      );
     }
   }
 
   /** Nodes up to a closing tag or the end. The closing tag is not consumed. */
-  private nodes(): TemplateNode[] {
+  private nodes(start: State): { nodes: TemplateNode[]; state: State } {
     const nodes: TemplateNode[] = [];
-    while (!this.atEnd() && !this.startsWith("</")) {
-      const start = this.pos;
-      use(this.node(), {
-        Right: (items) => {
-          nodes.push(...items);
-        },
-        Left: (error) => {
-          // The node is dropped; scanning goes on at the next tag after the problem.
-          this.found.push(error);
-          this.resume(Math.max(this.pos, start));
-        },
+    let state = start;
+    while (!this.atEnd(state) && !this.startsWith(state, "</")) {
+      const from = state.pos;
+      const step = this.node(state);
+      const next = match(step.result, {
+        Right: (items) => ({ items, state: step.state }),
+        // The node is dropped; scanning goes on at the next tag after the problem.
+        Left: (error) => ({
+          items: [] as TemplateNode[],
+          state: resume(this.source, addError(step.state, error), Math.max(step.state.pos, from)),
+        }),
       });
+      nodes.push(...next.items);
+      state = next.state;
     }
-    return nodes;
-  }
-
-  /** Moves to the next `<` after `from`, or to the end of the source. */
-  private resume(from: number): void {
-    const next = this.source.indexOf("<", from + 1);
-    this.pos = next === -1 ? this.source.length : next;
+    return { nodes, state };
   }
 
   /** One node, or none for a comment. */
-  private node(): Parsed<TemplateNode[]> {
-    if (this.startsWith("<!--")) {
-      return map(this.comment(), (): TemplateNode[] => []);
+  private node(state: State): Step<TemplateNode[]> {
+    if (this.startsWith(state, "<!--")) {
+      return then(this.comment(state), (_, next) => done([], next));
     }
-    if (this.startsWith("<!")) {
-      return Left.of(this.error("only comments can start with <!"));
+    if (this.startsWith(state, "<!")) {
+      return failed(this.error("only comments can start with <!", state.pos), state);
     }
-    if (this.matches(ELEMENT_START)) {
-      return map(this.element(), (element): TemplateNode[] => [element]);
+    if (this.matches(state, ELEMENT_START)) {
+      return then(this.element(state), (element, next) => done([element], next));
     }
-    return Right.of<TemplateNode[], TemplateSyntaxError>([this.text()]);
+    return then(this.text(state), (text, next) => done([text], next));
   }
 
-  private element(): Parsed<ElementNode> {
-    const start = this.pos;
-    this.pos += 1;
-    return flatMap(this.name(), (name) =>
-      flatMap(this.startTagRest(start, name), ({ attributes, selfClosing }) => {
+  private element(state: State): Step<ElementNode> {
+    const start = state.pos;
+    return then(this.name({ ...state, pos: start + 1 }), (name, afterName) =>
+      then(this.startTagRest(start, name, afterName), ({ attributes, selfClosing }, afterTag) => {
         if (selfClosing || VOID_ELEMENTS.has(name.toLowerCase())) {
-          return Right.of<ElementNode, TemplateSyntaxError>({
-            kind: "element",
-            name,
-            attributes,
-            children: [],
-            span: { start, end: this.pos },
-          });
+          return done(element(name, attributes, [], start, afterTag.pos), afterTag);
         }
-        return map(this.contentOf(name, start), (children): ElementNode => ({
-          kind: "element",
-          name,
-          attributes,
-          children,
-          span: { start, end: this.pos },
-        }));
+        return then(this.contentOf(name, start, afterTag), (children, afterContent) =>
+          done(element(name, attributes, children, start, afterContent.pos), afterContent));
       }));
   }
 
-  /** The children of an element, up to and including its closing tag. */
-  private contentOf(name: string, start: number): Parsed<TemplateNode[]> {
+  /** The children of an element, and its closing tag, which is consumed. */
+  private contentOf(name: string, start: number, state: State): Step<TemplateNode[]> {
     const lower = name.toLowerCase();
     if (RAW_TEXT_ELEMENTS.has(lower) || ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower)) {
       // The text ends at the element's own closing tag, which is the one to consume.
-      const children = this.rawText(name, ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower));
-      return map(this.closingTag(name, start), () => children);
+      const raw = this.rawText(name, ESCAPABLE_RAW_TEXT_ELEMENTS.has(lower), state);
+      return then(this.closingTag(name, start, raw.state), (_, after) => done(raw.nodes, after));
     }
-    return this.childrenOf(name, start);
+    return this.childrenOf(name, start, state);
   }
 
   /** The children of an element, up to its closing tag, which is consumed. */
-  private childrenOf(name: string, start: number): Parsed<TemplateNode[]> {
-    this.open.push(name);
+  private childrenOf(name: string, start: number, state: State): Step<TemplateNode[]> {
+    const inside = { ...state, open: [...state.open, name] };
     const children: TemplateNode[] = [];
+    let current: State = inside;
     for (;;) {
-      children.push(...this.nodes());
-      const closed = this.closingTag(name, start);
-      // A Left stops the element too: its error goes up with it.
-      if (match(closed, { Left: () => true, Right: (isClosed) => isClosed })) {
-        this.open.pop();
-        return map(closed, () => children);
+      const read = this.nodes(current);
+      children.push(...read.nodes);
+      const closed = this.closingTag(name, start, read.state);
+      // A failed closing tag stops the element too, and its error goes up with it.
+      const restored = { ...closed.state, open: state.open };
+      const stops = match(closed.result, { Right: (isClosed) => isClosed, Left: () => true });
+      if (stops) {
+        return then({ result: closed.result, state: restored }, () => done(children, restored));
       }
+      current = closed.state;
     }
   }
 
   /** Text up to the next markup. `{{ }}` is skipped whole, so markup in it is not read. */
-  private text(): TextNode {
-    const start = this.pos;
-    while (!this.atEnd() && !this.matches(MARKUP)) {
-      this.pos = this.interpolationEnd() ?? this.pos + 1;
+  private text(state: State): Step<TextNode> {
+    const start = state.pos;
+    let pos = start;
+    while (!this.atEndAt(pos) && !this.matchesAt(pos, MARKUP)) {
+      pos = this.interpolationEnd(pos) ?? pos + 1;
     }
-    return {
-      kind: "text",
-      value: decodeReferences(this.source.slice(start, this.pos)),
-      span: { start, end: this.pos },
-    };
+    return done(
+      { kind: "text", value: decodeReferences(this.source.slice(start, pos)), span: { start, end: pos } },
+      { ...state, pos },
+    );
   }
 
-  /** Where the `{{ }}` starting here ends, or undefined when there is none here. */
-  private interpolationEnd(): number | undefined {
-    const close = this.startsWith("{{") ? this.source.indexOf("}}", this.pos + 2) : -1;
+  /** Where the `{{ }}` starting at `pos` ends, or undefined when there is none there. */
+  private interpolationEnd(pos: number): number | undefined {
+    const close = this.source.startsWith("{{", pos) ? this.source.indexOf("}}", pos + 2) : -1;
     return close === -1 ? undefined : close + 2;
   }
 
   /**
-   * Everything up to the closing tag of a raw text element, as one text. Its references
-   * are decoded when `decode` is set (`textarea`, `title`), and kept as written otherwise.
+   * Everything up to the closing tag of a raw text element, as one text. Its references are
+   * decoded when `decode` is set (`textarea`, `title`), and kept as written otherwise.
    */
-  private rawText(name: string, decode: boolean): TemplateNode[] {
+  private rawText(
+    name: string,
+    decode: boolean,
+    state: State,
+  ): { nodes: TemplateNode[]; state: State } {
     const closing = new RegExp(`</${name}`, "gi");
-    closing.lastIndex = this.pos;
-    const match = closing.exec(this.source);
-    const start = this.pos;
-    const end = match?.index ?? this.source.length;
+    closing.lastIndex = state.pos;
+    const closingAt = closing.exec(this.source);
+    const start = state.pos;
+    const end = closingAt?.index ?? this.source.length;
     const raw = this.source.slice(start, end);
-    this.pos = end;
     const value = decode ? decodeReferences(raw) : raw;
-    return value === "" ? [] : [{ kind: "text", value, span: { start, end } }];
+    return {
+      nodes: value === "" ? [] : [{ kind: "text", value, span: { start, end } }],
+      state: { ...state, pos: end },
+    };
   }
 
   /**
    * The closing tag of the element `name`, at the current position. True when the element is
    * closed by it (consumed), or when it is left unclosed for an enclosing element (not consumed).
    * False for a closing tag that closes nothing open: it is reported and skipped, and the element
-   * goes on. Left when the source ends first, or the tag is malformed.
+   * goes on. A failure when the source ends first, or the tag is malformed.
    */
-  private closingTag(name: string, openedAt: number): Parsed<boolean> {
-    if (this.atEnd()) {
-      return Left.of(this.error(`<${name}> is never closed`, openedAt));
+  private closingTag(name: string, openedAt: number, state: State): Step<boolean> {
+    if (this.atEnd(state)) {
+      return failed(this.error(`<${name}> is never closed`, openedAt), state);
     }
-    const at = this.pos;
-    this.pos += 2;
-    return flatMap(this.name(), (closing) => {
-      this.take(SPACES);
-      return map(this.expect(">"), (): boolean => {
+    const at = state.pos;
+    return then(this.name({ ...state, pos: at + 2 }), (closing, afterName) => {
+      const spaced = this.take(afterName, SPACES).state;
+      return then(this.expect(spaced, ">"), (_, afterGt) => {
         if (sameName(closing, name)) {
-          return true;
+          return done(true, afterGt);
         }
-        if (this.open.some((open) => sameName(open, closing))) {
-          this.found.push(this.error(`<${name}> is never closed`, openedAt));
-          this.pos = at;
-          return true;
+        if (state.open.some((open) => sameName(open, closing))) {
+          const reported = addError(afterGt, this.error(`<${name}> is never closed`, openedAt));
+          return done(true, { ...reported, pos: at });
         }
-        this.found.push(this.error(`</${closing}> does not close <${name}>`, at));
-        return false;
+        return done(false, addError(afterGt, this.error(`</${closing}> does not close <${name}>`, at)));
       });
     });
   }
@@ -279,139 +310,154 @@ class Scanner {
   private startTagRest(
     openedAt: number,
     name: string,
-  ): Parsed<{ attributes: AttributeNode[]; selfClosing: boolean }> {
-    const attributes: AttributeNode[] = [];
-    const names = new Set<string>();
+    start: State,
+  ): Step<{ attributes: AttributeNode[]; selfClosing: boolean }> {
+    let attributes: AttributeNode[] = [];
+    let state = start;
     for (;;) {
-      this.take(SPACES);
-      if (this.atEnd()) {
-        return Left.of(this.error(`<${name} is never closed`, openedAt));
+      state = this.take(state, SPACES).state;
+      if (this.atEnd(state)) {
+        return failed(this.error(`<${name} is never closed`, openedAt), state);
       }
-      if (this.consume(">")) {
-        return Right.of({ attributes, selfClosing: false });
+      const afterGt = this.consume(state, ">");
+      if (afterGt !== undefined) {
+        return done({ attributes, selfClosing: false }, afterGt);
       }
-      if (this.consume("/>")) {
-        return Right.of({ attributes, selfClosing: true });
+      const afterSlash = this.consume(state, "/>");
+      if (afterSlash !== undefined) {
+        return done({ attributes, selfClosing: true }, afterSlash);
       }
-      const at = this.pos;
-      use(this.attribute(), {
-        Right: (attribute) => {
-          if (names.has(attribute.name)) {
-            this.found.push(this.error(`duplicate attribute ${attribute.name}`, at));
-          } else {
-            names.add(attribute.name);
-            attributes.push(attribute);
-          }
-        },
-        Left: (error) => {
-          // The attribute is dropped, and the tag goes on at its end.
-          this.found.push(error);
-          this.skipToTagEnd();
-        },
+      const at = state.pos;
+      const step = this.attribute(state);
+      const next = match(step.result, {
+        Right: (attribute) => attributes.some((known) => known.name === attribute.name)
+          ? { attributes, state: addError(step.state, this.error(`duplicate attribute ${attribute.name}`, at)) }
+          : { attributes: [...attributes, attribute], state: step.state },
+        // The attribute is dropped, and the tag goes on at its end.
+        Left: (error) => ({ attributes, state: this.skipToTagEnd(addError(step.state, error)) }),
       });
+      attributes = next.attributes;
+      state = next.state;
     }
   }
 
   /** Moves to the `>` that ends the start tag, or to the end of the source. */
-  private skipToTagEnd(): void {
-    const end = this.source.indexOf(">", this.pos);
-    this.pos = end === -1 ? this.source.length : end;
+  private skipToTagEnd(state: State): State {
+    const end = this.source.indexOf(">", state.pos);
+    return { ...state, pos: end === -1 ? this.source.length : end };
   }
 
   /** `name`, `name=value`, or `name="value"` (or with single quotes). */
-  private attribute(): Parsed<AttributeNode> {
-    const name = this.take(ATTRIBUTE_NAME);
-    if (name === "") {
-      return Left.of(this.error("expected an attribute name"));
+  private attribute(state: State): Step<AttributeNode> {
+    const taken = this.take(state, ATTRIBUTE_NAME);
+    if (taken.text === "") {
+      return failed(this.error("expected an attribute name", state.pos), state);
     }
-    this.take(SPACES);
-    if (!this.consume("=")) {
-      return Right.of({ name, value: "" });
+    const named = this.take(taken.state, SPACES).state;
+    const afterEquals = this.consume(named, "=");
+    if (afterEquals === undefined) {
+      return done({ name: taken.text, value: "" }, named);
     }
-    this.take(SPACES);
-    return map(this.attributeValue(), (value): AttributeNode => ({ name, value }));
+    const valued = this.take(afterEquals, SPACES).state;
+    return then(this.attributeValue(valued), (value, after) =>
+      done({ name: taken.text, value }, after));
   }
 
-  private attributeValue(): Parsed<string> {
-    const quote = this.source[this.pos];
+  private attributeValue(state: State): Step<string> {
+    const quote = this.source[state.pos];
     if (quote === "\"" || quote === "'") {
-      const close = this.source.indexOf(quote, this.pos + 1);
+      const close = this.source.indexOf(quote, state.pos + 1);
       if (close === -1) {
-        return Left.of(this.error("attribute value is never closed"));
+        return failed(this.error("attribute value is never closed", state.pos), state);
       }
-      const value = this.source.slice(this.pos + 1, close);
-      this.pos = close + 1;
-      return Right.of(decodeReferences(value));
+      const value = this.source.slice(state.pos + 1, close);
+      return done(decodeReferences(value), { ...state, pos: close + 1 });
     }
-    const value = this.take(UNQUOTED_VALUE);
-    if (value === "") {
-      return Left.of(this.error("expected an attribute value"));
+    const taken = this.take(state, UNQUOTED_VALUE);
+    if (taken.text === "") {
+      return failed(this.error("expected an attribute value", state.pos), state);
     }
-    return Right.of(decodeReferences(value));
+    return done(decodeReferences(taken.text), taken.state);
   }
 
-  private comment(): Parsed<void> {
-    const close = this.source.indexOf("-->", this.pos + 4);
+  private comment(state: State): Step<void> {
+    const close = this.source.indexOf("-->", state.pos + 4);
     if (close === -1) {
-      return Left.of(this.error("comment is never closed"));
+      return failed(this.error("comment is never closed", state.pos), state);
     }
-    this.pos = close + 3;
-    return Right.of(undefined);
+    return done(undefined, { ...state, pos: close + 3 });
   }
 
-  private name(): Parsed<string> {
-    const name = this.take(TAG_NAME);
-    if (name === "") {
-      return Left.of(this.error("expected an element name"));
+  private name(state: State): Step<string> {
+    const taken = this.take(state, TAG_NAME);
+    if (taken.text === "") {
+      return failed(this.error("expected an element name", state.pos), state);
     }
-    return Right.of(name);
+    return done(taken.text, taken.state);
   }
 
-  private expect(text: string): Parsed<void> {
-    if (!this.consume(text)) {
-      return Left.of(this.error(`expected ${text}`));
+  private expect(state: State, text: string): Step<void> {
+    const after = this.consume(state, text);
+    if (after === undefined) {
+      return failed(this.error(`expected ${text}`, state.pos), state);
     }
-    return Right.of(undefined);
+    return done(undefined, after);
   }
 
-  /** Moves past `text` if the source is at it. */
-  private consume(text: string): boolean {
-    if (!this.startsWith(text)) {
-      return false;
-    }
-    this.pos += text.length;
-    return true;
+  /** The state after `text`, if the source is at it; undefined when it is not. */
+  private consume(state: State, text: string): State | undefined {
+    return this.startsWith(state, text) ? { ...state, pos: state.pos + text.length } : undefined;
   }
 
-  /** Moves past what `pattern` matches here, and returns it (`""` for nothing). */
-  private take(pattern: RegExp): string {
-    pattern.lastIndex = this.pos;
-    const match = pattern.exec(this.source);
-    const text = match === null ? "" : match[0];
-    this.pos += text.length;
-    return text;
+  /** The text `pattern` matches at the state's position, and the state after it (`""` for none). */
+  private take(state: State, pattern: RegExp): { text: string; state: State } {
+    const sticky = new RegExp(pattern.source, pattern.flags);
+    sticky.lastIndex = state.pos;
+    const matched = sticky.exec(this.source);
+    const text = matched === null ? "" : matched[0];
+    return { text, state: { ...state, pos: state.pos + text.length } };
   }
 
-  private matches(pattern: RegExp): boolean {
-    pattern.lastIndex = this.pos;
-    return pattern.test(this.source);
+  private matches(state: State, pattern: RegExp): boolean {
+    return this.matchesAt(state.pos, pattern);
   }
 
-  private startsWith(text: string): boolean {
-    return this.source.startsWith(text, this.pos);
+  private matchesAt(pos: number, pattern: RegExp): boolean {
+    const sticky = new RegExp(pattern.source, pattern.flags);
+    sticky.lastIndex = pos;
+    return sticky.test(this.source);
   }
 
-  private atEnd(): boolean {
-    return this.pos >= this.source.length;
+  private startsWith(state: State, text: string): boolean {
+    return this.source.startsWith(text, state.pos);
   }
 
-  /** An error at `at` (the current position by default), with its line and column. */
-  private error(message: string, at = this.pos): TemplateSyntaxError {
+  private atEnd(state: State): boolean {
+    return this.atEndAt(state.pos);
+  }
+
+  private atEndAt(pos: number): boolean {
+    return pos >= this.source.length;
+  }
+
+  /** An error at `at`, with its line and column. */
+  private error(message: string, at: number): TemplateSyntaxError {
     const line = this.source.slice(0, at)
       .split("\n").length;
     const column = at - this.source.lastIndexOf("\n", at - 1);
     return new TemplateSyntaxError(message, line, column);
   }
+}
+
+/** An element node, from its parts. */
+function element(
+  name: string,
+  attributes: AttributeNode[],
+  children: TemplateNode[],
+  start: number,
+  end: number,
+): ElementNode {
+  return { kind: "element", name, attributes, children, span: { start, end } };
 }
 
 /** Whether two element names are the same: names are compared without their case. */
