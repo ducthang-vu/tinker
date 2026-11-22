@@ -4,6 +4,7 @@
 // Right and Left for Either, Some and None for Maybe.
 
 import { Right, type Either } from "./either.ts";
+import type { Stream } from "./stream.ts";
 import { Some, type Maybe } from "./maybe.ts";
 import { MATCHABLE, match, type Matchable } from "./monad.ts";
 import {
@@ -26,6 +27,7 @@ export interface Functor<T> {
 /** A data-last `map`: applied to a box, it maps the box. */
 export interface MapFn<T, U> {
   <E>(self: Either<T, E>): Either<U, E>;
+  <X, E>(self: Stream<X, T, E>): Stream<X, U, E | Error>;
   (self: Maybe<T>): Maybe<U>;
   (self: Functor<T>): Functor<U>;
   (self: Matchable): Matchable;
@@ -67,6 +69,10 @@ export type MaybeFlatMapFn<T, U> = (self: Maybe<T>) => Maybe<U>;
  * ```
  */
 export function map<T, E, U>(self: Either<T, E>, f: (value: T) => U): Either<U, E>;
+export function map<T, X, E, U>(
+  self: Stream<X, T, E>,
+  f: (result: T) => U,
+): Stream<X, U, E | Error>;
 export function map<T, U>(self: Maybe<T>, f: (value: T) => U): Maybe<U>;
 export function map<T, U>(f: (value: T) => U): MapFn<T, U>;
 export function map<T, U>(self: Functor<T>, f: (value: T) => U): Functor<U>;
@@ -122,7 +128,14 @@ export function flatMap<T, U, F>(
   f: (value: T) => Either<U, F>,
 ): <E>(self: Either<T, E>) => Either<U, E | F>;
 export function flatMap<T, U>(f: (value: T) => Maybe<U>): MaybeFlatMapFn<T, U>;
+export function flatMap<T, X, E, Y, R2, F>(
+  self: Stream<X, T, E>,
+  f: (result: T) => Stream<Y, R2, F>,
+): Stream<X | Y, R2, E | F | Error>;
 export function flatMap<T, U>(self: Chain<T>, f: (value: T) => Chain<U>): Chain<U>;
+export function flatMap<T, Y, R2, F>(
+  f: (result: T) => Stream<Y, R2, F>,
+): <X, E>(self: Stream<X, T, E>) => Stream<X | Y, R2, E | F | Error>;
 export function flatMap<T, U>(f: (value: T) => Chain<U>): (self: Chain<T>) => Chain<U>;
 export function flatMap<T, U>(
   self: Matchable,
