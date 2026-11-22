@@ -471,10 +471,51 @@ async function selectorOf(
   if (file === null) {
     return undefined;
   }
-  const fileSource = readSource(readFileSync(file, "utf8"), file);
-  const declared = fileSource.declarations
-    .find((declaration) => declaration.name === binding.imported);
-  return declared === undefined ? undefined : selectorInfo(declared, fileSource, file, host);
+  const found = await exportedDeclaration(binding.imported, file, host, new Set());
+  return found === undefined
+    ? undefined
+    : selectorInfo(found.declaration, found.source, found.filename, host);
+}
+
+/** A declaration found by its exported name, with the file that declares it. */
+interface FoundDeclaration {
+  readonly declaration: Declaration;
+  readonly source: SourceInfo;
+  readonly filename: string;
+}
+
+/**
+ * The declaration that `file` exports as `exported`: declared there, or re-exported from another
+ * file (`export { X } from "..."`, or `export * from "..."`). `seen` stops a cycle of re-exports.
+ */
+async function exportedDeclaration(
+  exported: string,
+  file: string,
+  host: CheckHost,
+  seen: Set<string>,
+): Promise<FoundDeclaration | undefined> {
+  const key = `${file}\0${exported}`;
+  if (seen.has(key)) {
+    return undefined;
+  }
+  seen.add(key);
+  const source = readSource(readFileSync(file, "utf8"), file);
+  const declaration = source.declarations.find((candidate) => candidate.name === exported);
+  if (declaration !== undefined) {
+    return { declaration, source, filename: file };
+  }
+  const named = source.reexports.find((reexport) => reexport.local === exported);
+  const candidates = named === undefined
+    ? source.starExports.map((from) => ({ from, name: exported }))
+    : [{ from: named.source, name: named.imported }];
+  for (const { from, name } of candidates) {
+    const next = await host.resolve(from, file);
+    const found = next === null ? undefined : await exportedDeclaration(name, next, host, seen);
+    if (found !== undefined) {
+      return found;
+    }
+  }
+  return undefined;
 }
 
 /**

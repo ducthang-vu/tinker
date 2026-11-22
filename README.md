@@ -50,7 +50,7 @@ bootstrap(Counter); // renders into <tk-counter> in the page
 ```
 
 The full version, with a clock, directives, a todo list and every pattern form,
-is in [`examples/basics`](examples/basics/), one file per topic. It runs in the
+is in [`examples/basics`](examples/basics/), one folder per topic. It runs in the
 browser at **[ducthang-vu.github.io/tinker](https://ducthang-vu.github.io/tinker/)**.
 
 ## Modules

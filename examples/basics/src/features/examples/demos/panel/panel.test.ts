@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { MockComponentBuilder, TestBed } from "@tinker/testing";
 import { Gauge, Panel } from "./panel.ts";
-import { buttonNamed } from "./testing-helpers.ts";
+import { buttonNamed } from "../../../../../testing/testing-helpers.ts";
 
 describe("Panel", () => {
   test("its button sets the gauge it names", () => {

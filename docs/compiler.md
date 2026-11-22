@@ -74,7 +74,7 @@ Both happen with or without `emit`, because a component needs its template and C
 run time. The plugin watches the files: an edit rebuilds the component that reads them.
 
 - **Keep the files in the component's folder**: `notice/notice.ts`, `notice/notice.html`
-  and `notice/notice.css`, one folder per component. See `examples/basics/notice`.
+  and `notice/notice.css`, one folder per component. See `examples/basics/src/features/examples/demos/notice`.
 - `styleUrls` must be a list: a string fails the build. `templateUrl` takes one string.
   A missing file fails the build and names the file.
 - An inline option and its file together (`template` with `templateUrl`, `styles` with

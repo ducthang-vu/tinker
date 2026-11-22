@@ -3,7 +3,7 @@
 // page is one of its children.
 
 import type { Route } from "@tinker/router";
-import { ApiDocs } from "../api/api-docs.ts";
+import { ApiDocs } from "../../apidoc/api-docs.ts";
 import { App } from "./app.ts";
 import { Examples } from "./examples-page.ts";
 import { NotFound } from "./not-found.ts";

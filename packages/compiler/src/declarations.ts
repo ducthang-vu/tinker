@@ -75,6 +75,10 @@ export interface ImportBinding {
 export interface SourceInfo {
   readonly declarations: readonly Declaration[];
   readonly imports: readonly ImportBinding[];
+  /** The named re-exports: `export { imported as local } from "source"`. */
+  readonly reexports: readonly ImportBinding[];
+  /** The modules it re-exports everything from: `export * from "source"`. */
+  readonly starExports: readonly string[];
   /** The `const`s of the file whose value is a string literal or a template without `${}`. */
   readonly constants: ReadonlyMap<string, string>;
   /** The initializer of every top-level `const`, to evaluate the ones not in `constants`. */
@@ -97,6 +101,8 @@ export function readSource(code: string, filename: string): SourceInfo {
   return {
     declarations: body.flatMap((statement) => declarationOf(statement, constants)),
     imports: body.flatMap(importsOf),
+    reexports: body.flatMap(reexportsOf),
+    starExports: body.flatMap(starExportsOf),
     constants,
     expressions: expressionsOf(body),
   };
@@ -361,6 +367,34 @@ function identifiersOf(value: t.Expression | undefined): readonly string[] | und
   const names = value.elements.map((element) =>
     t.isIdentifier(element) ? element.name : undefined);
   return names.every((name) => name !== undefined) ? names as string[] : undefined;
+}
+
+/**
+ * The named re-exports of an `export { imported as local } from "source"` declaration, as
+ * bindings: `local` is the exported name, `imported` the name in `source`.
+ */
+function reexportsOf(statement: t.Statement): ImportBinding[] {
+  if (!t.isExportNamedDeclaration(statement) || !statement.source) {
+    return [];
+  }
+  const source = statement.source.value;
+  return statement.specifiers.flatMap((specifier) => {
+    if (!t.isExportSpecifier(specifier)) {
+      return [];
+    }
+    const local = t.isIdentifier(specifier.exported)
+      ? specifier.exported.name
+      : specifier.exported.value;
+    const imported = t.isIdentifier(specifier.local)
+      ? specifier.local.name
+      : specifier.local.value;
+    return [{ local, imported, source }];
+  });
+}
+
+/** The modules a file re-exports everything from: `export * from "source"`. */
+function starExportsOf(statement: t.Statement): string[] {
+  return t.isExportAllDeclaration(statement) ? [statement.source.value] : [];
 }
 
 /** The named imports of an `import` declaration. Default and namespace imports are not read. */

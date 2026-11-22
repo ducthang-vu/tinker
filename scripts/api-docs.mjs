@@ -13,8 +13,8 @@
 // - A `private` or `#private` member, and a `protected` one, are not listed: they are not
 //   part of the API an app uses.
 //
-// `npm run docs:api` writes examples/basics/api/api-reference.json; `--check` fails when the
-// file is out of date (`npm test` runs it), as `repo-map:check` does.
+// `npm run docs:api` writes examples/basics/src/features/apidoc/api-reference.json;
+// `--check` fails when the file is out of date (`npm test` runs it), as `repo-map:check` does.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import * as ts from "typescript";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const DEFAULT_OUTPUT = "examples/basics/api/api-reference.json";
+const DEFAULT_OUTPUT = "examples/basics/src/features/apidoc/api-reference.json";
 
 // Types are printed in full, with the aliases a reader wrote, not expanded or cut short.
 const FORMAT_FLAGS = ts.TypeFormatFlags.NoTruncation

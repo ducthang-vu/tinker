@@ -296,7 +296,7 @@ matching its Left and throwing, and the error is thrown there instead of being r
 for the directive's bindings, so the caller that creates the directive decides what to do
 with the error. This follows from converting the template compiler to `Either`.
 
-## API reference (`scripts/api-docs.mjs`, `examples/basics/api/`)
+## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
 ### 1. Descriptions are plain text with code spans and fences
 
@@ -325,7 +325,7 @@ the package index (`packages/core/src/view/index.ts`), so an app can still impor
 **To do.** Move them out of the public index, or keep them there and accept that the
 reference does not show them.
 
-## Example app: routing and the GitHub Pages base (`examples/basics/app/`, `.github/workflows/gh-pages.yml`)
+## Example app: routing and the GitHub Pages base (`examples/basics/src/features/examples/app/`, `.github/workflows/gh-pages.yml`)
 
 ### 1. Links are not base-aware
 
