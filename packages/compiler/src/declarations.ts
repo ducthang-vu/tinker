@@ -50,6 +50,10 @@ export interface Declaration {
   readonly exportAs: string | undefined;
   /** Whether the decorator gives an `exportAs` that is not a literal, which is not read. */
   readonly exportAsIsDynamic: boolean;
+  /** The template names of its inputs, by property: from `input(…, { name: "…" })`. */
+  readonly inputNames: Readonly<Record<string, string>>;
+  /** Where the class statement ends: the registration of its input names goes after it. */
+  readonly statementEnd: number;
 }
 
 /** A `styleUrls` or `templateUrl` property: the file it names (if a literal), and where it is. */
@@ -171,14 +175,59 @@ function declarationOf(
   if (decorator === undefined) {
     return [];
   }
-  return [{ name: declared.id.name, ...decorator }];
+  return [{
+    name: declared.id.name,
+    ...decorator,
+    inputNames: inputNamesOf(declared, constants),
+    statementEnd: statement.end as number,
+  }];
+}
+
+/**
+ * The template names of a class's inputs, by property: each `x = input(…, { name: "…" })` whose
+ * name is a literal (or a constant of the file). An input without a name is not listed.
+ */
+function inputNamesOf(
+  declared: t.ClassDeclaration,
+  constants: ReadonlyMap<string, string>,
+): Readonly<Record<string, string>> {
+  const names: Record<string, string> = {};
+  for (const member of declared.body.body) {
+    if (!t.isClassProperty(member) || member.computed || !t.isIdentifier(member.key)) {
+      continue;
+    }
+    const name = nameOfInput(member.value, constants);
+    if (name !== undefined) {
+      names[member.key.name] = name;
+    }
+  }
+  return names;
+}
+
+/**
+ * The `name` of an `input(…)` call: its options are the argument that is an object, the
+ * second one or (alone) the first, as `input()` reads them. Undefined when there is none.
+ */
+function nameOfInput(
+  value: t.Expression | null | undefined,
+  constants: ReadonlyMap<string, string>,
+): string | undefined {
+  if (!t.isCallExpression(value) || !t.isIdentifier(value.callee, { name: "input" })) {
+    return undefined;
+  }
+  const args = value.arguments;
+  const options = args.length === 1 ? args[0] : args[1];
+  if (!t.isObjectExpression(options)) {
+    return undefined;
+  }
+  return literalOf(propertyOf(options, "name"), constants);
 }
 
 /** The kind and the literal options of a `@Component({...})` or `@Directive({...})`. */
 function decoratorInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name"> | undefined {
+): Omit<Declaration, "name" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)) {
     return undefined;

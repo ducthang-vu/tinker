@@ -50,6 +50,12 @@ class StubItem {
   static readonly mockOf = Item;
 }
 
+// An input under a template name: the compiler registers the name when the class is defined.
+@Component({ selector: "tk-titled", template: "<i>{{ label() }}</i>" })
+class Titled {
+  readonly label = input("", { name: "title" });
+}
+
 describe("TestBed.build", () => {
   test("needs a component", () => {
     expect(() => TestBed.providers()
@@ -417,6 +423,36 @@ describe("mock builders", () => {
       .toHaveLength(0);
     expect(ref.root.queryAll(Item))
       .toHaveLength(1);
+    ref.destroy();
+  });
+
+  test("a mock of an input with a template name is bound by that name", () => {
+    const mock = new MockComponentBuilder(Titled)
+      .optionalInputs({ label: "" })
+      .build();
+    const Host = ComponentBuilder.template(`<tk-titled title="Hello"></tk-titled>`)
+      .directives(Titled)
+      .build();
+    const ref = TestBed.override(Titled, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Titled).inputs.label)
+      .toBe("Hello");
+    ref.destroy();
+  });
+
+  test("a required mock input with a template name is bound by that name", () => {
+    const mock = new MockComponentBuilder(Titled)
+      .requiredInputs("label")
+      .build();
+    const Host = ComponentBuilder.template(`<tk-titled title="Hello"></tk-titled>`)
+      .directives(Titled)
+      .build();
+    const ref = TestBed.override(Titled, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Titled).inputs.label)
+      .toBe("Hello");
     ref.destroy();
   });
 

@@ -95,6 +95,27 @@ describe("tinkerCompiler", () => {
       .toEqual([expect.stringContaining("Cannot emit Infinity")]);
   });
 
+  test("registers the template names of a class's inputs right after the class", async () => {
+    const { result } = transform(
+      `@Component({ selector: "tk-a", template: "<p></p>" }) class A { readonly label = input("", { name: "title" }); }`,
+      "/app/a.ts",
+    );
+    const output = (await result) as { code: string };
+    expect(output.code)
+      .toContain(`import { registerInputNames as __tinkerRegisterInputs } from "@tinker/core";`);
+    expect(output.code)
+      .toContain(`__tinkerRegisterInputs(A, {"label":"title"});`);
+  });
+
+  test("a class with no named input is not changed for its inputs", async () => {
+    const { result } = transform(
+      `@Component({ selector: "tk-a", template: "<p></p>" }) class A { readonly a = input(); readonly b = input(1, { adapter: (v: string) => v.length }); }`,
+      "/app/a.ts",
+    );
+    expect(await result)
+      .toBeNull();
+  });
+
   test("ignores files that are not TypeScript, that are in node_modules, or with no component", async () => {
     const broken = `@Component({ template: "<p>{{ a + }}</p>" }) class A {}`;
     for (const id of ["/app/style.css", "/app/node_modules/lib/a.ts", "/app/plain.ts"]) {
