@@ -66,10 +66,17 @@ export interface TestRunner {
   readonly afterEach?: (hook: () => void) => void;
   /** Whether a test is running now: a fixture without `manualCleanup()` must be built in one. */
   readonly inTest?: () => boolean;
+  /**
+   * Runs a hook when the test running now ends (Vitest's `onTestFinished`). A fixture built in a
+   * test is destroyed by its own hook, so concurrent tests do not destroy each other's fixtures.
+   */
+  readonly onTestFinished?: (hook: () => void) => void;
 }
 
 /** The runner's `inTest`, once `registerRunner` gave one. Until then, no fixture is checked. */
 let inTest: TestRunner["inTest"];
+/** The runner's `onTestFinished`, once `registerRunner` gave one. */
+let onTestFinished: TestRunner["onTestFinished"];
 
 /**
  * Give the package the test runner's hooks. Call it once in the test setup (a Vitest setup file
@@ -78,9 +85,22 @@ let inTest: TestRunner["inTest"];
 export function registerRunner(runner: TestRunner | undefined): void {
   runner?.afterEach?.(cleanup);
   inTest = runner?.inTest;
+  onTestFinished = runner?.onTestFinished;
 }
 
 registerRunner({ afterEach: (globalThis as { afterEach?: (hook: () => void) => void }).afterEach });
+
+/**
+ * Keep a fixture until it is destroyed: by the end of the test that built it, when the runner
+ * gives `onTestFinished`, else by `cleanup()`.
+ */
+function track(fixture: { destroy(): void }): void {
+  if (onTestFinished === undefined) {
+    live.add(fixture);
+  } else {
+    onTestFinished(() => fixture.destroy());
+  }
+}
 
 /**
  * A fixture that `cleanup()` destroys must be built inside a test: outside one (in `beforeAll`,
@@ -165,7 +185,7 @@ class Bed<T extends object> implements TestBedApi<T> {
       },
     };
     if (!this.state.manual) {
-      live.add(fixture);
+      track(fixture);
     }
     return fixture;
   }

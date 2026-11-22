@@ -61,9 +61,11 @@ A test that must control when its fixture is destroyed uses `TestBed.manualClean
 a fixture is not destroyed by `cleanup()`.
 
 A fixture without `manualCleanup()` must be built inside a test. Built outside one (in
-`beforeAll`, say), it throws, since `cleanup()` would destroy it at the wrong time. The check
-needs the test runner: `registerRunner({ afterEach, inTest })` in the test setup. This repo's
-Vitest setup is `vitest.setup.ts`; without it nothing is checked.
+`beforeAll`, say), it throws. With the runner's `onTestFinished`, each fixture is destroyed
+when the test that built it ends, so concurrent tests do not destroy each other's fixtures.
+The runner is given with `registerRunner({ afterEach, inTest, onTestFinished })` in the test
+setup. This repo's Vitest setup is `vitest.setup.ts`; without a runner, fixtures are destroyed
+by `cleanup()` and nothing is checked.
 
 ## Templates for tests
 
@@ -120,6 +122,5 @@ query for `Gauge`, from the test or from a parent template, finds the mock.
 - A mock's inputs and outputs must be listed. A missing name is not caught when the mock is
   built, and a parent template binding it reads nothing.
 - Writes from timers are not waited for by `whenStable`.
-- Concurrent tests need `manualCleanup()`, because `cleanup()` is only safe while the tests of
-  a file run one after another. The package cannot see whether a test is concurrent, so this
-  is not checked yet. See `IMPROVEMENTS.md`.
+- A concurrent test's fixture is destroyed when that test ends, with the runner's
+  `onTestFinished`. Without a runner, a concurrent test needs `manualCleanup()`.

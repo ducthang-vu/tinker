@@ -365,6 +365,40 @@ describe("registerRunner", () => {
   });
 });
 
+describe("a fixture is destroyed by the end of the test that built it", () => {
+  @Component({ selector: "tk-owned", template: "<p>x</p>" })
+  class Owned {}
+
+  test("registers its own destroy with the runner's hook, not with cleanup()", () => {
+    const hooks: (() => void)[] = [];
+    registerRunner({
+      inTest: () => true,
+      onTestFinished: (hook) => {
+        hooks.push(hook);
+      },
+    });
+    try {
+      const fixture = TestBed.component(Owned)
+        .build();
+      expect(hooks)
+        .toHaveLength(1);
+      hooks[0]!();
+      expect(() => fixture.detectChanges())
+        .not.toThrow();
+    } finally {
+      registerRunner(undefined);
+    }
+  });
+
+  test.concurrent("a concurrent test builds its fixture inside the test, and keeps it", async () => {
+    const fixture = TestBed.component(Owned)
+      .build();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(fixture.root.text())
+      .toBe("x");
+  });
+});
+
 describe("a fixture built under a runner must be built inside a test", () => {
   @Component({ selector: "tk-checked", template: "<p>x</p>" })
   class Checked {}
