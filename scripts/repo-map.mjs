@@ -337,11 +337,18 @@ function oneLine(value) {
 }
 
 /**
+ * Packages whose `src/` modules each have a map of their own. `packages/core` is the only
+ * one large enough to need it: its modules (`signals`, `di`, `view`, ...) are scopes too.
+ */
+const SPLIT_PACKAGES = ["packages/core"];
+
+/**
  * The folders that have a map of their own: each package and each example, which are
- * the folders with a package.json under `packages/` and `examples/`.
+ * the folders with a package.json under `packages/` and `examples/`, and the top-level
+ * modules of the split packages.
  */
 export function scopesOf(rootDir) {
-  return ["packages", "examples"].flatMap((parent) => {
+  const packageScopes = ["packages", "examples"].flatMap((parent) => {
     const folder = path.join(rootDir, parent);
     if (!existsSync(folder)) {
       return [];
@@ -349,27 +356,50 @@ export function scopesOf(rootDir) {
     return readdirSync(folder, { withFileTypes: true })
       .filter((entry) => entry.isDirectory()
         && existsSync(path.join(folder, entry.name, "package.json")))
-      .map((entry) => `${parent}/${entry.name}`)
-      .sort();
+      .map((entry) => `${parent}/${entry.name}`);
   });
+  const moduleScopes = SPLIT_PACKAGES.flatMap((pkg) => {
+    const folder = path.join(rootDir, pkg, "src");
+    if (!existsSync(folder)) {
+      return [];
+    }
+    return readdirSync(folder, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => `${pkg}/src/${entry.name}`);
+  });
+  return [...packageScopes, ...moduleScopes].sort();
+}
+
+/**
+ * The scope a file belongs to: the most specific scope that holds it, so a module inside
+ * a split package belongs to the module, not to the package. `null` is outside every scope.
+ */
+function scopeOf(file, scopes) {
+  let found = null;
+  for (const scope of scopes) {
+    if (file.startsWith(`${scope}/`) && (found === null || scope.length > found.length)) {
+      found = scope;
+    }
+  }
+  return found;
 }
 
 /**
  * Every map, as a path (relative to the root) and its content. The root's map has the
- * files outside every scope; each scope's map has the files inside it. A file's imports
- * and exports are listed wherever they are, so a map names the files it depends on.
+ * files outside every scope; each scope's map has the files whose most specific scope it
+ * is. A file's imports and exports are listed wherever they are, so a map names the files
+ * it depends on.
  */
 export function renderAllMarkdown(graph, scopes) {
-  const inside = (path, scope) => path.startsWith(`${scope}/`);
   const maps = new Map([[
     ".repo-map.md",
     renderRepoMapMarkdown(graph, {
-      include: (path) => !scopes.some((scope) => inside(path, scope)),
+      include: (path) => scopeOf(path, scopes) === null,
     }),
   ]]);
   for (const scope of scopes) {
     maps.set(`${scope}/.repo-map.md`, renderRepoMapMarkdown(graph, {
-      include: (path) => inside(path, scope),
+      include: (path) => scopeOf(path, scopes) === scope,
     }));
   }
   return maps;

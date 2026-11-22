@@ -177,3 +177,40 @@ test("gives each package its own map, and the root the files outside the package
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("splits packages/core into a map per top-level module, each file in its most specific map", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "repo-map-modules-"));
+  try {
+    const write = (file, content) => {
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      writeFileSync(path.join(root, file), content);
+    };
+    write("tsconfig.json", JSON.stringify({ compilerOptions: { module: "esnext", moduleResolution: "bundler", target: "es2022" }, include: ["packages"] }));
+    write("packages/core/package.json", "{}");
+    write("packages/core/src/index.ts", "export * from './signals/index.ts';\n");
+    write("packages/core/src/signals/index.ts", "export const sig = 1;\n");
+    write("packages/core/src/di/index.ts", "export const di = 2;\n");
+    write("packages/core/src/view/index.ts", "export const view = 3;\n");
+
+    assert.deepEqual(scopesOf(root), [
+      "packages/core",
+      "packages/core/src/di",
+      "packages/core/src/signals",
+      "packages/core/src/view",
+    ]);
+    const maps = renderAllMarkdown(buildRepoMap(root), scopesOf(root));
+    assert.deepEqual([...maps.keys()], [
+      ".repo-map.md",
+      "packages/core/.repo-map.md",
+      "packages/core/src/di/.repo-map.md",
+      "packages/core/src/signals/.repo-map.md",
+      "packages/core/src/view/.repo-map.md",
+    ]);
+    assert.match(maps.get("packages/core/src/signals/.repo-map.md"), /packages\/core\/src\/signals\/index\.ts/);
+    assert.doesNotMatch(maps.get("packages/core/.repo-map.md"), /^packages\/core\/src\/signals\/index\.ts/m);
+    assert.match(maps.get("packages/core/.repo-map.md"), /packages\/core\/src\/index\.ts/);
+    assert.doesNotMatch(maps.get(".repo-map.md"), /packages\/core/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
