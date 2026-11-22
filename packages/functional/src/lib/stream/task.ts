@@ -18,7 +18,7 @@
 //
 // Timers are tasks too: `delay(ms)`, and `timeout(task, ms)`.
 
-import { type Either, Left, Right, toError } from "./either.ts";
+import { type Either, Left, Right, toError } from "../monad/either.ts";
 import { type Cancel, run, Stream } from "./stream.ts";
 
 /** A task: a stream with no items, ending with its outcome. */

@@ -1,8 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { EDGE_VALUES } from "./testing.ts";
+import { EDGE_VALUES } from "../../testing.ts";
 import { attempt, Left, mapLeft, Right, toError, type Either, valueOrThrow } from "./either.ts";
-import { flatMap, map } from "./functor.ts";
+import { flatMap, map } from "../functor/functor.ts";
 import { isEqual, match } from "./monad.ts";
 
 const show = (e: Either<unknown, unknown>): string =>

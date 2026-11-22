@@ -17,9 +17,9 @@
 //   const upload = Stream.from<number, Response>((sink) => { ... });
 //   run(upload, { next: showProgress, ok: showResult, error: showError });
 
-import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "./either.ts";
-import { type Chain, CHAIN, flatMap, type Functor, MAP } from "./functor.ts";
-import { match, use } from "./monad.ts";
+import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "../monad/either.ts";
+import { type Chain, CHAIN, flatMap, type Functor, MAP } from "../functor/functor.ts";
+import { match, use } from "../monad/monad.ts";
 
 /** Stops a running stream or task. Calling it after the end does nothing. */
 export type Cancel = () => void;

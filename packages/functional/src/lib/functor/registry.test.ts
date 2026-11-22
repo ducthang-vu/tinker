@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { flatMap, map } from "./functor.ts";
 import { implementFlatMap, implementMap } from "./registry.ts";
-import { MATCHABLE, type Matchable } from "./monad.ts";
+import { MATCHABLE, type Matchable } from "../monad/monad.ts";
 
 /** A box of a named case. Each test uses its own case name, since registration is global. */
 const boxOf = (name: string, ...args: unknown[]): Matchable => ({ [MATCHABLE]: { name, args } });

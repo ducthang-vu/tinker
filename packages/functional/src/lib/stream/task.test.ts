@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { flatMap, map } from "./functor.ts";
-import { Left, Right } from "./either.ts";
-import { match } from "./monad.ts";
+import { flatMap, map } from "../functor/functor.ts";
+import { Left, Right } from "../monad/either.ts";
+import { match } from "../monad/monad.ts";
 import { type Cancel, run, Stream, subscribe } from "./stream.ts";
 import {
   delay,

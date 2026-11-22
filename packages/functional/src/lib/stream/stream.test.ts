@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { Left, Right, type Either } from "./either.ts";
-import { flatMap, map } from "./functor.ts";
+import { Left, Right, type Either } from "../monad/either.ts";
+import { flatMap, map } from "../functor/functor.ts";
 import { mapErrors, run, Stream, subscribe, type StreamObserver } from "./stream.ts";
 
 /** Everything a subscriber is told, in order, as a readable log. */

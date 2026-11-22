@@ -1,9 +1,9 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { Left, Right } from "./either.ts";
+import { Left, Right } from "../monad/either.ts";
 import { CHAIN, type Chain, type Functor, flatMap, MAP, map, sequence } from "./functor.ts";
-import { MATCHABLE, type Matchable } from "./monad.ts";
-import { chainLaws, type ChainUnderTest, EDGE_VALUES } from "./testing.ts";
+import { MATCHABLE, type Matchable } from "../monad/monad.ts";
+import { chainLaws, type ChainUnderTest, EDGE_VALUES } from "../../testing.ts";
 
 /** A functor that is not matchable: it maps itself under the MAP protocol. */
 class Tagged<T> implements Functor<T> {
