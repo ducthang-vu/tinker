@@ -46,6 +46,10 @@ export interface Declaration {
   readonly styleUrl?: UrlSource;
   /** The `templateUrl` property, when the decorator has one. */
   readonly templateUrl?: UrlSource;
+  /** The `exportAs`, when the decorator gives it as a literal. */
+  readonly exportAs: string | undefined;
+  /** Whether the decorator gives an `exportAs` that is not a literal, which is not read. */
+  readonly exportAsIsDynamic: boolean;
 }
 
 /** A `styleUrl` or `templateUrl` property: the file it names (if a literal), and where it is. */
@@ -179,6 +183,7 @@ function decoratorInfo(
   const template = propertyOf(options, "template");
   const styleUrl = urlOf(options, "styleUrl", "styles", constants);
   const templateUrl = urlOf(options, "templateUrl", "template", constants);
+  const exportAs = propertyOf(options, "exportAs");
   return {
     kind,
     selector: literalOf(selector, constants),
@@ -186,6 +191,8 @@ function decoratorInfo(
     template: templateOf(template, constants),
     templateRef: refOf(template, constants),
     imports: identifiersOf(propertyOf(options, "imports")),
+    exportAs: literalOf(exportAs, constants),
+    exportAsIsDynamic: exportAs !== undefined && literalOf(exportAs, constants) === undefined,
     ...(styleUrl && { styleUrl }),
     ...(templateUrl && { templateUrl }),
   };

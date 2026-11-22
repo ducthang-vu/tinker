@@ -82,6 +82,25 @@ const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 interface Prepared {
   readonly metadata: ComponentMetadata;
   readonly hostDirectives: readonly Class<object>[];
+  /** The element the component is rendered into: given, or created from `plan`. */
+  readonly target: HostTarget;
+}
+
+/** Where a component's host element comes from: an element it is given, or a new one. */
+type HostTarget = { readonly element: Element } | { readonly plan: HostPlan };
+
+/** A new host element: its tag, and the attribute its selector gives it, if any. */
+interface HostPlan {
+  readonly tag: string;
+  readonly attribute: string | undefined;
+}
+
+/** The host element a selector creates: an optional tag, then an optional `[attribute]`. */
+function hostPlanOf(type: Class<unknown>, selector: string): Either<HostPlan, Error> {
+  const match = HOST_SELECTOR.exec(selector);
+  return match !== null && (match[1] !== undefined || match[2] !== undefined)
+    ? Right.of({ tag: match[1] ?? "div", attribute: match[2] })
+    : Left.of(new Error(`Cannot create a host element for ${type.name} from selector "${selector}"`));
 }
 
 export interface ParentContext {
@@ -160,7 +179,7 @@ export class ComponentFactory {
       return Left.of(new Error(`${type.name} contains itself: ${path}`));
     }
     return map(this.prepare(type, host), (prepared) =>
-      this.createPrepared(type, prepared, host, child, parentInjector, owner));
+      this.createPrepared(type, prepared, child, parentInjector, owner));
   }
 
   /** The checks `create` makes before it has any side effect. */
@@ -175,18 +194,36 @@ export class ComponentFactory {
     host: Element | undefined,
   ): Either<Prepared, Error> {
     return flatMap(this.hostDirectivesOf(type, metadata), (hostDirectives) =>
-      this.hostNotHoldingComponent(type, host, { metadata, hostDirectives }));
+      this.withTarget(type, metadata, hostDirectives, host));
   }
 
-  /** `prepared` when `host` (if there is one) holds no component yet. */
-  private hostNotHoldingComponent(
+  /** The host: the element given, if it holds no component yet, or else a plan for a new one. */
+  private withTarget(
     type: Class<unknown>,
+    metadata: ComponentMetadata,
+    hostDirectives: readonly Class<object>[],
     host: Element | undefined,
-    prepared: Prepared,
   ): Either<Prepared, Error> {
     if (host === undefined) {
-      return Right.of(prepared);
+      return map(hostPlanOf(type, metadata.selector), (plan): Prepared => ({
+        metadata,
+        hostDirectives,
+        target: { plan },
+      }));
     }
+    return this.hostNotHoldingComponent(type, host, {
+      metadata,
+      hostDirectives,
+      target: { element: host },
+    });
+  }
+
+  /** `prepared` when `host` holds no component yet. */
+  private hostNotHoldingComponent(
+    type: Class<unknown>,
+    host: Element,
+    prepared: Prepared,
+  ): Either<Prepared, Error> {
     const holds = Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
       .isSome();
     return holds
@@ -198,14 +235,13 @@ export class ComponentFactory {
   private createPrepared<T extends object>(
     type: Class<T>,
     prepared: Prepared,
-    host: Element | undefined,
     child: ParentContext | undefined,
     parentInjector: Injector | undefined,
     owner: ViewNode | undefined,
   ): ComponentView<T> {
     this.creating.push(type);
     try {
-      return this.createView(type, prepared, host, child, parentInjector, owner);
+      return this.createView(type, prepared, child, parentInjector, owner);
     } finally {
       this.creating.pop();
     }
@@ -213,13 +249,12 @@ export class ComponentFactory {
 
   private createView<T extends object>(
     type: Class<T>,
-    { metadata, hostDirectives }: Prepared,
-    host: Element | undefined,
+    { metadata, hostDirectives, target }: Prepared,
     child: ParentContext | undefined,
     parentInjector: Injector | undefined,
     owner: ViewNode | undefined,
   ): ComponentView<T> {
-    host ??= this.createHost(metadata.selector, type);
+    const host = "element" in target ? target.element : this.createHost(target.plan);
     applyComponentStyles(this.renderer, type, host);
 
     // Its own injector, child of the engine's (or, for a component in another's
@@ -349,11 +384,8 @@ export class ComponentFactory {
     }
   }
 
-  /** Create a host element for a selector: an optional tag, then an optional `[attribute]`. */
-  private createHost(selector: string, type: Class<unknown>): Element {
-    const [, tag = "div", attribute] = Maybe.from(HOST_SELECTOR.exec(selector))
-      .filter(([, tagName, attributeName]) => tagName !== undefined || attributeName !== undefined)
-      .getOrThrow(() => new Error(`Cannot create a host element for ${type.name} from selector "${selector}"`));
+  /** Create the host element `plan` describes. */
+  private createHost({ tag, attribute }: HostPlan): Element {
     const host = this.renderer.createElement(tag);
     if (attribute) {
       this.renderer.setAttribute(host, attribute, "");
@@ -425,11 +457,13 @@ export class ComponentFactory {
   private candidatesOf(type: Class<unknown>, metadata: ComponentMetadata): DirectiveCandidate[] {
     return (metadata.imports ?? []).map((declared) => {
       const imported = this.replacements.get(declared) ?? declared;
+      const metadata = valueOrThrow(this.directives.metadataOf(imported));
       return {
         type: imported,
-        selector: valueOrThrow(mapLeft(Selector.parse(valueOrThrow(this.directives.metadataOf(imported)).selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
+        selector: valueOrThrow(mapLeft(Selector.parse(metadata.selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
         isComponent: getComponentMetadata(imported)
           .isSome(),
+        exportAs: metadata.exportAs,
       };
     });
   }

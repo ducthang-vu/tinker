@@ -18,7 +18,7 @@
 // a literal (its template, its `imports` or a directive's selector), or when an
 // imported directive cannot be found. Such a component keeps its template string.
 
-import { match } from "@tinker/functional/v1";
+import { type Either, match } from "@tinker/functional/v1";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
@@ -366,13 +366,27 @@ async function replacementFor(
   const list: ImportedSelector[] = imports.selectors.map((imported) => {
     const type = placeholderFor(imported.name);
     classes.set(type, imported.name);
-    return { selector: imported.selector, isComponent: imported.isComponent, type };
+    return { selector: imported.selector, isComponent: imported.isComponent, type,
+      ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }) };
   });
   return match(compileSource(template.text, list), {
     Left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
     Right: (nodes) => mode.emit
-      ? { start: template.start, end: template.end, text: emitCompiled(nodes, classes, HELPERS) }
+      ? emitted(template, emitCompiled(nodes, classes, HELPERS), where, host)
       : undefined,
+  });
+}
+
+/** The replacement of the template's text by its compiled expression, or the error stopping it. */
+function emitted(
+  template: { readonly start: number; readonly end: number },
+  result: Either<string, Error>,
+  where: string,
+  host: CheckHost,
+): Replacement | undefined {
+  return match(result, {
+    Left: (error) => host.error(`${where}: ${error.message}`),
+    Right: (text) => ({ start: template.start, end: template.end, text }),
   });
 }
 
@@ -400,6 +414,7 @@ interface NamedSelector {
   readonly name: string;
   readonly selector: string;
   readonly isComponent: boolean;
+  readonly exportAs?: string;
 }
 
 /** The selectors of the directives a component imports, or why they cannot be read. */
@@ -461,7 +476,11 @@ async function selectorInfo(
   source: SourceInfo,
   filename: string,
   host: CheckHost,
-): Promise<Pick<NamedSelector, "selector" | "isComponent"> | undefined> {
+): Promise<Pick<NamedSelector, "selector" | "isComponent" | "exportAs"> | undefined> {
+  // An exportAs that is not a literal cannot be read here: the template is compiled at run time.
+  if (declaration.exportAsIsDynamic) {
+    return undefined;
+  }
   const selector = declaration.selector
     ?? (declaration.selectorName === undefined
       ? undefined
@@ -469,5 +488,5 @@ async function selectorInfo(
   if (selector === undefined) {
     return undefined;
   }
-  return { selector, isComponent: declaration.kind === "component" };
+  return { selector, isComponent: declaration.kind === "component", exportAs: declaration.exportAs };
 }

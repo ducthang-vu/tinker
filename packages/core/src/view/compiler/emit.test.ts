@@ -4,7 +4,7 @@ import type { Class } from "../../utils/types.ts";
 import type { CompiledNode } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { compileSource, type ImportedSelector } from "./compile-source.ts";
-import { emitCompiled } from "./emit.ts";
+import { emitCompiled as emitCompiledEither } from "./emit.ts";
 import { match, map, Left, Right, valueOrThrow } from "@tinker/functional/v1";
 
 class Item {}
@@ -25,6 +25,14 @@ function roundTrip(source: string, list: ImportedSelector[] = imports) {
 }
 
 /** Evaluates an emitted expression. */
+/** The JavaScript of `nodes`, which must be emittable. */
+const emitCompiled = (...args: Parameters<typeof emitCompiledEither>): string =>
+  valueOrThrow(emitCompiledEither(...args));
+
+/** The error message of a tree that cannot be emitted. */
+const emitFailure = (...args: Parameters<typeof emitCompiledEither>): string =>
+  match(emitCompiledEither(...args), { Left: (error) => error.message, Right: () => "no error" });
+
 const evaluate = (code: string) => new Function("Maybe", "Selector", `return ${code};`)(Maybe, Selector);
 
 describe("emitCompiled", () => {
@@ -92,28 +100,28 @@ describe("emitCompiled", () => {
 
   test("is an error to emit a class that has no name in the module", () => {
     const nodes = valueOrThrow(compileSource(`<div item></div>`, imports));
-    expect(() => emitCompiled(nodes, new Map()))
-      .toThrow("Cannot emit the class Item: it has no name in the module");
+    expect(emitFailure(nodes, new Map()))
+      .toBe("Cannot emit the class Item: it has no name in the module");
   });
 
   test("names an anonymous class in the error", () => {
     const anonymous = Object.defineProperty(class {}, "name", { value: "" }) as Class<object>;
-    expect(() => emitCompiled([{ type: anonymous }] as unknown as CompiledNode[], new Map()))
-      .toThrow("Cannot emit the class (anonymous)");
+    expect(emitFailure([{ type: anonymous }] as unknown as CompiledNode[], new Map()))
+      .toBe("Cannot emit the class (anonymous): it has no name in the module");
   });
 
   test("is an error to emit a number that is not finite", () => {
-    expect(() => emitCompiled([NaN] as unknown as CompiledNode[], names))
-      .toThrow("Cannot emit NaN");
+    expect(emitFailure([NaN] as unknown as CompiledNode[], names))
+      .toBe("Cannot emit NaN: only finite numbers can be written");
   });
 
   test("is an error to emit an object that is not plain data", () => {
-    expect(() => emitCompiled([new Date(0)] as unknown as CompiledNode[], names))
-      .toThrow("Cannot emit [object Date]");
+    expect(emitFailure([new Date(0)] as unknown as CompiledNode[], names))
+      .toContain("Cannot emit [object Date]");
   });
 
   test("is an error to emit a symbol", () => {
-    expect(() => emitCompiled([Symbol("x")] as unknown as CompiledNode[], names))
-      .toThrow("Cannot emit [object Symbol]");
+    expect(emitFailure([Symbol("x")] as unknown as CompiledNode[], names))
+      .toContain("Cannot emit [object Symbol]");
   });
 });

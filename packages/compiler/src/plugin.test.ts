@@ -81,6 +81,19 @@ describe("tinkerCompiler", () => {
       .not.toBeNull();
   });
 
+  test("with emit, reports a template that compiles to a value it cannot write, at its component", async () => {
+    const { host, errors } = recordingHost();
+    await compileComponents(
+      `@Component({ selector: "tk-a", template: "<p>{{ ${"1".padEnd(400, "0")} }}</p>" }) class A {}`,
+      "/app/a.ts",
+      host,
+      { emit: true, strict: false },
+    )
+      .catch(() => undefined);
+    expect(errors)
+      .toEqual([expect.stringContaining("Cannot emit Infinity")]);
+  });
+
   test("ignores files that are not TypeScript, that are in node_modules, or with no component", async () => {
     const broken = `@Component({ template: "<p>{{ a + }}</p>" }) class A {}`;
     for (const id of ["/app/style.css", "/app/node_modules/lib/a.ts", "/app/plain.ts"]) {
@@ -153,6 +166,27 @@ describe("compileComponents", () => {
     `, "/app/a.ts", host)
       .catch(() => undefined);
     expect(errors)
+      .toHaveLength(1);
+  });
+
+  test("checks a #name=\"exportAs\" against the literal exportAs of an imported directive", async () => {
+    const { host, errors } = recordingHost();
+    await compileComponents(`
+      @Directive({ selector: "[local]", exportAs: "tip" }) class Local {}
+      @Component({ template: "<p local #t=\\"tip\\">{{ a + }}</p>", imports: [Local] }) class A {}
+    `, "/app/a.ts", host)
+      .catch(() => undefined);
+    expect(errors)
+      .toHaveLength(1);
+  });
+
+  test("warns, and does not check, a directive whose exportAs is not a literal", async () => {
+    const { host, warnings } = recordingHost();
+    await compileComponents(`
+      @Directive({ selector: "[local]", exportAs: makeName() }) class Local {}
+      @Component({ template: "<p local #t=\\"tip\\"></p>", imports: [Local] }) class A {}
+    `, "/app/a.ts", host);
+    expect(warnings)
       .toHaveLength(1);
   });
 
