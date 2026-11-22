@@ -47,32 +47,41 @@ directive's selector can be read:
 Anything else (a value computed at run time, a `let`, a number) is skipped. Strict mode
 fails the build for it instead.
 
-## A component's CSS file (`styleUrl`)
+## A component's template and CSS files
 
-A component can name its stylesheet instead of writing `styles` inline:
+A component can name its template and its stylesheet as files, instead of writing
+`template` and `styles` inline:
 
 ```ts
 @Component({
   selector: "tk-notice",
-  template: `<aside class="notice">…</aside>`,
+  templateUrl: "./notice.html",
   styleUrl: "./notice.css",
 })
 export class Notice {}
 ```
 
-The path is relative to the source file. The plugin reads the file and puts its text in
-`styles`, so the component's CSS is scoped exactly as inline `styles` are. This happens
-with or without `emit`, because a component needs its CSS at run time. The plugin also
-watches the file: an edit rebuilds the component that reads it.
+Each path is relative to the source file. The plugin reads each file and puts it in
+place of its property:
 
-- **Keep the CSS file in the component's folder**: `notice/notice.ts` and
-  `notice/notice.css`, one folder per component. See `examples/basics/notice`.
+- `styleUrl`: the file's text becomes `styles`, so the CSS is scoped exactly as inline
+  `styles` are.
+- `templateUrl`: the file's text becomes `template`. The file is checked as a template
+  is, and its errors are reported against it. With `emit`, the compiled tree replaces it,
+  as for an inline template.
+
+Both happen with or without `emit`, because a component needs its template and CSS at
+run time. The plugin watches the files: an edit rebuilds the component that reads them.
+
+- **Keep the files in the component's folder**: `notice/notice.ts`, `notice/notice.html`
+  and `notice/notice.css`, one folder per component. See `examples/basics/notice`.
 - A missing file fails the build and names the file.
-- `styles` and `styleUrl` together fail the build: give one of them.
-- A `styleUrl` that is not a string literal is skipped with a warning, as a template is
+- An inline option and its file together (`template` with `templateUrl`, `styles` with
+  `styleUrl`) fail the build: give one of them.
+- A file option that is not a string literal is skipped with a warning, as a template is
   (an error in strict mode).
-- Without the plugin, `@Component` throws, since nothing would read the file.
-- `tinker-compile` inlines the file too, so a built library needs no CSS file.
+- Without the plugin, `@Component` throws, since nothing would read the files.
+- `tinker-compile` inlines the files too, so a built library needs neither file.
 
 ## The commands
 

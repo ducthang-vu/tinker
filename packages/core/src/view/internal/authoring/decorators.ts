@@ -87,20 +87,28 @@ export function Directive(options: DirectiveMetadata) {
 }
 
 /**
- * What `@Component` takes: the metadata, with `styleUrl` in place of `styles` when the CSS
- * is a file. A build reads that file into `styles` (see the compiler's `tinkerCompiler`).
+ * The options of `@Component`. The template and the CSS are inline (`template`, `styles`),
+ * or files next to the class (`templateUrl`, `styleUrl`). A build reads each file into the
+ * inline option it replaces (see the compiler's `tinkerCompiler`).
  */
-export interface ComponentOptions extends ComponentMetadata {
+export type ComponentOptions = Omit<ComponentMetadata, "template"> & {
   /** The CSS file, relative to the source file of the class. Needs the compiler plugin. */
   readonly styleUrl?: string;
-}
+} & (
+  | { readonly template: ComponentMetadata["template"]; readonly templateUrl?: undefined }
+  | {
+    /** The template file, relative to the source file of the class. Needs the compiler plugin. */
+    readonly templateUrl: string;
+    readonly template?: undefined;
+  }
+);
 
 /** Class decorator: marks the class as a component (and therefore a directive). */
 export function Component(options: ComponentOptions) {
-  if (options.styleUrl !== undefined) {
+  if (options.templateUrl !== undefined || options.styleUrl !== undefined) {
     throw new Error(
-      `@Component: styleUrl "${options.styleUrl}" needs the Tinker compiler `
-      + "(tinkerCompiler() in the Vite config), or write the CSS in styles",
+      "@Component: templateUrl and styleUrl are read at build time, so they need the Tinker compiler "
+      + "(tinkerCompiler() in the Vite config). Without it, write the template and styles inline",
     );
   }
   return function <C extends AbstractClass>(target: C, _context: ClassDecoratorContext<C>): void {
