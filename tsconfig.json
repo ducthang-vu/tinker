@@ -17,6 +17,12 @@
     "rewriteRelativeImportExtensions": true,
     "noEmit": true,
     "paths": {
+      "@tinker/functional/v1/testing": [
+        "./packages/functional/src/v1/testing.ts"
+      ],
+      "@tinker/functional/v1": [
+        "./packages/functional/src/v1/public-api.ts"
+      ],
       "@tinker/core/compiler": [
         "./packages/core/src/view/compiler/index.ts"
       ],
