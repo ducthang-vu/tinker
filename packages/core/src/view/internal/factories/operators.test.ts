@@ -4,6 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 describe("template operators", () => {
   test("[class]=\"{ name: value }\" sets the classes whose values are truthy", async () => {
@@ -16,7 +17,7 @@ describe("template operators", () => {
     }
     const el = document.createElement("section");
     const engine = Engine.create();
-    const app = engine.bootstrap(ClassObject, el);
+    const app = valueOrThrow(engine.bootstrap(ClassObject, el));
     engine.flush();
     const p = () => el.querySelector("p")!;
     expect(p().className)
@@ -44,7 +45,7 @@ describe("template operators", () => {
       }
     }
     const el = document.createElement("section");
-    const app = bootstrap(Keys, { host: el });
+    const app = valueOrThrow(bootstrap(Keys, { host: el }));
     await tick();
     const input = el.querySelector("input")!;
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
@@ -67,7 +68,7 @@ describe("template operators", () => {
       }
     }
     const el = document.createElement("section");
-    const app = bootstrap(Space, { host: el });
+    const app = valueOrThrow(bootstrap(Space, { host: el }));
     await tick();
     const input = el.querySelector("input")!;
     const pressedSpace = new KeyboardEvent("keydown", { key: " ", cancelable: true });
@@ -86,7 +87,7 @@ describe("template operators", () => {
       readonly user = signal<{ name: string } | null>(null);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Safe, { host: el });
+    const app = valueOrThrow(bootstrap(Safe, { host: el }));
     await tick();
     const p = () => el.querySelector("p")!;
     expect([p().textContent, p()

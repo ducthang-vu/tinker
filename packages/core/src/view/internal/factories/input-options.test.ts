@@ -4,6 +4,7 @@ import { booleanAdapter, numberAdapter } from "../authoring/input-adapters.ts";
 import { input, InputNotBoundError } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { signal } from "../../../signals/index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -37,7 +38,7 @@ describe("input options: the adapter reads a plain attribute", () => {
     })
     class Parent {}
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const item = componentOn(engine, view.host.nativeElement.querySelector("tk-item")!) as Item;
     expect(item.size())
       .toBe(3);
@@ -57,7 +58,7 @@ describe("input options: the adapter reads a plain attribute", () => {
     })
     class Parent {}
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const item = componentOn(engine, view.host.nativeElement.querySelector("tk-item")!) as Item;
     expect(item.label())
       .toBe("shown");
@@ -71,7 +72,7 @@ describe("input options: the adapter reads a plain attribute", () => {
     })
     class Parent {}
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const [first, second] = Array.from(view.host.nativeElement.querySelectorAll("tk-item"));
     expect((componentOn(engine, first!) as Item).open())
       .toBe(false);
@@ -91,7 +92,7 @@ describe("input options: template bindings are already typed", () => {
       readonly n = signal(7);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const item = componentOn(engine, view.host.nativeElement.querySelector("tk-item")!) as Item;
     expect(item.size())
       .toBe(7);
@@ -107,7 +108,7 @@ describe("input options: how input() reads its arguments", () => {
     @Component({ selector: "tk-parent", template: `<tk-named title="x"></tk-named>`, imports: [Named] })
     class Parent {}
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const named = componentOn(engine, view.host.nativeElement.querySelector("tk-named")!) as Named;
     expect(named.label())
       .toBe("x");
@@ -119,7 +120,7 @@ describe("input options: how input() reads its arguments", () => {
       readonly value = input<string | null>(null);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Nullable);
+    const view = valueOrThrow(engine.createComponent(Nullable));
     expect(view.instance.value())
       .toBeNull();
   });
@@ -134,7 +135,7 @@ describe("input options: a required input with an adapter", () => {
     @Component({ selector: "tk-parent", template: "<tk-required></tk-required>", imports: [Required] })
     class Parent {}
     const engine = Engine.create();
-    const view = engine.createComponent(Parent);
+    const view = valueOrThrow(engine.createComponent(Parent));
     const required = componentOn(engine, view.host.nativeElement.querySelector("tk-required")!) as Required;
     expect(() => required.count())
       .toThrow(InputNotBoundError);

@@ -3,6 +3,7 @@ import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ComponentRef } from "../component-ref.ts";
 import { Maybe } from "@tinker/functional";
+import { Left, valueOrThrow } from "@tinker/functional/v1";
 
 let tracked = 0;
 const order: number[] = [];
@@ -41,8 +42,8 @@ function layout(views: ComponentRef<object>[]): string[] {
 describe("ViewContainerRef", () => {
   test("creates components just before the anchor, in order", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
-    const b = container.createComponent(Item);
+    const a = valueOrThrow(container.createComponent(Item));
+    const b = valueOrThrow(container.createComponent(Item));
 
     expect(container.length)
       .toBe(2);
@@ -58,12 +59,22 @@ describe("ViewContainerRef", () => {
       .toBe(a.host.nativeElement);
   });
 
+  test("a component that cannot be created fails, and the container keeps its views", () => {
+    class NotAComponent {}
+    const container = engine.createViewContainer(anchor);
+    const before = container.length;
+    expect(container.createComponent(NotAComponent))
+      .toEqual(Left.of(new Error("NotAComponent is not a component: decorate it with @Component")));
+    expect(container.length)
+      .toBe(before);
+  });
+
   test("inserts at a given index", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
-    const b = container.createComponent(Item);
-    const c = container.createComponent(Item, 0);
-    const d = container.createComponent(Item, 2);
+    const a = valueOrThrow(container.createComponent(Item));
+    const b = valueOrThrow(container.createComponent(Item));
+    const c = valueOrThrow(container.createComponent(Item, 0));
+    const d = valueOrThrow(container.createComponent(Item, 2));
 
     expect([0, 1, 2, 3].map((i) => container.get(i)
       .getOrElse(undefined)))
@@ -74,8 +85,8 @@ describe("ViewContainerRef", () => {
 
   test("get and indexOf", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
-    const other = engine.createComponent(Item);
+    const a = valueOrThrow(container.createComponent(Item));
+    const other = valueOrThrow(engine.createComponent(Item));
 
     expect(container.get(0)
       .getOrElse(undefined))
@@ -91,9 +102,9 @@ describe("ViewContainerRef", () => {
 
   test("moves a view", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
-    const b = container.createComponent(Item);
-    const c = container.createComponent(Item);
+    const a = valueOrThrow(container.createComponent(Item));
+    const b = valueOrThrow(container.createComponent(Item));
+    const c = valueOrThrow(container.createComponent(Item));
 
     container.move(a, 2);
     expect([container.get(0)
@@ -111,9 +122,9 @@ describe("ViewContainerRef", () => {
 
   test("remove destroys a view and takes its host out of the DOM", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
-    const b = container.createComponent(Item);
-    const c = container.createComponent(Item);
+    const a = valueOrThrow(container.createComponent(Item));
+    const b = valueOrThrow(container.createComponent(Item));
+    const c = valueOrThrow(container.createComponent(Item));
 
     container.remove(1);
     expect(container.indexOf(b))
@@ -139,7 +150,7 @@ describe("ViewContainerRef", () => {
 
   test("a view destroyed directly also leaves the container", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
+    const a = valueOrThrow(container.createComponent(Item));
 
     a.destroy();
 
@@ -166,7 +177,7 @@ describe("ViewContainerRef", () => {
 
   test("rejects bad indexes", () => {
     const container = engine.createViewContainer(anchor);
-    const a = container.createComponent(Item);
+    const a = valueOrThrow(container.createComponent(Item));
 
     expect(() => container.createComponent(Item, 2))
       .toThrow(RangeError);
@@ -182,7 +193,7 @@ describe("ViewContainerRef", () => {
 
   test("move rejects a view that is not in the container", () => {
     const container = engine.createViewContainer(anchor);
-    expect(() => container.move(engine.createComponent(Item), 0))
+    expect(() => container.move(valueOrThrow(engine.createComponent(Item)), 0))
       .toThrow(
         "The component is not in this container",
       );

@@ -24,7 +24,7 @@ describe("a component with a precompiled template", () => {
       readonly name = signal("Ada");
     }
     const engine = Engine.create({ providers: [noParsing] });
-    const view = engine.createComponent(Greet);
+    const view = valueOrThrow(engine.createComponent(Greet));
     engine.flush();
     expect(view.host.nativeElement.textContent)
       .toBe("Ada");
@@ -52,7 +52,7 @@ describe("a component with a precompiled template", () => {
     @Component({ selector: "tk-plain", template: "<p>plain</p>" })
     class Plain {}
     const engine = Engine.create();
-    const view = engine.createComponent(Plain);
+    const view = valueOrThrow(engine.createComponent(Plain));
     engine.flush();
     expect(view.host.nativeElement.textContent)
       .toBe("plain");

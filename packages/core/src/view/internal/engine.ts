@@ -32,6 +32,7 @@ import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ComponentView, ComponentViewFactory } from "./runtime/component-view.ts";
 import { ComponentRef, refOf } from "./component-ref.ts";
+import { type Either, flatMap, Left, map, Right } from "@tinker/functional/v1";
 import { type ViewContainerRef, ViewContainerRefFactory } from "./runtime/view-container-ref.ts";
 import { BindingFactory } from "./runtime/text-binding.ts";
 import { Effects } from "./authoring/effects.ts";
@@ -110,11 +111,19 @@ export class Engine {
    * Start the app: render the root component `type` into `host`, or, without
    * a host, into the page element that matches its selector.
    */
-  bootstrap<T extends object>(type: Class<T>, host?: Element): ComponentRef<T> {
-    const element = host ?? this.lookUp(type);
-    const view = this.components.create(type, element);
-    this.roots.push(view);
-    return refOf(view);
+  bootstrap<T extends object>(type: Class<T>, host?: Element): Either<ComponentRef<T>, Error> {
+    return flatMap(this.lookUp(type, host), (element) => this.start(type, element));
+  }
+
+  /** Create root component `type` in `element`, and keep it until the engine is destroyed. */
+  private start<T extends object>(
+    type: Class<T>,
+    element: Element,
+  ): Either<ComponentRef<T>, Error> {
+    return map(this.components.create(type, element), (view) => {
+      this.roots.push(view);
+      return refOf(view);
+    });
   }
 
   /** Destroy the root components, then the engine's injector. Calling it again does nothing. */
@@ -125,12 +134,20 @@ export class Engine {
     this.destroyInjector();
   }
 
-  private lookUp<T extends object>(type: Class<T>): Element {
-    const { selector } = this.components.metadataOf(type);
-    return Maybe.from(this.document.querySelector(selector))
-      .getOrThrow(
-        () => new Error(`No host element matches "${selector}" for ${type.name}`),
-      );
+  /** `host`, or else the page element that matches the component's selector. */
+  private lookUp<T extends object>(
+    type: Class<T>,
+    host: Element | undefined,
+  ): Either<Element, Error> {
+    if (host !== undefined) {
+      return Right.of(host);
+    }
+    return flatMap(this.components.metadataOf(type), ({ selector }) =>
+      Maybe.from(this.document.querySelector(selector))
+        .match({
+          some: (element) => Right.of(element),
+          none: () => Left.of(new Error(`No host element matches "${selector}" for ${type.name}`)),
+        }));
   }
 
   /**
@@ -141,8 +158,11 @@ export class Engine {
    * for components added at runtime, or `engine.bootstrap(type)` for the root
    * component. Planned removal: see IMPROVEMENTS.md, "The engine's entry points".
    */
-  createComponent<T extends object>(type: Class<T>, host?: Element): ComponentRef<T> {
-    return refOf(this.components.create(type, host));
+  createComponent<T extends object>(
+    type: Class<T>,
+    host?: Element,
+  ): Either<ComponentRef<T>, Error> {
+    return map(this.components.create(type, host), (view) => refOf(view));
   }
 
   /**

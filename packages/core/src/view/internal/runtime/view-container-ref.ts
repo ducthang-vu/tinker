@@ -9,7 +9,7 @@
 
 import { Maybe } from "@tinker/functional";
 import type { Class } from "../../../utils/types.ts";
-import { inject, Injectable, Injector, type Provider } from "../../../di/index.ts";
+import { inject, Injectable, Injector, type InjectorRef, type Provider } from "../../../di/index.ts";
 import { ComponentFactory } from "../factories/component-factory.ts";
 import { ComponentRef, refOf } from "../component-ref.ts";
 import type { Renderer } from "../renderer.ts";
@@ -19,7 +19,7 @@ import type { EmbeddedView } from "./embedded-view.ts";
 import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
-import { match } from "@tinker/functional/v1";
+import { type Either, map, match, use } from "@tinker/functional/v1";
 
 /**
  * What a container is disposed with: it hears that it is destroyed, and its
@@ -103,17 +103,29 @@ export class ViewContainerRef {
     type: Class<T>,
     index: number = this.length,
     providers: readonly Provider[] = [],
-  ): ComponentRef<T> {
+  ): Either<ComponentRef<T>, Error> {
     this.checkIndex(index, this.length);
     const parent = this.parent();
     const scope = Injector.create({ providers, parent: this.parentInjector });
-    const view = this.components.create(
+    const created = this.components.create(
       type,
       undefined,
       undefined,
       scope.injector,
       this.owner?.node,
     );
+    // A component that cannot be created leaves nothing behind: its scope goes too.
+    use(created, { Left: () => scope.destroy(), Right: () => undefined });
+    return map(created, (view) => this.insert(view, index, parent, scope));
+  }
+
+  /** Insert the created component `view` at `index`, in the container's element. */
+  private insert<T extends object>(
+    view: ComponentView<T>,
+    index: number,
+    parent: Node,
+    scope: InjectorRef,
+  ): ComponentRef<T> {
     const ref = refOf(view);
     this.refs.splice(index, 0, ref);
     this.renderer.insertBefore(parent, ref.host.nativeElement, this.nodeAfter(index));

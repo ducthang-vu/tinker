@@ -4,6 +4,7 @@ import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -20,7 +21,7 @@ describe("style and attribute bindings in templates", () => {
       readonly title = signal<string | undefined>("first");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const p = view.host.nativeElement.querySelector("p")!;
     await tick();
     expect([p.style.color, p.getAttribute("title")])
@@ -44,7 +45,7 @@ describe("style and attribute bindings in templates", () => {
       readonly opacity = signal("0.5");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const item = view.host.nativeElement.querySelector("tk-item") as HTMLElement;
     await tick();
     expect(item.style.opacity)
@@ -69,7 +70,7 @@ describe("style and attribute bindings in host bindings", () => {
     @Component({ selector: "tk-a", template: "<p fade>x</p>", imports: [Fade] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const p = view.host.nativeElement.querySelector("p")!;
     await tick();
     expect([p.style.opacity, p.getAttribute("role")])
@@ -104,7 +105,7 @@ describe("precedence: a template binding on the element wins over a host binding
       readonly color = signal("green");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const item = view.host.nativeElement.querySelector("tk-item") as HTMLElement;
     await tick();
     expect([item.getAttribute("title"), item.style.color])
@@ -129,7 +130,7 @@ describe("precedence: a template binding on the element wins over a host binding
       readonly title = signal("t");
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const item = view.host.nativeElement.querySelector("tk-item")!;
     await tick();
     expect([item.getAttribute("title"), item.getAttribute("role")])
@@ -149,7 +150,7 @@ describe("null and undefined attribute values render nothing", () => {
     @Component({ selector: "tk-a", template: "<button toggle>x</button>", imports: [Toggle] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const button = view.host.nativeElement.querySelector("button")!;
     engine.flush();
     expect(button.hasAttribute("disabled"))
@@ -179,7 +180,7 @@ describe("null and undefined attribute values render nothing", () => {
       readonly value = signal<string | null | undefined>(undefined);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(B);
+    const view = valueOrThrow(engine.createComponent(B));
     engine.flush();
     expect(view.host.nativeElement.querySelector("button")!.outerHTML)
       .toBe("<button>x</button>");

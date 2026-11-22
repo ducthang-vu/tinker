@@ -49,7 +49,7 @@ import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
 import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
 import { type StyleScope, scopeOfComponent } from "../runtime/component-styles.ts";
-import { match, map } from "@tinker/functional/v1";
+import { match, map, valueOrThrow } from "@tinker/functional/v1";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -245,7 +245,8 @@ export class TemplateBuilder {
       let instances = directives;
       let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
       node.component.match({ some: (type) => {
-        const child = this.components.create(type, element, {
+        // The parent build does not return errors yet: a child that fails to create throws here.
+        const child = valueOrThrow(this.components.create(type, element, {
           parentInjector: injector,
           parentView: view,
           node: this.node,
@@ -257,7 +258,7 @@ export class TemplateBuilder {
             ...this.ownedOf(node.directives, directives),
             ...this.ownedOf([type], [component]),
           ]),
-        });
+        }));
         instances = [...directives, child.component];
         owner = { type, instance: child.component };
       }, none: () => bindInputs(this.ownedOf(node.directives, directives)) });
@@ -331,7 +332,7 @@ export class TemplateBuilder {
         continue;
       }
       const match = directives.find(({ type }) =>
-        this.directiveFactory.metadataOf(type).exportAs === target.exportAs);
+        valueOrThrow(this.directiveFactory.metadataOf(type)).exportAs === target.exportAs);
       if (match === undefined) {
         throw new Error(
           `#${name}="${target.exportAs}": no directive on <${node.name}> is exported as "${target.exportAs}"`,
@@ -403,7 +404,7 @@ export class TemplateBuilder {
   /** The directives (or the component) with the owner names their selectors give them. */
   private ownedOf(types: readonly Class<object>[], instances: readonly object[]): Owned[] {
     return types.map((type, index) => ({
-      owner: ownerName(this.directiveFactory.metadataOf(type).selector),
+      owner: ownerName(valueOrThrow(this.directiveFactory.metadataOf(type)).selector),
       instance: instances[index]!,
     }));
   }

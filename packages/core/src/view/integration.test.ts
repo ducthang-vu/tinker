@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { tick } from "./internal/test-support.ts";
 import { Maybe } from "@tinker/functional";
 import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt } from "@tinker/functional/v1";
+import { valueOrThrow } from "@tinker/functional/v1";
 import {
   bootstrap,
   Component,
@@ -35,7 +36,7 @@ afterEach(() => {
 async function mount<T extends object>(type: new () => T) {
   host = document.createElement("section");
   document.body.appendChild(host);
-  const app = bootstrap(type, { host });
+  const app = valueOrThrow(bootstrap(type, { host }));
   await tick();
   return { app, el: host };
 }

@@ -6,6 +6,7 @@ import { Component, ElementRef, input, QueryMissingError, query, queryAll } from
 import { Engine } from "../engine.ts";
 import { CLASS_REPLACEMENTS } from "../tokens.ts";
 import { provide } from "../../../di/index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 @Component({
   selector: "tk-first-item",
@@ -27,7 +28,7 @@ describe("query", () => {
       readonly first = query(FirstItem);
     }
     const el = document.createElement("section");
-    const app = bootstrap(First, { host: el });
+    const app = valueOrThrow(bootstrap(First, { host: el }));
     await tick();
     expect(app.root.instance.first()
       .isNone())
@@ -57,7 +58,7 @@ describe("query", () => {
       readonly first = query(FirstItem, { read: ElementRef });
     }
     const el = document.createElement("section");
-    const app = bootstrap(FirstElement, { host: el });
+    const app = valueOrThrow(bootstrap(FirstElement, { host: el }));
     await tick();
     const ref = app.root.instance.first()
       .getOrThrow(() => new Error("expected a first element"));
@@ -77,7 +78,7 @@ describe("query", () => {
       readonly item = query.required(FirstItem);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Required, { host: el });
+    const app = valueOrThrow(bootstrap(Required, { host: el }));
     await tick();
     expect(() => app.root.instance.item())
       .toThrow(QueryMissingError);
@@ -97,7 +98,7 @@ describe("query", () => {
     class RequiredMessage {
       readonly item = query.required(FirstItem);
     }
-    const app = bootstrap(RequiredMessage, { host: document.createElement("section") });
+    const app = valueOrThrow(bootstrap(RequiredMessage, { host: document.createElement("section") }));
     await tick();
     expect(() => app.root.instance.item())
       .toThrow("No FirstItem found, which query.required(FirstItem) needs");
@@ -112,7 +113,7 @@ describe("query", () => {
     class RequiredElement {
       readonly element = query.required(FirstItem, { read: ElementRef });
     }
-    const app = bootstrap(RequiredElement, { host: document.createElement("section") });
+    const app = valueOrThrow(bootstrap(RequiredElement, { host: document.createElement("section") }));
     await tick();
     expect(() => app.root.instance.element())
       .toThrow(QueryMissingError);
@@ -140,7 +141,7 @@ describe("a query for a replaced class finds its replacement", () => {
     const engine = Engine.create({
       providers: [provide(CLASS_REPLACEMENTS, { useValue: new Map([[Gauge, GaugeStub]]) })],
     });
-    const parent = engine.bootstrap(Parent, el);
+    const parent = valueOrThrow(engine.bootstrap(Parent, el));
     engine.flush();
     expect(parent.instance.first()
       .getOrThrow(() => new Error("no gauge")))

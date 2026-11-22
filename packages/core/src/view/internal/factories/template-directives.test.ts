@@ -8,6 +8,7 @@ import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -30,7 +31,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
 
     await tick();
 
@@ -72,7 +73,7 @@ describe("directives in templates", () => {
     @Component({ selector: "tk-a", template: `<button counter>+</button>`, imports: [Counter] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
@@ -99,7 +100,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const [validator, model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
       .getOrElse([]) as [Validator, Model];
     await tick();
@@ -127,7 +128,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const [form] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("form")!), (context) => context.directives)
       .getOrElse([]) as [Form];
     const [model] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives)
@@ -153,7 +154,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const [parent] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("div")!), (context) => context.directives)
       .getOrElse([]) as [Parent];
     await tick();
@@ -180,7 +181,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     engine.flush();
     await tick();
     expect(seen)
@@ -206,7 +207,7 @@ describe("directives in templates", () => {
     @Component({ selector: "tk-a", template: `<p tracked>a</p>`, imports: [Tracked] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const p = view.host.nativeElement.querySelector("p")!;
     engine.flush();
     view.destroy();
@@ -297,7 +298,7 @@ describe("directive providers", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const directivesOf = (element: Element) =>
       Maybe.map(engine.getContext(element), (context) => context.directives)
         .getOrElse([]);
@@ -332,8 +333,8 @@ describe("directive providers", () => {
     }
     @Component({ selector: "tk-a", template: `<p owner></p>`, imports: [Owner] })
     class A {}
-    const view = Engine.create()
-      .createComponent(A);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(A));
     await tick();
     expect(destroyed)
       .toEqual([]);
@@ -361,7 +362,7 @@ describe("directive providers", () => {
     @Component({ selector: "tk-a", template: `<p first second></p>`, imports: [First, Second] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const p = view.host.nativeElement.querySelector("p")!;
     const [first] = Maybe.map(engine.getContext(p), (context) => context.directives)
       .getOrElse([]) as [First];
@@ -388,7 +389,7 @@ describe("ElementRef", () => {
     @Component({ selector: "tk-a", template: `<input autofocus value="hi">`, imports: [Autofocus] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     document.body.append(view.host.nativeElement);
     const input = view.host.nativeElement.querySelector("input")!;
     const [autofocus] = Maybe.map(engine.getContext(input), (context) => context.directives)
@@ -412,7 +413,7 @@ describe("ElementRef", () => {
     @Component({ selector: "tk-x", template: `<p a b></p>`, imports: [A, B] })
     class X {}
     const engine = Engine.create();
-    const view = engine.createComponent(X);
+    const view = valueOrThrow(engine.createComponent(X));
     const [a, b] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
       .getOrElse([]) as [A, B];
     await tick();
@@ -432,7 +433,7 @@ describe("a :not(...) selector in directive metadata", () => {
     })
     class Buttons {}
     const engine = Engine.create();
-    const view = engine.createComponent(Buttons);
+    const view = valueOrThrow(engine.createComponent(Buttons));
     engine.flush();
     const [first, second] = Array.from(view.host.nativeElement.querySelectorAll("button"));
     expect(first!.getAttribute("data-enabled"))
@@ -455,7 +456,7 @@ describe("a comma list of selectors in directive metadata", () => {
     })
     class ListOfSelectors {}
     const engine = Engine.create();
-    const view = engine.createComponent(ListOfSelectors);
+    const view = valueOrThrow(engine.createComponent(ListOfSelectors));
     engine.flush();
     const marked = (tag: string) => view.host.nativeElement.querySelector(tag)!
       .hasAttribute("data-marked");

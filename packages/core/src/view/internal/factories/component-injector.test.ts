@@ -7,6 +7,7 @@ import { Effect, Effects } from "../authoring/effects.ts";
 import { AfterEachRender, RenderHooks } from "../authoring/render-hooks.ts";
 import { Engine } from "../engine.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -28,8 +29,8 @@ describe("each component has its own injector", () => {
       readonly counter = inject(Counter);
     }
     const engine = Engine.create();
-    const first = engine.createComponent(A);
-    const second = engine.createComponent(A);
+    const first = valueOrThrow(engine.createComponent(A));
+    const second = valueOrThrow(engine.createComponent(A));
 
     await tick();
 
@@ -54,7 +55,7 @@ describe("each component has its own injector", () => {
     const engine = Engine.create({
       providers: [provide(NAME, { useValue: "engine" }), provide(COLOR, { useValue: "red" })],
     });
-    const { instance: component } = engine.createComponent(A);
+    const { instance: component } = valueOrThrow(engine.createComponent(A));
     await tick();
     expect([component.name, component.color])
       .toEqual(["component", "red"]);
@@ -74,8 +75,8 @@ describe("each component has its own injector", () => {
       readonly store = inject(Store);
     }
     await tick();
-    expect(Engine.create()
-      .createComponent(A).instance.store.api.url)
+    expect(valueOrThrow(Engine.create()
+      .createComponent(A)).instance.store.api.url)
       .toBe("/api");
   });
 
@@ -144,7 +145,7 @@ describe("effects and render hooks stop with their component", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     engine.flush();
     view.destroy();
     count.set(2);
@@ -179,7 +180,7 @@ describe("effects and render hooks stop with their component", () => {
       }
     }
     const engine = Engine.create();
-    const a = engine.createComponent(A);
+    const a = valueOrThrow(engine.createComponent(A));
     engine.createComponent(B); // keeps rendering after A is gone
     engine.flush();
     await tick();
@@ -199,8 +200,8 @@ describe("effects and render hooks stop with their component", () => {
       readonly render = inject(RenderHooks);
     }
     const engine = Engine.create();
-    const first = engine.createComponent(A).instance;
-    const second = engine.createComponent(A).instance;
+    const first = valueOrThrow(engine.createComponent(A)).instance;
+    const second = valueOrThrow(engine.createComponent(A)).instance;
     await tick();
     expect(first.effects)
       .not.toBe(second.effects);
@@ -224,8 +225,8 @@ describe("the component in its own injector", () => {
         log.push("component");
       }
     }
-    const view = Engine.create()
-      .createComponent(A);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(A));
     await tick();
     expect(log)
       .toEqual([]);
@@ -242,7 +243,7 @@ describe("the component in its own injector", () => {
     @Component({ selector: "tk-a", template: "<p part></p>", imports: [Part] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const [part] = Maybe.map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives)
       .getOrElse([]) as [Part];
     await tick();

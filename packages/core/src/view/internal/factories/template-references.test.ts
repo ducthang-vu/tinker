@@ -4,6 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, input } from "../../index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 @Directive({ selector: "[mark]" })
 class Mark {}
@@ -34,7 +35,7 @@ describe("template references", () => {
     })
     class Ref {}
     const el = document.createElement("section");
-    const app = bootstrap(Ref, { host: el });
+    const app = valueOrThrow(bootstrap(Ref, { host: el }));
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("P");
@@ -49,7 +50,7 @@ describe("template references", () => {
     })
     class RefDirective {}
     const el = document.createElement("section");
-    const app = bootstrap(RefDirective, { host: el });
+    const app = valueOrThrow(bootstrap(RefDirective, { host: el }));
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("P");
@@ -64,7 +65,7 @@ describe("template references", () => {
     })
     class RefComponent {}
     const el = document.createElement("section");
-    const app = bootstrap(RefComponent, { host: el });
+    const app = valueOrThrow(bootstrap(RefComponent, { host: el }));
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("TK-TAGGED");
@@ -78,7 +79,7 @@ describe("template references", () => {
     })
     class RefForward {}
     const el = document.createElement("section");
-    const app = bootstrap(RefForward, { host: el });
+    const app = valueOrThrow(bootstrap(RefForward, { host: el }));
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("SPAN");
@@ -94,7 +95,7 @@ describe("template references", () => {
       readonly on = signal(false);
     }
     const el = document.createElement("section");
-    const app = bootstrap(RefBranch, { host: el });
+    const app = valueOrThrow(bootstrap(RefBranch, { host: el }));
     await tick();
     app.root.instance.on.set(true);
     await tick();
@@ -125,7 +126,7 @@ describe("template references", () => {
     class ExportRef {}
     const el = document.createElement("section");
     const engine = Engine.create();
-    const app = engine.bootstrap(ExportRef, el);
+    const app = valueOrThrow(engine.bootstrap(ExportRef, el));
     engine.flush();
     expect(el.querySelector("p")!.textContent)
       .toBe("marked");
@@ -140,7 +141,7 @@ describe("template references", () => {
     })
     class Both {}
     const el = document.createElement("section");
-    const app = bootstrap(Both, { host: el });
+    const app = valueOrThrow(bootstrap(Both, { host: el }));
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("TK-TAGGED hi");
@@ -156,7 +157,7 @@ describe("template references", () => {
     class NamedRef {}
     const el = document.createElement("section");
     const engine = Engine.create();
-    const app = engine.bootstrap(NamedRef, el);
+    const app = valueOrThrow(engine.bootstrap(NamedRef, el));
     engine.flush();
     expect(el.querySelector("p")!.textContent)
       .toBe("hello");

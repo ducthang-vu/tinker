@@ -4,6 +4,7 @@ import { inject, Injectable } from "../../../di/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { ViewContainerRef } from "../runtime/view-container-ref.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 @Injectable()
 class Store {
@@ -66,8 +67,8 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     @Component({ selector: "tk-a", template: "<div list></div>", imports: [List] })
     class A {}
     const host = document.createElement("section");
-    const view = Engine.create()
-      .createComponent(A, host);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(A, host));
     await tick();
     expect(host.querySelector("tk-item"))
       .not.toBeNull();
@@ -103,8 +104,8 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     })
     class A {}
     const host = document.createElement("section");
-    const view = Engine.create()
-      .createComponent(A, host);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(A, host));
     expect(() => view.destroy())
       .not.toThrow();
   });

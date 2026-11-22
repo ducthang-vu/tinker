@@ -4,6 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 /** The text of each row's element, in the page's order. */
 function rows(el: HTMLElement): string[] {
@@ -20,7 +21,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b", "c"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(List, { host: el });
+    const app = valueOrThrow(bootstrap(List, { host: el }));
     await tick();
     expect(rows(el))
       .toEqual(["a", "b", "c"]);
@@ -36,7 +37,7 @@ describe("@map", () => {
       readonly todos = signal<string[]>([]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Empty, { host: el });
+    const app = valueOrThrow(bootstrap(Empty, { host: el }));
     await tick();
     expect(rows(el))
       .toEqual([]);
@@ -54,7 +55,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b", "c"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Vars, { host: el });
+    const app = valueOrThrow(bootstrap(Vars, { host: el }));
     await tick();
     expect(rows(el))
       .toEqual([
@@ -74,7 +75,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Same, { host: el });
+    const app = valueOrThrow(bootstrap(Same, { host: el }));
     await tick();
     const first = el.querySelector("li");
     app.root.instance.todos.set(["x", "y"]);
@@ -95,7 +96,7 @@ describe("@map", () => {
       readonly todos = signal(["A", "B", "C"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Front, { host: el });
+    const app = valueOrThrow(bootstrap(Front, { host: el }));
     await tick();
     const before = [...el.querySelectorAll("li")];
     app.root.instance.todos.set(["Z", "A", "B", "C"]);
@@ -120,7 +121,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b", "c"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Remove, { host: el });
+    const app = valueOrThrow(bootstrap(Remove, { host: el }));
     await tick();
     app.root.instance.todos.set(["a", "c"]);
     await tick();
@@ -138,7 +139,7 @@ describe("@map", () => {
       readonly todos = signal([{ id: 1, title: "a" }, { id: 2, title: "b" }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Track, { host: el });
+    const app = valueOrThrow(bootstrap(Track, { host: el }));
     await tick();
     const [first, second] = [...el.querySelectorAll("li")];
     app.root.instance.todos.set([{ id: 2, title: "b" }, { id: 1, title: "a" }]);
@@ -160,7 +161,7 @@ describe("@map", () => {
       readonly todos = signal([{ id: 1, title: "a" }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(TrackUpdate, { host: el });
+    const app = valueOrThrow(bootstrap(TrackUpdate, { host: el }));
     await tick();
     app.root.instance.todos.set([{ id: 1, title: "renamed" }]);
     await tick();
@@ -220,7 +221,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Destroy, { host: el });
+    const app = valueOrThrow(bootstrap(Destroy, { host: el }));
     await tick();
     app.destroy();
     expect(el.querySelectorAll("li"))
@@ -239,7 +240,7 @@ describe("@map", () => {
       }
     }
     const el = document.createElement("section");
-    const app = bootstrap(LetMap, { host: el });
+    const app = valueOrThrow(bootstrap(LetMap, { host: el }));
     await tick();
     expect(rows(el))
       .toEqual(["> a"]);
@@ -255,7 +256,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(TrackIndex, { host: el });
+    const app = valueOrThrow(bootstrap(TrackIndex, { host: el }));
     await tick();
     app.root.instance.todos.set(["x", "y"]);
     await tick();
@@ -273,7 +274,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b", "c"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Reorder, { host: el });
+    const app = valueOrThrow(bootstrap(Reorder, { host: el }));
     await tick();
     const [a, b, c] = [...el.querySelectorAll("li")];
     app.root.instance.todos.set(["c", "a", "b"]);
@@ -294,7 +295,7 @@ describe("@map", () => {
       readonly todos = signal(["a", "b"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Stable, { host: el });
+    const app = valueOrThrow(bootstrap(Stable, { host: el }));
     await tick();
     const [a, b] = [...el.querySelectorAll("li")];
     app.root.instance.todos.set(["a", "b", "c"]);
@@ -333,7 +334,7 @@ describe("@map with track { fields }", () => {
       readonly rows = signal([{ id: 1, kind: "a" }, { id: 1, kind: "b" }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Fields, { host: el });
+    const app = valueOrThrow(bootstrap(Fields, { host: el }));
     await tick();
     const [first, second] = [...el.querySelectorAll("li")];
     app.root.instance.rows.set([{ id: 1, kind: "b" }, { id: 1, kind: "a" }]);
@@ -354,7 +355,7 @@ describe("@map with track { fields }", () => {
       readonly rows = signal([{ id: 1, kind: "a" }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(FieldsChange, { host: el });
+    const app = valueOrThrow(bootstrap(FieldsChange, { host: el }));
     await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ id: 1, kind: "b" }]);
@@ -376,7 +377,7 @@ describe("@map with track { fields }", () => {
       readonly rows = signal([{ owner }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(ObjectField, { host: el });
+    const app = valueOrThrow(bootstrap(ObjectField, { host: el }));
     await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ owner: { ...owner } }]);
@@ -439,7 +440,7 @@ describe("@map with a let pattern", () => {
       readonly rows = signal([{ id: 1, title: "a" }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(Destructure, { host: el });
+    const app = valueOrThrow(bootstrap(Destructure, { host: el }));
     await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ id: 1, title: "renamed" }]);
@@ -460,7 +461,7 @@ describe("@map with a let pattern", () => {
       readonly pairs = signal([["a", "b", "c"], ["x"]]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(DestructureArray, { host: el });
+    const app = valueOrThrow(bootstrap(DestructureArray, { host: el }));
     await tick();
     expect(rows(el))
       .toEqual(["a:2", "x:0"]);
@@ -477,7 +478,7 @@ describe("@map with a let pattern", () => {
       readonly rows = signal([{ id: 1, title: "a" }]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(DestructureAlias, { host: el });
+    const app = valueOrThrow(bootstrap(DestructureAlias, { host: el }));
     await tick();
     const before = el.querySelector("li");
     app.root.instance.rows.set([{ id: 1, title: "renamed" }]);
@@ -499,7 +500,7 @@ describe("@map with a let pattern", () => {
       readonly pairs = signal([["a", "b", "c"]]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(DestructureArrayAlias, { host: el });
+    const app = valueOrThrow(bootstrap(DestructureArrayAlias, { host: el }));
     await tick();
     expect(rows(el))
       .toEqual(["3:a:2"]);
@@ -531,7 +532,7 @@ describe("@map rows without nodes", () => {
       readonly rows = signal(["a"]);
     }
     const el = document.createElement("section");
-    const app = bootstrap(NoNodes, { host: el });
+    const app = valueOrThrow(bootstrap(NoNodes, { host: el }));
     await tick();
     app.root.instance.rows.set(["b", "a", "c"]);
     await tick();

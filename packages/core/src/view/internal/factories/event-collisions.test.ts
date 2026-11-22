@@ -3,6 +3,7 @@ import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { output, type Output } from "../authoring/output.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -31,7 +32,7 @@ describe("an output named like a key modifier", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     const button = view.host.nativeElement.querySelector("button")!;
     button.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
     await tick();
@@ -55,7 +56,7 @@ describe("an output named like a key modifier", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(B);
+    const view = valueOrThrow(engine.createComponent(B));
     const button = view.host.nativeElement.querySelector("button")!;
     button.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
     await tick();

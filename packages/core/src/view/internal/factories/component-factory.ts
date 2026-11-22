@@ -46,7 +46,7 @@ import {
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { Maybe, partial } from "@tinker/functional";
-import { mapLeft, match, Left, Right, valueOrThrow } from "@tinker/functional/v1";
+import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow } from "@tinker/functional/v1";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
@@ -78,6 +78,12 @@ import type { View } from "../runtime/view.ts";
 const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
 
 /** Where a component in another component's template is: see ComponentFactory.create. */
+/** What `create` has checked, and what building the component then needs. */
+interface Prepared {
+  readonly metadata: ComponentMetadata;
+  readonly hostDirectives: readonly Class<object>[];
+}
+
 export interface ParentContext {
   readonly parentInjector: Injector;
   readonly parentView: View;
@@ -119,12 +125,13 @@ export class ComponentFactory {
   /** Compiled templates, per component class: each template is parsed and compiled only once. */
   private readonly templates = new WeakMap<Class<unknown>, readonly CompiledNode[]>();
 
-  /** The @Component metadata of `type`. Throws if it is not a component. */
-  metadataOf(type: Class<unknown>): ComponentMetadata {
+  /** The @Component metadata of `type`, or an error if it is not a component. */
+  metadataOf(type: Class<unknown>): Either<ComponentMetadata, Error> {
     return getComponentMetadata(type)
-      .getOrThrow(
-        () => new Error(`${type.name} is not a component: decorate it with @Component`),
-      );
+      .match({
+        some: (metadata) => Right.of(metadata),
+        none: () => Left.of(new Error(`${type.name} is not a component: decorate it with @Component`)),
+      });
   }
 
   /**
@@ -135,7 +142,9 @@ export class ComponentFactory {
    * For a component inside another's template, `child` says where it is: its
    * injector's parent, the view that owns it (destroying that view destroys
    * it), and the plain attributes of its element, bound to its inputs before
-   * its first render. Throws if a component contains itself, directly or not.
+   * its first render. Fails, before anything is created, if a component contains
+   * itself, if the host already holds a component, or if a host directive is not a
+   * directive (or is a component).
    */
   create<T extends object>(
     type: Class<T>,
@@ -143,16 +152,60 @@ export class ComponentFactory {
     child?: ParentContext,
     parentInjector?: Injector,
     owner?: ViewNode,
-  ): ComponentView<T> {
+  ): Either<ComponentView<T>, Error> {
     const start = this.creating.indexOf(type);
     if (start !== -1) {
       const path = [...this.creating.slice(start), type].map((creating) => creating.name)
         .join(" → ");
-      throw new Error(`${type.name} contains itself: ${path}`);
+      return Left.of(new Error(`${type.name} contains itself: ${path}`));
     }
+    return map(this.prepare(type, host), (prepared) =>
+      this.createPrepared(type, prepared, host, child, parentInjector, owner));
+  }
+
+  /** The checks `create` makes before it has any side effect. */
+  private prepare(type: Class<unknown>, host: Element | undefined): Either<Prepared, Error> {
+    return flatMap(this.metadataOf(type), (metadata) =>
+      this.prepareWith(type, metadata, host));
+  }
+
+  private prepareWith(
+    type: Class<unknown>,
+    metadata: ComponentMetadata,
+    host: Element | undefined,
+  ): Either<Prepared, Error> {
+    return flatMap(this.hostDirectivesOf(type, metadata), (hostDirectives) =>
+      this.hostNotHoldingComponent(type, host, { metadata, hostDirectives }));
+  }
+
+  /** `prepared` when `host` (if there is one) holds no component yet. */
+  private hostNotHoldingComponent(
+    type: Class<unknown>,
+    host: Element | undefined,
+    prepared: Prepared,
+  ): Either<Prepared, Error> {
+    if (host === undefined) {
+      return Right.of(prepared);
+    }
+    const holds = Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
+      .isSome();
+    return holds
+      ? Left.of(new Error(`The host element of ${type.name} already holds a component`))
+      : Right.of(prepared);
+  }
+
+  /** Creates `type` once `create` has checked it: it is on the cycle path while it is built. */
+  private createPrepared<T extends object>(
+    type: Class<T>,
+    prepared: Prepared,
+    host: Element | undefined,
+    child: ParentContext | undefined,
+    parentInjector: Injector | undefined,
+    owner: ViewNode | undefined,
+  ): ComponentView<T> {
     this.creating.push(type);
     try {
-      return this.createView(type, host, child, parentInjector, owner);
+      return this.createView(type, prepared, host, child, parentInjector, owner);
     } finally {
       this.creating.pop();
     }
@@ -160,18 +213,14 @@ export class ComponentFactory {
 
   private createView<T extends object>(
     type: Class<T>,
-    host?: Element,
-    child?: ParentContext,
-    parentInjector?: Injector,
-    owner?: ViewNode,
+    { metadata, hostDirectives }: Prepared,
+    host: Element | undefined,
+    child: ParentContext | undefined,
+    parentInjector: Injector | undefined,
+    owner: ViewNode | undefined,
   ): ComponentView<T> {
-    const metadata = this.metadataOf(type);
     host ??= this.createHost(metadata.selector, type);
     applyComponentStyles(this.renderer, type, host);
-    if (Maybe.flatMap(this.contexts.get(host), (existing) => existing.componentView)
-      .isSome()) {
-      throw new Error(`The host element of ${type.name} already holds a component`);
-    }
 
     // Its own injector, child of the engine's (or, for a component in another's
     // template, of the injector of its element): its host directives, the
@@ -180,7 +229,6 @@ export class ComponentFactory {
     // destroyed), then the component's and its host directives' providers
     // (after, so they cannot replace the others).
     // The component is created in it, so its inject() calls resolve there first.
-    const hostDirectives = this.hostDirectivesOf(type, metadata);
     /** Cleanups of what a root component's element holds: run when its view is destroyed. */
     const rootCleanups: (() => void)[] = [];
     // Owned by the parent view of the element, or by the view a container was attached to.
@@ -203,7 +251,7 @@ export class ComponentFactory {
         ),
         ...(metadata.providers ?? []),
         ...hostDirectives.flatMap((directive) =>
-          this.directives.metadataOf(directive).providers ?? []),
+          valueOrThrow(this.directives.metadataOf(directive)).providers ?? []),
       ],
       parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });
@@ -313,20 +361,28 @@ export class ComponentFactory {
     return host;
   }
 
-  /** The host directives of `type`. Throws for one that is not a directive, or is a component. */
+  /** The host directives of `type`: an error for one that is not a directive, or is a component. */
   private hostDirectivesOf(
     type: Class<unknown>,
     metadata: ComponentMetadata,
-  ): readonly Class<object>[] {
+  ): Either<readonly Class<object>[], Error> {
     const hostDirectives = metadata.hostDirectives ?? [];
-    for (const directive of hostDirectives) {
-      this.directives.metadataOf(directive);
-      if (getComponentMetadata(directive)
-        .isSome()) {
-        throw new Error(`${directive.name} is a component: it cannot be a host directive of ${type.name}`);
-      }
-    }
-    return hostDirectives;
+    return map(
+      sequence(hostDirectives.map((directive) => this.hostDirectiveOf(type, directive))),
+      () => hostDirectives,
+    );
+  }
+
+  private hostDirectiveOf(
+    type: Class<unknown>,
+    directive: Class<object>,
+  ): Either<Class<object>, Error> {
+    return flatMap(this.directives.metadataOf(directive), () =>
+      getComponentMetadata(directive)
+        .match({
+          some: () => Left.of(new Error(`${directive.name} is a component: it cannot be a host directive of ${type.name}`)),
+          none: () => Right.of(directive),
+        }));
   }
 
   /**
@@ -371,7 +427,7 @@ export class ComponentFactory {
       const imported = this.replacements.get(declared) ?? declared;
       return {
         type: imported,
-        selector: valueOrThrow(mapLeft(Selector.parse(this.directives.metadataOf(imported).selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
+        selector: valueOrThrow(mapLeft(Selector.parse(valueOrThrow(this.directives.metadataOf(imported)).selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
         isComponent: getComponentMetadata(imported)
           .isSome(),
       };

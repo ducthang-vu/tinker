@@ -3,6 +3,7 @@ import { tick } from "../test-support.ts";
 import { Component } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { signal } from "../../../signals/index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 @Component({ selector: "tk-card", template: "<div><slot></slot></div>" })
 class Card {}
@@ -108,7 +109,7 @@ describe("content projection", () => {
     }
     const engine = Engine.create();
     const host = document.createElement("div");
-    const view = engine.createComponent(A, host);
+    const view = valueOrThrow(engine.createComponent(A, host));
     await tick();
     expect(host.querySelector("p")!.textContent)
       .toBe("first");
@@ -147,8 +148,8 @@ describe("content projection", () => {
     })
     class A {}
     const host = document.createElement("div");
-    const view = Engine.create()
-      .createComponent(A, host);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(A, host));
     view.destroy();
     await tick();
     expect(host.children)

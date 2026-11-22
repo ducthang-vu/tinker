@@ -8,6 +8,7 @@ import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import type { Class } from "../../../utils/types.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -33,7 +34,7 @@ describe("components in templates", () => {
     })
     class List {}
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
 
     await tick();
 
@@ -70,7 +71,7 @@ describe("components in templates", () => {
       readonly store = inject(ListStore);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const item = componentOn<Item>(engine, view.host.nativeElement.querySelector("tk-item")!);
     await tick();
     expect(item.list)
@@ -93,7 +94,7 @@ describe("components in templates", () => {
     @Component({ selector: "tk-a", template: "<tk-b></tk-b>", imports: [B] })
     class A {}
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     await tick();
     expect(componentOn<C>(engine, view.host.nativeElement.querySelector("tk-c")!).a)
       .toBe(view.instance);
@@ -106,8 +107,8 @@ describe("components in templates", () => {
     }
     @Component({ selector: "tk-list", template: `<tk-item label="Milk"></tk-item>`, imports: [Item] })
     class List {}
-    const view = Engine.create()
-      .createComponent(List);
+    const view = valueOrThrow(Engine.create()
+      .createComponent(List));
     await tick();
     expect(view.host.nativeElement.querySelector("span")!.textContent)
       .toBe("Milk");
@@ -166,7 +167,7 @@ describe("components in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const itemHost = view.host.nativeElement.querySelector("tk-item")!;
     engine.flush();
     view.destroy();
@@ -253,8 +254,8 @@ describe("recursion", () => {
     @Component({ selector: "tk-pair", template: "<tk-leaf></tk-leaf><tk-leaf></tk-leaf>", imports: [Leaf] })
     class Pair {}
     await tick();
-    expect(Engine.create()
-      .createComponent(Pair).host.nativeElement.querySelectorAll("tk-leaf"))
+    expect(valueOrThrow(Engine.create()
+      .createComponent(Pair)).host.nativeElement.querySelectorAll("tk-leaf"))
       .toHaveLength(2);
   });
 });

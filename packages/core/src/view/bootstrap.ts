@@ -9,6 +9,7 @@ import type { Provider } from "../di/index.ts";
 import type { Class } from "../utils/types.ts";
 import type { ComponentRef } from "./internal/component-ref.ts";
 import { Engine } from "./internal/engine.ts";
+import { type Either, map, use } from "@tinker/functional/v1";
 
 /** What `bootstrap` takes besides the root component. Both are optional. */
 export interface BootstrapOptions {
@@ -36,7 +37,10 @@ export class AppRef<T extends object> {
 export function bootstrap<T extends object>(
   type: Class<T>,
   options: BootstrapOptions = {},
-): AppRef<T> {
+): Either<AppRef<T>, Error> {
   const engine = Engine.create({ providers: options.providers });
-  return new AppRef(engine.bootstrap(type, options.host), engine);
+  const started = engine.bootstrap(type, options.host);
+  // A root that cannot start leaves no engine behind.
+  use(started, { Left: () => engine.destroy(), Right: () => undefined });
+  return map(started, (ref) => new AppRef(ref, engine));
 }

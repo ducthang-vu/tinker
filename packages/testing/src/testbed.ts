@@ -2,6 +2,7 @@
 // Each builder is immutable: a configuration method returns a new builder, so a chain
 // reads in any order, and a builder can be reused.
 
+import { valueOrThrow } from "@tinker/functional/v1";
 import {
   CLASS_REPLACEMENTS,
   Component,
@@ -110,7 +111,7 @@ class Bed<T extends object> implements TestBedApi<T> {
       providers: [provide(CLASS_REPLACEMENTS, { useValue: replacements }), ...this.state.providers],
     });
     const host = this.state.host ?? document.createElement("div");
-    const ref = engine.bootstrap(component, host);
+    const ref = valueOrThrow(engine.bootstrap(component, host));
     const scope: Scope = { engine, replacements };
     const root = testingElementOf(ref.instance as T, host, scope);
     for (const [name, value] of Object.entries(this.state.inputs)) {

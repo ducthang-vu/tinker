@@ -5,6 +5,7 @@ import { signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { Maybe } from "@tinker/functional";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -21,7 +22,7 @@ describe("class bindings in templates", () => {
       readonly urgent = true; // a plain field: read once
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Todo);
+    const view = valueOrThrow(engine.createComponent(Todo));
     const p = view.host.nativeElement.querySelector("p")!;
     await tick();
     expect(p.className)
@@ -42,7 +43,7 @@ describe("class bindings in templates", () => {
       readonly open = true;
     }
     const engine = Engine.create();
-    const view = engine.createComponent(A);
+    const view = valueOrThrow(engine.createComponent(A));
     engine.flush();
     expect(view.host.nativeElement.querySelector("p")!.className)
       .toBe("isOpen");
@@ -60,7 +61,7 @@ describe("class bindings in templates", () => {
       readonly selected = signal(false);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     view.instance.selected.set(true);
     engine.flush();
     await tick();
@@ -84,7 +85,7 @@ describe("host class bindings", () => {
     @Component({ selector: "tk-a", template: `<button toggle>x</button>`, imports: [Toggle] })
     class A {}
     const engine = Engine.create();
-    const button = engine.createComponent(A).host.nativeElement.querySelector("button")!;
+    const button = valueOrThrow(engine.createComponent(A)).host.nativeElement.querySelector("button")!;
     await tick();
     expect(button.className)
       .toBe("");
@@ -113,7 +114,7 @@ describe("host class bindings", () => {
       readonly open = signal(true);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(Menu);
+    const view = valueOrThrow(engine.createComponent(Menu));
     await tick();
     expect(view.host.nativeElement.className)
       .toBe("focusable open");
@@ -148,7 +149,7 @@ describe("a child component's host class bindings", () => {
     @Component({ selector: "tk-list", template: "<tk-item></tk-item>", imports: [Item] })
     class List {}
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const host = view.host.nativeElement.querySelector("tk-item")!;
     const item = Maybe.map(
       Maybe.flatMap(engine.getContext(host), (context) => context.componentView),
@@ -187,7 +188,7 @@ describe("a child component's host class bindings", () => {
       readonly selected = signal(false);
     }
     const engine = Engine.create();
-    const view = engine.createComponent(List);
+    const view = valueOrThrow(engine.createComponent(List));
     const host = view.host.nativeElement.querySelector("tk-item")!;
     await tick();
     expect(host.className) // the child says selected, the parent says not: the parent wins
@@ -212,8 +213,8 @@ describe("a child component's host class bindings", () => {
       readonly off = false;
     }
     await tick();
-    expect(Engine.create()
-      .createComponent(A).host.nativeElement.querySelector("p")!.className)
+    expect(valueOrThrow(Engine.create()
+      .createComponent(A)).host.nativeElement.querySelector("p")!.className)
       .toBe("");
   });
 
@@ -229,7 +230,7 @@ describe("a child component's host class bindings", () => {
     @Component({ selector: "tk-bar", template: "<tk-button></tk-button>", imports: [Button] })
     class Bar {}
     const engine = Engine.create();
-    const view = engine.createComponent(Bar);
+    const view = valueOrThrow(engine.createComponent(Bar));
     const host = view.host.nativeElement.querySelector("tk-button")!;
     Maybe.map(
       Maybe.flatMap(engine.getContext(host), (context) => context.componentView),
