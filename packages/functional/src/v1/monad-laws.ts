@@ -1,6 +1,7 @@
 // Checks that a monad obeys the monad laws, and that its boxes work with map, flatMap and match.
 // It returns [description, check] pairs: each check throws when it fails, so any test framework
 // can run them, e.g. `for (const [name, check] of monadLaws(m)) test(name, check)`.
+import { isEqual } from "./monad.ts";
 
 /** A monad to check: its boxes, values, operations, and how its match names a box's case. */
 export interface MonadUnderTest<M, A> {
@@ -16,8 +17,8 @@ export interface MonadUnderTest<M, A> {
   readonly map: (box: M, f: (value: A) => A) => M;
   /** The monad's flatMap, data-first. */
   readonly flatMap: (box: M, f: (value: A) => M) => M;
-  /** Whether two boxes are equal. The laws compare boxes with it. */
-  readonly equal: (a: M, b: M) => boolean;
+  /** Whether two boxes are equal. Defaults to `isEqual`, which uses the EQUALS protocol. */
+  readonly equal?: (a: M, b: M) => boolean;
   /** The names of the monad's cases, e.g. ["Some", "None"]. */
   readonly cases: readonly string[];
   /** The case that `of` builds, e.g. "Some". */
@@ -48,7 +49,8 @@ const holdsForAll = <X>(
 
 /** The monad laws, and the interaction with map, flatMap and match, as checks. */
 export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
-  const { name, samples, values, of, map, flatMap, equal } = monad;
+  const { name, samples, values, of, map, flatMap } = monad;
+  const equal = monad.equal ?? isEqual;
   const { cases, successCase, caseOf, f, g, step, nextStep } = monad;
   return [
     [`${name}: map with the identity leaves each box unchanged`, () =>

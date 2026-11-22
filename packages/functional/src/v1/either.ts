@@ -2,14 +2,26 @@
 // the client's choice. Each case is a class with a private constructor: build a case with
 // `Right.of(value)` or `Left.of(error)`, and read a value only with `match`.
 
-import { MATCHABLE, match, type Case, type Matchable } from "./monad.ts";
+import {
+  EQUALS,
+  equalCases,
+  MATCHABLE,
+  match,
+  type Case,
+  type Equatable,
+  type Matchable,
+} from "./monad.ts";
 
 /** A Right: a success, holding a T. */
-export class Right<T> implements Matchable<"Right", readonly [T]> {
+export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable {
   readonly [MATCHABLE]: Case<"Right", readonly [T]>;
 
   private constructor(value: T) {
     this[MATCHABLE] = { name: "Right", args: [value] };
+  }
+
+  [EQUALS](other: unknown): boolean {
+    return equalCases(this, other);
   }
 
   /** A success. */
@@ -19,11 +31,15 @@ export class Right<T> implements Matchable<"Right", readonly [T]> {
 }
 
 /** A Left: a failure, holding whatever the caller chose to put there. */
-export class Left<E> implements Matchable<"Left", readonly [E]> {
+export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable {
   readonly [MATCHABLE]: Case<"Left", readonly [E]>;
 
   private constructor(error: E) {
     this[MATCHABLE] = { name: "Left", args: [error] };
+  }
+
+  [EQUALS](other: unknown): boolean {
+    return equalCases(this, other);
   }
 
   /** A failure. */

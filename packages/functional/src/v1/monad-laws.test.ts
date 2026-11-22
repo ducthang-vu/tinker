@@ -1,6 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { EDGE_VALUES } from "./edge-values.ts";
+import { None, Some, flatMap as maybeFlatMap, map as maybeMap, type Maybe } from "./maybe.ts";
+import { match } from "./monad.ts";
 import { type LawCheck, monadLaws, type MonadUnderTest } from "./monad-laws.ts";
 
 /** A box holding any value, or nothing. Tags, not `in`, so undefined and null count as values. */
@@ -125,5 +127,31 @@ describe("monadLaws", () => {
     const broken: MonadUnderTest<Box, unknown> = { ...lawful, successCase: "None" };
     expect(find(runAll(broken), "of(a) is in the success case")[1])
       .toThrow("is not in the None case");
+  });
+});
+
+describe("monadLaws on the library's Maybe, with the default equality", () => {
+  const maybe: MonadUnderTest<Maybe<unknown>, unknown> = {
+    name: "Maybe",
+    samples: [...EDGE_VALUES.map((value) => Some.of(value)), Some.of(Some.of(0)), None.of()],
+    values: EDGE_VALUES,
+    of: (value) => Some.of(value),
+    map: (box, f) => maybeMap(box, f),
+    flatMap: (box, f) => maybeFlatMap(box, f),
+    cases: ["Some", "None"],
+    successCase: "Some",
+    caseOf: (box) => match(box, { Some: () => "Some", None: () => "None" }),
+    // The default equality compares objects by reference, so these return their input unchanged.
+    f: (value) => value,
+    g: (value) => value,
+    step: (value) => Some.of(value),
+    nextStep: (value) => (value === null || value === undefined ? None.of() : Some.of(value)),
+  };
+
+  test("every law holds on every edge value, nested boxes included", () => {
+    for (const [description, check] of monadLaws(maybe)) {
+      expect(check, description)
+        .not.toThrow();
+    }
   });
 });

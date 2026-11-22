@@ -1,5 +1,7 @@
-// The shape every matchable box has: a case name and its arguments, under a symbol the package
-// does not export. `match` and `isEqual` work on that shape, so they are the same for every box.
+// Two protocols, kept apart. A matchable box has a case name and its arguments under MATCHABLE,
+// and `match` reads that shape. An equatable value knows how to compare itself under EQUALS, and
+// `isEqual` reads that protocol. A matchable box may implement EQUALS by reusing the case shape,
+// but the two protocols are separate: `isEqual` does not require MATCHABLE.
 
 import type { Either, EitherCases } from "./either.ts";
 import type { Maybe, MaybeCases } from "./maybe.ts";
@@ -33,17 +35,41 @@ export function match(
   return cases[kase.name]!(...(kase.args as never[]));
 }
 
+/** The equality protocol: a value that can say whether it equals another value. */
+export const EQUALS: unique symbol = Symbol("equals");
+
+/** A value with its own equality. Matchable boxes implement it through `equalCases`. */
+export interface Equatable {
+  [EQUALS](other: unknown): boolean;
+}
+
 /**
- * Equal only to a box of the same case with equal arguments. `equal` compares the arguments
- * (default `===`).
+ * Whether `a` and `b` are equal. A value with the EQUALS protocol decides for itself. Any other
+ * value is equal to another when they are the same value, with NaN equal to NaN and 0 to -0
+ * (SameValueZero, the rule `Set` and `Map` use). Objects are equal only to themselves.
  */
-export function isEqual(
-  self: Matchable,
-  other: Matchable,
-  equal: (a: unknown, b: unknown) => boolean = (a, b) => a === b,
-): boolean {
+export function isEqual(a: unknown, b: unknown): boolean {
+  if (hasEquals(a)) {
+    return a[EQUALS](b);
+  }
+  return a === b || (typeof a === "number" && typeof b === "number" && Number.isNaN(a) && Number.isNaN(b));
+}
+
+/**
+ * Equal to a box of the same case whose arguments are equal (by `isEqual`). The matchable
+ * boxes use it for their EQUALS method, so nested boxes compare by value.
+ */
+export function equalCases(self: Matchable, other: unknown): boolean {
+  if (typeof other !== "object" || other === null || !(MATCHABLE in other)) {
+    return false;
+  }
   const mine = self[MATCHABLE];
-  const theirs = other[MATCHABLE];
+  const theirs = (other as Matchable)[MATCHABLE];
   return mine.name === theirs.name
-    && mine.args.every((arg, index) => equal(arg, theirs.args[index]));
+    && mine.args.length === theirs.args.length
+    && mine.args.every((arg, index) => isEqual(arg, theirs.args[index]));
+}
+
+function hasEquals(value: unknown): value is Equatable {
+  return typeof value === "object" && value !== null && EQUALS in value;
 }
