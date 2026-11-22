@@ -159,7 +159,7 @@
         {
           "name": "Cancel",
           "kind": "type",
-          "source": "packages/functional/src/stream.ts:25",
+          "source": "packages/functional/src/lib/stream/stream.ts:25",
           "description": "Stops a running stream or task. Calling it after the end does nothing.",
           "params": [],
           "examples": [],
@@ -847,7 +847,7 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/either.ts:52",
+          "source": "packages/functional/src/lib/monad/either.ts:52",
           "description": "Either: a Right holding a T, or a Left holding an E.",
           "params": [],
           "examples": [],
@@ -939,7 +939,7 @@
         {
           "name": "Emitter",
           "kind": "class",
-          "source": "packages/functional/src/emitter.ts:50",
+          "source": "packages/functional/src/lib/stream/emitter.ts:50",
           "description": "A hot source for a stream. Create one with `Emitter.create`, hand out `stream`, and emit into it.",
           "params": [],
           "examples": [
@@ -954,7 +954,7 @@
             {
               "name": "stream",
               "kind": "property",
-              "source": "packages/functional/src/emitter.ts:52",
+              "source": "packages/functional/src/lib/stream/emitter.ts:52",
               "description": "What the owner hands out: subscribe to it, but not emit or end it.",
               "params": [],
               "examples": [],
@@ -965,7 +965,7 @@
             {
               "name": "emit",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:72",
+              "source": "packages/functional/src/lib/stream/emitter.ts:72",
               "description": "Emit a successful item.",
               "params": [],
               "examples": [],
@@ -978,7 +978,7 @@
             {
               "name": "emitError",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:77",
+              "source": "packages/functional/src/lib/stream/emitter.ts:77",
               "description": "Emit a failure as an item: the stream goes on.",
               "params": [],
               "examples": [],
@@ -991,7 +991,7 @@
             {
               "name": "complete",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:82",
+              "source": "packages/functional/src/lib/stream/emitter.ts:82",
               "description": "End the stream successfully, with `result`.",
               "params": [],
               "examples": [],
@@ -1004,7 +1004,7 @@
             {
               "name": "fail",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:87",
+              "source": "packages/functional/src/lib/stream/emitter.ts:87",
               "description": "End the stream with a failure: it will not go on.",
               "params": [],
               "examples": [],
@@ -1017,7 +1017,7 @@
             {
               "name": "create",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:67",
+              "source": "packages/functional/src/lib/stream/emitter.ts:67",
               "description": "A new emitter with no subscribers.",
               "params": [],
               "examples": [],
@@ -1437,7 +1437,7 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/either.ts:34",
+          "source": "packages/functional/src/lib/monad/either.ts:34",
           "description": "A Left: a failure, holding whatever the caller chose to put there.",
           "params": [],
           "examples": [],
@@ -1450,7 +1450,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/either.ts:35",
+              "source": "packages/functional/src/lib/monad/either.ts:35",
               "description": "",
               "params": [],
               "examples": [],
@@ -1461,7 +1461,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:41",
+              "source": "packages/functional/src/lib/monad/either.ts:41",
               "description": "",
               "params": [],
               "examples": [],
@@ -1474,7 +1474,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:46",
+              "source": "packages/functional/src/lib/monad/either.ts:46",
               "description": "A failure.",
               "params": [],
               "examples": [],
@@ -1501,7 +1501,7 @@
         {
           "name": "Maybe",
           "kind": "type",
-          "source": "packages/functional/src/maybe.ts:53",
+          "source": "packages/functional/src/lib/monad/maybe.ts:53",
           "description": "Maybe: a Some holding a T, or a None.",
           "params": [],
           "examples": [],
@@ -1701,7 +1701,7 @@
         {
           "name": "None",
           "kind": "class",
-          "source": "packages/functional/src/maybe.ts:35",
+          "source": "packages/functional/src/lib/monad/maybe.ts:35",
           "description": "A None: no value.",
           "params": [],
           "examples": [],
@@ -1714,7 +1714,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/maybe.ts:36",
+              "source": "packages/functional/src/lib/monad/maybe.ts:36",
               "description": "",
               "params": [],
               "examples": [],
@@ -1725,7 +1725,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:42",
+              "source": "packages/functional/src/lib/monad/maybe.ts:42",
               "description": "",
               "params": [],
               "examples": [],
@@ -1738,7 +1738,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:47",
+              "source": "packages/functional/src/lib/monad/maybe.ts:47",
               "description": "No value.",
               "params": [],
               "examples": [],
@@ -2379,7 +2379,7 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/either.ts:16",
+          "source": "packages/functional/src/lib/monad/either.ts:16",
           "description": "A Right: a success, holding a T.",
           "params": [],
           "examples": [],
@@ -2392,7 +2392,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/either.ts:17",
+              "source": "packages/functional/src/lib/monad/either.ts:17",
               "description": "",
               "params": [],
               "examples": [],
@@ -2403,7 +2403,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:23",
+              "source": "packages/functional/src/lib/monad/either.ts:23",
               "description": "",
               "params": [],
               "examples": [],
@@ -2416,7 +2416,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:28",
+              "source": "packages/functional/src/lib/monad/either.ts:28",
               "description": "A success.",
               "params": [],
               "examples": [],
@@ -2450,6 +2450,60 @@
               "throws": [],
               "signatures": [
                 "run(): void"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Sanitizer",
+          "kind": "class",
+          "source": "packages/core/src/view/internal/runtime/sanitization.ts:57",
+          "description": "The service that makes trusted values. Inject it, and trust constant values in your own code:\n\n  readonly logo = inject(Sanitizer).trustUrl(\"data:image/png;base64,…\");\n\nTrusting a value that comes from user input (a query string, say) defeats the check.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new Sanitizer(): Sanitizer"
+          ],
+          "members": [
+            {
+              "name": "trustUrl",
+              "kind": "method",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:60",
+              "description": "Trust `url`: a URL attribute bound to the result is set even when `url` is unsafe.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "trustUrl(url: string): TrustedUrl"
+              ]
+            },
+            {
+              "name": "trustHtml",
+              "kind": "method",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:65",
+              "description": "Trust `html`: `[attr.srcdoc]` bound to the result is set.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "trustHtml(html: string): TrustedHtml"
+              ]
+            },
+            {
+              "name": "trustStyle",
+              "kind": "method",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:70",
+              "description": "Trust `css`: a `[attr.style]` or `[style.x]` bound to the result is set.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "trustStyle(css: string): TrustedStyle"
               ]
             }
           ]
@@ -2536,7 +2590,7 @@
         {
           "name": "Some",
           "kind": "class",
-          "source": "packages/functional/src/maybe.ts:17",
+          "source": "packages/functional/src/lib/monad/maybe.ts:17",
           "description": "A Some: a value is present.",
           "params": [],
           "examples": [],
@@ -2549,7 +2603,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/maybe.ts:18",
+              "source": "packages/functional/src/lib/monad/maybe.ts:18",
               "description": "",
               "params": [],
               "examples": [],
@@ -2560,7 +2614,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:24",
+              "source": "packages/functional/src/lib/monad/maybe.ts:24",
               "description": "",
               "params": [],
               "examples": [],
@@ -2573,7 +2627,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:29",
+              "source": "packages/functional/src/lib/monad/maybe.ts:29",
               "description": "A present value.",
               "params": [],
               "examples": [],
@@ -2600,7 +2654,7 @@
         {
           "name": "Task",
           "kind": "type",
-          "source": "packages/functional/src/task.ts:25",
+          "source": "packages/functional/src/lib/stream/task.ts:25",
           "description": "A task: a stream with no items, ending with its outcome.",
           "params": [],
           "examples": [],
@@ -2723,7 +2777,7 @@
         {
           "name": "TemplateSyntaxError",
           "kind": "class",
-          "source": "packages/core/src/view/internal/template/tinker-parser.ts:30",
+          "source": "packages/core/src/view/internal/template/tinker-parser.ts:31",
           "description": "A template that does not follow the syntax. `line` and `column` are 1-based.",
           "params": [],
           "examples": [],
@@ -2736,7 +2790,7 @@
             {
               "name": "line",
               "kind": "property",
-              "source": "packages/core/src/view/internal/template/tinker-parser.ts:31",
+              "source": "packages/core/src/view/internal/template/tinker-parser.ts:32",
               "description": "",
               "params": [],
               "examples": [],
@@ -2747,7 +2801,7 @@
             {
               "name": "column",
               "kind": "property",
-              "source": "packages/core/src/view/internal/template/tinker-parser.ts:32",
+              "source": "packages/core/src/view/internal/template/tinker-parser.ts:33",
               "description": "",
               "params": [],
               "examples": [],
@@ -2758,7 +2812,7 @@
             {
               "name": "reason",
               "kind": "property",
-              "source": "packages/core/src/view/internal/template/tinker-parser.ts:34",
+              "source": "packages/core/src/view/internal/template/tinker-parser.ts:35",
               "description": "The problem, without its place: `message` is `line:column: reason`.",
               "params": [],
               "examples": [],
@@ -2816,7 +2870,7 @@
         {
           "name": "TinkerTemplateParser",
           "kind": "class",
-          "source": "packages/core/src/view/internal/template/tinker-parser.ts:57",
+          "source": "packages/core/src/view/internal/template/tinker-parser.ts:58",
           "description": "Reads template source into Tinker's syntax tree (ast.ts).",
           "params": [],
           "examples": [],
@@ -2829,7 +2883,7 @@
             {
               "name": "parse",
               "kind": "method",
-              "source": "packages/core/src/view/internal/template/tinker-parser.ts:59",
+              "source": "packages/core/src/view/internal/template/tinker-parser.ts:60",
               "description": "The tree, or the first TemplateSyntaxError of the source.",
               "params": [],
               "examples": [],
@@ -2842,7 +2896,7 @@
             {
               "name": "parseAll",
               "kind": "method",
-              "source": "packages/core/src/view/internal/template/tinker-parser.ts:70",
+              "source": "packages/core/src/view/internal/template/tinker-parser.ts:71",
               "description": "The tree and every error of the source. The parser goes on after an error, so a\ntemplate with several problems reports them all; the tree has what it could read.",
               "params": [],
               "examples": [],
@@ -2896,6 +2950,90 @@
               "see": [],
               "throws": [],
               "type": "T"
+            }
+          ]
+        },
+        {
+          "name": "TrustedHtml",
+          "kind": "class",
+          "source": "packages/core/src/view/internal/runtime/sanitization.ts:33",
+          "description": "HTML the author vouches for: `srcdoc` bound to it is set.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new TrustedHtml(html: string, _seal: typeof SEAL): TrustedHtml"
+          ],
+          "members": [
+            {
+              "name": "toString",
+              "kind": "method",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:36",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "toString(): string"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "TrustedStyle",
+          "kind": "class",
+          "source": "packages/core/src/view/internal/runtime/sanitization.ts:42",
+          "description": "CSS the author vouches for: a `style` attribute or property bound to it is set.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new TrustedStyle(css: string, _seal: typeof SEAL): TrustedStyle"
+          ],
+          "members": [
+            {
+              "name": "toString",
+              "kind": "method",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:45",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "toString(): string"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "TrustedUrl",
+          "kind": "class",
+          "source": "packages/core/src/view/internal/runtime/sanitization.ts:24",
+          "description": "A URL the author vouches for: a URL attribute bound to it is set without the check.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new TrustedUrl(url: string, _seal: typeof SEAL): TrustedUrl"
+          ],
+          "members": [
+            {
+              "name": "toString",
+              "kind": "method",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:27",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "toString(): string"
+              ]
             }
           ]
         },
@@ -3600,7 +3738,7 @@
         {
           "name": "CHAIN",
           "kind": "const",
-          "source": "packages/functional/src/functor.ts:56",
+          "source": "packages/functional/src/lib/functor/functor.ts:56",
           "description": "The chain protocol: a value that chains itself. Any value may implement it, matchable or not.",
           "params": [],
           "examples": [],
@@ -3611,7 +3749,7 @@
         {
           "name": "Cancel",
           "kind": "type",
-          "source": "packages/functional/src/stream.ts:25",
+          "source": "packages/functional/src/lib/stream/stream.ts:25",
           "description": "Stops a running stream or task. Calling it after the end does nothing.",
           "params": [],
           "examples": [],
@@ -3622,7 +3760,7 @@
         {
           "name": "Case",
           "kind": "interface",
-          "source": "packages/functional/src/monad.ts:13",
+          "source": "packages/functional/src/lib/monad/monad.ts:13",
           "description": "The shape of one case.",
           "params": [],
           "examples": [],
@@ -3632,7 +3770,7 @@
             {
               "name": "name",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:14",
+              "source": "packages/functional/src/lib/monad/monad.ts:14",
               "description": "",
               "params": [],
               "examples": [],
@@ -3643,7 +3781,7 @@
             {
               "name": "args",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:15",
+              "source": "packages/functional/src/lib/monad/monad.ts:15",
               "description": "",
               "params": [],
               "examples": [],
@@ -3656,7 +3794,7 @@
         {
           "name": "Chain",
           "kind": "interface",
-          "source": "packages/functional/src/functor.ts:59",
+          "source": "packages/functional/src/lib/functor/functor.ts:59",
           "description": "A chain: a value with a `flatMap` of its own, under the CHAIN symbol.",
           "params": [],
           "examples": [],
@@ -3666,7 +3804,7 @@
             {
               "name": "__@CHAIN@934",
               "kind": "method",
-              "source": "packages/functional/src/functor.ts:60",
+              "source": "packages/functional/src/lib/functor/functor.ts:60",
               "description": "",
               "params": [],
               "examples": [],
@@ -3681,7 +3819,7 @@
         {
           "name": "EQUALS",
           "kind": "const",
-          "source": "packages/functional/src/monad.ts:84",
+          "source": "packages/functional/src/lib/monad/monad.ts:84",
           "description": "The equality protocol: a value that can say whether it equals another value.",
           "params": [],
           "examples": [],
@@ -3692,7 +3830,7 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/either.ts:52",
+          "source": "packages/functional/src/lib/monad/either.ts:52",
           "description": "Either: a Right holding a T, or a Left holding an E.",
           "params": [],
           "examples": [],
@@ -3703,7 +3841,7 @@
         {
           "name": "EitherCases",
           "kind": "type",
-          "source": "packages/functional/src/either.ts:55",
+          "source": "packages/functional/src/lib/monad/either.ts:55",
           "description": "The two handlers of a match, named after the cases.",
           "params": [],
           "examples": [],
@@ -3714,7 +3852,7 @@
         {
           "name": "EitherEffects",
           "kind": "interface",
-          "source": "packages/functional/src/monad.ts:47",
+          "source": "packages/functional/src/lib/monad/monad.ts:47",
           "description": "The effect handlers of an Either, one per case.",
           "params": [],
           "examples": [],
@@ -3724,7 +3862,7 @@
             {
               "name": "Right",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:48",
+              "source": "packages/functional/src/lib/monad/monad.ts:48",
               "description": "",
               "params": [],
               "examples": [],
@@ -3735,7 +3873,7 @@
             {
               "name": "Left",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:49",
+              "source": "packages/functional/src/lib/monad/monad.ts:49",
               "description": "",
               "params": [],
               "examples": [],
@@ -3748,7 +3886,7 @@
         {
           "name": "EitherFlatMapFn",
           "kind": "type",
-          "source": "packages/functional/src/functor.ts:64",
+          "source": "packages/functional/src/lib/functor/functor.ts:64",
           "description": "A data-last `flatMap` returning an Either.",
           "params": [],
           "examples": [],
@@ -3759,7 +3897,7 @@
         {
           "name": "Emitter",
           "kind": "class",
-          "source": "packages/functional/src/emitter.ts:50",
+          "source": "packages/functional/src/lib/stream/emitter.ts:50",
           "description": "A hot source for a stream. Create one with `Emitter.create`, hand out `stream`, and emit into it.",
           "params": [],
           "examples": [
@@ -3774,7 +3912,7 @@
             {
               "name": "stream",
               "kind": "property",
-              "source": "packages/functional/src/emitter.ts:52",
+              "source": "packages/functional/src/lib/stream/emitter.ts:52",
               "description": "What the owner hands out: subscribe to it, but not emit or end it.",
               "params": [],
               "examples": [],
@@ -3785,7 +3923,7 @@
             {
               "name": "emit",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:72",
+              "source": "packages/functional/src/lib/stream/emitter.ts:72",
               "description": "Emit a successful item.",
               "params": [],
               "examples": [],
@@ -3798,7 +3936,7 @@
             {
               "name": "emitError",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:77",
+              "source": "packages/functional/src/lib/stream/emitter.ts:77",
               "description": "Emit a failure as an item: the stream goes on.",
               "params": [],
               "examples": [],
@@ -3811,7 +3949,7 @@
             {
               "name": "complete",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:82",
+              "source": "packages/functional/src/lib/stream/emitter.ts:82",
               "description": "End the stream successfully, with `result`.",
               "params": [],
               "examples": [],
@@ -3824,7 +3962,7 @@
             {
               "name": "fail",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:87",
+              "source": "packages/functional/src/lib/stream/emitter.ts:87",
               "description": "End the stream with a failure: it will not go on.",
               "params": [],
               "examples": [],
@@ -3837,7 +3975,7 @@
             {
               "name": "create",
               "kind": "method",
-              "source": "packages/functional/src/emitter.ts:67",
+              "source": "packages/functional/src/lib/stream/emitter.ts:67",
               "description": "A new emitter with no subscribers.",
               "params": [],
               "examples": [],
@@ -3853,7 +3991,7 @@
         {
           "name": "Equatable",
           "kind": "interface",
-          "source": "packages/functional/src/monad.ts:87",
+          "source": "packages/functional/src/lib/monad/monad.ts:87",
           "description": "A value with its own equality. Matchable boxes implement it through `equalCases`.",
           "params": [],
           "examples": [],
@@ -3863,7 +4001,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/monad.ts:88",
+              "source": "packages/functional/src/lib/monad/monad.ts:88",
               "description": "",
               "params": [],
               "examples": [],
@@ -3878,7 +4016,7 @@
         {
           "name": "FlatMapImpl",
           "kind": "type",
-          "source": "packages/functional/src/registry.ts:11",
+          "source": "packages/functional/src/lib/functor/registry.ts:11",
           "description": "Chains a box of one case: applies `f`, which returns a box, and returns its result.",
           "params": [],
           "examples": [],
@@ -3889,7 +4027,7 @@
         {
           "name": "Functor",
           "kind": "interface",
-          "source": "packages/functional/src/functor.ts:23",
+          "source": "packages/functional/src/lib/functor/functor.ts:23",
           "description": "A functor: a value with a `map` of its own, under the MAP symbol.",
           "params": [],
           "examples": [],
@@ -3899,7 +4037,7 @@
             {
               "name": "__@MAP@932",
               "kind": "method",
-              "source": "packages/functional/src/functor.ts:24",
+              "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
               "params": [],
               "examples": [],
@@ -3914,7 +4052,7 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/either.ts:34",
+          "source": "packages/functional/src/lib/monad/either.ts:34",
           "description": "A Left: a failure, holding whatever the caller chose to put there.",
           "params": [],
           "examples": [],
@@ -3927,7 +4065,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/either.ts:35",
+              "source": "packages/functional/src/lib/monad/either.ts:35",
               "description": "",
               "params": [],
               "examples": [],
@@ -3938,7 +4076,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:41",
+              "source": "packages/functional/src/lib/monad/either.ts:41",
               "description": "",
               "params": [],
               "examples": [],
@@ -3951,7 +4089,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:46",
+              "source": "packages/functional/src/lib/monad/either.ts:46",
               "description": "A failure.",
               "params": [],
               "examples": [],
@@ -3967,7 +4105,7 @@
         {
           "name": "MAP",
           "kind": "const",
-          "source": "packages/functional/src/functor.ts:20",
+          "source": "packages/functional/src/lib/functor/functor.ts:20",
           "description": "The functor protocol: a value that maps itself. Any value may implement it, matchable or not.",
           "params": [],
           "examples": [],
@@ -3978,7 +4116,7 @@
         {
           "name": "MATCHABLE",
           "kind": "const",
-          "source": "packages/functional/src/monad.ts:10",
+          "source": "packages/functional/src/lib/monad/monad.ts:10",
           "description": "The case of a box: its case name, and its arguments in order.",
           "params": [],
           "examples": [],
@@ -3989,7 +4127,7 @@
         {
           "name": "MapFn",
           "kind": "type",
-          "source": "packages/functional/src/functor.ts:44",
+          "source": "packages/functional/src/lib/functor/functor.ts:44",
           "description": "A data-last `map`: one generic function, so `pipe` infers the result type from the box it is\ngiven, with no annotations.",
           "params": [],
           "examples": [],
@@ -4000,7 +4138,7 @@
         {
           "name": "MapImpl",
           "kind": "type",
-          "source": "packages/functional/src/registry.ts:8",
+          "source": "packages/functional/src/lib/functor/registry.ts:8",
           "description": "Maps a box of one case: applies `f` to its value and returns a box.",
           "params": [],
           "examples": [],
@@ -4011,7 +4149,7 @@
         {
           "name": "Matchable",
           "kind": "interface",
-          "source": "packages/functional/src/monad.ts:19",
+          "source": "packages/functional/src/lib/monad/monad.ts:19",
           "description": "A matchable box: it carries its case under the symbol. Each case class implements it.",
           "params": [],
           "examples": [],
@@ -4021,7 +4159,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:23",
+              "source": "packages/functional/src/lib/monad/monad.ts:23",
               "description": "",
               "params": [],
               "examples": [],
@@ -4034,7 +4172,7 @@
         {
           "name": "Maybe",
           "kind": "type",
-          "source": "packages/functional/src/maybe.ts:53",
+          "source": "packages/functional/src/lib/monad/maybe.ts:53",
           "description": "Maybe: a Some holding a T, or a None.",
           "params": [],
           "examples": [],
@@ -4045,7 +4183,7 @@
         {
           "name": "MaybeCases",
           "kind": "type",
-          "source": "packages/functional/src/maybe.ts:56",
+          "source": "packages/functional/src/lib/monad/maybe.ts:56",
           "description": "The two handlers of a match, named after the cases.",
           "params": [],
           "examples": [],
@@ -4056,7 +4194,7 @@
         {
           "name": "MaybeEffects",
           "kind": "interface",
-          "source": "packages/functional/src/monad.ts:53",
+          "source": "packages/functional/src/lib/monad/monad.ts:53",
           "description": "The effect handlers of a Maybe, one per case.",
           "params": [],
           "examples": [],
@@ -4066,7 +4204,7 @@
             {
               "name": "Some",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:54",
+              "source": "packages/functional/src/lib/monad/monad.ts:54",
               "description": "",
               "params": [],
               "examples": [],
@@ -4077,7 +4215,7 @@
             {
               "name": "None",
               "kind": "property",
-              "source": "packages/functional/src/monad.ts:55",
+              "source": "packages/functional/src/lib/monad/monad.ts:55",
               "description": "",
               "params": [],
               "examples": [],
@@ -4090,7 +4228,7 @@
         {
           "name": "MaybeFlatMapFn",
           "kind": "type",
-          "source": "packages/functional/src/functor.ts:67",
+          "source": "packages/functional/src/lib/functor/functor.ts:67",
           "description": "A data-last `flatMap` returning a Maybe.",
           "params": [],
           "examples": [],
@@ -4101,7 +4239,7 @@
         {
           "name": "None",
           "kind": "class",
-          "source": "packages/functional/src/maybe.ts:35",
+          "source": "packages/functional/src/lib/monad/maybe.ts:35",
           "description": "A None: no value.",
           "params": [],
           "examples": [],
@@ -4114,7 +4252,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/maybe.ts:36",
+              "source": "packages/functional/src/lib/monad/maybe.ts:36",
               "description": "",
               "params": [],
               "examples": [],
@@ -4125,7 +4263,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:42",
+              "source": "packages/functional/src/lib/monad/maybe.ts:42",
               "description": "",
               "params": [],
               "examples": [],
@@ -4138,7 +4276,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:47",
+              "source": "packages/functional/src/lib/monad/maybe.ts:47",
               "description": "No value.",
               "params": [],
               "examples": [],
@@ -4154,7 +4292,7 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/either.ts:16",
+          "source": "packages/functional/src/lib/monad/either.ts:16",
           "description": "A Right: a success, holding a T.",
           "params": [],
           "examples": [],
@@ -4167,7 +4305,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/either.ts:17",
+              "source": "packages/functional/src/lib/monad/either.ts:17",
               "description": "",
               "params": [],
               "examples": [],
@@ -4178,7 +4316,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:23",
+              "source": "packages/functional/src/lib/monad/either.ts:23",
               "description": "",
               "params": [],
               "examples": [],
@@ -4191,7 +4329,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/either.ts:28",
+              "source": "packages/functional/src/lib/monad/either.ts:28",
               "description": "A success.",
               "params": [],
               "examples": [],
@@ -4207,7 +4345,7 @@
         {
           "name": "Some",
           "kind": "class",
-          "source": "packages/functional/src/maybe.ts:17",
+          "source": "packages/functional/src/lib/monad/maybe.ts:17",
           "description": "A Some: a value is present.",
           "params": [],
           "examples": [],
@@ -4220,7 +4358,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/maybe.ts:18",
+              "source": "packages/functional/src/lib/monad/maybe.ts:18",
               "description": "",
               "params": [],
               "examples": [],
@@ -4231,7 +4369,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:24",
+              "source": "packages/functional/src/lib/monad/maybe.ts:24",
               "description": "",
               "params": [],
               "examples": [],
@@ -4244,7 +4382,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/maybe.ts:29",
+              "source": "packages/functional/src/lib/monad/maybe.ts:29",
               "description": "A present value.",
               "params": [],
               "examples": [],
@@ -4260,7 +4398,7 @@
         {
           "name": "Stream",
           "kind": "class",
-          "source": "packages/functional/src/stream.ts:76",
+          "source": "packages/functional/src/lib/stream/stream.ts:76",
           "description": "A cold stream, of items and an end. Build one with `from`, `hot`, `end`, `fail`, `fromEither` or\n`fromIterable`; read it with `subscribe` or `run`.",
           "params": [],
           "examples": [
@@ -4275,7 +4413,7 @@
             {
               "name": "__@MAP@932",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:175",
+              "source": "packages/functional/src/lib/stream/stream.ts:175",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
               "params": [],
               "examples": [],
@@ -4288,7 +4426,7 @@
             {
               "name": "__@CHAIN@934",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:192",
+              "source": "packages/functional/src/lib/stream/stream.ts:192",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
               "params": [],
               "examples": [],
@@ -4301,7 +4439,7 @@
             {
               "name": "from",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:85",
+              "source": "packages/functional/src/lib/stream/stream.ts:85",
               "description": "A stream doing `computation` each time it is subscribed to. An exception the computation throws\nbecomes a failure: the stream ends with a Left holding an Error (so `E | Error`).",
               "params": [],
               "examples": [],
@@ -4315,7 +4453,7 @@
             {
               "name": "hot",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:95",
+              "source": "packages/functional/src/lib/stream/stream.ts:95",
               "description": "A hot stream: `subscribe` registers an observer and returns how to remove it. The source must\nkeep the grammar itself (items, then one end, and nothing after a cancel).",
               "params": [],
               "examples": [],
@@ -4329,7 +4467,7 @@
             {
               "name": "end",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:100",
+              "source": "packages/functional/src/lib/stream/stream.ts:100",
               "description": "No items, ends with `result`.",
               "params": [],
               "examples": [],
@@ -4343,7 +4481,7 @@
             {
               "name": "fail",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:105",
+              "source": "packages/functional/src/lib/stream/stream.ts:105",
               "description": "No items, ends with the failure `error`.",
               "params": [],
               "examples": [],
@@ -4357,7 +4495,7 @@
             {
               "name": "fromEither",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:110",
+              "source": "packages/functional/src/lib/stream/stream.ts:110",
               "description": "No items, ends with `end`: a Right succeeds, a Left fails.",
               "params": [],
               "examples": [],
@@ -4371,7 +4509,7 @@
             {
               "name": "fromIterable",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:115",
+              "source": "packages/functional/src/lib/stream/stream.ts:115",
               "description": "The successful items, in order, then the end.",
               "params": [],
               "examples": [],
@@ -4387,7 +4525,7 @@
         {
           "name": "StreamComputation",
           "kind": "type",
-          "source": "packages/functional/src/stream.ts:39",
+          "source": "packages/functional/src/lib/stream/stream.ts:39",
           "description": "How a stream does its work: deliver items and end through `sink` (now, or later), and return how\nto cancel, if it can be cancelled.",
           "params": [],
           "examples": [],
@@ -4398,7 +4536,7 @@
         {
           "name": "StreamHandlers",
           "kind": "interface",
-          "source": "packages/functional/src/stream.ts:48",
+          "source": "packages/functional/src/lib/stream/stream.ts:48",
           "description": "What to do with a stream's values, unwrapped: see `run`.",
           "params": [],
           "examples": [],
@@ -4408,7 +4546,7 @@
             {
               "name": "next",
               "kind": "property",
-              "source": "packages/functional/src/stream.ts:50",
+              "source": "packages/functional/src/lib/stream/stream.ts:50",
               "description": "Each successful item.",
               "params": [],
               "examples": [],
@@ -4419,7 +4557,7 @@
             {
               "name": "ok",
               "kind": "property",
-              "source": "packages/functional/src/stream.ts:52",
+              "source": "packages/functional/src/lib/stream/stream.ts:52",
               "description": "The end, if it succeeded.",
               "params": [],
               "examples": [],
@@ -4430,7 +4568,7 @@
             {
               "name": "error",
               "kind": "property",
-              "source": "packages/functional/src/stream.ts:57",
+              "source": "packages/functional/src/lib/stream/stream.ts:57",
               "description": "Any failure, of an item or of the end. Without it, a failure is re-thrown where it happens, so\nit is never silently lost.",
               "params": [],
               "examples": [],
@@ -4443,7 +4581,7 @@
         {
           "name": "StreamObserver",
           "kind": "interface",
-          "source": "packages/functional/src/stream.ts:42",
+          "source": "packages/functional/src/lib/stream/stream.ts:42",
           "description": "What a subscriber is told. Both parts are optional.",
           "params": [],
           "examples": [],
@@ -4453,7 +4591,7 @@
             {
               "name": "next",
               "kind": "property",
-              "source": "packages/functional/src/stream.ts:43",
+              "source": "packages/functional/src/lib/stream/stream.ts:43",
               "description": "",
               "params": [],
               "examples": [],
@@ -4464,7 +4602,7 @@
             {
               "name": "end",
               "kind": "property",
-              "source": "packages/functional/src/stream.ts:44",
+              "source": "packages/functional/src/lib/stream/stream.ts:44",
               "description": "",
               "params": [],
               "examples": [],
@@ -4477,7 +4615,7 @@
         {
           "name": "StreamSink",
           "kind": "interface",
-          "source": "packages/functional/src/stream.ts:28",
+          "source": "packages/functional/src/lib/stream/stream.ts:28",
           "description": "What a stream's source calls to deliver items and to end.",
           "params": [],
           "examples": [],
@@ -4487,7 +4625,7 @@
             {
               "name": "next",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:30",
+              "source": "packages/functional/src/lib/stream/stream.ts:30",
               "description": "Deliver an item. Ignored after the end, or after a cancel.",
               "params": [],
               "examples": [],
@@ -4500,7 +4638,7 @@
             {
               "name": "end",
               "kind": "method",
-              "source": "packages/functional/src/stream.ts:32",
+              "source": "packages/functional/src/lib/stream/stream.ts:32",
               "description": "End the stream. Only the first call counts; ignored after a cancel.",
               "params": [],
               "examples": [],
@@ -4515,7 +4653,7 @@
         {
           "name": "Task",
           "kind": "type",
-          "source": "packages/functional/src/task.ts:25",
+          "source": "packages/functional/src/lib/stream/task.ts:25",
           "description": "A task: a stream with no items, ending with its outcome.",
           "params": [],
           "examples": [],
@@ -4526,7 +4664,7 @@
         {
           "name": "TaskComputation",
           "kind": "type",
-          "source": "packages/functional/src/task.ts:38",
+          "source": "packages/functional/src/lib/stream/task.ts:38",
           "description": "How a task does its work: call `ok` or `error` once (later, or right away), and return how to\ncancel it, if it can be.",
           "params": [],
           "examples": [],
@@ -4537,7 +4675,7 @@
         {
           "name": "TaskHandlers",
           "kind": "interface",
-          "source": "packages/functional/src/task.ts:28",
+          "source": "packages/functional/src/lib/stream/task.ts:28",
           "description": "What to do with a task's outcome.",
           "params": [],
           "examples": [],
@@ -4547,7 +4685,7 @@
             {
               "name": "ok",
               "kind": "property",
-              "source": "packages/functional/src/task.ts:29",
+              "source": "packages/functional/src/lib/stream/task.ts:29",
               "description": "",
               "params": [],
               "examples": [],
@@ -4558,7 +4696,7 @@
             {
               "name": "error",
               "kind": "property",
-              "source": "packages/functional/src/task.ts:31",
+              "source": "packages/functional/src/lib/stream/task.ts:31",
               "description": "Without it, a failure is re-thrown where it happens, so it is never silently lost.",
               "params": [],
               "examples": [],
@@ -4571,7 +4709,7 @@
         {
           "name": "TimeoutError",
           "kind": "class",
-          "source": "packages/functional/src/task.ts:44",
+          "source": "packages/functional/src/lib/stream/task.ts:44",
           "description": "The error of a task that took longer than its `timeout`.",
           "params": [],
           "examples": [],
@@ -4585,7 +4723,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/either.ts:79",
+          "source": "packages/functional/src/lib/monad/either.ts:79",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [],
           "examples": [],
@@ -4598,7 +4736,7 @@
         {
           "name": "delay",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:94",
+          "source": "packages/functional/src/lib/stream/task.ts:94",
           "description": "A task that succeeds after `milliseconds`. Cancelling clears the timer.",
           "params": [],
           "examples": [],
@@ -4611,7 +4749,7 @@
         {
           "name": "equalCases",
           "kind": "function",
-          "source": "packages/functional/src/monad.ts:107",
+          "source": "packages/functional/src/lib/monad/monad.ts:107",
           "description": "Equal to a box of the same case whose arguments are equal (by `isEqual`). The matchable\nboxes use it for their EQUALS method, so nested boxes compare by value.",
           "params": [],
           "examples": [],
@@ -4624,7 +4762,7 @@
         {
           "name": "fail",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:71",
+          "source": "packages/functional/src/lib/stream/task.ts:71",
           "description": "A task that fails with `error`.",
           "params": [],
           "examples": [],
@@ -4637,7 +4775,7 @@
         {
           "name": "filter",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:62",
+          "source": "packages/functional/src/lib/monad/maybe.ts:62",
           "description": "Keep the value only if `predicate` accepts it.",
           "params": [],
           "examples": [],
@@ -4650,7 +4788,7 @@
         {
           "name": "flatMap",
           "kind": "function",
-          "source": "packages/functional/src/functor.ts:145",
+          "source": "packages/functional/src/lib/functor/functor.ts:145",
           "description": "Chain a box through `f`: `f` takes the value inside the box and returns a box, and that box is\nthe result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or\ndata-last `flatMap(f)`, which returns a function of the box.",
           "params": [],
           "examples": [
@@ -4675,7 +4813,7 @@
         {
           "name": "flow",
           "kind": "function",
-          "source": "packages/functional/src/function.ts:29",
+          "source": "packages/functional/src/lib/function.ts:29",
           "description": "A function that applies `f1`, then `f2`, and so on: `flow(f, g)(x)` is `g(f(x))`.",
           "params": [],
           "examples": [],
@@ -4691,7 +4829,7 @@
         {
           "name": "fromComputation",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:55",
+          "source": "packages/functional/src/lib/stream/task.ts:55",
           "description": "A task doing `computation` when it is run. What it throws becomes a failure, an Error: hence\n`E | Error`.",
           "params": [],
           "examples": [],
@@ -4704,7 +4842,7 @@
         {
           "name": "fromEither",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:78",
+          "source": "packages/functional/src/lib/monad/maybe.ts:78",
           "description": "`Some(value)` for a Right, `None` for a Left (its content is dropped).",
           "params": [],
           "examples": [],
@@ -4717,7 +4855,7 @@
         {
           "name": "fromNullable",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:96",
+          "source": "packages/functional/src/lib/monad/maybe.ts:96",
           "description": "A Some of `value`, or a None when `value` is null or undefined.",
           "params": [],
           "examples": [],
@@ -4730,7 +4868,7 @@
         {
           "name": "fromOutcome",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:76",
+          "source": "packages/functional/src/lib/stream/task.ts:76",
           "description": "A task with the outcome of an Either: a Right succeeds, a Left fails.",
           "params": [],
           "examples": [],
@@ -4743,7 +4881,7 @@
         {
           "name": "fromPromise",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:84",
+          "source": "packages/functional/src/lib/stream/task.ts:84",
           "description": "A task running the promise `start` returns. `start` is called only when the task runs, and\nreceives an AbortSignal that is aborted on cancel. A rejection becomes a failure, an Error.",
           "params": [],
           "examples": [],
@@ -4756,7 +4894,7 @@
         {
           "name": "getOrElse",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:116",
+          "source": "packages/functional/src/lib/monad/maybe.ts:116",
           "description": "The value of a Some, or `fallback` for a None.",
           "params": [],
           "examples": [],
@@ -4769,7 +4907,7 @@
         {
           "name": "getOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:106",
+          "source": "packages/functional/src/lib/monad/maybe.ts:106",
           "description": "The value of a Some. A None throws `makeError()`: this is the one place a missing value is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [],
           "examples": [],
@@ -4782,7 +4920,7 @@
         {
           "name": "implementFlatMap",
           "kind": "function",
-          "source": "packages/functional/src/registry.ts:51",
+          "source": "packages/functional/src/lib/functor/registry.ts:51",
           "description": "Register how `flatMap` treats boxes of the case named `caseName`. Each case can be registered\nonce.",
           "params": [],
           "examples": [
@@ -4799,7 +4937,7 @@
         {
           "name": "implementMap",
           "kind": "function",
-          "source": "packages/functional/src/registry.ts:33",
+          "source": "packages/functional/src/lib/functor/registry.ts:33",
           "description": "Register how `map` treats boxes of the case named `caseName`. Each case can be registered once.",
           "params": [],
           "examples": [
@@ -4816,7 +4954,7 @@
         {
           "name": "isEqual",
           "kind": "function",
-          "source": "packages/functional/src/monad.ts:96",
+          "source": "packages/functional/src/lib/monad/monad.ts:96",
           "description": "Whether `a` and `b` are equal. A value with the EQUALS protocol decides for itself. Any other\nvalue is equal to another when they are the same value, with NaN equal to NaN and 0 to -0\n(SameValueZero, the rule `Set` and `Map` use). Objects are equal only to themselves.",
           "params": [],
           "examples": [],
@@ -4829,7 +4967,7 @@
         {
           "name": "isNone",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:91",
+          "source": "packages/functional/src/lib/monad/maybe.ts:91",
           "description": "Whether `self` is a None.",
           "params": [],
           "examples": [],
@@ -4842,7 +4980,7 @@
         {
           "name": "isSome",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:86",
+          "source": "packages/functional/src/lib/monad/maybe.ts:86",
           "description": "Whether `self` is a Some.",
           "params": [],
           "examples": [],
@@ -4855,7 +4993,7 @@
         {
           "name": "map",
           "kind": "function",
-          "source": "packages/functional/src/functor.ts:90",
+          "source": "packages/functional/src/lib/functor/functor.ts:90",
           "description": "Map the value of a box: `f` is applied to a value inside the box, and a box of the same case\nholds the result. A case with no value is returned unchanged. A value that implements the MAP\nprotocol maps itself; a matchable box without it uses its case's registered `map`. Data-first\n`map(box, f)`, or data-last `map(f)`, which returns a function of the box.",
           "params": [],
           "examples": [
@@ -4877,7 +5015,7 @@
         {
           "name": "mapErrors",
           "kind": "function",
-          "source": "packages/functional/src/stream.ts:254",
+          "source": "packages/functional/src/lib/stream/stream.ts:254",
           "description": "Transform the errors, of the items and of the end. Successes pass through.",
           "params": [],
           "examples": [],
@@ -4891,7 +5029,7 @@
         {
           "name": "mapLeft",
           "kind": "function",
-          "source": "packages/functional/src/either.ts:61",
+          "source": "packages/functional/src/lib/monad/either.ts:61",
           "description": "`mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`.",
           "params": [],
           "examples": [],
@@ -4905,7 +5043,7 @@
         {
           "name": "match",
           "kind": "function",
-          "source": "packages/functional/src/monad.ts:27",
+          "source": "packages/functional/src/lib/monad/monad.ts:27",
           "description": "Get out of an Either, handling each case by its constructor name.\nGet out of a Maybe, handling each case by its constructor name.",
           "params": [],
           "examples": [],
@@ -4919,7 +5057,7 @@
         {
           "name": "orElse",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:121",
+          "source": "packages/functional/src/lib/monad/maybe.ts:121",
           "description": "`self` if it is a Some, or else what `other` gives.",
           "params": [],
           "examples": [],
@@ -4932,7 +5070,7 @@
         {
           "name": "partial",
           "kind": "function",
-          "source": "packages/functional/src/function.ts:53",
+          "source": "packages/functional/src/lib/function.ts:53",
           "description": "The function with its first arguments fixed to `given`, taking the rest.",
           "params": [],
           "examples": [],
@@ -4945,7 +5083,7 @@
         {
           "name": "pipe",
           "kind": "function",
-          "source": "packages/functional/src/function.ts:5",
+          "source": "packages/functional/src/lib/function.ts:5",
           "description": "`value` passed through each function in turn, left to right.",
           "params": [],
           "examples": [],
@@ -4963,7 +5101,7 @@
         {
           "name": "run",
           "kind": "function",
-          "source": "packages/functional/src/stream.ts:236",
+          "source": "packages/functional/src/lib/stream/stream.ts:236",
           "description": "Subscribe with the values unwrapped: successful items to `next`, a successful end to `ok`, any\nfailure to `error`, which, when absent, is re-thrown where it happens.",
           "params": [],
           "examples": [],
@@ -4976,7 +5114,7 @@
         {
           "name": "sequence",
           "kind": "function",
-          "source": "packages/functional/src/functor.ts:229",
+          "source": "packages/functional/src/lib/functor/functor.ts:229",
           "description": "The values of a list of Eithers, in order: a Right of all of them, or the first Left. Every\nstep is run, so use it for steps that have no effects.",
           "params": [],
           "examples": [],
@@ -4989,7 +5127,7 @@
         {
           "name": "subscribe",
           "kind": "function",
-          "source": "packages/functional/src/stream.ts:224",
+          "source": "packages/functional/src/lib/stream/stream.ts:224",
           "description": "Start the stream (each call is a new run) and tell `observer` its items and its end. Returns how\nto cancel, after which nothing more is delivered.",
           "params": [],
           "examples": [],
@@ -5002,7 +5140,7 @@
         {
           "name": "succeed",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:66",
+          "source": "packages/functional/src/lib/stream/task.ts:66",
           "description": "A task that succeeds with `value`.",
           "params": [],
           "examples": [],
@@ -5015,7 +5153,7 @@
         {
           "name": "timeout",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:102",
+          "source": "packages/functional/src/lib/stream/task.ts:102",
           "description": "`task`, failing with a TimeoutError if it takes longer than `milliseconds` (and cancelled).",
           "params": [],
           "examples": [],
@@ -5028,7 +5166,7 @@
         {
           "name": "toEither",
           "kind": "function",
-          "source": "packages/functional/src/maybe.ts:70",
+          "source": "packages/functional/src/lib/monad/maybe.ts:70",
           "description": "`Right(value)` for a Some, `Left(error)` for a None.",
           "params": [],
           "examples": [],
@@ -5041,7 +5179,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/either.ts:94",
+          "source": "packages/functional/src/lib/monad/either.ts:94",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [],
           "examples": [],
@@ -5054,7 +5192,7 @@
         {
           "name": "toPromise",
           "kind": "function",
-          "source": "packages/functional/src/task.ts:126",
+          "source": "packages/functional/src/lib/stream/task.ts:126",
           "description": "Run the task as a Promise (which cannot be cancelled).",
           "params": [],
           "examples": [],
@@ -5067,7 +5205,7 @@
         {
           "name": "use",
           "kind": "function",
-          "source": "packages/functional/src/monad.ts:68",
+          "source": "packages/functional/src/lib/monad/monad.ts:68",
           "description": "Run the handler of the box's case, for its effect. An effect is\nthe edge of a program: pure code reads a box with `match` instead, and uses `use` only where\nsomething has to happen (a value sent to a subscriber, an error reported).",
           "params": [],
           "examples": [
@@ -5083,7 +5221,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/either.ts:102",
+          "source": "packages/functional/src/lib/monad/either.ts:102",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [],
           "examples": [],
@@ -5398,7 +5536,7 @@
         {
           "name": "FetchHttpBackend",
           "kind": "class",
-          "source": "packages/http/src/backend.ts:31",
+          "source": "packages/http/src/lib/backend/backend.ts:31",
           "description": "",
           "params": [],
           "examples": [],
@@ -5411,7 +5549,7 @@
             {
               "name": "handle",
               "kind": "method",
-              "source": "packages/http/src/backend.ts:37",
+              "source": "packages/http/src/lib/backend/backend.ts:37",
               "description": "Send `request` through the interceptors. Cancelling the task aborts the transport.",
               "params": [],
               "examples": [],
@@ -5426,7 +5564,7 @@
         {
           "name": "HTTP_BACKEND",
           "kind": "const",
-          "source": "packages/http/src/backend.ts:29",
+          "source": "packages/http/src/lib/backend/backend.ts:29",
           "description": "The token callers inject to send a request: the backend, FetchHttpBackend.",
           "params": [],
           "examples": [],
@@ -5437,7 +5575,7 @@
         {
           "name": "HTTP_INTERCEPTORS",
           "kind": "const",
-          "source": "packages/http/src/interceptors.ts:25",
+          "source": "packages/http/src/lib/backend/interceptors.ts:25",
           "description": "The interceptors, outermost first, in the order their providers give them.",
           "params": [],
           "examples": [],
@@ -5459,7 +5597,7 @@
         {
           "name": "HTTP_TRANSPORT",
           "kind": "const",
-          "source": "packages/http/src/backend.ts:14",
+          "source": "packages/http/src/lib/backend/backend.ts:14",
           "description": "The transport, a token so a test can replace it.",
           "params": [],
           "examples": [],
@@ -5470,7 +5608,7 @@
         {
           "name": "HttpError",
           "kind": "class",
-          "source": "packages/http/src/backend.ts:17",
+          "source": "packages/http/src/lib/backend/backend.ts:17",
           "description": "A response whose status is not 2xx: the request was sent, and the server refused it.",
           "params": [],
           "examples": [],
@@ -5484,7 +5622,7 @@
         {
           "name": "HttpInterceptor",
           "kind": "type",
-          "source": "packages/http/src/interceptors.ts:19",
+          "source": "packages/http/src/lib/backend/interceptors.ts:19",
           "description": "An interceptor. `next` sends the request on, and returns its outcome.",
           "params": [],
           "examples": [],
@@ -5495,7 +5633,7 @@
         {
           "name": "HttpMutationOptions",
           "kind": "interface",
-          "source": "packages/http/src/mutation.ts:12",
+          "source": "packages/http/src/lib/resource/mutation.ts:12",
           "description": "",
           "params": [],
           "examples": [],
@@ -5505,7 +5643,7 @@
             {
               "name": "headers",
               "kind": "property",
-              "source": "packages/http/src/mutation.ts:14",
+              "source": "packages/http/src/lib/resource/mutation.ts:14",
               "description": "Headers sent with every call of the mutation.",
               "params": [],
               "examples": [],
@@ -5518,7 +5656,7 @@
         {
           "name": "HttpOutcome",
           "kind": "type",
-          "source": "packages/http/src/interceptors.ts:16",
+          "source": "packages/http/src/lib/backend/interceptors.ts:16",
           "description": "What a request ends with: a response, or a failure.",
           "params": [],
           "examples": [],
@@ -5529,7 +5667,7 @@
         {
           "name": "HttpRequest",
           "kind": "interface",
-          "source": "packages/http/src/request.ts:13",
+          "source": "packages/http/src/lib/backend/request.ts:13",
           "description": "A request, as a backend receives it.",
           "params": [],
           "examples": [],
@@ -5539,7 +5677,7 @@
             {
               "name": "method",
               "kind": "property",
-              "source": "packages/http/src/request.ts:15",
+              "source": "packages/http/src/lib/backend/request.ts:15",
               "description": "The verb. Any token is sent as given: HTTP methods are case-sensitive and open.",
               "params": [],
               "examples": [],
@@ -5550,7 +5688,7 @@
             {
               "name": "url",
               "kind": "property",
-              "source": "packages/http/src/request.ts:16",
+              "source": "packages/http/src/lib/backend/request.ts:16",
               "description": "",
               "params": [],
               "examples": [],
@@ -5563,7 +5701,7 @@
         {
           "name": "HttpResourceOptions",
           "kind": "interface",
-          "source": "packages/http/src/resource.ts:10",
+          "source": "packages/http/src/lib/resource/resource.ts:10",
           "description": "",
           "params": [],
           "examples": [],
@@ -5573,7 +5711,7 @@
             {
               "name": "default",
               "kind": "property",
-              "source": "packages/http/src/resource.ts:12",
+              "source": "packages/http/src/lib/resource/resource.ts:12",
               "description": "The value before the first successful response.",
               "params": [],
               "examples": [],
@@ -5584,7 +5722,7 @@
             {
               "name": "lazy",
               "kind": "property",
-              "source": "packages/http/src/resource.ts:14",
+              "source": "packages/http/src/lib/resource/resource.ts:14",
               "description": "Whether the request waits for the first `reload()` instead of running at creation.",
               "params": [],
               "examples": [],
@@ -5597,7 +5735,7 @@
         {
           "name": "HttpResponse",
           "kind": "interface",
-          "source": "packages/http/src/request.ts:20",
+          "source": "packages/http/src/lib/backend/request.ts:20",
           "description": "A response: its status, its headers, and its body, parsed when it is JSON.",
           "params": [],
           "examples": [],
@@ -5607,7 +5745,7 @@
             {
               "name": "status",
               "kind": "property",
-              "source": "packages/http/src/request.ts:21",
+              "source": "packages/http/src/lib/backend/request.ts:21",
               "description": "",
               "params": [],
               "examples": [],
@@ -5618,7 +5756,7 @@
             {
               "name": "headers",
               "kind": "property",
-              "source": "packages/http/src/request.ts:22",
+              "source": "packages/http/src/lib/backend/request.ts:22",
               "description": "",
               "params": [],
               "examples": [],
@@ -5629,7 +5767,7 @@
             {
               "name": "body",
               "kind": "property",
-              "source": "packages/http/src/request.ts:23",
+              "source": "packages/http/src/lib/backend/request.ts:23",
               "description": "",
               "params": [],
               "examples": [],
@@ -5642,7 +5780,7 @@
         {
           "name": "HttpTransport",
           "kind": "type",
-          "source": "packages/http/src/backend.ts:11",
+          "source": "packages/http/src/lib/backend/backend.ts:11",
           "description": "The transport: what sends one request. Native fetch is the one instance.",
           "params": [],
           "examples": [],
@@ -5653,7 +5791,7 @@
         {
           "name": "HttpUrl",
           "kind": "type",
-          "source": "packages/http/src/mutation.ts:10",
+          "source": "packages/http/src/lib/resource/mutation.ts:10",
           "description": "The URL of a call: fixed, or built from the input of the call.",
           "params": [],
           "examples": [],
@@ -5664,7 +5802,7 @@
         {
           "name": "RequestOptions",
           "kind": "interface",
-          "source": "packages/http/src/request.ts:5",
+          "source": "packages/http/src/lib/backend/request.ts:5",
           "description": "The options of a request: the verb and URL are given separately.",
           "params": [],
           "examples": [],
@@ -5674,7 +5812,7 @@
             {
               "name": "headers",
               "kind": "property",
-              "source": "packages/http/src/request.ts:7",
+              "source": "packages/http/src/lib/backend/request.ts:7",
               "description": "The headers to send. A JSON body sets `content-type` unless one is given here.",
               "params": [],
               "examples": [],
@@ -5685,7 +5823,7 @@
             {
               "name": "body",
               "kind": "property",
-              "source": "packages/http/src/request.ts:9",
+              "source": "packages/http/src/lib/backend/request.ts:9",
               "description": "The body. Strings and Blobs are sent as they are; anything else as JSON.",
               "params": [],
               "examples": [],
@@ -5698,7 +5836,7 @@
         {
           "name": "httpDelete",
           "kind": "function",
-          "source": "packages/http/src/mutation.ts:42",
+          "source": "packages/http/src/lib/resource/mutation.ts:42",
           "description": "DELETE: no body; the input is only used to build the URL.",
           "params": [],
           "examples": [],
@@ -5711,7 +5849,7 @@
         {
           "name": "httpPatch",
           "kind": "function",
-          "source": "packages/http/src/mutation.ts:34",
+          "source": "packages/http/src/lib/resource/mutation.ts:34",
           "description": "PATCH: the input is the JSON body.",
           "params": [],
           "examples": [],
@@ -5724,7 +5862,7 @@
         {
           "name": "httpPost",
           "kind": "function",
-          "source": "packages/http/src/mutation.ts:18",
+          "source": "packages/http/src/lib/resource/mutation.ts:18",
           "description": "POST: the input is the JSON body.",
           "params": [],
           "examples": [],
@@ -5737,7 +5875,7 @@
         {
           "name": "httpPut",
           "kind": "function",
-          "source": "packages/http/src/mutation.ts:26",
+          "source": "packages/http/src/lib/resource/mutation.ts:26",
           "description": "PUT: the input is the JSON body.",
           "params": [],
           "examples": [],
@@ -5750,7 +5888,7 @@
         {
           "name": "httpResource",
           "kind": "function",
-          "source": "packages/http/src/resource.ts:22",
+          "source": "packages/http/src/lib/resource/resource.ts:22",
           "description": "A resource of the body of a request. Call it where the injector is available (a field of a\ncomponent, or a service), since it takes HTTP_BACKEND from there. When `request` returns\n`undefined`, nothing is sent: the value is kept and the state is \"idle\".",
           "params": [],
           "examples": [],
@@ -5769,7 +5907,7 @@
         {
           "name": "ActivatedRoute",
           "kind": "class",
-          "source": "packages/router/src/activated-route.ts:11",
+          "source": "packages/router/src/lib/state/activated-route.ts:11",
           "description": "",
           "params": [],
           "examples": [],
@@ -5782,7 +5920,7 @@
             {
               "name": "path",
               "kind": "property",
-              "source": "packages/router/src/activated-route.ts:13",
+              "source": "packages/router/src/lib/state/activated-route.ts:13",
               "description": "The path of this level: the segments of every level from the root down to it.",
               "params": [],
               "examples": [],
@@ -5795,7 +5933,7 @@
         {
           "name": "ChildActivatedRoute",
           "kind": "const",
-          "source": "packages/router/src/child-activated-route.ts:8",
+          "source": "packages/router/src/lib/state/child-activated-route.ts:8",
           "description": "",
           "params": [],
           "examples": [],
@@ -5806,7 +5944,7 @@
         {
           "name": "Location",
           "kind": "class",
-          "source": "packages/router/src/location.ts:13",
+          "source": "packages/router/src/lib/location/location.ts:13",
           "description": "",
           "params": [],
           "examples": [],
@@ -5819,7 +5957,7 @@
             {
               "name": "url",
               "kind": "property",
-              "source": "packages/router/src/location.ts:20",
+              "source": "packages/router/src/lib/location/location.ts:20",
               "description": "The path, query and hash of the current entry.",
               "params": [],
               "examples": [],
@@ -5830,7 +5968,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/location.ts:22",
+              "source": "packages/router/src/lib/location/location.ts:22",
               "description": "The state of the current entry, `null` when it was given none.",
               "params": [],
               "examples": [],
@@ -5841,7 +5979,7 @@
             {
               "name": "go",
               "kind": "method",
-              "source": "packages/router/src/location.ts:29",
+              "source": "packages/router/src/lib/location/location.ts:29",
               "description": "Go to `url` as a new entry, with `state`.",
               "params": [],
               "examples": [],
@@ -5854,7 +5992,7 @@
             {
               "name": "replace",
               "kind": "method",
-              "source": "packages/router/src/location.ts:35",
+              "source": "packages/router/src/lib/location/location.ts:35",
               "description": "Replace the current entry with `url`, with `state`.",
               "params": [],
               "examples": [],
@@ -5867,7 +6005,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/location.ts:41",
+              "source": "packages/router/src/lib/location/location.ts:41",
               "description": "Stop listening to the browser, when the injector is destroyed.",
               "params": [],
               "examples": [],
@@ -5882,7 +6020,7 @@
         {
           "name": "NavigateOptions",
           "kind": "interface",
-          "source": "packages/router/src/router.ts:13",
+          "source": "packages/router/src/lib/router/router.ts:13",
           "description": "The options of `navigate`.",
           "params": [],
           "examples": [],
@@ -5892,7 +6030,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/router.ts:15",
+              "source": "packages/router/src/lib/router/router.ts:15",
               "description": "The state of the new history entry, `null` when none is given.",
               "params": [],
               "examples": [],
@@ -5903,7 +6041,7 @@
             {
               "name": "relativeTo",
               "kind": "property",
-              "source": "packages/router/src/router.ts:17",
+              "source": "packages/router/src/lib/router/router.ts:17",
               "description": "The activated route that a relative URL is resolved against.",
               "params": [],
               "examples": [],
@@ -5916,7 +6054,7 @@
         {
           "name": "NoRouteError",
           "kind": "class",
-          "source": "packages/router/src/router.ts:24",
+          "source": "packages/router/src/lib/router/router.ts:24",
           "description": "A navigation to a URL that no route matches. The URL does not change.",
           "params": [],
           "examples": [],
@@ -5930,7 +6068,7 @@
         {
           "name": "PLATFORM_LOCATION",
           "kind": "const",
-          "source": "packages/router/src/platform-location.ts:20",
+          "source": "packages/router/src/lib/location/platform-location.ts:20",
           "description": "The platform location, a token so a test can replace the browser.",
           "params": [],
           "examples": [],
@@ -5941,7 +6079,7 @@
         {
           "name": "PlatformLocation",
           "kind": "interface",
-          "source": "packages/router/src/platform-location.ts:6",
+          "source": "packages/router/src/lib/location/platform-location.ts:6",
           "description": "",
           "params": [],
           "examples": [],
@@ -5951,7 +6089,7 @@
             {
               "name": "url",
               "kind": "method",
-              "source": "packages/router/src/platform-location.ts:8",
+              "source": "packages/router/src/lib/location/platform-location.ts:8",
               "description": "The current path, query and hash, e.g. `\"/todos/7?tab=done#top\"`.",
               "params": [],
               "examples": [],
@@ -5964,7 +6102,7 @@
             {
               "name": "state",
               "kind": "method",
-              "source": "packages/router/src/platform-location.ts:10",
+              "source": "packages/router/src/lib/location/platform-location.ts:10",
               "description": "The state of the current history entry.",
               "params": [],
               "examples": [],
@@ -5977,7 +6115,7 @@
             {
               "name": "push",
               "kind": "method",
-              "source": "packages/router/src/platform-location.ts:12",
+              "source": "packages/router/src/lib/location/platform-location.ts:12",
               "description": "Add a history entry for `url`, with `state`. Does not fire `popstate`.",
               "params": [],
               "examples": [],
@@ -5990,7 +6128,7 @@
             {
               "name": "replace",
               "kind": "method",
-              "source": "packages/router/src/platform-location.ts:14",
+              "source": "packages/router/src/lib/location/platform-location.ts:14",
               "description": "Replace the current history entry with `url` and `state`.",
               "params": [],
               "examples": [],
@@ -6003,7 +6141,7 @@
             {
               "name": "onPop",
               "kind": "method",
-              "source": "packages/router/src/platform-location.ts:16",
+              "source": "packages/router/src/lib/location/platform-location.ts:16",
               "description": "Call `listener` when the user goes back or forward. Returns the function that stops it.",
               "params": [],
               "examples": [],
@@ -6018,7 +6156,7 @@
         {
           "name": "Route",
           "kind": "interface",
-          "source": "packages/router/src/route.ts:7",
+          "source": "packages/router/src/lib/router/route.ts:7",
           "description": "",
           "params": [],
           "examples": [],
@@ -6028,7 +6166,7 @@
             {
               "name": "path",
               "kind": "property",
-              "source": "packages/router/src/route.ts:13",
+              "source": "packages/router/src/lib/router/route.ts:13",
               "description": "The path the route consumes, e.g. `\"/todos\"`. A segment that starts with `:` is a param, so\n`\"/todos/:id\"` matches `\"/todos/7\"` with `id` set to `\"7\"`. The path `\"**\"` matches any URL,\nfor a page shown when nothing else matches; declare it last among the children.",
               "params": [],
               "examples": [],
@@ -6039,7 +6177,7 @@
             {
               "name": "component",
               "kind": "property",
-              "source": "packages/router/src/route.ts:15",
+              "source": "packages/router/src/lib/router/route.ts:15",
               "description": "The component shown when the route matches.",
               "params": [],
               "examples": [],
@@ -6050,7 +6188,7 @@
             {
               "name": "data",
               "kind": "property",
-              "source": "packages/router/src/route.ts:17",
+              "source": "packages/router/src/lib/router/route.ts:17",
               "description": "Static data of the route, read from the `ActivatedRoute` of the component it shows.",
               "params": [],
               "examples": [],
@@ -6061,7 +6199,7 @@
             {
               "name": "children",
               "kind": "property",
-              "source": "packages/router/src/route.ts:22",
+              "source": "packages/router/src/lib/router/route.ts:22",
               "description": "The routes under this one, matched against the segments its path leaves over, in order; the\nfirst that matches wins. A route without children must match the whole URL.",
               "params": [],
               "examples": [],
@@ -6074,7 +6212,7 @@
         {
           "name": "RouteMatch",
           "kind": "interface",
-          "source": "packages/router/src/match.ts:21",
+          "source": "packages/router/src/lib/router/match.ts:21",
           "description": "The leaf route that matches the URL, with the params read along the whole path.",
           "params": [],
           "examples": [],
@@ -6084,7 +6222,7 @@
             {
               "name": "route",
               "kind": "property",
-              "source": "packages/router/src/match.ts:22",
+              "source": "packages/router/src/lib/router/match.ts:22",
               "description": "",
               "params": [],
               "examples": [],
@@ -6095,7 +6233,7 @@
             {
               "name": "params",
               "kind": "property",
-              "source": "packages/router/src/match.ts:23",
+              "source": "packages/router/src/lib/router/match.ts:23",
               "description": "",
               "params": [],
               "examples": [],
@@ -6108,7 +6246,7 @@
         {
           "name": "RouteParams",
           "kind": "type",
-          "source": "packages/router/src/match.ts:11",
+          "source": "packages/router/src/lib/router/match.ts:11",
           "description": "The params a path read, by name.",
           "params": [],
           "examples": [],
@@ -6119,7 +6257,7 @@
         {
           "name": "Router",
           "kind": "class",
-          "source": "packages/router/src/router.ts:31",
+          "source": "packages/router/src/lib/router/router.ts:31",
           "description": "",
           "params": [],
           "examples": [],
@@ -6132,7 +6270,7 @@
             {
               "name": "url",
               "kind": "property",
-              "source": "packages/router/src/router.ts:33",
+              "source": "packages/router/src/lib/router/router.ts:33",
               "description": "The current URL: path, query and hash.",
               "params": [],
               "examples": [],
@@ -6143,7 +6281,7 @@
             {
               "name": "match",
               "kind": "property",
-              "source": "packages/router/src/router.ts:35",
+              "source": "packages/router/src/lib/router/router.ts:35",
               "description": "The route that matches the current URL and its params, or undefined when none does.",
               "params": [],
               "examples": [],
@@ -6154,7 +6292,7 @@
             {
               "name": "activated",
               "kind": "property",
-              "source": "packages/router/src/router.ts:37",
+              "source": "packages/router/src/lib/router/router.ts:37",
               "description": "The activated routes for the current URL, root first. The first one never changes.",
               "params": [],
               "examples": [],
@@ -6165,7 +6303,7 @@
             {
               "name": "rootRoute",
               "kind": "property",
-              "source": "packages/router/src/router.ts:41",
+              "source": "packages/router/src/lib/router/router.ts:41",
               "description": "The activated route of the root: the first of the list, which never changes.",
               "params": [],
               "examples": [],
@@ -6176,7 +6314,7 @@
             {
               "name": "navigate",
               "kind": "method",
-              "source": "packages/router/src/router.ts:65",
+              "source": "packages/router/src/lib/router/router.ts:65",
               "description": "Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of\none: `[\"todos\", \"7\"]` is `\"todos/7\"`, and the query and hash then go in the last segment. A\nrelative URL is resolved against the path of `options.relativeTo` (the root when none is\ngiven); see `UrlBuilder.resolve`. The resolved URL is what must match: a URL no route\nmatches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch\nthose URLs.",
               "params": [],
               "examples": [],
@@ -6191,7 +6329,7 @@
         {
           "name": "RouterLink",
           "kind": "class",
-          "source": "packages/router/src/router-link.ts:11",
+          "source": "packages/router/src/lib/directives/router-link.ts:11",
           "description": "",
           "params": [],
           "examples": [],
@@ -6204,7 +6342,7 @@
             {
               "name": "routerlink",
               "kind": "property",
-              "source": "packages/router/src/router-link.ts:22",
+              "source": "packages/router/src/lib/directives/router-link.ts:22",
               "description": "The destination: a path, or the segments of one, e.g. `\"/todos\"` or `[\"todos\", \"7\"]`.",
               "params": [],
               "examples": [],
@@ -6215,7 +6353,7 @@
             {
               "name": "target",
               "kind": "property",
-              "source": "packages/router/src/router-link.ts:24",
+              "source": "packages/router/src/lib/directives/router-link.ts:24",
               "description": "The browser's target, set on the link. `_blank` opens it in a new tab: left to the browser.",
               "params": [],
               "examples": [],
@@ -6226,7 +6364,7 @@
             {
               "name": "queryParams",
               "kind": "property",
-              "source": "packages/router/src/router-link.ts:26",
+              "source": "packages/router/src/lib/directives/router-link.ts:26",
               "description": "Query params set on the destination; a param replaces the same key of its own query.",
               "params": [],
               "examples": [],
@@ -6237,7 +6375,7 @@
             {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/router-link.ts:28",
+              "source": "packages/router/src/lib/directives/router-link.ts:28",
               "description": "The fragment (hash) of the destination, without the `#`.",
               "params": [],
               "examples": [],
@@ -6248,7 +6386,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/router-link.ts:30",
+              "source": "packages/router/src/lib/directives/router-link.ts:30",
               "description": "The state of the history entry a click creates.",
               "params": [],
               "examples": [],
@@ -6261,7 +6399,7 @@
         {
           "name": "RouterOutlet",
           "kind": "class",
-          "source": "packages/router/src/router-outlet.ts:11",
+          "source": "packages/router/src/lib/directives/router-outlet.ts:11",
           "description": "",
           "params": [],
           "examples": [],
@@ -6275,7 +6413,7 @@
         {
           "name": "UrlBuilder",
           "kind": "class",
-          "source": "packages/router/src/url-builder.ts:5",
+          "source": "packages/router/src/lib/router/url-builder.ts:5",
           "description": "",
           "params": [],
           "examples": [],
@@ -6288,7 +6426,7 @@
             {
               "name": "segments",
               "kind": "property",
-              "source": "packages/router/src/url-builder.ts:31",
+              "source": "packages/router/src/lib/router/url-builder.ts:31",
               "description": "The non-empty segments of the path: `\"/todos/7\"` is `[\"todos\", \"7\"]`.",
               "params": [],
               "examples": [],
@@ -6299,7 +6437,7 @@
             {
               "name": "withQuery",
               "kind": "method",
-              "source": "packages/router/src/url-builder.ts:37",
+              "source": "packages/router/src/lib/router/url-builder.ts:37",
               "description": "The same URL with `params` set over its query: a param replaces the same key.",
               "params": [],
               "examples": [],
@@ -6312,7 +6450,7 @@
             {
               "name": "withFragment",
               "kind": "method",
-              "source": "packages/router/src/url-builder.ts:46",
+              "source": "packages/router/src/lib/router/url-builder.ts:46",
               "description": "The same URL with `fragment` as its hash. Undefined keeps the hash; \"\" removes it.",
               "params": [],
               "examples": [],
@@ -6325,7 +6463,7 @@
             {
               "name": "resolve",
               "kind": "method",
-              "source": "packages/router/src/url-builder.ts:55",
+              "source": "packages/router/src/lib/router/url-builder.ts:55",
               "description": "The same URL resolved against `base`, the path of the route it is relative to. A path that\nstarts with \"/\" is absolute; \".\" stays, \"..\" goes up one segment (never above the root), and\nany other segment goes down. The query and the hash are kept.",
               "params": [],
               "examples": [],
@@ -6338,7 +6476,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/router/src/url-builder.ts:63",
+              "source": "packages/router/src/lib/router/url-builder.ts:63",
               "description": "The URL as a string.",
               "params": [],
               "examples": [],
@@ -6351,7 +6489,7 @@
             {
               "name": "from",
               "kind": "method",
-              "source": "packages/router/src/url-builder.ts:17",
+              "source": "packages/router/src/lib/router/url-builder.ts:17",
               "description": "The builder of `url`: its path, its query and its hash, as they are. A path given as segments\nis joined first: `[\"todos\", \"7\"]` is `\"todos/7\"`.",
               "params": [],
               "examples": [],
@@ -6367,7 +6505,7 @@
         {
           "name": "browserPlatformLocation",
           "kind": "const",
-          "source": "packages/router/src/platform-location.ts:23",
+          "source": "packages/router/src/lib/location/platform-location.ts:23",
           "description": "The browser's own location and history.",
           "params": [],
           "examples": [],
@@ -6378,7 +6516,7 @@
         {
           "name": "provideRouter",
           "kind": "function",
-          "source": "packages/router/src/provide-router.ts:14",
+          "source": "packages/router/src/lib/router/provide-router.ts:14",
           "description": "The providers for a router over the tree under `root`, using the browser's location.",
           "params": [],
           "examples": [],
