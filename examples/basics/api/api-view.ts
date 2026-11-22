@@ -105,11 +105,13 @@ function textBlock(text: string): DocBlock {
   return { isCode: false, text: "", parts };
 }
 
-/** An id for an anchor link: lower case, with each run of other characters as one dash. */
+/**
+ * An id for an anchor link: each run of characters other than letters, digits and "_" is one dash.
+ * The case is kept, so `MAP` and `map` stay two ids.
+ */
 export function anchorId(...segments: readonly string[]): string {
   return segments.join("-")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^A-Za-z0-9_]+/g, "-")
     .replace(/^-|-$/g, "");
 }
 

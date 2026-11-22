@@ -34,7 +34,7 @@ describe("the API page, rendered from the generated reference", () => {
   test("marks a final class and lists its members", () => {
     const ref = TestBed.component(ApiDocs)
       .build();
-    const injector = ref.root.query("#tinker-core-compiler-injector, #tinker-core-injector");
+    const injector = ref.root.query("#tinker-core-Injector");
     expect(injector.text())
       .toContain("final");
     ref.destroy();
