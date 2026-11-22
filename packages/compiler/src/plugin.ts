@@ -21,7 +21,14 @@ import type { Class } from "@tinker/core";
 import { compileSource, emitCompiled, type ImportedSelector, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import type { Plugin } from "vite";
-import { type Declaration, readSource, type SourceInfo, type TemplateSource } from "./declarations.ts";
+import {
+  type Declaration,
+  identifiersIn,
+  readSource,
+  type SourceInfo,
+  type TemplateSource,
+  textOf,
+} from "./declarations.ts";
 
 /** What the check needs from its caller: resolving an import, and reporting. */
 export interface CheckHost {
@@ -174,14 +181,39 @@ async function templateOf(
   return text === undefined ? undefined : { text, start: ref.start, end: ref.end };
 }
 
-/** The text of the constant `name`, which the file imports from another file (one level deep). */
+/**
+ * The text of the constant `name` as the file sees it: its literal, its initializer
+ * evaluated with the constants it uses, or the constant it imports from another file.
+ * A name that depends on itself has no text.
+ */
 async function constantValue(
   name: string,
   source: SourceInfo,
   filename: string,
   host: CheckHost,
+  seen: ReadonlySet<string> = new Set(),
 ): Promise<string | undefined> {
-  // A name is a reference only when the file does not declare it as a constant.
+  const key = `${filename}\0${name}`;
+  if (seen.has(key)) {
+    return undefined;
+  }
+  const inner = new Set(seen)
+    .add(key);
+  const literal = source.constants.get(name);
+  if (literal !== undefined) {
+    return literal;
+  }
+  const expression = source.expressions.get(name);
+  if (expression !== undefined) {
+    const texts = new Map<string, string>();
+    for (const dependency of identifiersIn(expression)) {
+      const text = await constantValue(dependency, source, filename, host, inner);
+      if (text !== undefined) {
+        texts.set(dependency, text);
+      }
+    }
+    return textOf(expression, (dependency) => texts.get(dependency));
+  }
   const binding = source.imports.find((imported) => imported.local === name);
   if (binding === undefined) {
     return undefined;
@@ -190,7 +222,7 @@ async function constantValue(
   if (file === null) {
     return undefined;
   }
-  return readSource(readFileSync(file, "utf8"), file).constants.get(binding.imported);
+  return constantValue(binding.imported, readSource(readFileSync(file, "utf8"), file), file, host, inner);
 }
 
 /** A component that cannot be checked: an error in strict mode, a warning otherwise. */
