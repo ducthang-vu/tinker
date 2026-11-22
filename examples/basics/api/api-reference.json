@@ -3738,7 +3738,7 @@
         {
           "name": "CHAIN",
           "kind": "const",
-          "source": "packages/functional/src/lib/functor/functor.ts:56",
+          "source": "packages/functional/src/lib/functor/functor.ts:58",
           "description": "The chain protocol: a value that chains itself. Any value may implement it, matchable or not.",
           "params": [],
           "examples": [],
@@ -3794,7 +3794,7 @@
         {
           "name": "Chain",
           "kind": "interface",
-          "source": "packages/functional/src/lib/functor/functor.ts:59",
+          "source": "packages/functional/src/lib/functor/functor.ts:61",
           "description": "A chain: a value with a `flatMap` of its own, under the CHAIN symbol.",
           "params": [],
           "examples": [],
@@ -3804,7 +3804,7 @@
             {
               "name": "__@CHAIN@934",
               "kind": "method",
-              "source": "packages/functional/src/lib/functor/functor.ts:60",
+              "source": "packages/functional/src/lib/functor/functor.ts:62",
               "description": "",
               "params": [],
               "examples": [],
@@ -3886,7 +3886,7 @@
         {
           "name": "EitherFlatMapFn",
           "kind": "type",
-          "source": "packages/functional/src/lib/functor/functor.ts:64",
+          "source": "packages/functional/src/lib/functor/functor.ts:66",
           "description": "A data-last `flatMap` returning an Either.",
           "params": [],
           "examples": [],
@@ -4228,7 +4228,7 @@
         {
           "name": "MaybeFlatMapFn",
           "kind": "type",
-          "source": "packages/functional/src/lib/functor/functor.ts:67",
+          "source": "packages/functional/src/lib/functor/functor.ts:69",
           "description": "A data-last `flatMap` returning a Maybe.",
           "params": [],
           "examples": [],
@@ -4788,7 +4788,7 @@
         {
           "name": "flatMap",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:145",
+          "source": "packages/functional/src/lib/functor/functor.ts:147",
           "description": "Chain a box through `f`: `f` takes the value inside the box and returns a box, and that box is\nthe result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or\ndata-last `flatMap(f)`, which returns a function of the box.",
           "params": [],
           "examples": [
@@ -4993,7 +4993,7 @@
         {
           "name": "map",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:90",
+          "source": "packages/functional/src/lib/functor/functor.ts:92",
           "description": "Map the value of a box: `f` is applied to a value inside the box, and a box of the same case\nholds the result. A case with no value is returned unchanged. A value that implements the MAP\nprotocol maps itself; a matchable box without it uses its case's registered `map`. Data-first\n`map(box, f)`, or data-last `map(f)`, which returns a function of the box.",
           "params": [],
           "examples": [
@@ -5114,7 +5114,7 @@
         {
           "name": "sequence",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:229",
+          "source": "packages/functional/src/lib/functor/functor.ts:231",
           "description": "The values of a list of Eithers, in order: a Right of all of them, or the first Left. Every\nstep is run, so use it for steps that have no effects.",
           "params": [],
           "examples": [],
