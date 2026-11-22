@@ -28,7 +28,7 @@ import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
 import type { ComponentView } from "../runtime/component-view.ts";
 import type { View } from "../runtime/view.ts";
-import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe } from "@tinker/functional/v1";
+import { match, mapLeft, map, flatMap, Left, Right, type Either, pipe, valueOrThrow } from "@tinker/functional/v1";
 
 /** One parsed `"(event)": "method(...)"` entry. */
 export interface HostListener {
@@ -83,8 +83,8 @@ export class HostBindings {
       return Left.of(new AggregateError(errors, errors.map((error) => error.message)
         .join("\n")));
     }
-    const entries = parsed.flatMap((result) =>
-      match(result, { Left: () => [], Right: (entry) => [entry] }));
+    // No entry failed (that case returned above), so every result is a Right.
+    const entries = parsed.map((result) => valueOrThrow(result));
     return Right.of(new HostBindings(entries));
   }
 

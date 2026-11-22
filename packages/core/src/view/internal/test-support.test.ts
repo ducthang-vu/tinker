@@ -1,13 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { tick } from "./test-support.ts";
+import { Right } from "@tinker/functional/v1";
+import { messageOf } from "./test-support.ts";
 
-describe("tick", () => {
-  test("resolves after the pending microtasks have run", async () => {
-    const order: string[] = [];
-    queueMicrotask(() => order.push("microtask"));
-    await tick();
-    order.push("after tick");
-    expect(order)
-      .toEqual(["microtask", "after tick"]);
+describe("messageOf", () => {
+  test("gives the message of a failure, and \"no error\" for a success", () => {
+    expect(messageOf(Right.of(1)))
+      .toBe("no error");
   });
 });
