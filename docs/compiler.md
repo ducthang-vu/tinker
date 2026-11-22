@@ -47,6 +47,33 @@ directive's selector can be read:
 Anything else (a value computed at run time, a `let`, a number) is skipped. Strict mode
 fails the build for it instead.
 
+## A component's CSS file (`styleUrl`)
+
+A component can name its stylesheet instead of writing `styles` inline:
+
+```ts
+@Component({
+  selector: "tk-notice",
+  template: `<aside class="notice">…</aside>`,
+  styleUrl: "./notice.css",
+})
+export class Notice {}
+```
+
+The path is relative to the source file. The plugin reads the file and puts its text in
+`styles`, so the component's CSS is scoped exactly as inline `styles` are. This happens
+with or without `emit`, because a component needs its CSS at run time. The plugin also
+watches the file: an edit rebuilds the component that reads it.
+
+- **Keep the CSS file in the component's folder**: `notice/notice.ts` and
+  `notice/notice.css`, one folder per component. See `examples/basics/notice`.
+- A missing file fails the build and names the file.
+- `styles` and `styleUrl` together fail the build: give one of them.
+- A `styleUrl` that is not a string literal is skipped with a warning, as a template is
+  (an error in strict mode).
+- Without the plugin, `@Component` throws, since nothing would read the file.
+- `tinker-compile` inlines the file too, so a built library needs no CSS file.
+
 ## The commands
 
 Both read a library's files from disk, without Vite. They follow three kinds of

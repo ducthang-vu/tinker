@@ -1,0 +1,20 @@
+/* The component's own styles: scoped to its template, as with `styles`. */
+:host {
+  display: block;
+}
+
+.notice {
+  background: rgb(230, 240, 255);
+  border-left: 4px solid rgb(0, 102, 204);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.notice h3 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.notice p {
+  margin: 0;
+}

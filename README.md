@@ -112,6 +112,13 @@ module; each module also lists its own in its `index.ts`.
   `"[attr.role]": "role()"`, or `"[attr.href]": "url()"`, whose URL is checked
   as in templates). A template binding on an element wins over a host binding
   of the same class, style or attribute.
+- **Styles** are scoped to their component: its selectors match only its own template
+  (and its host, with `:host`), so `p { color: red }` in one component does not reach
+  another. Write them inline (`styles`), or in a CSS file next to the component
+  (`styleUrl: "./notice.css"`, read at build time: see [the compiler](docs/compiler.md)).
+  A parent can reach into a child's elements with `:deep(...)`, as in
+  `.card :deep(.title) { }`. Use it sparingly: the child can rename its classes, and
+  the rule then stops matching without an error.
 - **Directives** on an element share an element injector, so they can inject
   each other and their ancestors. A directive can also inject its element's
   `ViewContainerRef`: the components it adds sit after the element, are created
