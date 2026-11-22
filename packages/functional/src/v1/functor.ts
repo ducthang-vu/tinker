@@ -27,6 +27,7 @@ export interface Functor<T> {
 /** A data-last `map`: applied to a box, it maps the box. */
 export interface MapFn<T, U> {
   <E>(self: Either<T, E>): Either<U, E>;
+  (self: readonly T[]): U[];
   <X, E>(self: Stream<X, T, E>): Stream<X, U, E | Error>;
   (self: Maybe<T>): Maybe<U>;
   (self: Functor<T>): Functor<U>;
@@ -75,6 +76,7 @@ export function map<T, X, E, U>(
 ): Stream<X, U, E | Error>;
 export function map<T, U>(self: Maybe<T>, f: (value: T) => U): Maybe<U>;
 export function map<T, U>(f: (value: T) => U): MapFn<T, U>;
+export function map<T, U>(self: readonly T[], f: (value: T) => U): U[];
 export function map<T, U>(self: Functor<T>, f: (value: T) => U): Functor<U>;
 export function map<T, U>(self: Matchable, f: (value: T) => U): Matchable;
 export function map(...args: readonly unknown[]): unknown {
@@ -83,6 +85,9 @@ export function map(...args: readonly unknown[]): unknown {
     return (self: Matchable) => map(self, f);
   }
   const [self, f] = args as [unknown, (value: unknown) => unknown];
+  if (Array.isArray(self)) {
+    return self.map(f);
+  }
   if (hasMethod(self, MAP)) {
     return (self as Functor<unknown>)[MAP](f);
   }
@@ -132,10 +137,12 @@ export function flatMap<T, X, E, Y, R2, F>(
   self: Stream<X, T, E>,
   f: (result: T) => Stream<Y, R2, F>,
 ): Stream<X | Y, R2, E | F | Error>;
+export function flatMap<T, U>(self: readonly T[], f: (value: T) => readonly U[]): U[];
 export function flatMap<T, U>(self: Chain<T>, f: (value: T) => Chain<U>): Chain<U>;
 export function flatMap<T, Y, R2, F>(
   f: (result: T) => Stream<Y, R2, F>,
 ): <X, E>(self: Stream<X, T, E>) => Stream<X | Y, R2, E | F | Error>;
+export function flatMap<T, U>(f: (value: T) => readonly U[]): (self: readonly T[]) => U[];
 export function flatMap<T, U>(f: (value: T) => Chain<U>): (self: Chain<T>) => Chain<U>;
 export function flatMap<T, U>(
   self: Matchable,
@@ -147,6 +154,9 @@ export function flatMap(...args: readonly unknown[]): unknown {
     return (self: Matchable) => flatMap(self, f);
   }
   const [self, f] = args as [unknown, (value: unknown) => unknown];
+  if (Array.isArray(self)) {
+    return self.flatMap(f as (value: unknown) => readonly unknown[]);
+  }
   if (hasMethod(self, CHAIN)) {
     return (self as Chain<unknown>)[CHAIN](f as (value: unknown) => Chain<unknown>);
   }
