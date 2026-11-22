@@ -12,8 +12,9 @@
 // `{{ }}` is skipped when looking for braces, since interpolations contain them.
 
 import type { Span, TemplateNode, TextNode } from "./ast.ts";
-import { compileError, locatedAt } from "./compile-error.ts";
+import { compileError, located, type Parsed } from "./compile-error.ts";
 import { blankRegexes, QuoteTracker } from "./pattern.ts";
+import { flatMap, Left, map, match, mapLeft, Right } from "@tinker/functional/v1";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
@@ -40,10 +41,16 @@ type Token
 const BLOCK_START = /@(else\s+if|if|else|match|case|default|map)(?![\w$])/y;
 
 /** The items of a list of nodes: blocks nested by braces, `@else`s attached to their `@if`. */
-export function itemsOf(nodes: readonly TemplateNode[]): readonly Item[] {
-  const tokens = nodes.flatMap(tokenize);
-  const state: ReadState = { position: 0, closed: undefined };
-  return attachElses(read(tokens, state, undefined));
+export function itemsOf(nodes: readonly TemplateNode[]): Parsed<readonly Item[]> {
+  return flatMap(tokensOf(nodes), (tokens) =>
+    map(read(tokens, { position: 0, closed: undefined }, undefined), (items) =>
+      attachElses(items)));
+}
+
+/** The tokens of every node, in order: the first failure stops the rest. */
+function tokensOf(nodes: readonly TemplateNode[]): Parsed<Token[]> {
+  return nodes.reduce<Parsed<Token[]>>((all, node) => flatMap(all, (tokens: Token[]) =>
+    map(tokenize(node), (next: Token[]) => [...tokens, ...next])), Right.of<Token[], Error>([]));
 }
 
 /** Where the reading of the tokens is: the next token, and the span of the last closing brace. */
@@ -52,9 +59,9 @@ interface ReadState {
   closed: Span | undefined;
 }
 
-function tokenize(node: TemplateNode): Token[] {
+function tokenize(node: TemplateNode): Parsed<Token[]> {
   if (node.kind === "element") {
-    return [{ kind: "node", node }];
+    return Right.of([{ kind: "node", node }]);
   }
   const tokens: Token[] = [];
   // The text being collected, and the offset (in the text node's value) where it starts.
@@ -89,19 +96,25 @@ function tokenize(node: TemplateNode): Token[] {
       flush(i);
       const keyword = start[1]!.replace(/\s+/, "") as BlockKeyword;
       const keywordSpan = spanWithin(node, i, i + start[0].length);
-      const brace = locatedAt(keywordSpan, () =>
-        bodyBrace(node.value, BLOCK_START.lastIndex, keyword));
-      if (brace === -1) {
-        throw compileError(`Missing "{" after "${start[0]}"`, keywordSpan);
+      const brace = match<number, Error, { error: Error } | { at: number }>(
+        mapLeft(bodyBrace(node.value, BLOCK_START.lastIndex, keyword), (error) =>
+          located(error, keywordSpan)),
+        { Left: (error) => ({ error }), Right: (at) => ({ at }) },
+      );
+      if ("error" in brace) {
+        return Left.of(brace.error);
+      }
+      if (brace.at === -1) {
+        return Left.of(compileError(`Missing "{" after "${start[0]}"`, keywordSpan));
       }
       tokens.push({
         kind: "open",
         keyword,
-        header: node.value.slice(BLOCK_START.lastIndex, brace)
+        header: node.value.slice(BLOCK_START.lastIndex, brace.at)
           .trim(),
-        span: spanWithin(node, i, brace + 1),
+        span: spanWithin(node, i, brace.at + 1),
       });
-      i = brace + 1;
+      i = brace.at + 1;
       continue;
     }
     if (node.value[i] === "}") {
@@ -113,7 +126,7 @@ function tokenize(node: TemplateNode): Token[] {
     i++;
   }
   flush(node.value.length);
-  return tokens;
+  return Right.of(tokens);
 }
 
 /** The span of `from` to `to` in a text node's value, given the node's own span (if it has one). */
@@ -128,14 +141,14 @@ function spanWithin(node: TextNode, from: number, to: number): Span | undefined 
  * The `{` that opens a block's body. A `@case` may start with an object pattern,
  * which has braces of its own: the body is the first `{` after that pattern.
  */
-function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
+function bodyBrace(value: string, from: number, keyword: BlockKeyword): Parsed<number> {
   if (keyword === "map") {
     return mapBodyBrace(value, from);
   }
   if (keyword === "case") {
     return caseBodyBrace(value, from);
   }
-  return value.indexOf("{", from);
+  return Right.of(value.indexOf("{", from));
 }
 
 /**
@@ -143,7 +156,7 @@ function bodyBrace(value: string, from: number, keyword: BlockKeyword): number {
  * brace comes first in the header, or after `|` (an alternative) or `not`; a
  * body brace comes after the pattern's last part.
  */
-function caseBodyBrace(value: string, from: number): number {
+function caseBodyBrace(value: string, from: number): Parsed<number> {
   // The scan reads the header with its regex literals blanked, so a brace or bar
   // inside one is not structure.
   const text = blankRegexes(value.slice(from));
@@ -152,20 +165,28 @@ function caseBodyBrace(value: string, from: number): number {
     const open = text.slice(search)
       .search(/[{[(]/);
     if (open === -1) {
-      return -1;
+      return Right.of(-1);
     }
     const at = search + open;
     if (text[at] === "(") {
       // A parenthesized pattern (`some({ id })`, a tuple) can hold braces: skip it whole.
-      search = matchingBrace(text, at) + 1;
+      const close = matchingBrace(text, at);
+      if (close === undefined) {
+        return Left.of(unclosed(text[at]!));
+      }
+      search = close + 1;
       continue;
     }
     const before = text.slice(0, at)
       .trimEnd();
     if (before === "" || /(\||\bnot)$/.test(before)) {
-      search = matchingBrace(text, at) + 1;
+      const close = matchingBrace(text, at);
+      if (close === undefined) {
+        return Left.of(unclosed(text[at]!));
+      }
+      search = close + 1;
     } else if (text[at] === "{") {
-      return from + at;
+      return Right.of(from + at);
     } else {
       search = at + 1;
     }
@@ -177,32 +198,43 @@ function caseBodyBrace(value: string, from: number): number {
  * a `{` or `[` right after `let` or `track` (`let { id }`, `track { id }`), and
  * it is skipped with its contents.
  */
-function mapBodyBrace(value: string, from: number): number {
+function mapBodyBrace(value: string, from: number): Parsed<number> {
   let search = from;
   for (;;) {
     const open = value.slice(search)
       .search(/[{[]/);
     if (open === -1) {
-      return -1;
+      return Right.of(-1);
     }
     const at = search + open;
     if (/(?:^|;)\s*(?:let|track)\s*$/.test(value.slice(from, at))) {
-      search = matchingBrace(value, at) + 1;
+      const close = matchingBrace(value, at);
+      if (close === undefined) {
+        return Left.of(unclosed(value[at]!));
+      }
+      search = close + 1;
     } else if (value[at] === "{") {
-      return at;
+      return Right.of(at);
     } else {
       search = at + 1;
     }
   }
 }
 
+const CLOSERS: Record<string, string> = { "[": "]", "(": ")", "{": "}" };
+
+/** The error of a pattern whose bracket `opener` is never closed. */
+function unclosed(opener: string): Error {
+  return new Error(`Missing "${CLOSERS[opener]}" in the pattern`);
+}
+
 /**
  * The index of the bracket that closes the `{` or `[` at `open`, skipping quoted
  * text. Only brackets of the same kind are counted.
  */
-function matchingBrace(value: string, open: number): number {
+function matchingBrace(value: string, open: number): number | undefined {
   const opener = value[open]!;
-  const closer = { "[": "]", "(": ")", "{": "}" }[opener]!;
+  const closer = CLOSERS[opener]!;
   let depth = 0;
   const quotes = new QuoteTracker();
   for (let i = open; i < value.length; i++) {
@@ -218,7 +250,7 @@ function matchingBrace(value: string, open: number): number {
       }
     }
   }
-  throw new Error(`Missing "${closer}" in the pattern`);
+  return undefined;
 }
 
 /**
@@ -229,33 +261,42 @@ function read(
   tokens: readonly Token[],
   state: ReadState,
   open: { readonly span: Span | undefined } | undefined,
-): Item[] {
+): Parsed<Item[]> {
   const items: Item[] = [];
   while (state.position < tokens.length) {
     const token = tokens[state.position++]!;
     if (token.kind === "node") {
       items.push(token.node);
     } else if (token.kind === "open") {
-      const body = attachElses(read(tokens, state, token));
+      const body = match<Item[], Error, { error: Error } | { inner: Item[] }>(
+        read(tokens, state, token),
+        {
+          Left: (error) => ({ error }),
+          Right: (inner) => ({ inner }),
+        },
+      );
+      if ("error" in body) {
+        return Left.of(body.error);
+      }
       items.push({
         kind: "block",
         keyword: token.keyword,
         header: token.header,
-        body,
+        body: attachElses(body.inner),
         span: blockSpan(token.span, state.closed),
       });
     } else {
       if (open === undefined) {
-        throw compileError(`Unexpected "}" with no block to close`, token.span);
+        return Left.of(compileError(`Unexpected "}" with no block to close`, token.span));
       }
       state.closed = token.span;
-      return items;
+      return Right.of(items);
     }
   }
   if (open !== undefined) {
-    throw compileError(`Missing "}" to close a block`, open.span);
+    return Left.of(compileError(`Missing "}" to close a block`, open.span));
   }
-  return items;
+  return Right.of(items);
 }
 
 /** From a block's keyword to its closing brace, when both are known. */

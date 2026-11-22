@@ -6,7 +6,10 @@ import { Injector, inject } from "../../../di/index.ts";
 import { computed, signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
-import { compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
+import { compileTemplate as compileTemplateEither, type DirectiveCandidate } from "../template/compile.ts";
+
+const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
+  valueOrThrow(compileTemplateEither(...args));
 import { Scope } from "../template/scope.ts";
 import { Selector } from "../template/selector.ts";
 import { ComponentFactory } from "./component-factory.ts";

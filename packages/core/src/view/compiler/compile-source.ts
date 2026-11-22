@@ -10,7 +10,7 @@ import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { combineSyntaxErrors, TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
-import { match, mapLeft, Right, type Either, toError, Left, attempt, valueOrThrow } from "@tinker/functional/v1";
+import { flatMap, Left, map, Right, type Either } from "@tinker/functional/v1";
 
 /** A directive or component a template may use, known by its selector. */
 export interface ImportedSelector {
@@ -34,20 +34,26 @@ export function compileSource(
   source: string,
   imports: readonly ImportedSelector[] = [],
 ): Either<readonly CompiledNode[], Error> {
-  return mapLeft(attempt(() => {
-    const { nodes, errors } = new TinkerTemplateParser()
-      .parseAll(source);
-    if (errors.length > 0) {
-      throw combineSyntaxErrors(errors);
-    }
-    return compileTemplate(nodes, imports.map(candidateOf));
-  }, (error): error is unknown => true), toError);
+  const { nodes, errors } = new TinkerTemplateParser()
+    .parseAll(source);
+  if (errors.length > 0) {
+    return Left.of(combineSyntaxErrors(errors));
+  }
+  return flatMap(candidatesOf(imports), (candidates) => compileTemplate(nodes, candidates));
 }
 
-function candidateOf(imported: ImportedSelector): DirectiveCandidate {
-  return {
+/** The candidates of the imports: the first invalid selector is the error. */
+function candidatesOf(imports: readonly ImportedSelector[]): Either<DirectiveCandidate[], Error> {
+  return imports.reduce<Either<DirectiveCandidate[], Error>>((all, imported) =>
+    flatMap(all, (candidates: DirectiveCandidate[]) =>
+      map(candidateOf(imported), (candidate) => [...candidates, candidate])),
+  Right.of<DirectiveCandidate[], Error>([]));
+}
+
+function candidateOf(imported: ImportedSelector): Either<DirectiveCandidate, Error> {
+  return map(Selector.parse(imported.selector), (selector): DirectiveCandidate => ({
     type: imported.type ?? Unbound,
-    selector: valueOrThrow(Selector.parse(imported.selector)),
+    selector,
     isComponent: imported.isComponent,
-  };
+  }));
 }

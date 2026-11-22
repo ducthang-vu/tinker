@@ -6,7 +6,11 @@ import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, provide, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
-import { compileTemplate } from "../template/compile.ts";
+import { compileTemplate as compileTemplateEither } from "../template/compile.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
+
+const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
+  valueOrThrow(compileTemplateEither(...args));
 import { BindingFactory } from "../runtime/text-binding.ts";
 import { RENDERER } from "../tokens.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";

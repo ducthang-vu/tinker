@@ -1,6 +1,11 @@
+import { parseNodes } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import type { TemplateNode } from "./ast.ts";
-import { type CompiledElement, compileTemplate } from "./compile.ts";
+import { type CompiledElement, compileTemplate as compileTemplateEither } from "./compile.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
+
+const compileTemplate = (...args: Parameters<typeof compileTemplateEither>) =>
+  valueOrThrow(compileTemplateEither(...args));
 import { TemplateCompileError } from "./compile-error.ts";
 import { Selector } from "./selector.ts";
 import { Maybe } from "@tinker/functional";
@@ -475,5 +480,13 @@ describe("a compile error in a tree built by hand", () => {
       .not.toBeInstanceOf(TemplateCompileError);
     expect(error.message)
       .toContain("Missing a name at the end");
+  });
+});
+
+describe("compileTemplate returns its error", () => {
+  test("an invalid {{ }} is a Left, not a throw", () => {
+    const result = compileTemplateEither(parseNodes("<p>{{ a(1 2) }}</p>"));
+    expect(match(result, { Left: (error) => error.message, Right: () => "compiled" }))
+      .toContain("Expected \",\" or \")\", found \"2\"");
   });
 });
