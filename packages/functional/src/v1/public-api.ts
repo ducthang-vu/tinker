@@ -29,4 +29,18 @@ export type {
   StreamObserver,
   StreamSink,
 } from "./stream.ts";
-export { pipe, flow } from "./function.ts";
+export { pipe, flow, partial } from "./function.ts";
+export {
+  type Task,
+  type TaskComputation,
+  type TaskHandlers,
+  TimeoutError,
+  delay,
+  fail,
+  fromComputation,
+  fromOutcome,
+  fromPromise,
+  succeed,
+  timeout,
+  toPromise,
+} from "./task.ts";
