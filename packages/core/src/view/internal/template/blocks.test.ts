@@ -287,7 +287,7 @@ describe("the body of a case with a parenthesized pattern", () => {
 
 describe("the spans of text split around a block", () => {
   test("each piece records the part of the source it covers", () => {
-    const [first, block, last] = itemsOf(parseNodes("ab @if (x) { c } d"));
+    const [first, block, last] = valueOrThrow(itemsOf(parseNodes("ab @if (x) { c } d")));
     expect(first)
       .toMatchObject({ kind: "text", value: "ab ", span: { start: 0, end: 3 } });
     expect(block)
@@ -297,7 +297,7 @@ describe("the spans of text split around a block", () => {
   });
 
   test("a text node built by hand has no spans", () => {
-    const [text] = itemsOf([{ kind: "text", value: "a @if (x) { b }" }]);
+    const [text] = valueOrThrow(itemsOf([{ kind: "text", value: "a @if (x) { b }" }]));
     expect(text)
       .toMatchObject({ kind: "text", value: "a " });
     expect((text as { span?: unknown }).span)
@@ -308,7 +308,7 @@ describe("the spans of text split around a block", () => {
 describe("the place of a block error", () => {
   const blockError = (source: string): TemplateCompileError => {
     try {
-      itemsOf(parseNodes(source));
+      valueOrThrow(itemsOf(parseNodes(source)));
     } catch (error) {
       return error as TemplateCompileError;
     }
@@ -352,7 +352,7 @@ describe("the place of a block error", () => {
   test("a block in a tree built by hand has no place, so its error is a plain error", () => {
     let thrown: unknown;
     try {
-      itemsOf([{ kind: "text", value: "a @if (x) { c" }]);
+      valueOrThrow(itemsOf([{ kind: "text", value: "a @if (x) { c" }]));
     } catch (error) {
       thrown = error;
     }
@@ -363,7 +363,7 @@ describe("the place of a block error", () => {
   });
 
   test("a block's span runs from its keyword to its closing brace", () => {
-    const [, block] = itemsOf(parseNodes("ab @if (x) { c } d"));
+    const [, block] = valueOrThrow(itemsOf(parseNodes("ab @if (x) { c } d")));
     expect(block)
       .toMatchObject({ kind: "block", span: { start: 3, end: 16 } });
   });
@@ -401,5 +401,12 @@ describe("the body of a case with an escaped quote in a pattern", () => {
       .toHaveLength(1);
     expect(match.cases[0]!.body[0]!.kind)
       .toBe("text");
+  });
+});
+
+describe("an unclosed bracket in a case pattern", () => {
+  test("is reported with the bracket it needs", () => {
+    expect(() => compile("@match v { @case (1, 2 { x } }"))
+      .toThrow("Missing \")\" in the pattern");
   });
 });

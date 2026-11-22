@@ -11,6 +11,7 @@
 // expressions parsed. Other binding syntax (`[style.x]`, `[attr.x]`,
 // `(event)`) is reported as not supported yet.
 
+import { valueOrThrow } from "@tinker/functional/v1";
 import type { AttributeNode, ElementNode, Span, TemplateNode } from "./ast.ts";
 import { compileError, locatedAt, TemplateCompileError } from "./compile-error.ts";
 import { type Expression, ExpressionParser } from "./expression.ts";
@@ -216,7 +217,7 @@ export function compileTemplate(
   nodes: readonly TemplateNode[],
   candidates: readonly DirectiveCandidate[] = [],
 ): readonly CompiledNode[] {
-  return compileItems(itemsOf(nodes), candidates);
+  return compileItems(valueOrThrow(itemsOf(nodes)), candidates);
 }
 
 function compileItems(

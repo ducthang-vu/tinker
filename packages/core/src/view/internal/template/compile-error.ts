@@ -2,6 +2,10 @@
 // It is its own module so that blocks.ts, which compile.ts uses, can raise them too.
 
 import type { Span } from "./ast.ts";
+import type { Either } from "@tinker/functional/v1";
+
+/** The result of a compile step: its value, or the error that stopped it. */
+export type Parsed<T> = Either<T, Error>;
 
 /** A template that does not compile, with the span of the text, element or block it is in. */
 export class TemplateCompileError extends Error {
@@ -29,4 +33,15 @@ export function locatedAt<T>(span: Span | undefined, compile: () => T): T {
     }
     throw compileError((error as Error).message, span);
   }
+}
+
+/**
+ * `error` with the span of the item it is in. An error that already has a span keeps it: the
+ * innermost place is the useful one.
+ */
+export function located(error: Error, span: Span | undefined): Error {
+  if (span === undefined || error instanceof TemplateCompileError) {
+    return error;
+  }
+  return compileError(error.message, span);
 }
