@@ -8,7 +8,6 @@
 // so the branch shows the values it matched. A branch is only recreated when the
 // case changes; while the same case stays chosen, its bound names are updated.
 
-import { Maybe } from "@tinker/functional";
 import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledMatch, CompiledNode } from "../template/compile.ts";
@@ -18,7 +17,15 @@ import { Scope } from "../template/scope.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 import type { Binding } from "./text-binding.ts";
 import type { View } from "./view.ts";
-import { Left, match as readBox, Right, type Either } from "@tinker/functional/v1";
+import {
+  Left,
+  match as readBox,
+  None,
+  Right,
+  Some,
+  type Either,
+  type Maybe,
+} from "@tinker/functional/v1";
 
 /** Renders a branch: its body, the scope its names are read from, and its element's injector. */
 export type BranchRenderer = (
@@ -167,11 +174,13 @@ export function match(pattern: Pattern, value: unknown): ReadonlyMap<string, unk
       // matchObject checks a key's absence, since it sees the key. Alone, nothing is absent.
       return undefined;
     case "some":
-      return value instanceof Maybe && value.isSome()
-        ? match(pattern.pattern, value.getOrElse(undefined))
+      return isMaybe(value)
+        ? readBox(value, { Some: (inner) => match(pattern.pattern, inner), None: () => undefined })
         : undefined;
     case "none":
-      return value instanceof Maybe && value.isNone() ? new Map() : undefined;
+      return isMaybe(value)
+        ? readBox(value, { Some: () => undefined, None: () => new Map() })
+        : undefined;
     case "ok":
       return isEither(value)
         ? readBox(value, { Left: () => undefined, Right: (inner) => match(pattern.pattern, inner) })
@@ -283,4 +292,9 @@ function typeOf(value: unknown): string {
 /** Whether a value is an Either (of either case). */
 function isEither(value: unknown): value is Either<unknown, unknown> {
   return value instanceof Left || value instanceof Right;
+}
+
+/** Whether a value is a Maybe (of either case). */
+function isMaybe(value: unknown): value is Maybe<unknown> {
+  return value instanceof Some || value instanceof None;
 }

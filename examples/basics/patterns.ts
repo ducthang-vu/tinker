@@ -2,8 +2,8 @@
 // relations, `not`, `present`, an object with an absent key, bound names, and
 // array patterns. Each button moves the value to the next one in its list.
 
-import { Maybe, signal } from "@tinker/core";
-import { Left, match, Right, type Either } from "@tinker/functional/v1";
+import { signal } from "@tinker/core";
+import { Left, match, None, Right, Some, type Either, isSome, type Maybe } from "@tinker/functional/v1";
 import { Component } from "@tinker/core";
 
 type Status = "idle" | "loading" | "saving" | "failed";
@@ -80,11 +80,11 @@ export class Patterns {
   readonly outcome = signal<Outcome>({ value: 42 });
   readonly items = signal<readonly string[]>(ITEM_SETS[0]!);
   readonly name = signal<string | null>(null);
-  readonly found = signal<Maybe<string>>(Maybe.some("Ada"));
+  readonly found = signal<Maybe<string>>(Some.of("Ada"));
   readonly reply = signal<Either<number, string>>(Right.of(3));
 
   toggleFound(): void {
-    this.found.update((found) => (found.isSome() ? Maybe.none() : Maybe.some("Grace")));
+    this.found.update((found) => (isSome(found) ? None.of() : Some.of("Grace")));
   }
 
   toggleReply(): void {
