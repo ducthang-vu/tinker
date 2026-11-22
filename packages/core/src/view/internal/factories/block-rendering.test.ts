@@ -717,3 +717,21 @@ describe("@match with the remaining patterns", () => {
     app.destroy();
   });
 });
+
+describe("a block header may hold markup-like text", () => {
+  test("a @case with a named group, whose pattern has a < in it, matches as the header says", async () => {
+    @Component({
+      selector: "tk-named",
+      template: String.raw`@match code() { @case /^(?<n>\d+)<$/ { number } @default { text } }`,
+    })
+    class Named {
+      readonly code = signal<unknown>("42<");
+    }
+    const el = document.createElement("section");
+    const app = valueOrThrow(bootstrap(Named, { host: el }));
+    await tick();
+    expect(el.textContent!.trim())
+      .toBe("number");
+    app.destroy();
+  });
+});

@@ -1,4 +1,4 @@
-import { match } from "@tinker/functional";
+import { match, valueOrThrow } from "@tinker/functional";
 import { parseNodes } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import type { ElementNode, TemplateNode } from "./ast.ts";
@@ -620,5 +620,33 @@ describe("TinkerTemplateParser", () => {
       expect([combined.line, combined.column])
         .toEqual([1, 2]);
     });
+  });
+});
+
+describe("a block header is text, up to its body", () => {
+  test("a < in a @case header does not start a tag", () => {
+    const nodes = valueOrThrow(parser.parse(String.raw`@match v { @case /(?<id>\d+)<x/ { X } }`));
+    expect(nodes.map((node) => node.kind))
+      .toEqual(["text"]);
+  });
+
+  test("a < in an @if header does not start a tag, and the body's markup is still read", () => {
+    const nodes = valueOrThrow(parser.parse("@if a<b { <p>yes</p> }"));
+    const elements = nodes.filter((node) => node.kind === "element");
+    expect(elements.map((node) => (node as ElementNode).name))
+      .toEqual(["p"]);
+  });
+
+  test("an @ that starts no block is text as before", () => {
+    const nodes = valueOrThrow(parser.parse("mail a@b<p>x</p>"));
+    expect(nodes.filter((node) => node.kind === "element"))
+      .toHaveLength(1);
+  });
+
+  test("a header with no body, or an unclosed pattern, is read without a failure of its own", () => {
+    expect(() => parser.parse("@if a<b"))
+      .not.toThrow();
+    expect(() => parser.parse("@match v { @case (a< b { X } }"))
+      .not.toThrow();
   });
 });

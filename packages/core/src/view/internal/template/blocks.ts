@@ -40,6 +40,28 @@ type Token
 
 const BLOCK_START = /@(else\s+if|if|else|match|case|default|map)(?![\w$])/y;
 
+/**
+ * Where the body of the block whose header starts at `at` in `source` opens: the `{` after
+ * the header. The header may hold text that looks like markup (a `<` in a `@case` pattern),
+ * so the HTML reader needs to know where it ends. Undefined when no block header starts at
+ * `at`, or when its body has no `{`, or its pattern is not closed.
+ */
+export function blockBodyBrace(source: string, at: number): number | undefined {
+  BLOCK_START.lastIndex = at;
+  const start = BLOCK_START.exec(source);
+  if (start === null) {
+    return undefined;
+  }
+  const keyword = start[1]!.replace(/\s+/, "") as BlockKeyword;
+  return match<number | undefined, Error, number | undefined>(
+    bodyBrace(source, BLOCK_START.lastIndex, keyword),
+    {
+      Left: () => undefined,
+      Right: (brace) => (brace === -1 ? undefined : brace),
+    },
+  );
+}
+
 /** The items of a list of nodes: blocks nested by braces, `@else`s attached to their `@if`. */
 export function itemsOf(nodes: readonly TemplateNode[]): Parsed<readonly Item[]> {
   return flatMap(tokensOf(nodes), (tokens) => itemsOfTokens(tokens));

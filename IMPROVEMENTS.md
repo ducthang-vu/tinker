@@ -292,19 +292,7 @@ Ideas to choose from:
 
 ## Template patterns: regex (`packages/core/src/view/internal/template/`)
 
-### 1. A `<` in a `@case` header is read as markup
-
-**Problem.** The tokenizer reads a template as HTML before the block syntax is parsed, so
-a `<` in a block header starts a tag. A named group, `@case /(?<id>\d+)/`, fails with
-`<id> is never closed`. The same happens to a relation written with `<` (`@case < 10`).
-The `>` and `<=` forms in the same header are not affected in every position, but the
-rule is the same. Unnamed groups and every other pattern work.
-
-**To do.** Let the tokenizer treat a block header as text up to the body's `{`, the way
-`caseBodyBrace` already finds it, so `<` in a header is not a tag. Then the named-group
-form works in templates. The unit tests already cover the matcher.
-
-### 2. A regex is not checked for catastrophic backtracking
+### 1. A regex is not checked for catastrophic backtracking
 
 **Problem.** A pattern such as `/^(a+)+$/` can take exponential time on a string that
 almost matches. A `@case` is tried on every change detection cycle, so a slow regex

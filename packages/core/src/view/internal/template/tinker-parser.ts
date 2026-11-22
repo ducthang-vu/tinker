@@ -24,6 +24,7 @@
 import { Left, match, Right, type Either } from "@tinker/functional";
 import type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./ast.ts";
 import { decodeReferences } from "./entities.ts";
+import { blockBodyBrace } from "./blocks.ts";
 import type { TemplateParser } from "./parser.ts";
 
 /** A template that does not follow the syntax. `line` and `column` are 1-based. */
@@ -237,17 +238,25 @@ class Scanner {
     }
   }
 
-  /** Text up to the next markup. `{{ }}` is skipped whole, so markup in it is not read. */
+  /**
+   * Text up to the next markup. `{{ }}` is skipped whole, so markup in it is not read, and so
+   * is a block header up to its body's `{`: a `<` in a `@case` pattern is not a tag.
+   */
   private text(state: State): Step<TextNode> {
     const start = state.pos;
     let pos = start;
     while (!this.atEndAt(pos) && !this.matchesAt(pos, MARKUP)) {
-      pos = this.interpolationEnd(pos) ?? pos + 1;
+      pos = this.blockHeaderEnd(pos) ?? this.interpolationEnd(pos) ?? pos + 1;
     }
     return done(
       { kind: "text", value: decodeReferences(this.source.slice(start, pos)), span: { start, end: pos } },
       { ...state, pos },
     );
+  }
+
+  /** Where the body of a block header starting at `pos` opens, if a header starts there. */
+  private blockHeaderEnd(pos: number): number | undefined {
+    return this.source[pos] === "@" ? blockBodyBrace(this.source, pos) : undefined;
   }
 
   /** Where the `{{ }}` starting at `pos` ends, or undefined when there is none there. */
