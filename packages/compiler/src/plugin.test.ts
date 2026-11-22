@@ -328,4 +328,19 @@ describe("compileComponents", () => {
         .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
     });
   });
+
+  describe("chained constants", () => {
+    test("a template built from constants of the file is checked", async () => {
+      const { host, errors } = recordingHost();
+      await expect(compileComponents(`
+      const open = "<p>";
+      const body = open + "{{ a + }}</p>";
+      @Component({ template: body }) class A {}
+    `, "/app/a.ts", host))
+        .rejects
+        .toThrow();
+      expect(errors[0])
+        .toContain("a.ts: <A>: Missing a name at the end");
+    });
+  });
 });

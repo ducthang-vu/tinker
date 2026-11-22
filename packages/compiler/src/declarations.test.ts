@@ -136,4 +136,30 @@ describe("readSource", () => {
     expect(constants.get("page"))
       .toBe("<p>x</p>");
   });
+
+  test("a constant built from earlier constants, with + or a template with substitutions, is read", () => {
+    const { constants } = readSource(`
+      const open = "<p>";
+      const body = open + "hi";
+      const full = \`\${body}</p>\`;
+    `, "file.ts");
+    expect(constants.get("body"))
+      .toBe("<p>hi");
+    expect(constants.get("full"))
+      .toBe("<p>hi</p>");
+  });
+
+  test("a constant that is not built from literals and constants is not read", () => {
+    const { constants } = readSource(`
+      const count = 1;
+      const plain = "a";
+      const minus = plain - "b";
+      const number = plain + 1;
+      const unknown = nowhere + "x";
+      const template = \`\${nowhere}\`;
+      const mixed = plain + \`\${count}\`;
+    `, "file.ts");
+    expect([...constants.keys()])
+      .toEqual(["plain"]);
+  });
 });

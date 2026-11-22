@@ -39,11 +39,12 @@ A component is checked when its template, its `imports` list, and each imported
 directive's selector can be read:
 
 - a string literal, or a template literal with no `${}`;
-- a `const` of the same file that is a string literal;
+- a `const` of the same file that is a string literal, or built from such constants
+  with `+` and template literals with `${}`;
 - a `const` of a file it imports from, read one level deep.
 
-Anything else (a value computed at run time, a `let`, a constant that is itself
-computed) is skipped. Strict mode fails the build for it instead.
+Anything else (a value computed at run time, a `let`, a number, a constant built from a
+constant the file imports) is skipped. Strict mode fails the build for it instead.
 
 ## The commands
 

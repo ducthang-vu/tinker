@@ -87,7 +87,8 @@ function constantsOf(body: readonly t.Statement[]): ReadonlyMap<string, string> 
       continue;
     }
     for (const declarator of declared.declarations) {
-      const text = literalOf(declarator.init ?? undefined, new Map());
+      // In declaration order, so a constant may be built from the ones before it.
+      const text = literalOf(declarator.init ?? undefined, constants);
       if (t.isIdentifier(declarator.id) && text !== undefined) {
         constants.set(declarator.id.name, text);
       }
@@ -161,24 +162,49 @@ function keyOf(property: t.ObjectProperty): string | undefined {
 }
 
 /**
- * The text of a string literal, of a template literal with no substitutions, or of a
- * constant of this file (`constants`) named by an identifier. Otherwise none.
+ * The text of a string literal, of a template literal, of a `+` of two such texts, or of
+ * a constant of this file (`constants`) named by an identifier. Otherwise none.
  */
 function literalOf(
-  value: t.Expression | undefined,
+  value: t.Node | undefined,
   constants: ReadonlyMap<string, string>,
 ): string | undefined {
   if (t.isStringLiteral(value)) {
     return value.value;
   }
-  if (t.isTemplateLiteral(value) && value.expressions.length === 0) {
-    // An untagged template has its cooked text: no escape can make it null.
-    return value.quasis[0]!.value.cooked as string;
-  }
   if (t.isIdentifier(value)) {
     return constants.get(value.name);
   }
+  if (t.isTemplateLiteral(value)) {
+    return textOfTemplate(value, constants);
+  }
+  if (t.isBinaryExpression(value, { operator: "+" })) {
+    const left = literalOf(value.left, constants);
+    const right = literalOf(value.right, constants);
+    return left === undefined || right === undefined ? undefined : left + right;
+  }
   return undefined;
+}
+
+/** The text of a template literal, when each of its substitutions has a text. */
+function textOfTemplate(
+  value: t.TemplateLiteral,
+  constants: ReadonlyMap<string, string>,
+): string | undefined {
+  let text = "";
+  for (const [index, quasi] of value.quasis.entries()) {
+    // An untagged template has its cooked text: no escape can make it null.
+    text += quasi.value.cooked as string;
+    const substitution = value.expressions[index];
+    if (substitution !== undefined) {
+      const inner = literalOf(substitution, constants);
+      if (inner === undefined) {
+        return undefined;
+      }
+      text += inner;
+    }
+  }
+  return text;
 }
 
 /** The name of an identifier that is not a constant of this file: a value to resolve elsewhere. */
