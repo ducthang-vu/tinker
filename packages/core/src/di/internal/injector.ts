@@ -1,9 +1,16 @@
 // The Injector: gives the value for a token, using its providers.
 // Internal: users never see it (see the design rule in inject.ts).
 
+import { attempt, type Either } from "@tinker/functional/v1";
 import { runInInjectionContext } from "./context/current-injector.ts";
 import { InjectionToken, type Token } from "./inject.ts";
-import { type CreationHooks, type Provider, ProviderRecords } from "./provider-records.ts";
+import {
+  CircularDependencyError,
+  type CreationHooks,
+  NoProviderError,
+  type Provider,
+  ProviderRecords,
+} from "./provider-records.ts";
 import { findRootProvider } from "./root-providers.ts";
 import { runAll } from "../../utils/run-all.ts";
 
@@ -145,13 +152,22 @@ export class Injector {
   }
 
   /**
-   * The value for `token`, created once per injector and then shared.
-   * Throws if no provider is registered for it. The value is created with
-   * this injector as the injection context, so its own `inject()` calls
-   * resolve from the injector that owns it. If it has an `onDestroy()`
-   * method, that is called when this injector is destroyed.
+   * The value for `token`, created once per injector and then shared: a Left if it
+   * cannot be given (no provider, a circular dependency, or this injector destroyed).
+   * An error thrown by a provider's factory is a bug, and it throws. The value is created
+   * with this injector as the injection context, so its own `inject()` calls resolve from
+   * the injector that owns it. If it has an `onDestroy()` method, that is called when this
+   * injector is destroyed.
    */
-  get<T>(token: Token<T>): T {
+  get<T>(token: Token<T>): Either<T, DependencyError> {
+    return attempt(() => this.resolve(token), isDependencyError);
+  }
+
+  /**
+   * The value for `token`, as `get` gives it, but thrown when it cannot be given: the
+   * form `inject()` uses, since it runs where there is no way to return an error.
+   */
+  resolve<T>(token: Token<T>): T {
     this.assertNotDestroyed();
     if (this.isRoot() && !this.records.has(token)) {
       // A root injector also provides root providers: adopt it on first use.
@@ -163,7 +179,24 @@ export class Injector {
 
   private assertNotDestroyed(): void {
     if (this.isDestroyed) {
-      throw new Error("Injector has already been destroyed");
+      throw new InjectorDestroyedError();
     }
   }
+}
+
+/** Thrown when an injector is used after it was destroyed. */
+export class InjectorDestroyedError extends Error {
+  constructor() {
+    super("Injector has already been destroyed");
+    this.name = "InjectorDestroyedError";
+  }
+}
+
+/** What `Injector.get` gives as a Left: a value that cannot be given. */
+export type DependencyError = NoProviderError | CircularDependencyError | InjectorDestroyedError;
+
+function isDependencyError(error: unknown): error is DependencyError {
+  return error instanceof NoProviderError
+    || error instanceof CircularDependencyError
+    || error instanceof InjectorDestroyedError;
 }

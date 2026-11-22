@@ -4,6 +4,7 @@ import { input, inputsOf } from "../authoring/input.ts";
 import { watch } from "../../../signals/index.ts";
 import { DomRenderer } from "../renderer.ts";
 import { ComponentView } from "./component-view.ts";
+import { messageOf } from "../test-support.ts";
 
 function makeView() {
   const host = document.createElement("div");
@@ -76,17 +77,17 @@ describe("ComponentView", () => {
         .toEqual([1, 2]);
     });
 
-    test("throws for a name that is not an input of the component", () => {
+    test("fails for a name that is not an input of the component, and sets nothing", () => {
       const { view } = cardView();
-      expect(() => view.setInput("missing" as never, "x" as never))
-        .toThrow(`Card has no input "missing"`);
+      expect(messageOf(view.setInput("missing" as never, "x" as never)))
+        .toBe(`Card has no input "missing"`);
     });
 
     test("checks the input's name and value type", () => {
       const { view } = cardView();
       // @ts-expect-error "plain" is not an input
-      expect(() => view.setInput("plain", "x"))
-        .toThrow(`Card has no input "plain"`);
+      expect(messageOf(view.setInput("plain", "x")))
+        .toBe(`Card has no input "plain"`);
       // @ts-expect-error size takes a number
       view.setInput("size", "big");
     });

@@ -19,7 +19,7 @@ import type { EmbeddedView } from "./embedded-view.ts";
 import { type Context, contextOf } from "./context.ts";
 import type { TemplateContext, TemplateRef } from "./template-ref.ts";
 import type { ComponentView } from "./component-view.ts";
-import { type Either, map, match, use } from "@tinker/functional/v1";
+import { type Either, flatMap, Left, map, match, Right, use } from "@tinker/functional/v1";
 
 /**
  * What a container is disposed with: it hears that it is destroyed, and its
@@ -104,8 +104,15 @@ export class ViewContainerRef {
     index: number = this.length,
     providers: readonly Provider[] = [],
   ): Either<ComponentRef<T>, Error> {
-    this.checkIndex(index, this.length);
-    const parent = this.parent();
+    return flatMap(this.slotAt(index, this.length), (slot) => this.createIn(type, slot, providers));
+  }
+
+  /** Create `type` in `slot`, once the slot is known to be in the DOM and in range. */
+  private createIn<T extends object>(
+    type: Class<T>,
+    { index, parent }: Slot,
+    providers: readonly Provider[],
+  ): Either<ComponentRef<T>, Error> {
     const scope = Injector.create({ providers, parent: this.parentInjector });
     const created = this.components.create(
       type,
@@ -137,16 +144,25 @@ export class ViewContainerRef {
     return ref;
   }
 
-  /** Move `ref` (already in this container) to `index`. */
-  move(ref: ComponentRef<object>, index: number): void {
+  /** Move `ref` (already in this container) to `index`. An error if it is not in the container. */
+  move(ref: ComponentRef<object>, index: number): Either<void, Error> {
     const from = this.refs.indexOf(ref);
     if (from === -1) {
-      throw new Error("The component is not in this container");
+      return Left.of(new Error("The component is not in this container"));
     }
-    this.checkIndex(index, this.length - 1);
+    return flatMap(this.slotAt(index, this.length - 1), (slot) => this.moveTo(ref, from, slot));
+  }
+
+  /** Put `ref`, at `from` in the container, into `slot`. */
+  private moveTo(
+    ref: ComponentRef<object>,
+    from: number,
+    { index, parent }: Slot,
+  ): Either<void, Error> {
     this.refs.splice(from, 1);
     this.refs.splice(index, 0, ref);
-    this.renderer.insertBefore(this.parent(), ref.host.nativeElement, this.nodeAfter(index));
+    this.renderer.insertBefore(parent, ref.host.nativeElement, this.nodeAfter(index));
+    return Right.of(undefined);
   }
 
   /** Destroy the component at `index` (default: the last one). Does nothing if there is none. */
@@ -159,7 +175,7 @@ export class ViewContainerRef {
    * Render an instance of a template declared with `<template #name>`, at the end
    * of the container: before its anchor, after what is already there.
    */
-  createEmbeddedView(template: TemplateRef, values: TemplateContext): EmbeddedView {
+  createEmbeddedView(template: TemplateRef, values: TemplateContext): Either<EmbeddedView, Error> {
     return this.embed(template, contextOf(values));
   }
 
@@ -167,8 +183,13 @@ export class ViewContainerRef {
    * Render an instance of `template` with a context of signals (the outlet's, which it
    * updates in place), at the end of the container.
    */
-  embed(template: TemplateRef, context: Context): EmbeddedView {
-    const view = template.instantiate(this.anchor, this.parentInjector, context);
+  embed(template: TemplateRef, context: Context): Either<EmbeddedView, Error> {
+    return map(template.instantiate(this.anchor, this.parentInjector, context), (view) =>
+      this.adopt(view));
+  }
+
+  /** Keep `view` in the container, until it is destroyed. */
+  private adopt(view: EmbeddedView): EmbeddedView {
     this.embedded.push(view);
     view.addDestroyCallback(() => {
       this.embedded.splice(this.embedded.indexOf(view), 1);
@@ -202,17 +223,29 @@ export class ViewContainerRef {
       .match({ some: (ref) => ref.host.nativeElement, none: () => this.anchor });
   }
 
-  private parent(): Node {
+  /** The node the container's components go in, or an error if its anchor is not in the DOM. */
+  private parent(): Either<Node, Error> {
     const parent = this.anchor.parentNode;
-    if (!parent) {
-      throw new Error("The container's anchor is not in the DOM");
-    }
-    return parent;
+    return parent
+      ? Right.of(parent)
+      : Left.of(new Error("The container's anchor is not in the DOM"));
   }
 
-  private checkIndex(index: number, max: number): void {
-    if (!Number.isInteger(index) || index < 0 || index > max) {
-      throw new RangeError(`Index ${index} is out of range (0 to ${max})`);
-    }
+  /** Where a component goes at `index`: in range (0 to `max`), with the anchor in the DOM. */
+  private slotAt(index: number, max: number): Either<Slot, Error> {
+    return flatMap(this.checkIndex(index, max), (checked) =>
+      map(this.parent(), (parent) => ({ index: checked, parent })));
   }
+
+  private checkIndex(index: number, max: number): Either<number, Error> {
+    return Number.isInteger(index) && index >= 0 && index <= max
+      ? Right.of(index)
+      : Left.of(new RangeError(`Index ${index} is out of range (0 to ${max})`));
+  }
+}
+
+/** Where a component goes in a container: its index, and the node it is inserted into. */
+interface Slot {
+  readonly index: number;
+  readonly parent: Node;
 }

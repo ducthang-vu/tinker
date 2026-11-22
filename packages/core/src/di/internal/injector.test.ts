@@ -1,23 +1,30 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import { InjectionToken, type Token } from "./inject.ts";
 import { INJECTOR, Injector } from "./injector.ts";
+import { type Either, match, valueOrThrow } from "@tinker/functional/v1";
 
 const USER_SERVICE = new InjectionToken<UserService>("UserService");
 class UserService {
   users = ["Ada"];
 }
 const API_URL = new InjectionToken<string>("API_URL");
+const CYCLE_A = new InjectionToken<unknown>("CYCLE_A");
+const CYCLE_B = new InjectionToken<unknown>("CYCLE_B");
+
+/** The message of a failure, or "no error" for a value. */
+const failureOf = (result: Either<unknown, Error>): string =>
+  match(result, { Left: (error) => error.message, Right: () => "no error" });
 
 describe("Injector", () => {
   test("gives the value of a token from its provider's factory", () => {
     const injector = new Injector([{ token: API_URL, factory: () => "https://api.example" }]);
-    expect(injector.get(API_URL))
+    expect(valueOrThrow(injector.get(API_URL)))
       .toBe("https://api.example");
   });
 
   test("a class can be used as a token (its type is given explicitly until the class adapter exists)", () => {
     const injector = new Injector([{ token: USER_SERVICE, factory: () => new UserService() }]);
-    const service = injector.get(USER_SERVICE);
+    const service = valueOrThrow(injector.get(USER_SERVICE));
     expect(service)
       .toBeInstanceOf(UserService);
     expect(service.users)
@@ -26,14 +33,14 @@ describe("Injector", () => {
 
   test("the result is typed by the token", () => {
     const injector = new Injector([{ token: API_URL, factory: () => "x" }]);
-    expectTypeOf(injector.get(API_URL))
+    expectTypeOf(valueOrThrow(injector.get(API_URL)))
       .toEqualTypeOf<string>();
   });
 
   test("tokens are matched by identity, not by name", () => {
     const other = new InjectionToken<string>("API_URL");
     const injector = new Injector([{ token: API_URL, factory: () => "x" }]);
-    expect(() => injector.get(other))
+    expect(() => valueOrThrow(injector.get(other)))
       .toThrow("No provider for API_URL");
   });
 
@@ -42,7 +49,7 @@ describe("Injector", () => {
       { token: API_URL, factory: () => "first" },
       { token: API_URL, factory: () => "second" },
     ]);
-    expect(injector.get(API_URL))
+    expect(valueOrThrow(injector.get(API_URL)))
       .toBe("first");
   });
 
@@ -51,8 +58,8 @@ describe("Injector", () => {
     const injector = new Injector([
       { token: USER_SERVICE, factory: () => (calls++, new UserService()) },
     ]);
-    expect(injector.get(USER_SERVICE))
-      .toBe(injector.get(USER_SERVICE));
+    expect(valueOrThrow(injector.get(USER_SERVICE)))
+      .toBe(valueOrThrow(injector.get(USER_SERVICE)));
     expect(calls)
       .toBe(1);
   });
@@ -118,14 +125,34 @@ describe("Injector", () => {
       .toBe(true);
     expect(child.has(PAYMENT))
       .toBe(false);
-    expect(() => child.get(API_URL))
+    expect(() => valueOrThrow(child.get(API_URL)))
       .toThrow("No provider for PAYMENT");
   });
 
-  test("throws for a token without a provider", () => {
-    expect(() => new Injector([])
-      .get(USER_SERVICE))
-      .toThrow("No provider for UserService");
+  test("get is an error for a token without a provider, naming it", () => {
+    expect(failureOf(new Injector([])
+      .get(USER_SERVICE)))
+      .toBe("No provider for UserService");
+  });
+
+  test("get is an error for a value needed while it is created, or for a destroyed injector", () => {
+    const injector = new Injector([
+      { token: CYCLE_A, factory: () => valueOrThrow(injector.get(CYCLE_B)) },
+      { token: CYCLE_B, factory: () => valueOrThrow(injector.get(CYCLE_A)) },
+    ]);
+    expect(failureOf(injector.get(CYCLE_A)))
+      .toBe("Circular dependency: CYCLE_A → CYCLE_B → CYCLE_A");
+    injector.destroy();
+    expect(failureOf(injector.get(CYCLE_A)))
+      .toBe("Injector has already been destroyed");
+  });
+
+  test("get throws an error a provider's factory throws: that is a bug, not a missing value", () => {
+    const injector = new Injector([{ token: USER_SERVICE, factory: () => {
+      throw new Error("the factory broke");
+    } }]);
+    expect(() => injector.get(USER_SERVICE))
+      .toThrow("the factory broke");
   });
 });
 
@@ -140,7 +167,7 @@ describe("destroy", () => {
 
   test("calls onDestroy on the values the injector created", () => {
     const injector = new Injector([{ token: CONNECTION, factory: () => new Connection() }]);
-    const connection = injector.get(CONNECTION);
+    const connection = valueOrThrow(injector.get(CONNECTION));
     expect(injector.destroyed)
       .toBe(false);
     injector.destroy();
@@ -152,9 +179,9 @@ describe("destroy", () => {
 
   test("calls onDestroy once per value, however often it was injected", () => {
     const injector = new Injector([{ token: CONNECTION, factory: () => new Connection() }]);
-    const connection = injector.get(CONNECTION);
-    injector.get(CONNECTION);
-    injector.get(CONNECTION);
+    const connection = valueOrThrow(injector.get(CONNECTION));
+    valueOrThrow(injector.get(CONNECTION));
+    valueOrThrow(injector.get(CONNECTION));
     injector.destroy();
     expect(connection.closed)
       .toBe(1);
@@ -169,10 +196,10 @@ describe("destroy", () => {
       { token: NOTHING, factory: () => null },
       { token: NOT_A_METHOD, factory: () => ({ onDestroy: "not a function" }) },
     ]);
-    injector.get(API_URL);
-    injector.get(USER_SERVICE);
-    injector.get(NOTHING);
-    injector.get(NOT_A_METHOD);
+    valueOrThrow(injector.get(API_URL));
+    valueOrThrow(injector.get(USER_SERVICE));
+    valueOrThrow(injector.get(NOTHING));
+    valueOrThrow(injector.get(NOT_A_METHOD));
     expect(() => injector.destroy()).not.toThrow();
   });
 
@@ -230,7 +257,7 @@ describe("destroy", () => {
     const root = new Injector([]);
     const child = new Injector([{ token: CONNECTION, factory: () => new Connection() }], root);
     const grandchild = new Injector([], child);
-    const connection = child.get(CONNECTION);
+    const connection = valueOrThrow(child.get(CONNECTION));
     root.destroy();
     expect(child.destroyed)
       .toBe(true);
@@ -267,7 +294,7 @@ describe("destroy", () => {
   test("a destroyed injector refuses to work", () => {
     const injector = new Injector([{ token: API_URL, factory: () => "x" }]);
     injector.destroy();
-    expect(() => injector.get(API_URL))
+    expect(() => valueOrThrow(injector.get(API_URL)))
       .toThrow("Injector has already been destroyed");
     expect(() => injector.has(API_URL))
       .toThrow("Injector has already been destroyed");
@@ -339,29 +366,29 @@ describe("INJECTOR", () => {
     const injector = new Injector([]);
     expect(injector.has(INJECTOR))
       .toBe(true);
-    expect(injector.get(INJECTOR))
+    expect(valueOrThrow(injector.get(INJECTOR)))
       .toBe(injector);
   });
 
   test("cannot be overridden by a provider", () => {
     const other = new Injector([]);
     const injector = new Injector([{ token: INJECTOR, factory: () => other }]);
-    expect(injector.get(INJECTOR))
+    expect(valueOrThrow(injector.get(INJECTOR)))
       .toBe(injector);
   });
 
   test("each injector in a hierarchy gives itself", () => {
     const root = new Injector([]);
     const child = new Injector([], root);
-    expect(child.get(INJECTOR))
+    expect(valueOrThrow(child.get(INJECTOR)))
       .toBe(child);
-    expect(root.get(INJECTOR))
+    expect(valueOrThrow(root.get(INJECTOR)))
       .toBe(root);
   });
 
   test("getting it does not register the injector as a value to clean up", () => {
     const injector = new Injector([]);
-    injector.get(INJECTOR);
+    valueOrThrow(injector.get(INJECTOR));
     expect(() => injector.destroy()).not.toThrow();
   });
 });

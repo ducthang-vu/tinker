@@ -38,6 +38,14 @@ export interface CreationStep {
   readonly token: Token<unknown>;
 }
 
+/** Thrown when no provider is registered for a token. */
+export class NoProviderError extends Error {
+  constructor(token: Token<unknown>) {
+    super(`No provider for ${token.name}`);
+    this.name = "NoProviderError";
+  }
+}
+
 /** Thrown when creating a value needs that same value: A needs B, which needs A. */
 export class CircularDependencyError extends Error {
   /**
@@ -125,14 +133,14 @@ export class ProviderRecords {
 
   /**
    * The value for `token`: created on the first call (through the hooks),
-   * then the same value every time. Throws if there is no provider, and
-   * throws CircularDependencyError if the value is needed while it is being
-   * created. If creating throws, nothing is cached and the next call tries again.
+   * then the same value every time. Throws NoProviderError if there is no provider,
+   * and CircularDependencyError if the value is needed while it is being created.
+   * If creating throws, nothing is cached and the next call tries again.
    */
   get<T>(token: Token<T>): T {
     const record = this.records.get(token) as ProviderRecord<T> | undefined;
     if (!record) {
-      throw new Error(`No provider for ${token.name}`);
+      throw new NoProviderError(token);
     }
     if (record.value === CREATING) {
       throw CircularDependencyError.fromCreationPath(creationPath, this, token);
