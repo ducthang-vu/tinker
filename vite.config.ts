@@ -10,7 +10,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     // Tests live next to the files they test. The example's tests run here too.
-    include: ["packages/*/src/**/*.test.ts", "examples/*/*.test.ts"],
+    include: ["packages/*/src/**/*.test.ts", "examples/*/**/*.test.ts"],
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts"],

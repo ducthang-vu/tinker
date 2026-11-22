@@ -15,6 +15,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "rewriteRelativeImportExtensions": true,
+    "resolveJsonModule": true,
     "noEmit": true,
     "paths": {
       "@tinker/core/compiler": [
