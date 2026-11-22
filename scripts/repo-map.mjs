@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -272,10 +272,10 @@ export function buildRepoMap(rootDir = process.cwd()) {
  * The output intentionally omits prose and function bodies.
  */
 export function renderRepoMapMarkdown(graph, options = {}) {
-  const { includeDocs = false } = options;
+  const { includeDocs = false, include = () => true } = options;
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
   const files = graph.nodes
-    .filter((node) => node.type === "file")
+    .filter((node) => node.type === "file" && include(node.path))
     .sort((left, right) => left.path.localeCompare(right.path));
   const importsByFile = new Map();
   const exportsByFile = new Map();
@@ -336,6 +336,45 @@ function oneLine(value) {
     .trim();
 }
 
+/**
+ * The folders that have a map of their own: each package and each example, which are
+ * the folders with a package.json under `packages/` and `examples/`.
+ */
+export function scopesOf(rootDir) {
+  return ["packages", "examples"].flatMap((parent) => {
+    const folder = path.join(rootDir, parent);
+    if (!existsSync(folder)) {
+      return [];
+    }
+    return readdirSync(folder, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory()
+        && existsSync(path.join(folder, entry.name, "package.json")))
+      .map((entry) => `${parent}/${entry.name}`)
+      .sort();
+  });
+}
+
+/**
+ * Every map, as a path (relative to the root) and its content. The root's map has the
+ * files outside every scope; each scope's map has the files inside it. A file's imports
+ * and exports are listed wherever they are, so a map names the files it depends on.
+ */
+export function renderAllMarkdown(graph, scopes) {
+  const inside = (path, scope) => path.startsWith(`${scope}/`);
+  const maps = new Map([[
+    ".repo-map.md",
+    renderRepoMapMarkdown(graph, {
+      include: (path) => !scopes.some((scope) => inside(path, scope)),
+    }),
+  ]]);
+  for (const scope of scopes) {
+    maps.set(`${scope}/.repo-map.md`, renderRepoMapMarkdown(graph, {
+      include: (path) => inside(path, scope),
+    }));
+  }
+  return maps;
+}
+
 function runCli(args) {
   let outputPath;
   let rootDir = process.cwd();
@@ -343,6 +382,7 @@ function runCli(args) {
   let pretty = false;
   let format = "json";
   let includeDocs = false;
+  let check = false;
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -364,12 +404,34 @@ function runCli(args) {
       }
     } else if (argument === "--include-docs") {
       includeDocs = true;
+    } else if (argument === "--check") {
+      check = true;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
   }
 
   const repoMap = buildRepoMap(rootDir);
+
+  if (format === "markdown" && check) {
+    const stale = [...renderAllMarkdown(repoMap, scopesOf(rootDir))]
+      .filter(([file, content]) => !existsSync(path.join(rootDir, file))
+        || readFileSync(path.join(rootDir, file), "utf8") !== content)
+      .map(([file]) => file);
+    if (stale.length > 0) {
+      throw new Error(`The repo map is out of date: ${stale.join(", ")}. Run npm run repo-map -- --format markdown`);
+    }
+    return;
+  }
+
+  if (format === "markdown" && outputPath === undefined && !writeToStdout) {
+    for (const [file, content] of renderAllMarkdown(repoMap, scopesOf(rootDir))) {
+      writeFileSync(path.join(rootDir, file), content);
+      process.stdout.write(`Wrote ${file}\n`);
+    }
+    return;
+  }
+
   const output = format === "markdown"
     ? renderRepoMapMarkdown(repoMap, { includeDocs })
     : `${JSON.stringify(repoMap, null, pretty ? 2 : undefined)}\n`;

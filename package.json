@@ -19,7 +19,7 @@
     "coverage": "vitest run --coverage",
     "coverage:affected": "node scripts/run-affected.mjs",
     "repo-map": "node scripts/repo-map.mjs",
-    "repo-map:check": "node scripts/repo-map.mjs --format markdown --stdout | diff - .repo-map.md || (echo 'The repo map is out of date: run npm run repo-map -- --format markdown' && exit 1)",
+    "repo-map:check": "node scripts/repo-map.mjs --format markdown --check",
     "test:repo-map": "node --test scripts/repo-map.test.mjs",
     "test:scripts": "node --test scripts/*.test.mjs"
   },
