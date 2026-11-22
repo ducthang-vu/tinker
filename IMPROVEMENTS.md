@@ -125,14 +125,14 @@ such a URL (a `data:` image, say) has no way to say so.
 without the check, with the name making the risk visible in the template. Warn in
 developer mode when a trusted URL is used, so the bypass is never silent.
 
-### 5. Arrow functions and unary minus
+### 5. Arrow functions
 
-**Problem.** `t => t.done` (needed for `filter` and `map` in templates) and `-1`
-are not in the expression language.
+**Problem.** `t => t.done` (needed for `filter` and `map` in templates) is not in the
+expression language. Unary minus is supported (`-count()`).
 
-**To do.** Add both to `expression.ts`, with `filter` and `map` as methods that
-take a function. Arrow functions need their own scope for the parameter, like a
-`@let` but for a call.
+**To do.** Add arrow functions to `expression.ts`, with `filter` and `map` as methods that
+take a function. An arrow function needs its own scope for the parameter, like a `@let`
+but for a call.
 
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 

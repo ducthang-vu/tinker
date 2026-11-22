@@ -19,6 +19,18 @@ function error(source: string): string {
 const component = { kind: "component" } as const;
 
 describe("ExpressionParser", () => {
+  test("a minus before an operand is negation, which binds to the operand alone", () => {
+    expect(parse("-count() * 2"))
+      .toEqual({
+        kind: "binary",
+        operator: "*",
+        left: { kind: "negate", operand: parse("count()") },
+        right: { kind: "literal", value: 2 },
+      });
+    expect(parse("3 - 1"))
+      .toEqual({ kind: "binary", operator: "-", left: { kind: "literal", value: 3 }, right: { kind: "literal", value: 1 } });
+  });
+
   test("a bare name is a field of the component", () => {
     expect(parse("title"))
       .toEqual({ kind: "property", receiver: component, name: "title" });
