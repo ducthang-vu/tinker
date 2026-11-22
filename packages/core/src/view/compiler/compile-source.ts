@@ -10,7 +10,7 @@ import type { Class } from "../../utils/types.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../internal/template/compile.ts";
 import { Selector } from "../internal/template/selector.ts";
 import { combineSyntaxErrors, TinkerTemplateParser } from "../internal/template/tinker-parser.ts";
-import { flatMap, Left, map, Right, type Either } from "@tinker/functional/v1";
+import { flatMap, Left, map, sequence, type Either } from "@tinker/functional/v1";
 
 /** A directive or component a template may use, known by its selector. */
 export interface ImportedSelector {
@@ -44,10 +44,7 @@ export function compileSource(
 
 /** The candidates of the imports: the first invalid selector is the error. */
 function candidatesOf(imports: readonly ImportedSelector[]): Either<DirectiveCandidate[], Error> {
-  return imports.reduce<Either<DirectiveCandidate[], Error>>((all, imported) =>
-    flatMap(all, (candidates: DirectiveCandidate[]) =>
-      map(candidateOf(imported), (candidate) => [...candidates, candidate])),
-  Right.of<DirectiveCandidate[], Error>([]));
+  return sequence(imports.map(candidateOf));
 }
 
 function candidateOf(imported: ImportedSelector): Either<DirectiveCandidate, Error> {

@@ -14,7 +14,7 @@
 import type { Span, TemplateNode, TextNode } from "./ast.ts";
 import { compileError, located, type Parsed } from "./compile-error.ts";
 import { blankRegexes, QuoteTracker } from "./pattern.ts";
-import { flatMap, Left, map, match, mapLeft, Right } from "@tinker/functional/v1";
+import { flatMap, Left, map, match, mapLeft, Right, sequence } from "@tinker/functional/v1";
 
 export type BlockKeyword = "if" | "elseif" | "else" | "match" | "case" | "default" | "map";
 
@@ -49,8 +49,7 @@ export function itemsOf(nodes: readonly TemplateNode[]): Parsed<readonly Item[]>
 
 /** The tokens of every node, in order: the first failure stops the rest. */
 function tokensOf(nodes: readonly TemplateNode[]): Parsed<Token[]> {
-  return nodes.reduce<Parsed<Token[]>>((all, node) => flatMap(all, (tokens: Token[]) =>
-    map(tokenize(node), (next: Token[]) => [...tokens, ...next])), Right.of<Token[], Error>([]));
+  return map(sequence(nodes.map(tokenize)), (lists) => lists.flat());
 }
 
 /** Where the reading of the tokens is: the next token, and the span of the last closing brace. */
