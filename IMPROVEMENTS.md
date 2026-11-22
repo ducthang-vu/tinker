@@ -222,11 +222,17 @@ add a dev-mode check next to the other development warnings.
 ## Template syntax (`packages/core/src/view/internal/template/tinker-parser.ts`)
 
 The engine's parser is `TinkerTemplateParser`, which reads without a DOM and reports
-every malformed markup with its line and column. It decodes references with the
-`entities` package, as the browser does, and reads `textarea` and `title` as text with
-references decoded. It has no known limits left in this list. The entity table adds about 16 KB gzipped to the
-example's bundle (38.4 KB to 54.4 KB); a smaller table, covering only common references,
-would trade that for references the browser decodes and this parser would not.
+every malformed markup with its line and column. It decodes the 253 references HTML 4
+defines (and `&apos;`) with a table, `entities.ts`, and numeric references by the
+standard's rules. `textarea` and `title` read their content as text with references
+decoded.
+
+Known deviations from the browser:
+
+- The HTML 5 names beyond the HTML 4 list (such as `&check;`) are kept as written. The full table adds about 16 KB gzipped to the
+  example's bundle, against about 2 KB for this one.
+- A reference without its semicolon (`&copy`) is kept as written; the browser decodes some
+  of them.
 
 ## Precompiled templates (`packages/core/src/view/internal/factories/component-factory.ts`)
 
