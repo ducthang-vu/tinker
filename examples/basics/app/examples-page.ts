@@ -1,12 +1,12 @@
 // The practical examples: each card is one part of the framework, working. Their source is in
-// examples/basics, one file per topic (see the comment at the top of main.ts).
+// examples/basics/demos, one folder per topic (see the comment at the top of main.ts).
 
 import { Component } from "@tinker/core";
-import { Clock } from "../clock.ts";
-import { Counter } from "../counter.ts";
-import { Notice } from "../notice/notice.ts";
-import { Patterns } from "../patterns.ts";
-import { Todos } from "../todos.ts";
+import { Clock } from "../demos/clock/clock.ts";
+import { Counter } from "../demos/counter/counter.ts";
+import { Notice } from "../demos/notice/notice.ts";
+import { Patterns } from "../demos/patterns/patterns.ts";
+import { Todos } from "../demos/todos/todos.ts";
 
 @Component({
   selector: "tk-examples",
@@ -16,7 +16,7 @@ import { Todos } from "../todos.ts";
       <h1>Examples</h1>
       <p class="lede">
         Each card is a small, working part of Tinker. The source of each is in
-        <code>examples/basics</code>, one file per topic.
+        <code>examples/basics/demos</code>, one folder per topic.
       </p>
     </header>
     <div class="demos">

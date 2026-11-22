@@ -9,7 +9,7 @@
 import { inject, Injectable } from "@tinker/core";
 import { computed, signal } from "@tinker/core";
 import { Component, Directive, input, queryAll } from "@tinker/core";
-import { Highlight } from "./highlight.ts";
+import { Highlight } from "../highlight/highlight.ts";
 
 export interface Todo {
   readonly id: number;

@@ -1,15 +1,15 @@
 // Tinker basics: one app, a shell (app/app.ts) with a router over its pages (app/routes.ts).
 // The practical examples are at "/", each card is one topic:
 //
-// - counter.ts: a component with its own provided store, a directive that
+// - demos/counter/counter.ts: a component with its own provided store, a directive that
 //   changes it, and an output the template listens to.
-// - highlight.ts: directives with host class and attribute bindings, shared
+// - demos/highlight/highlight.ts: directives with host class and attribute bindings, shared
 //   by the other files.
-// - clock.ts: an @Effect that cleans up when destroyed, and @AfterNextRender.
-// - todos.ts: @map over a list, track, the $ variables, destructuring, and the
+// - demos/clock/clock.ts: an @Effect that cleans up when destroyed, and @AfterNextRender.
+// - demos/todos/todos.ts: @map over a list, track, the $ variables, destructuring, and the
 //   empty case of @match.
-// - patterns.ts: @match with each pattern form.
-// - notice/notice.ts: a component whose template and CSS are files, next to it.
+// - demos/patterns/patterns.ts: @match with each pattern form.
+// - demos/notice/notice.ts: a component whose template and CSS are files, next to it.
 //
 // The API reference, generated from the TSDoc, is at "/api" (api/api-docs.ts).
 

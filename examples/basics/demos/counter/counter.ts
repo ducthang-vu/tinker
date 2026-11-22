@@ -6,7 +6,7 @@
 import { inject, Injectable } from "@tinker/core";
 import { computed, signal } from "@tinker/core";
 import { Component, Directive, input, output } from "@tinker/core";
-import { Highlight, Tooltip } from "./highlight.ts";
+import { Highlight, Tooltip } from "../highlight/highlight.ts";
 
 /** The state of one counter: provided by each <tk-counter>. */
 @Injectable()

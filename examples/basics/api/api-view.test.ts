@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ApiReference } from "./api-reference.ts";
-import { nth } from "../testing-helpers.ts";
+import { nth } from "../support/testing-helpers.ts";
 import { anchorId, docBlocks, toSections } from "./api-view.ts";
 
 describe("docBlocks", () => {
