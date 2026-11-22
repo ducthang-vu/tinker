@@ -5,6 +5,7 @@
 // closure does.
 
 import type { Injector } from "../../../di/index.ts";
+import { type Either, Left, map, Right, sequence } from "@tinker/functional/v1";
 import { type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";
@@ -43,41 +44,69 @@ export class TemplateRef {
 
   /**
    * One signal per declared name, holding its value in `values`: what an instance
-   * reads, to be updated in place with `setSignals`. Throws if a name is missing.
+   * reads, to be updated in place with `setSignals`. An error if a name is missing.
    */
-  signalsFor(values: TemplateContext): Map<string, Signal<unknown>> {
-    return new Map(this.names.map((name) => [name, signal(this.valueOf(values, name))] as const));
+  signalsFor(values: TemplateContext): Either<Map<string, Signal<unknown>>, Error> {
+    return map(this.valuesOf(values), (found) =>
+      new Map([...found].map(([name, value]) => [name, signal(value)] as const)));
   }
 
-  /** Set each signal of an instance (from `signalsFor`) to its value in `values`. */
-  setSignals(signals: ReadonlyMap<string, Signal<unknown>>, values: TemplateContext): void {
-    for (const name of this.names) {
-      const value = this.valueOf(values, name);
-      signals.get(name)!.set(value);
-    }
+  /**
+   * Set each signal of an instance (from `signalsFor`) to its value in `values`. An error,
+   * with nothing set, if a name is missing.
+   */
+  setSignals(
+    signals: ReadonlyMap<string, Signal<unknown>>,
+    values: TemplateContext,
+  ): Either<void, Error> {
+    return map(this.valuesOf(values), (found) => {
+      for (const [name, value] of found) {
+        signals.get(name)!.set(value);
+      }
+    });
   }
 
-  private valueOf(values: TemplateContext, name: string): unknown {
-    if (!(name in values)) {
-      throw new Error(`The context has no "${name}", which the template declares with let-${name}`);
-    }
-    return values[name];
+  /** The value of each declared name in `values`, or an error for the first one missing. */
+  private valuesOf(values: TemplateContext): Either<ReadonlyMap<string, unknown>, Error> {
+    return this.collect((name) => valueIn(values, name));
+  }
+
+  /** Each declared name with what `lookup` gives for it: an error for the first that fails. */
+  private collect<V>(
+    lookup: (name: string) => Either<V, Error>,
+  ): Either<ReadonlyMap<string, V>, Error> {
+    return map(sequence(this.names.map(lookup)), (values) =>
+      new Map(this.names.map((name, index) => [name, values[index]!] as const)));
   }
 
   /**
    * Render an instance before `anchor`, under `injector`. Each `let-` name it declares
    * is read from `context`; the rest of the context is not visible to it.
    */
-  instantiate(anchor: Node, injector: Injector, context: Context): EmbeddedView {
-    const given = new Map<string, ReadonlySignal<unknown>>();
-    for (const name of this.names) {
-      const entry = context.get(name);
-      if (entry === undefined) {
-        throw new Error(`The context has no "${name}", which the template declares with let-${name}`);
-      }
-      given.set(name, entry);
-    }
-    const scope = scopeWith(this.declared.component, this.declared.lets, given);
-    return this.render(this.body, scope, anchor, injector);
+  instantiate(anchor: Node, injector: Injector, context: Context): Either<EmbeddedView, Error> {
+    return map(this.collect((name) => signalIn(context, name)), (given) =>
+      this.render(
+        this.body,
+        scopeWith(this.declared.component, this.declared.lets, given),
+        anchor,
+        injector,
+      ));
   }
+}
+
+/** The value of `name` in a template's values, or an error if it has none. */
+function valueIn(values: TemplateContext, name: string): Either<unknown, Error> {
+  return name in values
+    ? Right.of(values[name])
+    : Left.of(missingName(name));
+}
+
+/** The signal of `name` in a context, or an error if the context has none. */
+function signalIn(context: Context, name: string): Either<ReadonlySignal<unknown>, Error> {
+  const entry = context.get(name);
+  return entry === undefined ? Left.of(missingName(name)) : Right.of(entry);
+}
+
+function missingName(name: string): Error {
+  return new Error(`The context has no "${name}", which the template declares with let-${name}`);
 }

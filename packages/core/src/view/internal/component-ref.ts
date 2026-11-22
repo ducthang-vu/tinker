@@ -6,7 +6,8 @@
 // component's author made it public: a private input or output is not in the
 // types, so it cannot be named.
 
-import { Maybe } from "@tinker/functional";
+import { Emitter, Maybe } from "@tinker/functional";
+import { type Either, Left, map, Right } from "@tinker/functional/v1";
 import type { InputName, InputValue } from "./authoring/input.ts";
 import { type OutputName, type OutputValue, outputsOf } from "./authoring/output.ts";
 import { ElementRef } from "./runtime/element-ref.ts";
@@ -31,8 +32,8 @@ export class ComponentRef<T extends object> {
    * sees the new value like any signal: the DOM follows at the next change
    * detection.
    */
-  setInput<K extends InputName<T>>(name: K, value: InputValue<T[K]>): void {
-    this.view.setInput(name, value);
+  setInput<K extends InputName<T>>(name: K, value: InputValue<T[K]>): Either<void, Error> {
+    return this.view.setInput(name, value);
   }
 
   /**
@@ -42,25 +43,28 @@ export class ComponentRef<T extends object> {
   subscribe<K extends OutputName<T>>(
     name: K,
     handler: (value: OutputValue<T[K]>) => void,
-  ): () => void {
-    return this.emitterOf(name).stream.run({
+  ): Either<() => void, Error> {
+    return map(this.emitterOf(name), (emitter) => emitter.stream.run({
       next: (value) => handler(value as OutputValue<T[K]>),
-    });
+    }));
   }
 
   /**
    * Emit a public output, e.g. `ref.emit("selected", 3)`: every template
    * subscribed to it hears the value, as if the component had emitted it.
    */
-  emit<K extends OutputName<T>>(name: K, value: OutputValue<T[K]>): void {
-    this.emitterOf(name)
-      .emit(value);
+  emit<K extends OutputName<T>>(name: K, value: OutputValue<T[K]>): Either<void, Error> {
+    return map(this.emitterOf(name), (emitter) => emitter.emit(value));
   }
 
-  private emitterOf(name: string) {
+  /** The emitter of output `name`, or an error if the component has no such output. */
+  private emitterOf(name: string): Either<Emitter<unknown, void, never>, Error> {
     return Maybe.from(outputsOf(this.view.component)
       .get(name))
-      .getOrThrow(() => new Error(`${this.view.component.constructor.name} has no output "${name}"`));
+      .match({
+        some: (emitter) => Right.of(emitter),
+        none: () => Left.of(new Error(`${this.view.component.constructor.name} has no output "${name}"`)),
+      });
   }
 
   /** Destroy the component and everything it owns. Calling it again does nothing. */

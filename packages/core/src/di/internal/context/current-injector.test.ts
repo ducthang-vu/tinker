@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { InjectionToken, type Token } from "../inject.ts";
 import { Injector } from "../injector.ts";
 import { currentInjector, runInInjectionContext } from "./current-injector.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 const API_URL = new InjectionToken<string>("API_URL");
 
@@ -37,7 +38,7 @@ describe("injection context", () => {
   test("a factory runs with its own injector as the context", () => {
     let seen: Injector | undefined;
     const injector = new Injector([{ token: API_URL, factory: () => ((seen = currentInjector.get()), "x") }]);
-    injector.get(API_URL);
+    valueOrThrow(injector.get(API_URL));
     expect(seen)
       .toBe(injector);
     expect(currentInjector.get())
