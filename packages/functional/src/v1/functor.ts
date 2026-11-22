@@ -221,3 +221,17 @@ implementMap("Some", maybeMap);
 implementMap("None", maybeMap);
 implementFlatMap("Some", maybeFlatMap);
 implementFlatMap("None", maybeFlatMap);
+
+/**
+ * The values of a list of Eithers, in order: a Right of all of them, or the first Left. Every
+ * step is run, so use it for steps that have no effects.
+ */
+export function sequence<T, E>(eithers: readonly Either<T, E>[]): Either<T[], E> {
+  return eithers.reduce<Either<T[], E>>((all, next) =>
+    flatMap(all, (values) => appendTo(values, next)), Right.of<T[], E>([]));
+}
+
+/** `next`'s value added after `values`. */
+function appendTo<T, E>(values: readonly T[], next: Either<T, E>): Either<T[], E> {
+  return map(next, (value): T[] => [...values, value]);
+}

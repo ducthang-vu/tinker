@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { Left, Right } from "./either.ts";
-import { CHAIN, type Chain, type Functor, flatMap, MAP, map } from "./functor.ts";
+import { CHAIN, type Chain, type Functor, flatMap, MAP, map, sequence } from "./functor.ts";
 import { MATCHABLE, type Matchable } from "./monad.ts";
 import { chainLaws, type ChainUnderTest, EDGE_VALUES } from "./testing.ts";
 
@@ -183,5 +183,22 @@ describe("native arrays", () => {
       expect(check, description)
         .not.toThrow();
     }
+  });
+});
+
+describe("sequence", () => {
+  test("a list of Rights is a Right of their values, in order", () => {
+    expect(sequence([Right.of<number, string>(1), Right.of<number, string>(2)]))
+      .toEqual(Right.of([1, 2]));
+  });
+
+  test("the first Left is the result", () => {
+    expect(sequence([Right.of<number, string>(1), Left.of<string, number>("bad"), Left.of<string, number>("worse")]))
+      .toEqual(Left.of("bad"));
+  });
+
+  test("an empty list is a Right of an empty list", () => {
+    expect(sequence<number, string>([]))
+      .toEqual(Right.of([]));
   });
 });

@@ -8,7 +8,7 @@
 // `{{` has one string and no expressions.
 
 import { type Expression, ExpressionParser } from "./expression.ts";
-import { map, flatMap, Left, Right, type Either, pipe } from "@tinker/functional/v1";
+import { Left, map, sequence, type Either } from "@tinker/functional/v1";
 
 export interface Interpolation {
   readonly strings: readonly string[];
@@ -30,15 +30,6 @@ export function parseInterpolation(text: string): Either<Interpolation, Error> {
     rest = rest.slice(end + 2);
   }
   strings.push(rest);
-  const parsed = sources.reduce<Either<Expression[], Error>>(
-    (all, source) => pipe(
-      all,
-      flatMap((expressions: Expression[]) => pipe(
-        ExpressionParser.parse(source),
-        map((e: Expression) => [...expressions, e]),
-      )),
-    ),
-    Right.of([]),
-  );
+  const parsed = sequence(sources.map((source) => ExpressionParser.parse(source)));
   return map(parsed, (expressions) => ({ strings, expressions }));
 }

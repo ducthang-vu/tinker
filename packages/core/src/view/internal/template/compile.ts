@@ -17,7 +17,7 @@ import { type Expression, ExpressionParser } from "./expression.ts";
 import { type Handler, parseHandler } from "./handler.ts";
 import { type EventModifier, expandModifier, isModifier, parseEventName } from "./event-modifiers.ts";
 import { Maybe } from "@tinker/functional";
-import { flatMap, Left, map, mapLeft, Right } from "@tinker/functional/v1";
+import { flatMap, Left, map, mapLeft, Right, sequence } from "@tinker/functional/v1";
 import type { Class } from "../../../utils/types.ts";
 import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
@@ -229,16 +229,7 @@ function compileItems(
 
 /** The nodes of a list of results, in order: the first failure is the result. */
 function concatAll(results: readonly Parsed<readonly CompiledNode[]>[]): Parsed<CompiledNode[]> {
-  return results.reduce<Parsed<CompiledNode[]>>((all, next) => appendNodes(all, next),
-    Right.of<CompiledNode[], Error>([]));
-}
-
-/** `next`'s nodes added after those collected so far, when both succeed. */
-function appendNodes(
-  all: Parsed<CompiledNode[]>,
-  next: Parsed<readonly CompiledNode[]>,
-): Parsed<CompiledNode[]> {
-  return flatMap(all, (nodes: CompiledNode[]) => map(next, (more) => [...nodes, ...more]));
+  return map(sequence(results), (lists) => lists.flat());
 }
 
 /** One item, compiled. An error gets the item's span, unless an inner item gave it one. */
