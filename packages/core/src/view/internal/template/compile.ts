@@ -199,6 +199,8 @@ export interface DirectiveCandidate {
   readonly selector: Selector;
   /** A component: an element matches at most one, and becomes its host. */
   readonly isComponent: boolean;
+  /** The name `#name="exportAs"` gives it, if it has one. */
+  readonly exportAs?: string;
 }
 
 /** Text, as static strings and the expressions between them. */
@@ -216,7 +218,97 @@ export function compileTemplate(
   nodes: readonly TemplateNode[],
   candidates: readonly DirectiveCandidate[] = [],
 ): Parsed<readonly CompiledNode[]> {
-  return flatMap(itemsOf(nodes), (items) => compileItems(items, candidates));
+  return flatMap(itemsOf(nodes), (items) => compiledOnce(items, candidates));
+}
+
+/** The compiled items, if each name is declared once where it is seen. */
+function compiledOnce(
+  items: readonly Item[],
+  candidates: readonly DirectiveCandidate[],
+): Parsed<readonly CompiledNode[]> {
+  return flatMap(compileItems(items, candidates), (compiled) => uniqueNames(compiled));
+}
+
+/** `compiled`, if its names are each declared once. */
+function uniqueNames(compiled: readonly CompiledNode[]): Parsed<readonly CompiledNode[]> {
+  return map(declaredOnce(compiled, new Set()), () => compiled);
+}
+
+/**
+ * Each name declared by `#name`, `##name` or `<template #name>` is declared once, in the
+ * order the builder sees them. An element's names are visible to what follows it in its
+ * scope, and its children share that scope. A `@match`, a `@map` or a template sees a copy
+ * and leaves nothing behind. A `@let` adds its name without a check, as the builder does.
+ */
+function declaredOnce(
+  nodes: readonly CompiledNode[],
+  visible: ReadonlySet<string>,
+): Parsed<ReadonlySet<string>> {
+  return nodes.reduce<Parsed<ReadonlySet<string>>>((done, node) =>
+    flatMap(done, (names) => declaredByNode(node, names)), Right.of(visible));
+}
+
+function declaredByNode(
+  node: CompiledNode,
+  names: ReadonlySet<string>,
+): Parsed<ReadonlySet<string>> {
+  if (node.kind === "element") {
+    return declaredByElement(node, names);
+  }
+  if (node.kind === "let") {
+    return Right.of(new Set([...names, node.name]));
+  }
+  if (node.kind === "declaration") {
+    return flatMap(declare(node.name, names), (declared) => declaredWithin(node.body, declared));
+  }
+  if (node.kind === "match") {
+    const branches = [
+      ...node.cases.map((branch) => branch.body),
+      ...(node.default ? [node.default] : []),
+    ];
+    return map(sequence(branches.map((body) => copyOf(body, names))), () => names);
+  }
+  if (node.kind === "map") {
+    return map(copyOf(node.body, names), () => names);
+  }
+  return Right.of(names);
+}
+
+/** The names an element declares, then those its children declare after them, in its scope. */
+function declaredByElement(
+  node: CompiledElement,
+  names: ReadonlySet<string>,
+): Parsed<ReadonlySet<string>> {
+  return flatMap(declaredByReferences(node.references, names), (declared) =>
+    declaredOnce(node.children, declared));
+}
+
+function declaredByReferences(
+  references: readonly TemplateReference[],
+  names: ReadonlySet<string>,
+): Parsed<ReadonlySet<string>> {
+  return references.reduce<Parsed<ReadonlySet<string>>>((done, reference) =>
+    flatMap(done, (declared) => declare(reference.name, declared)), Right.of(names));
+}
+
+/** `names` with `name` added, or an error if `name` is already declared. */
+function declare(name: string, names: ReadonlySet<string>): Parsed<ReadonlySet<string>> {
+  return names.has(name)
+    ? Left.of(new Error(`#${name} is already declared in this template`))
+    : Right.of(new Set([...names, name]));
+}
+
+/** The names a template's body declares, from the names visible to it; `declared` is kept. */
+function declaredWithin(
+  body: readonly CompiledNode[],
+  declared: ReadonlySet<string>,
+): Parsed<ReadonlySet<string>> {
+  return map(declaredOnce(body, declared), () => declared);
+}
+
+/** The names a copy of the scope declares in `body`: nothing is left behind. */
+function copyOf(body: readonly CompiledNode[], names: ReadonlySet<string>): Parsed<void> {
+  return map(declaredOnce(body, names), () => undefined);
 }
 
 /** Concatenates the nodes of each item, in order: the first failure is the result. */
@@ -540,7 +632,7 @@ function compileElement(
   const directives = matched.filter(({ isComponent }) => !isComponent)
     .map(({ type }) => type);
   const container = node.name === CONTAINER;
-  const checked = container
+  const containerChecked = container
     ? checkContainer(node, {
         classBindings,
         classObjects,
@@ -551,6 +643,8 @@ function compileElement(
         references,
       })
     : Right.of<void, Error>(undefined);
+  const referencesChecked = checkedReferences(node, references, matched, component);
+  const checked = flatMap(containerChecked, () => referencesChecked);
   const parts: ElementParts = {
     attributes,
     classBindings,
@@ -565,6 +659,39 @@ function compileElement(
     container,
   };
   return flatMap(checked, () => elementAfterChecks(node, parts, candidates));
+}
+
+/**
+ * The references of an element against what it matched: `##name` needs the element's
+ * component, and `#name="exportAs"` needs a directive or component with that exportAs.
+ */
+function checkedReferences(
+  node: ElementNode,
+  references: readonly TemplateReference[],
+  matched: readonly DirectiveCandidate[],
+  component: Maybe<Class<object>>,
+): Parsed<void> {
+  return references.reduce<Parsed<void>>((done, reference) =>
+    flatMap(done, () => referenceChecked(node, reference, matched, component)),
+  Right.of<void, Error>(undefined));
+}
+
+function referenceChecked(
+  node: ElementNode,
+  reference: TemplateReference,
+  matched: readonly DirectiveCandidate[],
+  component: Maybe<Class<object>>,
+): Parsed<void> {
+  const { name, target } = reference;
+  if (target.kind === "component" && component.isNone()) {
+    return Left.of(new Error(`##${name}: <${node.name}> has no component`));
+  }
+  if (target.kind === "export" && !matched.some((candidate) => candidate.exportAs === target.exportAs)) {
+    return Left.of(new Error(
+      `#${name}="${target.exportAs}": no directive on <${node.name}> is exported as "${target.exportAs}"`,
+    ));
+  }
+  return Right.of<void, Error>(undefined);
 }
 
 /** The element name of a container: a position with no element, for directives. */

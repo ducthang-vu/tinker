@@ -330,19 +330,17 @@ describe("Engine.bootstrap", () => {
       .toBe(false);
   });
 
-  test("createComponent throws for a selector it cannot build a host from", () => {
+  test("createComponent fails for a selector it cannot build a host from", () => {
     @Component({ selector: ".a-class", template: "" })
     class ByClass {}
     @Component({ selector: "", template: "" })
     class Empty {}
     const engine = Engine.create();
 
-    expect(() => engine.createComponent(ByClass))
-      .toThrow(
-        `Cannot create a host element for ByClass from selector ".a-class"`,
-      );
-    expect(() => engine.createComponent(Empty))
-      .toThrow(`from selector ""`);
+    expect(messageOf(engine.createComponent(ByClass)))
+      .toBe(`Cannot create a host element for ByClass from selector ".a-class"`);
+    expect(messageOf(engine.createComponent(Empty)))
+      .toContain(`from selector ""`);
   });
 
   test("throws for a class that is not a component", () => {

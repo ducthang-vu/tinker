@@ -44,6 +44,10 @@ export interface Declaration {
   readonly imports: readonly string[] | undefined;
   /** The `styleUrl` property, when the decorator has one. */
   readonly styleUrl?: StyleUrlSource;
+  /** The `exportAs`, when the decorator gives it as a literal. */
+  readonly exportAs: string | undefined;
+  /** Whether the decorator gives an `exportAs` that is not a literal, which is not read. */
+  readonly exportAsIsDynamic: boolean;
 }
 
 /** A `styleUrl` property: the file it names, when that is a literal, and where the property is. */
@@ -175,6 +179,7 @@ function decoratorInfo(
   }
   const selector = propertyOf(options, "selector");
   const template = propertyOf(options, "template");
+  const exportAs = propertyOf(options, "exportAs");
   return {
     kind,
     selector: literalOf(selector, constants),
@@ -182,6 +187,8 @@ function decoratorInfo(
     template: templateOf(template, constants),
     templateRef: refOf(template, constants),
     imports: identifiersOf(propertyOf(options, "imports")),
+    exportAs: literalOf(exportAs, constants),
+    exportAsIsDynamic: exportAs !== undefined && literalOf(exportAs, constants) === undefined,
     ...styleUrlOf(options, constants),
   };
 }

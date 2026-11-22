@@ -298,9 +298,6 @@ export class TemplateBuilder {
   private declareReferences(node: CompiledElement, element: Node): PendingReference[] {
     const pending: PendingReference[] = [];
     for (const { name, target } of node.references) {
-      if (this.scope.lets.has(name)) {
-        throw new Error(`#${name} is already declared in this template`);
-      }
       // A top-level name is also in the component's registry, so a query can name it.
       const value = this.root ? this.queries.reference(name) : signal<unknown>(undefined);
       this.scope.lets.set(name, value);
@@ -323,22 +320,16 @@ export class TemplateBuilder {
     directives: readonly { readonly type: Class<object>; readonly instance: object }[],
     component: object | undefined,
   ): void {
-    for (const { name, target, value } of references) {
+    // The compiler checked that each reference has its component, or a directive with its
+    // exportAs, so what is looked up here is there.
+    for (const { target, value } of references) {
       if (target.kind === "component") {
-        if (component === undefined) {
-          throw new Error(`##${name}: <${node.name}> has no component`);
-        }
         value.set(component);
         continue;
       }
       const match = directives.find(({ type }) =>
         valueOrThrow(this.directiveFactory.metadataOf(type)).exportAs === target.exportAs);
-      if (match === undefined) {
-        throw new Error(
-          `#${name}="${target.exportAs}": no directive on <${node.name}> is exported as "${target.exportAs}"`,
-        );
-      }
-      value.set(match.instance);
+      value.set(match?.instance);
     }
   }
 
@@ -472,9 +463,6 @@ export class TemplateBuilder {
 
   /** A template declared here: a value under its name, rendering nothing in place. */
   private declareTemplate(node: CompiledDeclaration): void {
-    if (this.scope.lets.has(node.name)) {
-      throw new Error(`#${node.name} is already declared in this template`);
-    }
     const template = new TemplateRef(
       node.body,
       node.names,
