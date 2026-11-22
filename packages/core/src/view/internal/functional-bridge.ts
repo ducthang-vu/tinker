@@ -8,7 +8,10 @@ import { Left, match, None, Right, Some, type Either, type Maybe } from "@tinker
 
 /** A v0 Maybe as a v1 Maybe. */
 export function maybeFromLegacy<T>(maybe: LegacyMaybe<T>): Maybe<T> {
-  return match(maybe, { Some: (value) => Some.of(value), None: () => None.of<T>() });
+  return maybe.match({
+    some: (value) => Some.of(value),
+    none: () => None.of<T>(),
+  });
 }
 
 /** A v1 Maybe as a v0 Maybe. */
@@ -21,7 +24,10 @@ export function maybeToLegacy<T>(maybe: Maybe<T>): LegacyMaybe<T> {
 
 /** A v0 Either as a v1 Either. */
 export function eitherFromLegacy<T, E>(either: LegacyEither<T, E>): Either<T, E> {
-  return match(either, { Right: (value) => Right.of<T, E>(value), Left: (error) => Left.of<E, T>(error) });
+  return either.match({
+    right: (value) => Right.of<T, E>(value),
+    left: (error) => Left.of<E, T>(error),
+  });
 }
 
 /** A v1 Either as a v0 Either. */

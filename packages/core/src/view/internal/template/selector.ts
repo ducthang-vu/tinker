@@ -53,6 +53,19 @@ export class Selector {
   ) {}
 
   /** Parse `source`, or the error explaining what is not supported. */
+  /**
+   * The selector of a source the build step has already validated. Use `parse` for any other
+   * source: this throws the error of an invalid one.
+   */
+  static parseValid(source: string): Selector {
+    return match(Selector.parse(source), {
+      Left: (error) => {
+        throw error;
+      },
+      Right: (selector) => selector,
+    });
+  }
+
   static parse(source: string): Either<Selector, SelectorError> {
     if (source.trim() === "") {
       return Left.of(new SelectorError(`Empty selector: write e.g. "[tooltip]" or "tk-card"`));

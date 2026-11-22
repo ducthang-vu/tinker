@@ -75,7 +75,7 @@ describe("emitCompiled", () => {
     expect(code)
       .toContain("__M.some(1)");
     expect(code)
-      .toContain("__S.parse(\"[a]\")");
+      .toContain("__S.parseValid(\"[a]\")");
   });
 
   test("writes a Selector by its source", () => {

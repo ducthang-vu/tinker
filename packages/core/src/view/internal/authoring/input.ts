@@ -55,7 +55,7 @@ export class InputNotBoundError extends Error {
   /** @param label Which input, e.g. `"text" of Tooltip`, if known yet. */
   constructor(label: Maybe<string>) {
     super(
-      match(label, { Some: (name) => `Input ${name} was read before it was bound`, None: () => "An input was read before it was bound (e.g. in the constructor)" }),
+      label.match({ some: (name) => `Input ${name} was read before it was bound`, none: () => "An input was read before it was bound (e.g. in the constructor)" }),
     );
     this.name = "InputNotBoundError";
   }

@@ -16,7 +16,7 @@
 
 import { Maybe } from "@tinker/functional";
 import type { Runnable, WatchScheduler } from "../../../signals/index.ts";
-import { match, type Either, Left, Right } from "@tinker/functional/v1";
+import { match, type Either, Left, Right, attempt } from "@tinker/functional/v1";
 
 export class RunFirstNow implements WatchScheduler {
   private first = true;
@@ -36,6 +36,7 @@ export class RunFirstNow implements WatchScheduler {
       return;
     }
     this.first = false;
-    this.firstFailure = match(Either.try(() => task.run()), { Left: Maybe.some, Right: () => Maybe.none() });
+    const outcome = attempt(() => task.run(), (error): error is unknown => true);
+    this.firstFailure = match(outcome, { Left: Maybe.some, Right: () => Maybe.none() });
   }
 }

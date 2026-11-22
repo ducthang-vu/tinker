@@ -56,11 +56,10 @@ function emitValue(value: unknown, scope: Scope): string {
       .join(", ")}]`;
   }
   if (value instanceof Maybe) {
-    return match(value, { Some: (inner) => `${scope.helpers.Maybe}.some(${emitValue(inner, scope)})`, None: () => `${scope.helpers.Maybe}.none()` });
+    return value.match({ some: (inner) => `${scope.helpers.Maybe}.some(${emitValue(inner, scope)})`, none: () => `${scope.helpers.Maybe}.none()` });
   }
   if (value instanceof Selector) {
-    return `${scope.helpers.Selector}.parse(${JSON.stringify(value.source)})`
-      + ".match({ left: (error) => { throw error; }, right: (value) => value })";
+    return `${scope.helpers.Selector}.parseValid(${JSON.stringify(value.source)})`;
   }
   if (typeof value === "function") {
     return nameOf(value as Class<object>, scope.names);

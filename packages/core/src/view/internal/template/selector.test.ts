@@ -7,11 +7,25 @@ const element = (name: string, attributes: Record<string, string> = {}) => ({
   attributes: Object.entries(attributes)
     .map(([n, value]) => ({ name: n, value })),
 });
-const matches = (selector: string, el: ReturnType<typeof element>) => match(Selector.parse(selector), { Left: (error) => {
-  throw error;
-}, Right: (value) => value })
-  .matches(el);
+const matches = (selector: string, el: ReturnType<typeof element>) =>
+  match(Selector.parse(selector), { Left: (error) => {
+    throw error;
+  }, Right: (value) => value })
+    .matches(el);
 const error = (selector: string) => match(Selector.parse(selector), { Left: (e) => e.message, Right: () => "no error" });
+
+describe("Selector.parseValid", () => {
+  test("returns the selector of a valid source", () => {
+    expect(Selector.parseValid("tk-card")
+      .matches({ name: "tk-card", attributes: [] }))
+      .toBe(true);
+  });
+
+  test("throws the error of an invalid source", () => {
+    expect(() => Selector.parseValid(""))
+      .toThrow("Empty selector");
+  });
+});
 
 describe("Selector", () => {
   test("a tag matches elements with that name, case-insensitively", () => {

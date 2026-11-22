@@ -15,6 +15,7 @@
 // a literal (its template, its `imports` or a directive's selector), or when an
 // imported directive cannot be found. Such a component keeps its template string.
 
+import { match } from "@tinker/functional/v1";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { Class } from "@tinker/core";
@@ -256,13 +257,12 @@ async function replacementFor(
     classes.set(type, imported.name);
     return { selector: imported.selector, isComponent: imported.isComponent, type };
   });
-  return compileSource(template.text, list)
-    .match({
-      left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
-      right: (nodes) => mode.emit
-        ? { start: template.start, end: template.end, text: emitCompiled(nodes, classes, HELPERS) }
-        : undefined,
-    });
+  return match(compileSource(template.text, list), {
+    Left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
+    Right: (nodes) => mode.emit
+      ? { start: template.start, end: template.end, text: emitCompiled(nodes, classes, HELPERS) }
+      : undefined,
+  });
 }
 
 /**

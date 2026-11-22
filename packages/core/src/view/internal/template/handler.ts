@@ -35,24 +35,26 @@ export interface Handler {
 export function parseHandler(source: string, what: string): Either<Handler, Error> {
   const unsupported = (reason: string) =>
     Left.of(new Error(`Unsupported ${what} "${source}": ${reason}`));
-  return match(ExpressionParser.parse(source), { Left: (error) => unsupported(error.message), Right: (expression) => {
-    const shape = `write a call of a method, as in "method()", "method($event)" or "g.method()"`;
-    if (expression.kind !== "call") {
+  return match(ExpressionParser.parse(source), {
+    Left: (error) => unsupported(error.message),
+    Right: (expression) => {
+      const shape = `write a call of a method, as in "method()", "method($event)" or "g.method()"`;
+      if (expression.kind !== "call") {
+        return unsupported(shape);
+      }
+      const { callee } = expression;
+      if (callee.kind !== "property") {
+        return unsupported(shape);
+      }
+      if (callee.receiver.kind === "component") {
+        return Right.of({ method: callee.name, call: expression });
+      }
+      const { receiver } = callee;
+      if (receiver.kind === "property" && receiver.receiver.kind === "component") {
+        return Right.of({ method: callee.name, target: receiver.name, call: expression });
+      }
       return unsupported(shape);
-    }
-    const { callee } = expression;
-    if (callee.kind !== "property") {
-      return unsupported(shape);
-    }
-    if (callee.receiver.kind === "component") {
-      return Right.of({ method: callee.name, call: expression });
-    }
-    const { receiver } = callee;
-    if (receiver.kind === "property" && receiver.receiver.kind === "component") {
-      return Right.of({ method: callee.name, target: receiver.name, call: expression });
-    }
-    return unsupported(shape);
-  } });
+    } });
 }
 
 /**

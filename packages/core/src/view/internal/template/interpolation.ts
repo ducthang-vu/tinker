@@ -33,9 +33,9 @@ export function parseInterpolation(text: string): Either<Interpolation, Error> {
   const parsed = sources.reduce<Either<Expression[], Error>>(
     (all, source) => pipe(
       all,
-      flatMap((expressions) => pipe(
+      flatMap((expressions: Expression[]) => pipe(
         ExpressionParser.parse(source),
-        map((e) => [...expressions, e]),
+        map((e: Expression) => [...expressions, e]),
       )),
     ),
     Right.of([]),

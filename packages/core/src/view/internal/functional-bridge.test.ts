@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Either as LegacyEither, Maybe as LegacyMaybe } from "@tinker/functional";
-import { type Either, Left, None, Right, Some, match } from "@tinker/functional/v1";
+import { Left, Right, None, Some } from "@tinker/functional/v1";
 import {
   eitherFromLegacy,
   eitherToLegacy,
@@ -27,10 +27,12 @@ describe("Maybe across the bridge", () => {
 
   test("a v1 Some becomes a v0 Some, and a v1 None a v0 None", () => {
     for (const value of values) {
-      expect(match(maybeToLegacy(Some.of(value)), { Some: (inner) => inner, None: () => "none" }))
+      expect(maybeToLegacy(Some.of(value))
+        .match({ some: (inner) => inner, none: () => "none" }))
         .toBe(value);
     }
-    expect(match(maybeToLegacy(None.of()), { Some: () => "some", None: () => "none" }))
+    expect(maybeToLegacy(None.of())
+      .match({ some: () => "some", none: () => "none" }))
       .toBe("none");
   });
 });
@@ -46,9 +48,11 @@ describe("Either across the bridge", () => {
   });
 
   test("a v1 Right and Left become v0 Right and Left", () => {
-    expect(match(eitherToLegacy(Right.of(1)), { Right: (value) => value, Left: () => -1 }))
+    expect(eitherToLegacy(Right.of(1))
+      .match({ right: (value) => value, left: () => -1 }))
       .toBe(1);
-    expect(match(eitherToLegacy(Left.of("bad")), { Right: () => "ok", Left: (error) => error }))
+    expect(eitherToLegacy(Left.of("bad"))
+      .match({ right: () => "ok", left: (error) => error }))
       .toBe("bad");
   });
 });

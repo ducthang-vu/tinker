@@ -202,7 +202,10 @@ export class TemplateBuilder {
       // A component is only on an element; the node the instances are view queries of.
       const element = placement.kind === "element" ? placement.element : undefined;
       const queried: Node = element ?? (placement as ContainerPlacement).anchor;
-      const parentInjector = match(parent, { Some: (index) => injectors[index]!, None: () => componentInjector });
+      const parentInjector = parent.match({
+        some: (index) => injectors[index]!,
+        none: () => componentInjector,
+      });
       // Host bindings on this element (its directives', its component's) join
       // this view's watch, except for the classes this template binds on it:
       // the template's own binding takes precedence.
@@ -241,7 +244,7 @@ export class TemplateBuilder {
       };
       let instances = directives;
       let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
-      match(node.component, { Some: (type) => {
+      node.component.match({ some: (type) => {
         const child = this.components.create(type, element, {
           parentInjector: injector,
           parentView: view,
@@ -257,7 +260,7 @@ export class TemplateBuilder {
         });
         instances = [...directives, child.component];
         owner = { type, instance: child.component };
-      }, None: () => bindInputs(this.ownedOf(node.directives, directives)) });
+      }, none: () => bindInputs(this.ownedOf(node.directives, directives)) });
       this.resolveReferences(
         node,
         references,

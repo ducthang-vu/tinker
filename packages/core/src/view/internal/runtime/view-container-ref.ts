@@ -186,7 +186,8 @@ export class ViewContainerRef {
 
   /** The node before which the component at `index` must sit: the next host, or the anchor. */
   private nodeAfter(index: number): Node {
-    return match(this.get(index + 1), { Some: (ref) => ref.host.nativeElement, None: () => this.anchor });
+    return this.get(index + 1)
+      .match({ some: (ref) => ref.host.nativeElement, none: () => this.anchor });
   }
 
   private parent(): Node {
