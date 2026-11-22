@@ -37,6 +37,7 @@ export { TemplateSyntaxError, TinkerTemplateParser } from "./internal/template/t
 // do not use it in an app, unless you accept that it may change without notice.
 export { Engine, type EngineOptions } from "./internal/engine.ts";
 export { inputsOf } from "./internal/authoring/input.ts";
+export { inputNamesOf, registerInputNames } from "./internal/authoring/input-names.ts";
 export { outputsOf } from "./internal/authoring/output.ts";
 export { getComponentMetadata, getDirectiveMetadata } from "./internal/authoring/decorators.ts";
 export { CLASS_REPLACEMENTS } from "./internal/tokens.ts";

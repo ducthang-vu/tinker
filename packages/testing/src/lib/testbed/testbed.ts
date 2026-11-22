@@ -10,6 +10,7 @@ import {
   getComponentMetadata,
   getDirectiveMetadata,
   input,
+  inputNamesOf,
   output,
   Engine,
   type Provider,
@@ -234,13 +235,34 @@ const NO_MEMBERS: MockMembers = {
   methods: {},
 };
 
+/**
+ * A required input of a mock, under the name templates use for the real input of that property
+ * (its `name`, as the compiler registered it): a parent template binds the mock as the real class.
+ */
+function requiredInput(property: string, templateNames: Readonly<Record<string, string>>): unknown {
+  const name = templateNames[property];
+  return name === undefined ? input() : input({ name });
+}
+
+/** An optional input of a mock, with its default, under its template name (see requiredInput). */
+function optionalInput(
+  property: string,
+  defaultValue: unknown,
+  templateNames: Readonly<Record<string, string>>,
+): unknown {
+  const name = templateNames[property];
+  return name === undefined ? input(defaultValue) : input(defaultValue, { name });
+}
+
 /** The members of a mock instance: one input and one output per declared name. */
-function membersOf(members: MockMembers): object {
+function membersOf(members: MockMembers, templateNames: Readonly<Record<string, string>>): object {
   return {
-    ...Object.fromEntries(members.required.map((name) => [name, input()])),
+    ...Object.fromEntries(
+      members.required.map((name) => [name, requiredInput(name, templateNames)]),
+    ),
     ...Object.fromEntries(
       Object.entries(members.optional)
-        .map(([name, value]) => [name, input(value)]),
+        .map(([name, value]) => [name, optionalInput(name, value, templateNames)]),
     ),
     ...Object.fromEntries(members.outputs.map((name) => [name, output()])),
     ...members.fields,
@@ -330,7 +352,7 @@ export class MockComponentBuilder<F extends object> {
       static readonly mockOf = type;
 
       constructor() {
-        Object.assign(this, membersOf(members));
+        Object.assign(this, membersOf(members, inputNamesOf(type)));
       }
     }
     return MockComponent as unknown as MockClass<F>;
@@ -422,7 +444,7 @@ export class MockDirectiveBuilder<F extends object> {
       static readonly mockOf = type;
 
       constructor() {
-        Object.assign(this, membersOf(members));
+        Object.assign(this, membersOf(members, inputNamesOf(type)));
       }
     }
     return MockDirective as unknown as MockClass<F>;

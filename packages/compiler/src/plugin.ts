@@ -116,18 +116,45 @@ export async function emitFile(
   mode: CompileMode,
 ): Promise<EmittedFile | undefined> {
   const replacements = await compileComponents(code, filename, host, mode);
-  if (replacements.length === 0) {
+  const registrations = registrationsOf(code, filename);
+  if (replacements.length === 0 && registrations.length === 0) {
     return undefined;
   }
   const output = new MagicString(code);
   for (const replacement of replacements) {
     output.overwrite(replacement.start, replacement.end, replacement.text);
   }
-  output.prepend(HELPER_IMPORTS);
+  for (const registration of registrations) {
+    output.appendLeft(registration.start, registration.text);
+  }
+  if (registrations.length > 0) {
+    output.prepend(REGISTER_IMPORT);
+  }
+  if (replacements.length > 0) {
+    output.prepend(HELPER_IMPORTS);
+  }
   return {
     code: output.toString(),
     map: output.generateMap({ hires: true, source: filename, includeContent: true }),
   };
+}
+
+/** The name the emitted code uses for the input registration, aliased like the other helpers. */
+const REGISTER = "__tinkerRegisterInputs";
+const REGISTER_IMPORT = `import { registerInputNames as ${REGISTER} } from "@tinker/core";\n`;
+
+/**
+ * The registration of each class's input names, placed after the class: the class then knows
+ * the names its templates use, without an instance. Given whether or not templates are emitted.
+ */
+function registrationsOf(code: string, filename: string): Replacement[] {
+  return readSource(code, filename).declarations
+    .filter(({ inputNames }) => Object.keys(inputNames).length > 0)
+    .map((declaration) => ({
+      start: declaration.statementEnd,
+      end: declaration.statementEnd,
+      text: `\n${REGISTER}(${declaration.name}, ${JSON.stringify(declaration.inputNames)});`,
+    }));
 }
 
 /** Whether `id` is a TypeScript file outside node_modules that mentions a component. */

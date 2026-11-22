@@ -1,9 +1,11 @@
 import { defineConfig } from "vitest/config";
+// The compiler is read from its build, which `pretest` and `precoverage` make first.
+import { tinkerCompiler } from "@tinker/compiler";
 import { standardDecorators, workspaceAlias } from "./vite.shared.ts";
 
 // The root config is for the tests. The example app has its own (examples/basics).
 export default defineConfig({
-  plugins: [standardDecorators()],
+  plugins: [tinkerCompiler(), standardDecorators()],
   resolve: {
     alias: workspaceAlias,
   },

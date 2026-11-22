@@ -173,17 +173,6 @@ sheet's rules one at a time if a list of files is ever scoped separately.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
-### 1. The testing helpers do not know an input's template name
-
-**Problem.** `input(…, { name })` gives the template name, but `InputName<T>` and the
-mock builders (`requiredInputs`, `optionalInputs`) work on the property names. They were
-written before options existed, so a mock may not copy the template name: a test that
-sets `title="…"` on a mock of `label` could then fail. Not yet checked by a test.
-
-**To do.** Have the mock builders read `InputBinding.alias` (through `inputsOf` or a new
-accessor) and copy each input under its template name, keeping the property name for
-the typed side.
-
 ### 2. Adapters report no errors
 
 **Problem.** `numberAdapter` gives NaN for text that is not a number, and nothing tells the
