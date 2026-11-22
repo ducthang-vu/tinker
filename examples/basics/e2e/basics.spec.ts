@@ -100,6 +100,20 @@ test("the pattern demo steps through its statuses, one branch at a time", async 
     .toBeGreaterThan(1);
 });
 
+test("the header links to the API reference, a page of its own, and back", async ({ page }) => {
+  await page.getByRole("link", { name: "API reference" })
+    .click();
+  await expect(page)
+    .toHaveURL(/\/api$/);
+  await expect(page.locator("tk-api-docs h1"))
+    .toHaveText("Public API");
+
+  await page.getByRole("link", { name: "Examples" })
+    .click();
+  await expect(page.locator("tk-counter h2"))
+    .toHaveText("Counter");
+});
+
 test("the clock shows a time, and it is still running", async ({ page }) => {
   const time = page.locator("tk-clock p")
     .first();
