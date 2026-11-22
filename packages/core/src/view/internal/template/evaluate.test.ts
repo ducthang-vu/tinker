@@ -9,6 +9,17 @@ const run = (source: string, component: object) =>
   evaluate(valueOrThrow(ExpressionParser.parse(source)), new Scope(component));
 
 describe("evaluate", () => {
+  test("unary minus negates a number, and the operand is a whole operand", () => {
+    expect(run("-count", { count: 3 }))
+      .toBe(-3);
+    expect(run("-count() * 2", { count: () => 3 }))
+      .toBe(-6);
+    expect(run("-(1 + 2)", {}))
+      .toBe(-3);
+    expect(run("-\"4\"", {}))
+      .toBe(-4);
+  });
+
   test("reads fields of the component, and fields of fields", () => {
     expect(run("title", { title: "Tinker" }))
       .toBe("Tinker");
@@ -80,6 +91,8 @@ test("print writes an expression back", () => {
     .toBe("count() * 2 + 1");
   expect(print(valueOrThrow(ExpressionParser.parse("!done"))))
     .toBe("!done");
+  expect(print(valueOrThrow(ExpressionParser.parse("-count() * 2"))))
+    .toBe("-(count()) * 2");
   expect(print(valueOrThrow(ExpressionParser.parse("\"loading\""))))
     .toBe("\"loading\"");
   expect(print(valueOrThrow(ExpressionParser.parse("true"))))

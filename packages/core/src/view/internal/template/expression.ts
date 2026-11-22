@@ -22,7 +22,7 @@
 //   count() * 2 + 1    arithmetic, with parentheses for grouping
 //   total === 0        comparisons: === and ==
 //
-// Call arguments, unary minus and strings come later.
+// Call arguments and strings come later.
 
 import { type Either, Left, Right, flatMap, map, match, pipe } from "@tinker/functional/v1";
 
@@ -34,6 +34,7 @@ export type Expression
     | Literal
     | Binary
     | Not
+    | Negate
     | Conditional
     | ObjectLiteral
     | ArrayLiteral;
@@ -74,6 +75,12 @@ export type BinaryOperator
 /** Logical not, e.g. `!done`. */
 export interface Not {
   readonly kind: "not";
+  readonly operand: Expression;
+}
+
+/** Numeric negation, e.g. `-count()`. */
+export interface Negate {
+  readonly kind: "negate";
   readonly operand: Expression;
 }
 
@@ -288,6 +295,9 @@ export class ExpressionParser {
     this.skipWhitespace();
     if (this.take(["!"])) {
       return map(this.operand(), (operand): Expression => ({ kind: "not", operand }));
+    }
+    if (this.take(["-"])) {
+      return map(this.operand(), (operand): Expression => ({ kind: "negate", operand }));
     }
     if (this.source[this.position] === "(") {
       this.position++;
