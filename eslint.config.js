@@ -7,7 +7,12 @@
 
 import comments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import stylistic from "@stylistic/eslint-plugin";
+import jsdoc from "eslint-plugin-jsdoc";
 import tseslint from "typescript-eslint";
+
+// The packages that must document each function and method (`@param` and `@returns` in TSDoc).
+// A package joins this list when all its functions and methods are documented.
+const DOCUMENTED_PACKAGES = ["packages/functional/src"];
 
 export default [
   { ignores: ["**/dist/", "coverage/", "**/node_modules/"] },
@@ -25,6 +30,21 @@ export default [
       // No `any`. To use one on purpose, say so where it is used:
       //   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- why
       "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
+  // Each function and method of a documented package has TSDoc: its description, a `@param` for
+  // each parameter, and `@returns` when it returns a value. Tests and inline callbacks are exempt.
+  {
+    files: DOCUMENTED_PACKAGES.map((dir) => `${dir}/**/*.ts`),
+    ignores: ["**/*.test.ts"],
+    plugins: { jsdoc },
+    rules: {
+      "jsdoc/require-jsdoc": ["error", {
+        require: { FunctionDeclaration: true, MethodDefinition: true },
+        contexts: [],
+      }],
+      "jsdoc/require-param": "error",
+      "jsdoc/require-returns": "error",
     },
   },
   // Disable comments must name their rules and give a reason (after `--`).

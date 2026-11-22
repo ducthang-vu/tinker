@@ -16,15 +16,31 @@ import {
 export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable {
   readonly [MATCHABLE]: Case<"Right", readonly [T]>;
 
+  /**
+   * Creates the case. Use `Right.of` instead.
+   *
+   * @param value The value the Right holds.
+   */
   private constructor(value: T) {
     this[MATCHABLE] = { name: "Right", args: [value] };
   }
 
+  /**
+   * Whether `other` is a Right holding an equal value.
+   *
+   * @param other The value to compare with.
+   * @returns `true` when `other` is a Right whose value is equal to this one's.
+   */
   [EQUALS](other: unknown): boolean {
     return equalCases(this, other);
   }
 
-  /** A success. */
+  /**
+   * A success.
+   *
+   * @param value The value the Right holds.
+   * @returns A Right holding `value`.
+   */
   static of<T, E = never>(value: T): Either<T, E> {
     return new Right<T>(value);
   }
@@ -34,15 +50,31 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable {
 export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable {
   readonly [MATCHABLE]: Case<"Left", readonly [E]>;
 
+  /**
+   * Creates the case. Use `Left.of` instead.
+   *
+   * @param error The error the Left holds.
+   */
   private constructor(error: E) {
     this[MATCHABLE] = { name: "Left", args: [error] };
   }
 
+  /**
+   * Whether `other` is a Left holding an equal error.
+   *
+   * @param other The value to compare with.
+   * @returns `true` when `other` is a Left whose error is equal to this one's.
+   */
   [EQUALS](other: unknown): boolean {
     return equalCases(this, other);
   }
 
-  /** A failure. */
+  /**
+   * A failure.
+   *
+   * @param error The error the Left holds.
+   * @returns A Left holding `error`.
+   */
   static of<E, T = never>(error: E): Either<T, E> {
     return new Left<E>(error);
   }
@@ -57,7 +89,13 @@ export type EitherCases<T, E, R> = {
   readonly Left: (error: E) => R;
 };
 
-/** `mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`. */
+/**
+ * `mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`.
+ *
+ * @param self The Either to map.
+ * @param f The function applied to a Left's error.
+ * @returns A Right unchanged, or a Left of `f`'s result.
+ */
 export function mapLeft<T, E, F>(self: Either<T, E>, f: (error: E) => F): Either<T, F>;
 export function mapLeft<E, F>(f: (error: E) => F): <T>(self: Either<T, E>) => Either<T, F>;
 export function mapLeft(...args: readonly unknown[]): unknown {
@@ -75,6 +113,10 @@ export function mapLeft(...args: readonly unknown[]): unknown {
 /**
  * Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.
  * Any other throw is a bug, and it propagates.
+ *
+ * @param fn The function to run.
+ * @param isExpected Tells the errors the caller expects, which become a Left.
+ * @returns A Right of `fn`'s result, or a Left of the expected error it threw.
  */
 export function attempt<T, E>(
   fn: () => T,
@@ -90,7 +132,12 @@ export function attempt<T, E>(
   }
 }
 
-/** `value` as an Error: an Error as is, anything else wrapped (kept as its `cause`). */
+/**
+ * `value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).
+ *
+ * @param value The thrown or rejected value.
+ * @returns `value` itself when it is an Error, otherwise a new Error whose cause is `value`.
+ */
 export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value), { cause: value });
 }
@@ -98,6 +145,10 @@ export function toError(value: unknown): Error {
 /**
  * The value of a Right. A Left throws its error: this is the one place a predictable error is
  * thrown, at the edge of an API that has no way to return it (use it only there).
+ *
+ * @param either The Either to read.
+ * @returns The value of the Right.
+ * @throws The error of the Left.
  */
 export function valueOrThrow<T, E>(either: Either<T, E>): T {
   return match<T, E, T>(either, {
