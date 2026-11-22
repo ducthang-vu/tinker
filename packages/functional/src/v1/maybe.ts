@@ -3,14 +3,14 @@
 //   match(maybe, { Some: (value) => ..., None: () => ... })
 
 import { Right, Left, type Either } from "./either.ts";
-import { MONAD, match, type Identity, type Monad } from "./monad.ts";
+import { MATCHABLE, match, type Case, type Matchable } from "./monad.ts";
 
 /** A Some: a value is present. */
-export class Some<T> implements Monad<"Some", readonly [T]> {
-  readonly [MONAD]: Identity<"Some", readonly [T]>;
+export class Some<T> implements Matchable<"Some", readonly [T]> {
+  readonly [MATCHABLE]: Case<"Some", readonly [T]>;
 
   private constructor(value: T) {
-    this[MONAD] = { name: "Some", args: [value] };
+    this[MATCHABLE] = { name: "Some", args: [value] };
   }
 
   /** A present value. */
@@ -20,11 +20,11 @@ export class Some<T> implements Monad<"Some", readonly [T]> {
 }
 
 /** A None: no value. */
-export class None implements Monad<"None", readonly []> {
-  readonly [MONAD]: Identity<"None", readonly []>;
+export class None implements Matchable<"None", readonly []> {
+  readonly [MATCHABLE]: Case<"None", readonly []>;
 
   private constructor() {
-    this[MONAD] = { name: "None", args: [] };
+    this[MATCHABLE] = { name: "None", args: [] };
   }
 
   /** No value. */
