@@ -92,16 +92,29 @@ Planned in `IMPROVEMENTS.md`, Templates item 1. Each needs its rule before it sh
 |---|------|---------------|
 | J1 | A trusted value is set on an attribute | Warn, naming the element and attribute (`IMPROVEMENTS.md`, Developer mode). |
 
-## Open decisions
+## Decisions taken
 
-1. **One family or many:** one `trust(kind, value)` function, or one wrapper per kind (`trustUrl`, `trustHtml`, `trustStyle`)? The second matches Angular and the current PR.
-2. **`style` attribute:** refuse outright (A7), or check it like a URL?
-3. **`url(` in `[style.x]`:** refuse, or allow with a warning? (B2)
-4. **Static markup (E):** document only, or have the compiler warn?
-5. **`xmlns` and `is` (A10):** refuse, or leave as they are?
+These are the defaults the code now follows. Change one by changing the rule in
+`runtime/sanitization.ts` and its tests.
 
-## Verified today
+1. **One wrapper per kind:** `trustUrl`, `trustHtml`, `trustStyle`, each with its own class.
+2. **`style` attribute:** removed unless it is a `TrustedStyle` (A7).
+3. **`url(` in a style value:** removed unless it is a `TrustedStyle`. Also `image(`,
+   `image-set(`, `src(`, `expression(`, and any backslash, since a CSS escape can spell
+   one of them (B2).
+4. **Static markup (E):** not checked, and not warned about. The template is the author's code.
+5. **`xmlns` and `is`:** refused when the template or host metadata is read (A10).
 
-Checked by running the bindings in a test (`formaction`, `srcdoc`, `style`, `data`, `srcset`,
-`background`, `codebase`). The others (A5, B2, E, I1) are from reading the code and need a
-test each before the fix.
+## What is built
+
+- URL attributes: the list in `url-safety.ts` covers every case in A1–A5. `srcset` and `ping`
+  check each URL in the list.
+- `srcdoc`, `style` (attribute), and style values with `url(` and the other forms in B2 are
+  removed unless trusted: `runtime/sanitization.ts`.
+- `xmlns` and `is` are refused where the template and host metadata are read (A10).
+- Event attributes are refused as before (A8).
+- Tests: `runtime/sanitization.test.ts`, `factories/url-attributes.test.ts`.
+
+Not built yet: property bindings (G, which need their own rules when they exist), the
+developer-mode warning for trusted values (J1), and the router check (I1).
+

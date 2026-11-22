@@ -13,14 +13,28 @@ const URL_ATTRIBUTES = new Set([
   "xlink:href",
   "cite",
   "poster",
+  "background",
+  "codebase",
+  "data",
+  "icon",
+  "manifest",
+  "lowsrc",
+  "dynsrc",
+  "usemap",
+  "longdesc",
+  "classid",
+  "profile",
 ]);
+/** Attributes that hold a list of URLs, each of which is checked: see `isSafeUrlValue`. */
+const URL_LIST_ATTRIBUTES = new Set(["srcset", "ping"]);
 const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 /** Resolves relative URLs: a relative one takes this base's protocol, which is safe. */
 const BASE = "https://base.invalid/";
 
-/** Whether `name` is an attribute whose value is a URL. */
+/** Whether `name` is an attribute whose value is a URL, or a list of them. */
 export function isUrlAttribute(name: string): boolean {
-  return URL_ATTRIBUTES.has(name.toLowerCase());
+  const lower = name.toLowerCase();
+  return URL_ATTRIBUTES.has(lower) || URL_LIST_ATTRIBUTES.has(lower);
 }
 
 /**
@@ -41,22 +55,19 @@ export function isSafeUrl(value: string): boolean {
 }
 
 /**
- * A URL the author has vouched for (see `trustUrl`): an attribute bound to it is set
- * without the check above. Its text is the URL.
+ * Whether every URL in `value` is safe for the attribute `name`. `srcset` lists candidates
+ * (a URL and a descriptor each, separated by commas), so each candidate's URL is checked;
+ * `ping` lists URLs separated by spaces; any other attribute holds one URL.
  */
-export class TrustedUrl {
-  constructor(readonly url: string) {}
-
-  toString(): string {
-    return this.url;
+export function isSafeUrlValue(name: string, value: string): boolean {
+  const lower = name.toLowerCase();
+  if (lower === "srcset") {
+    return value.split(",")
+      .every((candidate) => isSafeUrl(/^\S*/.exec(candidate.trim())![0]));
   }
-}
-
-/**
- * Trust `url`: a URL attribute bound to the result is set even when `url` is unsafe, such
- * as a `data:` image. Use it only for a URL you control, and keep it in a field, so the
- * template binds a name that says what it is: `[attr.src]="logo"`.
- */
-export function trustUrl(url: string): TrustedUrl {
-  return new TrustedUrl(url);
+  if (lower === "ping") {
+    return value.split(/\s+/)
+      .every(isSafeUrl);
+  }
+  return isSafeUrl(value);
 }

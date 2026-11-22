@@ -4,7 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
-import { trustUrl } from "../runtime/url-safety.ts";
+import { trustUrl } from "../runtime/sanitization.ts";
 import { HostBindings } from "./host-bindings.ts";
 import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional";
 

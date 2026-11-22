@@ -115,14 +115,15 @@ name can appear many times.
 **To do.** `queryAll` with a variable (a list of the one value, or of the rows that
 share the name), and a registry per row if a row variable is to be queried.
 
-### 4. Warn when a trusted URL is used
+### 4. Warn when a trusted value is used
 
-**Problem.** `trustUrl(url)` lets a URL attribute hold an unsafe URL on purpose (a `data:`
-image, say), and the bypass is silent. The warning belongs to developer mode, which is not
-built yet (see "Developer mode").
+**Problem.** `trustUrl`, `trustHtml` and `trustStyle` let an attribute hold a value that the
+checks would remove (see `docs/sanitization.md`). The bypass is silent. The warning belongs
+to developer mode, which is not built yet (see "Developer mode").
 
-**To do.** When developer mode exists, warn each time a trusted URL is set on an attribute,
-naming the element and the attribute. Until then `trustUrl` is the only record of the bypass.
+**To do.** When developer mode exists, warn each time a trusted value is set on an attribute
+or style, naming the element and the attribute. Until then the `Trusted…` classes are the
+only record of the bypass.
 
 ### 5. Arrow functions
 
