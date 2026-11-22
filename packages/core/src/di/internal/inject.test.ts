@@ -3,6 +3,7 @@ import { currentInjector, runInInjectionContext } from "./context/current-inject
 import { inject, InjectionToken, type Token } from "./inject.ts";
 import { INJECTOR, Injector } from "./injector.ts";
 import { CircularDependencyError } from "./provider-records.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 const API_URL = new InjectionToken<string>("API_URL");
 
@@ -54,7 +55,7 @@ describe("inject", () => {
     expect(fromA)
       .toBe(fromB);
     expect(fromA)
-      .toBe(root.get(STORE));
+      .toBe(valueOrThrow(root.get(STORE)));
   });
 
   test("dependencies resolve from the injector that owns the value", () => {
@@ -108,7 +109,7 @@ describe("inject", () => {
       { token: API_URL, factory: () => "x" },
       { token: LAZY, factory: () => new Lazy() },
     ]);
-    const lazy = injector.get(LAZY);
+    const lazy = valueOrThrow(injector.get(LAZY));
     expect(() => lazy.later())
       .toThrow("inject() must be called in an injection context");
   });
@@ -281,11 +282,11 @@ describe("circular dependencies", () => {
       { token: PAYMENT, factory: () => new Payment() },
       { token: API_URL, factory: () => "still fine" },
     ]);
-    expect(() => injector.get(CART))
+    expect(() => valueOrThrow(injector.get(CART)))
       .toThrow(CircularDependencyError);
-    expect(() => injector.get(CART))
+    expect(() => valueOrThrow(injector.get(CART)))
       .toThrow(CircularDependencyError); // not a stale marker: a real cycle again
-    expect(injector.get(API_URL))
+    expect(valueOrThrow(injector.get(API_URL)))
       .toBe("still fine");
   });
 });

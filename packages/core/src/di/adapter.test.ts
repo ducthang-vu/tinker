@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, test } from "vitest";
 import { adaptProvider, adaptToken, classToken, registerClassToken } from "./adapter.ts";
 import { inject, InjectionToken, type Token } from "./internal/inject.ts";
 import { Injector } from "./internal/injector.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 abstract class Logger {
   abstract log(message: string): string;
@@ -37,13 +38,13 @@ describe("adaptToken", () => {
 describe("adaptProvider", () => {
   test("a class on its own is provided as itself", () => {
     const injector = injectorFor(Clock);
-    expect(injector.get(classToken(Clock)))
+    expect(valueOrThrow(injector.get(classToken(Clock))))
       .toBeInstanceOf(Clock);
   });
 
   test("useClass creates the given class for the token", () => {
     const injector = injectorFor({ provide: Logger, useClass: ConsoleLogger });
-    const logger = injector.get(classToken(Logger));
+    const logger = valueOrThrow(injector.get(classToken(Logger)));
     expect(logger)
       .toBeInstanceOf(ConsoleLogger);
     expect(logger.log("hi"))
@@ -61,13 +62,13 @@ describe("adaptProvider", () => {
       { provide: NOTHING, useValue: undefined },
       { provide: CONFIG, useValue: config },
     );
-    expect(injector.get(API_URL))
+    expect(valueOrThrow(injector.get(API_URL)))
       .toBe("https://api");
-    expect(injector.get(COUNT))
+    expect(valueOrThrow(injector.get(COUNT)))
       .toBe(0);
-    expect(injector.get(NOTHING))
+    expect(valueOrThrow(injector.get(NOTHING)))
       .toBeUndefined();
-    expect(injector.get(CONFIG))
+    expect(valueOrThrow(injector.get(CONFIG)))
       .toBe(config);
   });
 
@@ -77,30 +78,30 @@ describe("adaptProvider", () => {
       { provide: API_URL, useValue: "https://api" },
       { provide: GREETING, useFactory: () => `calling ${inject(API_URL)}` },
     );
-    expect(injector.get(GREETING))
+    expect(valueOrThrow(injector.get(GREETING)))
       .toBe("calling https://api");
   });
 
   test("useExisting is an alias: the same instance as the other token", () => {
     const injector = injectorFor(ConsoleLogger, { provide: Logger, useExisting: ConsoleLogger });
-    expect(injector.get(classToken(Logger)))
-      .toBe(injector.get(classToken(ConsoleLogger)));
+    expect(valueOrThrow(injector.get(classToken(Logger))))
+      .toBe(valueOrThrow(injector.get(classToken(ConsoleLogger))));
   });
 
   test("useExisting resolves from the injector that provides the alias", () => {
     const root = injectorFor({ provide: API_URL, useValue: "root" });
     const ALIAS = new InjectionToken<string>("ALIAS");
     const child = new Injector([adaptProvider({ provide: ALIAS, useExisting: API_URL })], root);
-    expect(child.get(ALIAS))
+    expect(valueOrThrow(child.get(ALIAS)))
       .toBe("root");
   });
 
   test("each created value is cached like any other", () => {
     const injector = injectorFor(Clock, { provide: Logger, useClass: ConsoleLogger });
-    expect(injector.get(classToken(Clock)))
-      .toBe(injector.get(classToken(Clock)));
-    expect(injector.get(classToken(Logger)))
-      .toBe(injector.get(classToken(Logger)));
+    expect(valueOrThrow(injector.get(classToken(Clock))))
+      .toBe(valueOrThrow(injector.get(classToken(Clock))));
+    expect(valueOrThrow(injector.get(classToken(Logger))))
+      .toBe(valueOrThrow(injector.get(classToken(Logger))));
   });
 });
 

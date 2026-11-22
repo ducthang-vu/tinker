@@ -4,6 +4,7 @@ import { Engine } from "../engine.ts";
 import { ComponentRef } from "../component-ref.ts";
 import { Maybe } from "@tinker/functional";
 import { Left, valueOrThrow } from "@tinker/functional/v1";
+import { messageOf } from "../test-support.ts";
 
 let tracked = 0;
 const order: number[] = [];
@@ -179,29 +180,27 @@ describe("ViewContainerRef", () => {
     const container = engine.createViewContainer(anchor);
     const a = valueOrThrow(container.createComponent(Item));
 
-    expect(() => container.createComponent(Item, 2))
-      .toThrow(RangeError);
-    expect(() => container.createComponent(Item, -1))
-      .toThrow("Index -1 is out of range (0 to 1)");
-    expect(() => container.createComponent(Item, 0.5))
-      .toThrow(RangeError);
-    expect(() => container.move(a, 1))
-      .toThrow("Index 1 is out of range (0 to 0)");
+    expect(messageOf(container.createComponent(Item, 2)))
+      .toBe("Index 2 is out of range (0 to 1)");
+    expect(messageOf(container.createComponent(Item, -1)))
+      .toBe("Index -1 is out of range (0 to 1)");
+    expect(messageOf(container.createComponent(Item, 0.5)))
+      .toBe("Index 0.5 is out of range (0 to 1)");
+    expect(messageOf(container.move(a, 1)))
+      .toBe("Index 1 is out of range (0 to 0)");
     expect(container.length)
       .toBe(1);
   });
 
   test("move rejects a view that is not in the container", () => {
     const container = engine.createViewContainer(anchor);
-    expect(() => container.move(valueOrThrow(engine.createComponent(Item)), 0))
-      .toThrow(
-        "The component is not in this container",
-      );
+    expect(messageOf(container.move(valueOrThrow(engine.createComponent(Item)), 0)))
+      .toBe("The component is not in this container");
   });
 
   test("needs its anchor to be in the DOM", () => {
     const container = engine.createViewContainer(document.createComment("detached"));
-    expect(() => container.createComponent(Item))
-      .toThrow("The container's anchor is not in the DOM");
+    expect(messageOf(container.createComponent(Item)))
+      .toBe("The container's anchor is not in the DOM");
   });
 });

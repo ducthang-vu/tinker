@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { Component, input, output } from "../index.ts";
 import { Engine } from "./engine.ts";
-import { valueOrThrow } from "@tinker/functional/v1";
+import { type Either, valueOrThrow } from "@tinker/functional/v1";
+import { messageOf } from "./test-support.ts";
 
 @Component({ selector: "tk-label", template: "<p>{{ label() }}</p>" })
 class Label {
@@ -41,7 +42,7 @@ describe("ComponentRef", () => {
     const engine = Engine.create();
     const ref = valueOrThrow(engine.createComponent(Label));
     const seen: number[] = [];
-    const cancel = ref.subscribe("picked", (value) => seen.push(value));
+    const cancel = valueOrThrow(ref.subscribe("picked", (value) => seen.push(value)));
     ref.instance.pick(1);
     cancel();
     ref.instance.pick(2);
@@ -59,16 +60,16 @@ describe("ComponentRef", () => {
       .toEqual([7]);
   });
 
-  test("emit or subscribe to a name that is not an output throws", () => {
+  test("emit or subscribe to a name that is not an output is an error", () => {
     const untyped = valueOrThrow(Engine.create()
       .createComponent(Label)) as unknown as {
-      emit(name: string, value: unknown): void;
-      subscribe(name: string, handler: () => void): () => void;
+      emit(name: string, value: unknown): Either<void, Error>;
+      subscribe(name: string, handler: () => void): Either<() => void, Error>;
     };
-    expect(() => untyped.emit("label", 1))
-      .toThrow("Label has no output \"label\"");
-    expect(() => untyped.subscribe("missing", () => {}))
-      .toThrow("Label has no output \"missing\"");
+    expect(messageOf(untyped.emit("label", 1)))
+      .toBe("Label has no output \"label\"");
+    expect(messageOf(untyped.subscribe("missing", () => {})))
+      .toBe("Label has no output \"missing\"");
   });
 
   test("destroy removes the component from its host, and is harmless when repeated", () => {

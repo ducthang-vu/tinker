@@ -122,7 +122,7 @@ export function inject<T, O extends InjectOptions = {}>(
   }
   for (let injector = skipSelf ? start.parent : start; injector; injector = injector.parent) {
     if (injector.has(token)) {
-      return injector.get(token) as InjectResult<T, O>;
+      return injector.resolve(token) as InjectResult<T, O>;
     }
     if (self || (host && injector.hostBoundary)) {
       break;

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { InjectionToken } from "./inject.ts";
 import { Injector } from "./injector.ts";
 import { findRootProvider, registerRootProvider } from "./root-providers.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 describe("root providers", () => {
   test("registered providers can be looked up by token", () => {
@@ -32,11 +33,11 @@ describe("root providers", () => {
     const child = new Injector([], root);
     expect(root.has(TOKEN))
       .toBe(true);
-    expect(root.get(TOKEN))
+    expect(valueOrThrow(root.get(TOKEN)))
       .toBe("from root");
     expect(child.has(TOKEN))
       .toBe(false);
-    expect(() => child.get(TOKEN))
+    expect(() => valueOrThrow(child.get(TOKEN)))
       .toThrow("No provider for ROOT_ONLY");
   });
 
@@ -44,7 +45,7 @@ describe("root providers", () => {
     const TOKEN = new InjectionToken<string>("OVERRIDDEN");
     registerRootProvider({ token: TOKEN, factory: () => "registered" });
     const root = new Injector([{ token: TOKEN, factory: () => "explicit" }]);
-    expect(root.get(TOKEN))
+    expect(valueOrThrow(root.get(TOKEN)))
       .toBe("explicit");
   });
 
@@ -53,8 +54,8 @@ describe("root providers", () => {
     registerRootProvider({ token: TOKEN, factory: () => ({}) });
     const a = new Injector([]);
     const b = new Injector([]);
-    expect(a.get(TOKEN))
-      .toBe(a.get(TOKEN));
-    expect(a.get(TOKEN)).not.toBe(b.get(TOKEN));
+    expect(valueOrThrow(a.get(TOKEN)))
+      .toBe(valueOrThrow(a.get(TOKEN)));
+    expect(valueOrThrow(a.get(TOKEN))).not.toBe(valueOrThrow(b.get(TOKEN)));
   });
 });

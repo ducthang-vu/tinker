@@ -7,6 +7,7 @@
 // rendered again only when the template changes.
 
 import { inject } from "../../../di/index.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 import type { Signal } from "../../../signals/index.ts";
 import { type TemplateContext, type TemplateRef } from "../runtime/template-ref.ts";
 import { ViewContainerRef } from "../runtime/view-container-ref.ts";
@@ -31,14 +32,15 @@ export class Outlet {
     const template = this.outlet();
     const values = this.context();
     if (template !== undefined && template === this.shown) {
-      template.setSignals(this.signals, values);
+      // An effect has no caller to return an error to: a missing context name throws here.
+      valueOrThrow(template.setSignals(this.signals, values));
       return;
     }
     this.container.clear();
     this.shown = template;
     if (template !== undefined) {
-      this.signals = template.signalsFor(values);
-      this.container.embed(template, this.signals);
+      this.signals = valueOrThrow(template.signalsFor(values));
+      valueOrThrow(this.container.embed(template, this.signals));
     }
   }
 }

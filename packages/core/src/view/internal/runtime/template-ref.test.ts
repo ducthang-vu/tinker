@@ -4,6 +4,8 @@ import { signal } from "../../../signals/index.ts";
 import { Scope } from "../template/scope.ts";
 import { type Context } from "./context.ts";
 import { TemplateRef } from "./template-ref.ts";
+import { messageOf } from "../test-support.ts";
+import { valueOrThrow } from "@tinker/functional/v1";
 
 describe("TemplateRef", () => {
   test("an instance sees the declared names from its context, and the names around the declaration", () => {
@@ -25,18 +27,18 @@ describe("TemplateRef", () => {
     const template = new TemplateRef([], ["item"], new Scope({}), () => {
       throw new Error("not reached");
     });
-    expect(() => template.instantiate(document.createComment(""), {} as Injector, new Map()))
-      .toThrow(`The context has no "item", which the template declares with let-item`);
+    expect(messageOf(template.instantiate(document.createComment(""), {} as Injector, new Map())))
+      .toBe(`The context has no "item", which the template declares with let-item`);
   });
 
   test("signalsFor holds each declared name's value, and setSignals updates them in place", () => {
     const template = new TemplateRef([], ["item", "other"], new Scope({}), () => {
       throw new Error("not reached");
     });
-    const signals = template.signalsFor({ item: 1, other: "two" });
+    const signals = valueOrThrow(template.signalsFor({ item: 1, other: "two" }));
     expect(signals.get("item")!())
       .toBe(1);
-    template.setSignals(signals, { item: 3, other: "four" });
+    valueOrThrow(template.setSignals(signals, { item: 3, other: "four" }));
     expect(signals.get("other")!())
       .toBe("four");
   });
@@ -45,10 +47,10 @@ describe("TemplateRef", () => {
     const template = new TemplateRef([], ["item"], new Scope({}), () => {
       throw new Error("not reached");
     });
-    expect(() => template.signalsFor({}))
-      .toThrow(`The context has no "item"`);
-    expect(() => template.setSignals(new Map(), {}))
-      .toThrow(`The context has no "item"`);
+    expect(messageOf(template.signalsFor({})))
+      .toContain(`The context has no "item"`);
+    expect(messageOf(template.setSignals(new Map(), {})))
+      .toContain(`The context has no "item"`);
   });
 
   test("letNames lists the names the template declares", () => {

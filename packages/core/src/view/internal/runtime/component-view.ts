@@ -9,6 +9,7 @@
 
 import { inject, Injectable } from "../../../di/index.ts";
 import { Maybe, pipe } from "@tinker/functional";
+import { type Either, Left, map, Right } from "@tinker/functional/v1";
 import type { ElementContext } from "./element-context.ts";
 import type { InputBinding, InputName, InputValue } from "../authoring/input.ts";
 import type { Renderer } from "../renderer.ts";
@@ -86,12 +87,18 @@ export class ComponentView<T> implements View {
    * For code creating components itself (and later the parent view's watch,
    * for a binding on the component's host element). Everything reading the
    * input (computeds, the view's watch) sees the new value, like any signal.
-   * Throws if the component has no such input.
+   * An error, with nothing set, if the component has no such input.
    */
-  setInput<K extends InputName<T>>(name: K, value: InputValue<T[K]>): void {
-    this.input(this.component as object, name)
-      .getOrThrow(() => new Error(`${(this.component as object).constructor.name} has no input "${name}"`))
-      .bind(value);
+  setInput<K extends InputName<T>>(name: K, value: InputValue<T[K]>): Either<void, Error> {
+    return map(this.inputNamed(name), (input) => input.bind(value));
+  }
+
+  private inputNamed(name: string): Either<{ bind(value: unknown): void }, Error> {
+    return this.input(this.component as object, name)
+      .match({
+        some: (input) => Right.of(input),
+        none: () => Left.of(new Error(`${(this.component as object).constructor.name} has no input "${name}"`)),
+      });
   }
 
   /** Run `callback` when the view is destroyed (right away if it already is). */
