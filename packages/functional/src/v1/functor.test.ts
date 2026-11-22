@@ -1,7 +1,9 @@
+import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
-import { Right } from "./either.ts";
+import { Left, Right } from "./either.ts";
 import { CHAIN, type Chain, type Functor, flatMap, MAP, map } from "./functor.ts";
 import { MATCHABLE, type Matchable } from "./monad.ts";
+import { chainLaws, type ChainUnderTest, EDGE_VALUES } from "./testing.ts";
 
 /** A functor that is not matchable: it maps itself under the MAP protocol. */
 class Tagged<T> implements Functor<T> {
@@ -128,5 +130,58 @@ describe("a functor that is also a chain", () => {
       .toEqual(new Both(3));
     expect(flatMap((n: number) => new Both(n + 1))(new Both(2)))
       .toEqual(new Both(3));
+  });
+});
+
+describe("native arrays", () => {
+  test("map applies f to each element, data-first and data-last", () => {
+    expect(map([1, 2], (n: number) => n * 2))
+      .toEqual([2, 4]);
+    expect(map((n: number) => n * 2)([1, 2]))
+      .toEqual([2, 4]);
+  });
+
+  test("flatMap concatenates the arrays f returns, data-first and data-last", () => {
+    expect(flatMap([1, 2], (n: number) => [n, n]))
+      .toEqual([1, 1, 2, 2]);
+    expect(flatMap((n: number) => [n, n])([1, 2]))
+      .toEqual([1, 1, 2, 2]);
+  });
+
+  test("an empty array maps and chains to an empty array", () => {
+    expect(map([], (n: number) => n))
+      .toEqual([]);
+    expect(flatMap([], (n: number) => [n]))
+      .toEqual([]);
+  });
+
+  test("the edge values survive map and flatMap unchanged", () => {
+    expect(map(EDGE_VALUES, (value) => value))
+      .toEqual(EDGE_VALUES);
+    expect(flatMap(EDGE_VALUES, (value) => [value]))
+      .toEqual(EDGE_VALUES);
+  });
+
+  test("an array of Eithers maps each Either", () => {
+    const eithers = [Right.of<number, string>(1), Left.of<string, number>("bad")];
+    expect(map(eithers, (either) => map(either, (n: number) => n + 1)))
+      .toEqual([Right.of(2), Left.of("bad")]);
+  });
+
+  test("an array is a chain: its flatMap obeys the chain laws on every edge value", () => {
+    const arrays: ChainUnderTest<unknown[], unknown> = {
+      name: "Array",
+      samples: [[], [0], [1, 2], [null, undefined], [NaN], EDGE_VALUES.slice(0, 5)],
+      values: EDGE_VALUES,
+      of: (value) => [value],
+      flatMap: (box, f) => flatMap(box, (value) => f(value) as unknown[]),
+      equal: (a, b) => isDeepStrictEqual(a, b),
+      step: (value) => [value],
+      nextStep: (value) => [value, value],
+    };
+    for (const [description, check] of chainLaws(arrays)) {
+      expect(check, description)
+        .not.toThrow();
+    }
   });
 });
