@@ -4,6 +4,7 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
+import { Sanitizer } from "../runtime/sanitization.ts";
 import { HostBindings } from "./host-bindings.ts";
 import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional";
 
@@ -26,6 +27,27 @@ function attributeFor(attribute: string, value: string | null): string | null {
 }
 
 describe("URL attributes", () => {
+  test("a trusted URL is set, though it is unsafe; its text is the URL in interpolation", () => {
+    @Component({
+      selector: "tk-trusted",
+      template: `<a [attr.href]="link">{{ link }}</a>`,
+    })
+    class Trusted {
+      readonly link = new Sanitizer()
+        .trustUrl("javascript:void(0)");
+    }
+    const el = document.createElement("section");
+    const engine = Engine.create();
+    const app = valueOrThrow(engine.bootstrap(Trusted, el));
+    engine.flush();
+    const a = el.querySelector("a")!;
+    expect(a.getAttribute("href"))
+      .toBe("javascript:void(0)");
+    expect(a.textContent)
+      .toBe("javascript:void(0)");
+    app.destroy();
+  });
+
   test("a safe URL is set", () => {
     expect(attributeFor("href", "https://example.com"))
       .toBe("https://example.com");

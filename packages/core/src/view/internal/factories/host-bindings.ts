@@ -21,7 +21,7 @@
 import type { Renderer } from "../renderer.ts";
 import { type Handler, parseHandler, requireMethod, runHandler } from "../template/handler.ts";
 import { Scope } from "../template/scope.ts";
-import { isEventAttribute } from "../runtime/url-safety.ts";
+import { refusalOf } from "../runtime/sanitization.ts";
 import { type EventModifier, parseEventName } from "../template/event-modifiers.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import { type Expression, ExpressionParser } from "../template/expression.ts";
@@ -114,10 +114,9 @@ function parseEntry(key: string, value: string): Either<HostListener | HostValue
   if (!match) {
     return parseListener(key, value);
   }
-  if (match[1] === "attr" && isEventAttribute(match[2]!)) {
-    return Left.of(new Error(
-      `[attr.${match[2]}] in host binding "${key}": event attributes cannot be bound; use "(${match[2]!.slice(2)})" instead`,
-    ));
+  const refusal = match[1] === "attr" ? refusalOf(match[2]!) : undefined;
+  if (refusal !== undefined) {
+    return Left.of(new Error(`[attr.${match[2]}] in host binding "${key}": ${refusal}`));
   }
   const kind = match[1] === "attr" ? "attribute" : (match[1] as "class" | "style");
   return pipe(

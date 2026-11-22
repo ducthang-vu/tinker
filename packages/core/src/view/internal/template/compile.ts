@@ -22,7 +22,7 @@ import { type Interpolation, parseInterpolation } from "./interpolation.ts";
 import type { Selector } from "./selector.ts";
 import { type BlockItem, type Item, itemsOf } from "./blocks.ts";
 import { namesOf, type Pattern, parsePattern, splitGuard } from "./pattern.ts";
-import { isEventAttribute } from "../runtime/url-safety.ts";
+import { refusalOf } from "../runtime/sanitization.ts";
 
 /** A node of a compiled template. */
 export type CompiledNode
@@ -863,10 +863,9 @@ function classifyAttribute(
     }));
   }
   if (attrName !== undefined) {
-    if (isEventAttribute(attrName)) {
-      return Left.of(new Error(
-        `[attr.${attrName}] on <${node.name}>: event attributes cannot be bound; use (${attrName.slice(2)}) instead`,
-      ));
+    const refusal = refusalOf(attrName);
+    if (refusal !== undefined) {
+      return Left.of(new Error(`[attr.${attrName}] on <${node.name}>: ${refusal}`));
     }
     return map(expressionOfAttribute(attribute, node), (expression): Classified => ({
       ...current,

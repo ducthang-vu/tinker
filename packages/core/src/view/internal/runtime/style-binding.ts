@@ -4,6 +4,7 @@
 // (null, undefined, "" or false) removes the property. The view's watch
 // calls `update()`; the DOM is written only when the value changed.
 
+import { styleText } from "./sanitization.ts";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
@@ -36,10 +37,8 @@ export class StyleBinding {
 
   /** Evaluate the expression, and set or remove the property if that changed. */
   update(): void {
-    const value = evaluate(this.expression, this.context);
-    const text = value === null || value === undefined || value === false || value === ""
-      ? undefined
-      : String(value);
+    // A value that loads a URL is not set: see styleText in sanitization.ts.
+    const text = styleText(evaluate(this.expression, this.context));
     if (isSome(filter(this.last, (last) => last === text))) {
       return;
     }
