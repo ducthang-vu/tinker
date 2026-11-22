@@ -38,7 +38,7 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 - Files under a module's `internal/` do not import from outside that module
   (shared `packages/core/src/utils` and `packages/functional/src` are fine).
 - `view` uses only the public APIs of `di` and `signals`.
-- A component's template and CSS files (`templateUrl`, `styleUrl`) are in the component's
+- A component's template and CSS files (`templateUrl`, `styleUrls`) are in the component's
   folder, with the component: `notice/notice.ts`, `notice/notice.html`, `notice/notice.css`.
 - Tests live next to the file they test: `component-view.ts` → `component-view.test.ts`.
 

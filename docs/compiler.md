@@ -56,7 +56,7 @@ A component can name its template and its stylesheet as files, instead of writin
 @Component({
   selector: "tk-notice",
   templateUrl: "./notice.html",
-  styleUrl: "./notice.css",
+  styleUrls: ["./notice.css", "./notice-colors.css"],
 })
 export class Notice {}
 ```
@@ -64,8 +64,8 @@ export class Notice {}
 Each path is relative to the source file. The plugin reads each file and puts it in
 place of its property:
 
-- `styleUrl`: the file's text becomes `styles`, so the CSS is scoped exactly as inline
-  `styles` are.
+- `styleUrls`: the files' text becomes `styles`, so the CSS is scoped exactly as inline
+  `styles` are. It takes a list, one file or more: the files are joined in the order listed.
 - `templateUrl`: the file's text becomes `template`. The file is checked as a template
   is, and its errors are reported against it. With `emit`, the compiled tree replaces it,
   as for an inline template.
@@ -75,9 +75,10 @@ run time. The plugin watches the files: an edit rebuilds the component that read
 
 - **Keep the files in the component's folder**: `notice/notice.ts`, `notice/notice.html`
   and `notice/notice.css`, one folder per component. See `examples/basics/notice`.
-- A missing file fails the build and names the file.
+- `styleUrls` must be a list: a string fails the build. `templateUrl` takes one string.
+  A missing file fails the build and names the file.
 - An inline option and its file together (`template` with `templateUrl`, `styles` with
-  `styleUrl`) fail the build: give one of them.
+  `styleUrls`) fail the build: give one of them.
 - A file option that is not a string literal is skipped with a warning, as a template is
   (an error in strict mode).
 - Without the plugin, `@Component` throws, since nothing would read the files.

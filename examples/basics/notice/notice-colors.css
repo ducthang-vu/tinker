@@ -1,0 +1,5 @@
+/* The colours of the notice, in a second file: `styleUrl` lists both, in order. */
+.notice {
+  background: rgb(230, 240, 255);
+  border-left: 4px solid rgb(0, 102, 204);
+}

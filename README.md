@@ -115,7 +115,8 @@ module; each module also lists its own in its `index.ts`.
 - **Styles** are scoped to their component: its selectors match only its own template
   (and its host, with `:host`), so `p { color: red }` in one component does not reach
   another. Write them inline (`styles`), or in a CSS file next to the component
-  (`styleUrl: "./notice.css"`, read at build time: see [the compiler](docs/compiler.md)).
+  (`styleUrls: ["./notice.css"]`, a list of files read at build time: see
+  [the compiler](docs/compiler.md)).
   The template can be a file too (`templateUrl: "./notice.html"`).
   A parent can reach into a child's elements with `:deep(...)`, as in
   `.card :deep(.title) { }`. Use it sparingly: the child can rename its classes, and
