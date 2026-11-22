@@ -313,6 +313,17 @@ describe("ComponentFactory view watch", () => {
       .toBe(0);
   });
 
+  test("reports a syntax error in the template before rendering anything", () => {
+    @Component({ selector: "tk-a", template: "<p a=></p>" })
+    class A {}
+    const { factory } = makeFactory();
+    const host = document.createElement("div");
+    expect(() => factory.create(A, host))
+      .toThrow("1:6: expected an attribute value");
+    expect(host.innerHTML)
+      .toBe("");
+  });
+
   test("reports an invalid {{ }} before rendering anything", () => {
     @Component({ selector: "tk-a", template: "<p>{{ a(1 2) }}</p>" })
     class A {}

@@ -15,8 +15,7 @@
 // The scanner is pure: each step takes the state it was given (where it is, which elements
 // are open, the errors found so far) and returns the value it read with the next state. A
 // predictable error is a value, and nothing in the scanner throws. The scanner goes on after
-// an error (parseAll returns them all). `parse` is the one place that throws, the first error,
-// because TemplateParser's callers still expect it.
+// an error (parseAll returns them all), and parse returns the first one as a Left.
 // Each element and text node carries its span, the offsets it covers in the source.
 // Known limits (see IMPROVEMENTS.md): only a few named entities are decoded, and
 // `script` and `style` are read as raw text.
@@ -56,13 +55,12 @@ export function combineSyntaxErrors(errors: readonly TemplateSyntaxError[]): Tem
 
 /** Reads template source into Tinker's syntax tree (ast.ts). */
 export class TinkerTemplateParser implements TemplateParser {
-  /** The tree. Throws the first TemplateSyntaxError of the source, if there is one. */
-  parse(source: string): readonly TemplateNode[] {
+  /** The tree, or the first TemplateSyntaxError of the source. */
+  parse(source: string): Either<readonly TemplateNode[], TemplateSyntaxError> {
     const { nodes, errors } = this.parseAll(source);
-    if (errors.length > 0) {
-      throw errors[0];
-    }
-    return nodes;
+    return errors.length > 0
+      ? Left.of<TemplateSyntaxError, readonly TemplateNode[]>(errors[0]!)
+      : Right.of<readonly TemplateNode[], TemplateSyntaxError>(nodes);
   }
 
   /**

@@ -1,11 +1,11 @@
 import { ViewQueries } from "../runtime/view-queries.ts";
+import { parseNodes } from "../test-support.ts";
 import { tick } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import { Injector, inject } from "../../../di/index.ts";
 import { computed, signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
-import { TinkerTemplateParser } from "../template/tinker-parser.ts";
 import { compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { Scope } from "../template/scope.ts";
 import { Selector } from "../template/selector.ts";
@@ -45,8 +45,7 @@ class Owner {
 class Child {}
 
 function compile(source: string, candidates: readonly DirectiveCandidate[] = []): CompiledNode[] {
-  return [...compileTemplate(new TinkerTemplateParser()
-    .parse(source), candidates)];
+  return [...compileTemplate(parseNodes(source), candidates)];
 }
 
 function setup() {
