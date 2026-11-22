@@ -95,6 +95,25 @@ describe("scopeStyles", () => {
 });
 
 describe("component styles in a view", () => {
+  test("the stylesheet is removed with the last instance, and added again by the next", () => {
+    @Component({ selector: "tk-gone", template: "<p>a</p>", styles: "p { color: red }" })
+    class Gone {}
+    const engine = Engine.create();
+    const first = valueOrThrow(engine.createComponent(Gone));
+    const second = valueOrThrow(engine.createComponent(Gone));
+    const { attribute } = styleScopeOf(Gone);
+    const sheet = () => document.head.querySelector(`style[data-tk-style="${attribute}"]`);
+    first.destroy();
+    expect(sheet())
+      .not.toBeNull();
+    second.destroy();
+    expect(sheet())
+      .toBeNull();
+    valueOrThrow(engine.createComponent(Gone));
+    expect(sheet())
+      .not.toBeNull();
+  });
+
   test("the component's elements carry its attribute, its host the host attribute", () => {
     @Component({ selector: "tk-styled", template: "<p>a</p>", styles: "p { color: red }" })
     class Styled {}
