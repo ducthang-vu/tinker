@@ -48,19 +48,42 @@ export function scopeOfComponent(type: AbstractClass): StyleScope | undefined {
     : styleScopeOf(type);
 }
 
+/** The live instances of each class with styles: its stylesheet stays while one is left. */
+const liveInstances = new Map<AbstractClass, number>();
+
 /**
- * Add the styles of component `type`, scoped, to the document (once per class), and
- * mark its `host` element. Does nothing for a component without styles.
+ * Add the styles of component `type`, scoped, to the document, and mark its `host` element.
+ * Returns the release for that instance: when the last live instance of the class is
+ * released, its stylesheet is removed (and added again by the next instance). Does nothing
+ * for a component without styles: its release does nothing either.
  */
-export function applyComponentStyles(renderer: Renderer, type: AbstractClass, host: Element): void {
+export function applyComponentStyles(
+  renderer: Renderer,
+  type: AbstractClass,
+  host: Element,
+): () => void {
   const styles = getComponentMetadata(type)
     .getOrElse(undefined)?.styles;
   if (styles === undefined) {
-    return;
+    return () => undefined;
   }
   const scope = styleScopeOf(type);
   renderer.addStyleSheet(scope.attribute, scopeStyles(styles, scope));
   renderer.setAttribute(host, scope.hostAttribute, "");
+  liveInstances.set(type, (liveInstances.get(type) ?? 0) + 1);
+  return () => releaseStyles(renderer, type, scope);
+}
+
+/** One instance of `type` is gone: remove its stylesheet when none is left. */
+function releaseStyles(renderer: Renderer, type: AbstractClass, scope: StyleScope): void {
+  // A release always follows the apply that counted the instance.
+  const live = liveInstances.get(type)! - 1;
+  if (live > 0) {
+    liveInstances.set(type, live);
+    return;
+  }
+  liveInstances.delete(type);
+  renderer.removeStyleSheet(scope.attribute);
 }
 
 const AT_BLOCK_WITH_RULES = /^@(media|supports|container|layer|document)\b/;

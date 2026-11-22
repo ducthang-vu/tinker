@@ -14,6 +14,8 @@ export interface Renderer {
   createElement(name: string): Element;
   /** Add a stylesheet, once per `id`: a later call with the same id adds nothing. */
   addStyleSheet(id: string, css: string): void;
+  /** Remove the stylesheet added with `id`, if there is one. */
+  removeStyleSheet(id: string): void;
   createText(value: string): Text;
   createComment(value: string): Comment;
 
@@ -56,6 +58,11 @@ export class DomRenderer implements Renderer {
     style.setAttribute("data-tk-style", id);
     style.textContent = css;
     this.document.head.append(style);
+  }
+
+  removeStyleSheet(id: string): void {
+    this.document.head.querySelector(`style[data-tk-style="${id}"]`)
+      ?.remove();
   }
 
   createText(value: string): Text {

@@ -162,21 +162,14 @@ the author, not a ban.
 
 ## Component styles (`packages/core/src/view/internal/runtime/component-styles.ts`, `renderer.ts`)
 
-### 1. A component's `<style>` stays in the head after it is destroyed
+### 1. The rewriter does not handle nested rules, and `styles` is one string
 
-**Problem.** `Renderer.addStyleSheet` adds one `<style data-tk-style="tk-cN">` to
-`document.head` per component class, and nothing removes it. Its rules then stay on
-the page after the last instance is gone, and a test that creates components leaves them
-behind for the next test. Nothing counts the instances, so the element cannot be removed
-when the last one goes.
+**Problem.** A stylesheet is rewritten by a small hand-written parser, so nested rules and
+`@container` inside `@media` are not handled. `styles` is one string, so a list of files
+(`styleUrls`) is joined before scoping.
 
-**To do.** Count the live instances per class in the component factory (add on create,
-remove on destroy), and remove the `<style>` when the count reaches zero. The renderer
-would need a `removeStyleSheet(id)` to match. Until then, the leftover rules are harmless
-(their attribute only exists on elements of that class), but they accumulate.
-
-Related, in the same module: the rewriter is a small hand-written parser, so nested rules
-and `@container` inside `@media` are not handled, and `styles` is one string, not a list.
+**To do.** Scope nested rules and `@container` with the same walk, and check the joined
+sheet's rules one at a time if a list of files is ever scoped separately.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 

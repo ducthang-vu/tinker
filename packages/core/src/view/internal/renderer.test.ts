@@ -4,6 +4,17 @@ import { DomRenderer } from "./renderer.ts";
 const renderer = new DomRenderer();
 
 describe("DomRenderer", () => {
+  test("removes a stylesheet by its id, and does nothing for an id it does not have", () => {
+    renderer.addStyleSheet("tk-remove-me", "p { color: red }");
+    expect(document.head.querySelector("style[data-tk-style=\"tk-remove-me\"]"))
+      .not.toBeNull();
+    renderer.removeStyleSheet("tk-remove-me");
+    expect(document.head.querySelector("style[data-tk-style=\"tk-remove-me\"]"))
+      .toBeNull();
+    expect(() => renderer.removeStyleSheet("tk-remove-me"))
+      .not.toThrow();
+  });
+
   test("uses the global document by default, or the one it is given", () => {
     const other = document.implementation.createHTMLDocument("other");
     expect(renderer.createElement("div").ownerDocument)

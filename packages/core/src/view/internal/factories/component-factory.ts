@@ -255,7 +255,6 @@ export class ComponentFactory {
     owner: ViewNode | undefined,
   ): ComponentView<T> {
     const host = "element" in target ? target.element : this.createHost(target.plan);
-    applyComponentStyles(this.renderer, type, host);
 
     // Its own injector, child of the engine's (or, for a component in another's
     // template, of the injector of its element): its host directives, the
@@ -302,7 +301,10 @@ export class ComponentFactory {
       this.renderer.appendChild(host, node);
     }
 
+    // The styles are applied last, so that nothing above can fail after they are counted.
+    const releaseStyles = applyComponentStyles(this.renderer, type, host);
     const view = this.views.create(host, instance, rendered, node);
+    view.addDestroyCallback(releaseStyles);
     view.addDestroyCallback(() => ownInjector.destroy());
     view.addDestroyCallback(() => rootCleanups.forEach((cleanup) => cleanup()));
     // Its outputs are over when it is: the templates subscribed to them are told.
