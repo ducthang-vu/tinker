@@ -317,14 +317,17 @@ the package index (`packages/core/src/view/index.ts`), so an app can still impor
 **To do.** Move them out of the public index, or keep them there and accept that the
 reference does not show them.
 
-## Example app: routing and the GitHub Pages base (`examples/basics/src/features/examples/app/`, `.github/workflows/gh-pages.yml`)
+## Routing and the folder the app is served under (`packages/router/src/lib/location/`, `.github/workflows/gh-pages.yml`)
 
-### 1. Links are base-aware through PlatformLocation.href
+### 1. The folder comes from the page's <base> element
 
-**What was fixed.** `RouterLink` writes its `href` in the platform's form: `PlatformLocation.href`
-(optional) adds the base, so a link under `/tinker/` opens the right page in a new tab. Click
-handling and the current-page check still use the app's own path. Any platform that serves
-the app under a folder should provide `href`.
+**What was done.** `browserPlatformLocation` reads the folder the app is served under from the
+page's `<base>` element, which the build writes (`TINKER_BASE`, the `baseTag` plugin in
+`examples/basics/vite.config.ts`). Paths, `push`, `replace` and `href` all use it. An app
+needs no code for it, and a test provides a different `PLATFORM_LOCATION` to override it.
+
+**To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
+point at the host root.
 
 ### 2. Deep links rely on a copy of index.html
 
@@ -336,12 +339,11 @@ router reads the URL itself. Any other static host needs the same fallback.
 
 ### 3. The first provider of a token wins
 
-**Problem.** The router registers the browser's `PLATFORM_LOCATION` itself. The example's own
-location (for the base path) must come first in `bootstrap`'s providers, or it is ignored with no
-error. The router's own tests do not catch this, since they use the browser location directly.
+**Problem.** A token with a provider the app adds before the framework's (such as `provideRouter`'s
+`PLATFORM_LOCATION`) is used; a later one is ignored with no error. Nothing tells the author.
 
 **To do.** Warn when a single-token provider is registered twice, in developer mode, or let a
-later provider replace an earlier one on purpose. Until then, the example's `main.ts` says so.
+later provider replace an earlier one on purpose.
 
 ### 4. The root route's component is never shown
 

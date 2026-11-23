@@ -6602,7 +6602,7 @@
         {
           "name": "PLATFORM_LOCATION",
           "kind": "const",
-          "source": "packages/router/src/lib/location/platform-location.ts:25",
+          "source": "packages/router/src/lib/location/platform-location.ts:29",
           "description": "The platform location, a token so a test can replace the browser.",
           "params": [],
           "examples": [],
@@ -6613,7 +6613,7 @@
         {
           "name": "PlatformLocation",
           "kind": "interface",
-          "source": "packages/router/src/lib/location/platform-location.ts:6",
+          "source": "packages/router/src/lib/location/platform-location.ts:10",
           "description": "",
           "params": [],
           "examples": [],
@@ -6623,7 +6623,7 @@
             {
               "name": "url",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:8",
+              "source": "packages/router/src/lib/location/platform-location.ts:12",
               "description": "The current path, query and hash, e.g. `\"/todos/7?tab=done#top\"`.",
               "params": [],
               "examples": [],
@@ -6636,7 +6636,7 @@
             {
               "name": "state",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:10",
+              "source": "packages/router/src/lib/location/platform-location.ts:14",
               "description": "The state of the current history entry.",
               "params": [],
               "examples": [],
@@ -6649,7 +6649,7 @@
             {
               "name": "push",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:12",
+              "source": "packages/router/src/lib/location/platform-location.ts:16",
               "description": "Add a history entry for `url`, with `state`. Does not fire `popstate`.",
               "params": [],
               "examples": [],
@@ -6662,7 +6662,7 @@
             {
               "name": "replace",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:14",
+              "source": "packages/router/src/lib/location/platform-location.ts:18",
               "description": "Replace the current history entry with `url` and `state`.",
               "params": [],
               "examples": [],
@@ -6675,7 +6675,7 @@
             {
               "name": "onPop",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:16",
+              "source": "packages/router/src/lib/location/platform-location.ts:20",
               "description": "Call `listener` when the user goes back or forward. Returns the function that stops it.",
               "params": [],
               "examples": [],
@@ -6688,7 +6688,7 @@
             {
               "name": "href",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:21",
+              "source": "packages/router/src/lib/location/platform-location.ts:25",
               "description": "The `href` a link to the app's `path` gets in the page, in the browser's form: for an app\nserved under a folder, the folder is added. Optional: without it, the path is the href.",
               "params": [],
               "examples": [],
@@ -7050,8 +7050,8 @@
         {
           "name": "browserPlatformLocation",
           "kind": "const",
-          "source": "packages/router/src/lib/location/platform-location.ts:28",
-          "description": "The browser's own location and history.",
+          "source": "packages/router/src/lib/location/platform-location.ts:73",
+          "description": "The browser's own location and history, under the folder the app is served from.",
           "params": [],
           "examples": [],
           "see": [],

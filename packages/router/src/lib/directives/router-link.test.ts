@@ -232,3 +232,15 @@ test("the href attribute is in the platform's form, when the platform has one", 
     .toBe("/base/todos");
   fixture.destroy();
 });
+
+test("without an href on the platform, the href attribute is the app's path", () => {
+  window.history.replaceState(null, "", "/todos");
+  const platform = { ...browserPlatformLocation, href: undefined };
+  const fixture = TestBed
+    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROOT))
+    .component(App)
+    .build();
+  expect(fixture.root.query("a.root").element.getAttribute("href"))
+    .toBe("/todos");
+  fixture.destroy();
+});
