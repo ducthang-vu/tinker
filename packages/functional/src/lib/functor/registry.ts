@@ -81,6 +81,7 @@ export function flatMapFor(caseName: string): FlatMapImpl {
  * @param operation The operation's name, for the error message.
  * @param caseName The case name to register.
  * @param impl The implementation for the case.
+ * @throws {Error} When the case is already registered in `table`.
  */
 function register<I>(table: Map<string, I>, operation: string, caseName: string, impl: I): void {
   if (table.has(caseName)) {
@@ -93,11 +94,12 @@ function register<I>(table: Map<string, I>, operation: string, caseName: string,
  * Reads the implementation for `caseName` from `table`. Throws, naming the function to call, if the
  * case was never registered.
  *
- * @param table The registry to read: the \`map\` or the \`flatMap\` table.
+ * @param table The registry to read: the `map` or the `flatMap` table.
  * @param operation The operation's name, for the error message.
  * @param caseName The case name to look up.
  * @param register The name of the function that registers the case, for the error message.
  * @returns The implementation registered for the case.
+ * @throws {Error} When the case was never registered in `table`.
  */
 function lookup<I>(
   table: Map<string, I>,

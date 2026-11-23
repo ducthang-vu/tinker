@@ -70,13 +70,17 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 
 Each function and each method of a package listed in `DOCUMENTED_PACKAGES` (in
 `eslint.config.js`) has a TSDoc block, checked by ESLint (`jsdoc/require-jsdoc`,
-`jsdoc/require-param`, `jsdoc/require-returns`):
+`jsdoc/require-param`, `jsdoc/require-returns`, `jsdoc/require-throws`):
 
 - a description, saying what it does, not how;
 - a `@param` for each parameter, saying what it is, with the name first;
-- a `@returns` when it returns a value (not for `void`).
+- a `@returns` when it returns a value (not for `void`);
+- a `@throws` for each error it throws on purpose (a `throw` the function chooses to make, such
+  as a precondition check or a `throw new Error(...)`), naming the error and when it is thrown.
+  A function that only lets an error from a caller's callback pass through does not need one:
+  its description says so.
 
-`@example`, `@throws` and `@privateAPI` are optional. Tests and inline callbacks are exempt.
+`@example` and `@privateAPI` are optional. Tests and inline callbacks are exempt.
 The generated API reference shows these blocks, so write them for a reader of the API. An
 export that is not for apps is marked `@privateAPI`, with what an app should use instead.
 
