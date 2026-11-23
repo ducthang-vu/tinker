@@ -12,9 +12,9 @@ test("the public API exports exactly these values", () => {
         "Directive",
         "DomRenderer",
         "bootstrap",
-        "AppRef",
         "InputNotBoundError",
         "booleanAdapter",
+        "registerInputNames",
         "numberAdapter",
         "RENDERER",
         "TEMPLATE_PARSER",
@@ -28,8 +28,6 @@ test("the public API exports exactly these values", () => {
         "ViewContainerRef",
         "ChangeDetectionLoopError",
         "input",
-        "inputNamesOf",
-        "registerInputNames",
         "output",
         "queryAll",
         "query",
@@ -42,12 +40,6 @@ test("the public API exports exactly these values", () => {
         "AfterEachRender",
         "AfterNextRender",
         // Private API, marked @privateAPI: for the testing helpers only.
-        "Engine",
-        "inputsOf",
-        "outputsOf",
-        "CLASS_REPLACEMENTS",
-        "getComponentMetadata",
-        "getDirectiveMetadata",
       ].sort(),
     );
 });

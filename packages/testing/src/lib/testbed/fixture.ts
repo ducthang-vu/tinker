@@ -2,8 +2,8 @@
 // queries find them. A query walks the DOM under an element and asks the engine
 // what is on each element, so it sees every descendant, nested components included.
 
-import { inputsOf, outputsOf } from "@tinker/core";
-import type { Engine } from "@tinker/core";
+import { inputsOf, outputsOf } from "@tinker/core/testing";
+import type { Engine } from "@tinker/core/testing";
 import type { TestingElement } from "../api/api.ts";
 import { getOrElse, map } from "@tinker/functional";
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { messageOf, tick } from "./internal/test-support.ts";
 import { inject, InjectionToken, provide } from "../di/index.ts";
 import { Component } from "./internal/authoring/decorators.ts";
-import { AppRef, bootstrap } from "./bootstrap.ts";
+import { bootstrap } from "./bootstrap.ts";
 
 const TITLE = new InjectionToken<string>("TITLE");
 
@@ -19,8 +19,8 @@ describe("bootstrap", () => {
       providers: [provide(TITLE, { useValue: "hello" })],
     });
     await tick();
-    expect(app)
-      .toBeInstanceOf(AppRef);
+    expect(app.destroy)
+      .toBeTypeOf("function");
     expect(app.root.instance)
       .toBeInstanceOf(App);
     expect(host.textContent)

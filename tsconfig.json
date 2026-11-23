@@ -21,6 +21,9 @@
       "@tinker/core/compiler": [
         "./packages/core/src/view/compiler/index.ts"
       ],
+      "@tinker/core/testing": [
+        "./packages/core/src/view/testing.ts"
+      ],
       "@tinker/testing": [
         "./packages/testing/src/index.ts"
       ],

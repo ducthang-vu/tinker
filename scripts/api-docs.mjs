@@ -51,6 +51,8 @@ export function publicEntries(rootDir) {
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
       return Object.entries(manifest.exports ?? {})
         .flatMap(([key, target]) => {
+          // The testing subpath is private (@privateAPI): it is not part of the reference.
+          if (key === "./testing") return [];
           const source = typeof target === "string" ? target : target.development;
           if (source === undefined) return [];
           const specifier = key === "." ? manifest.name : `${manifest.name}${key.slice(1)}`;

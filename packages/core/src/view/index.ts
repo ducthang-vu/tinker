@@ -3,7 +3,7 @@
 // stay internal.
 
 // Starting an app
-export { bootstrap, AppRef, type BootstrapOptions } from "./bootstrap.ts";
+export { bootstrap, type AppRef, type BootstrapOptions } from "./bootstrap.ts";
 
 // Writing components and directives
 export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./internal/authoring/decorators.ts";
@@ -18,6 +18,8 @@ export type { TemplateContext, TemplateRef } from "./internal/runtime/template-r
 export { input, InputNotBoundError, type InputName, type InputSignal, type InputValue } from "./internal/authoring/input.ts";
 export { type InputOptions } from "./internal/authoring/input.ts";
 export { booleanAdapter, numberAdapter } from "./internal/authoring/input-adapters.ts";
+// The compiler emits a call to this in compiled apps, so it is part of the public API.
+export { registerInputNames } from "./internal/authoring/input-names.ts";
 
 // What the engine creates and hands back
 export { ComponentRef } from "./internal/component-ref.ts";
@@ -32,12 +34,3 @@ export { DomRenderer, type Renderer } from "./internal/renderer.ts";
 export type { TemplateParser } from "./internal/template/parser.ts";
 export type { AttributeNode, ElementNode, TemplateNode, TextNode } from "./internal/template/ast.ts";
 export { TemplateSyntaxError, TinkerTemplateParser } from "./internal/template/tinker-parser.ts";
-
-// Private API: for the testing helpers only. Each is marked @privateAPI in its doc:
-// do not use it in an app, unless you accept that it may change without notice.
-export { Engine, type EngineOptions } from "./internal/engine.ts";
-export { inputsOf } from "./internal/authoring/input.ts";
-export { inputNamesOf, registerInputNames } from "./internal/authoring/input-names.ts";
-export { outputsOf } from "./internal/authoring/output.ts";
-export { getComponentMetadata, getDirectiveMetadata } from "./internal/authoring/decorators.ts";
-export { CLASS_REPLACEMENTS } from "./internal/tokens.ts";
