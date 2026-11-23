@@ -7,10 +7,18 @@ import { standardDecorators, workspaceAlias } from "../../vite.shared.ts";
 // GitHub Pages, "/" (the default) at a domain root.
 const base = process.env.TINKER_BASE ?? "/";
 
-/** Writes the folder into the page's <base> element, which the router reads. */
-function baseTag(folder: string): Plugin {
+/**
+ * Writes the folder into the page's <base> element, which the router reads. The folder is Vite's
+ * own base, once resolved, so the router and the asset URLs always agree, even when the base is
+ * overridden on the command line (`vite build --base=...`).
+ */
+function baseTag(): Plugin {
+  let folder = "/";
   return {
     name: "tinker:base-tag",
+    configResolved: (config) => {
+      folder = config.base;
+    },
     transformIndexHtml: (html) => html.replace("<head>", `<head>\n    <base href="${folder}" />`),
   };
 }
@@ -19,7 +27,7 @@ export default defineConfig({
   root: "src",
   base,
   // The check reads the decorators, so it runs before the decorator transform.
-  plugins: [tinkerCompiler({ emit: true }), standardDecorators(), baseTag(base)],
+  plugins: [tinkerCompiler({ emit: true }), standardDecorators(), baseTag()],
   resolve: {
     alias: workspaceAlias,
   },
