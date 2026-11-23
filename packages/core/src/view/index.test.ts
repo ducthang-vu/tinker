@@ -7,6 +7,7 @@ test("the public API exports exactly these values", () => {
     .toEqual(
       [
         "Component",
+        "DEV_MODE",
         "DOCUMENT",
         "ElementRef",
         "Directive",

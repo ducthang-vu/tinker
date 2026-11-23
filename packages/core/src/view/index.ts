@@ -27,7 +27,7 @@ export { ViewContainerRef } from "./internal/runtime/view-container-ref.ts";
 export { ChangeDetectionLoopError } from "./internal/runtime/change-detection.ts";
 
 // What can be replaced through providers
-export { DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./internal/tokens.ts";
+export { DEV_MODE, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./internal/tokens.ts";
 export { ElementRef } from "./internal/runtime/element-ref.ts";
 export { Sanitizer, TrustedUrl, TrustedHtml, TrustedStyle } from "./internal/runtime/sanitization.ts";
 export { DomRenderer, type Renderer } from "./internal/renderer.ts";

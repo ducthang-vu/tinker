@@ -675,3 +675,24 @@ describe("templateUrl", () => {
       .toHaveBeenCalledWith(fixture("card.html"));
   });
 });
+
+describe("the dev constant", () => {
+  const devOf = (options: CompilerOptions, mode: string): string => {
+    const hook = tinkerCompiler(options).config as unknown as (
+      config: unknown,
+      env: { mode: string; command: string },
+    ) => { define: Record<string, string> };
+    return hook({}, { mode, command: "build" }).define["globalThis.__TINKER_DEV__"]!;
+  };
+
+  test("follows Vite's development mode, unless dev is given", () => {
+    expect(devOf({}, "development"))
+      .toBe("true");
+    expect(devOf({}, "production"))
+      .toBe("false");
+    expect(devOf({ dev: false }, "development"))
+      .toBe("false");
+    expect(devOf({ dev: true }, "production"))
+      .toBe("true");
+  });
+});

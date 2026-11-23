@@ -27,7 +27,7 @@ import { TemplateBuilderFactory } from "./factories/template-builder.ts";
 import { EmbeddedViewFactory } from "./factories/embedded-view-factory.ts";
 import { DomRenderer } from "./renderer.ts";
 import { TinkerTemplateParser } from "./template/tinker-parser.ts";
-import { CLASS_REPLACEMENTS, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
+import { BUILD_DEV_MODE, CLASS_REPLACEMENTS, DEV_MODE, DOCUMENT, RENDERER, TEMPLATE_PARSER } from "./tokens.ts";
 import { type ComponentView, ComponentViewFactory } from "./runtime/component-view.ts";
 import { ComponentRef, refOf } from "./component-ref.ts";
 import { type Either, flatMap, Left, map, Right, Some, None, fromNullable, match, use, type Maybe } from "@tinker/functional";
@@ -53,6 +53,7 @@ const DEFAULT_PROVIDERS: readonly Provider[] = [
   provide(RENDERER, { useFactory: () => new DomRenderer(inject(DOCUMENT)) }),
   provide(TEMPLATE_PARSER, { useFactory: () => new TinkerTemplateParser() }),
   provide(CLASS_REPLACEMENTS, { useFactory: () => new Map() }),
+  provide(DEV_MODE, { useValue: BUILD_DEV_MODE }),
   ElementContexts,
   Ticker,
   EffectScheduler,

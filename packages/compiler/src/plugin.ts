@@ -70,6 +70,11 @@ export interface CompilerOptions {
    * selector that is not a literal), instead of skipping it with a warning. Off by default.
    */
   readonly strict?: boolean;
+  /**
+   * Whether the app runs in development mode (DEV_MODE). Defaults to Vite's development mode:
+   * off in a production build.
+   */
+  readonly dev?: boolean;
 }
 
 /** How a compile run behaves: see CompilerOptions. */
@@ -84,6 +89,11 @@ export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
   return {
     name: "tinker:compile-templates",
     enforce: "pre",
+    // Defines the build constant that core reads for DEV_MODE.
+    config(_config, env) {
+      const dev = options.dev ?? env.mode === "development";
+      return { define: { "globalThis.__TINKER_DEV__": JSON.stringify(dev) } };
+    },
     async transform(code, id) {
       if (!isSourceWithComponents(code, id)) {
         return null;
