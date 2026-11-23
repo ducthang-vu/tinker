@@ -75,6 +75,11 @@ const LIBRARY = {
     "  /** The number of adds. Inherited members are not listed. */",
     "  static created = 0;",
     "}",
+    "/** A counter that keeps a tally: it inherits the members of Counter. */",
+    "export class Tally extends Counter {",
+    "  /** Its own member. */",
+    "  label = \"tally\";",
+    "}",
     "",
   ].join("\n"),
   "packages/demo/src/helpers.ts": [
@@ -190,6 +195,26 @@ test("lists public members, hides @internal, private and protected ones", () => 
     assert.equal(add.returns, "the new count");
     assert.equal(counter.members.find((member) => member.name === "created").static, true);
     assert.equal(counter.members.find((member) => member.name === "count").type, "number");
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("lists the members a class inherits from a base in the project, marked with the base", () => {
+  const rootDir = project(LIBRARY);
+  try {
+    const tally = buildApiReference(rootDir).entries[0].exports
+      .find((item) => item.name === "Tally");
+    const inherited = Object.fromEntries(
+      tally.members.map((member) => [member.name, member.inheritedFrom]),
+    );
+    // The base's public members are listed, marked with its name; the class's own member is not.
+    assert.equal(inherited.count, "Counter");
+    assert.equal(inherited.add, "Counter");
+    assert.equal(inherited.label, undefined);
+    // A protected or @privateAPI member is not listed, even when it is inherited.
+    assert.equal(inherited.reset, undefined);
+    assert.equal(inherited.peek, undefined);
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }

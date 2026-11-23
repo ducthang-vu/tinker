@@ -208,3 +208,33 @@ describe("links and lists in descriptions", () => {
       .toBe(`#${anchorId("@tinker/core", "Subtractor")}`);
   });
 });
+
+describe("inherited members", () => {
+  test("a member inherited from a base says so, and an own member does not", () => {
+    const reference = {
+      entries: [{
+        specifier: "@tinker/core",
+        exports: [{
+          name: "Tally",
+          kind: "class",
+          source: "",
+          description: "",
+          signatures: [],
+          examples: [],
+          params: [],
+          see: [],
+          throws: [],
+          members: [
+            { name: "label", kind: "property", source: "", description: "", params: [], examples: [], see: [], throws: [] },
+            { name: "count", kind: "property", source: "", description: "", params: [], examples: [], see: [], throws: [], inheritedFrom: "Counter" },
+          ],
+        }],
+      }],
+    } as unknown as Parameters<typeof toSections>[0];
+    const [member1, member2] = toSections(reference)[0]!.items[0]!.members;
+    expect(member1!.inheritedFrom)
+      .toBe("");
+    expect(member2!.inheritedFrom)
+      .toBe("Counter");
+  });
+});

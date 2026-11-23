@@ -66,6 +66,7 @@ import { toSections, type ViewDoc } from "./api-view.ts";
     <h3>{{ doc().name }} <span class="kind">{{ doc().kind }}</span>
       @if (doc().static) { <span class="badge">static</span> }
       @if (doc().final) { <span class="badge">final</span> }
+      @if (doc().inheritedFrom) { <span class="badge">from {{ doc().inheritedFrom }}</span> }
     </h3>
     @if (doc().deprecated) { <p class="deprecated">Deprecated: {{ doc().deprecated }}</p> }
     @map doc().signatures; let signature { <pre>{{ signature }}</pre> }

@@ -29,6 +29,8 @@ export interface ViewDoc {
   readonly kind: string;
   readonly source: string;
   readonly static: boolean;
+  /** The base class a member is inherited from, or "" when the item declares it. */
+  readonly inheritedFrom: string;
   readonly final: boolean;
   readonly deprecated: string;
   readonly signatures: readonly string[];
@@ -186,6 +188,7 @@ function viewDoc(doc: ApiDoc, links: ReadonlyMap<string, string>): ViewDoc {
     kind: doc.kind,
     source: doc.source,
     static: doc.static === true,
+    inheritedFrom: doc.inheritedFrom ?? "",
     final: doc.final === true,
     // A deprecation with no text still says so.
     deprecated: doc.deprecated === undefined ? "" : doc.deprecated || "Deprecated.",

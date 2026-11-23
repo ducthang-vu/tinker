@@ -269,15 +269,7 @@ risk and leave the author to write a linear regex.
 
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
-### 1. Inherited members are not listed
-
-**Problem.** A class's members are listed only where it declares them. A member a class
-inherits from its base class is missing from the subclass's entry.
-
-**To do.** Include inherited public members, marked with the class they come from, if the
-reference should be complete for subclasses.
-
-### 2. The public index and `@privateAPI`
+### 1. The public index and `@privateAPI`
 
 **Problem.** `@privateAPI` items are left out of the reference, but they stay exported from
 the package index (`packages/core/src/view/index.ts`), so an app can still import them.
