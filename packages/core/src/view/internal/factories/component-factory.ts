@@ -128,6 +128,14 @@ export interface ParentContext {
   readonly contentQueries?: ContentQueries;
 }
 
+/** What a component's build has made so far: the boundary undoes it when the build fails. */
+interface Staged {
+  /** The component's own injector, once it is made. */
+  injector?: InjectorRef;
+  /** Its view, once it is made: destroying it undoes the rest, its injector included. */
+  view?: { destroy(): void };
+}
+
 @Injectable()
 export class ComponentFactory {
   /** The components being created right now, outermost first: to detect recursion. */
@@ -277,10 +285,17 @@ export class ComponentFactory {
     parentInjector: Injector | undefined,
     owner: ViewNode | undefined,
   ): Either<ComponentView<T>, Error> {
+    const staged: Staged = {};
     this.creating.push(type);
     try {
-      return Right.of(this.createView(type, prepared, child, parentInjector, owner));
+      return Right.of(this.createView(type, prepared, child, parentInjector, owner, staged));
     } catch (error) {
+      // Undoes what was made before the failure: the view destroys its injector too.
+      if (staged.view !== undefined) {
+        staged.view.destroy();
+      } else {
+        staged.injector?.destroy();
+      }
       return Left.of(toError(error));
     } finally {
       this.creating.pop();
@@ -293,6 +308,7 @@ export class ComponentFactory {
     child: ParentContext | undefined,
     parentInjector: Injector | undefined,
     owner: ViewNode | undefined,
+    staged: Staged,
   ): ComponentView<T> {
     const host = "element" in target ? target.element : this.createHost(target.plan);
 
@@ -329,6 +345,7 @@ export class ComponentFactory {
       ],
       parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });
+    staged.injector = ownInjector;
     const { instance, hostInstances, rendered, template } = this.createAndBuild(
       type,
       metadata,
@@ -344,6 +361,7 @@ export class ComponentFactory {
     // The styles are applied last, so that nothing above can fail after they are counted.
     const releaseStyles = applyComponentStyles(this.renderer, type, host);
     const view = this.views.create(host, instance, rendered, node);
+    staged.view = view;
     view.addDestroyCallback(releaseStyles);
     view.addDestroyCallback(() => ownInjector.destroy());
     view.addDestroyCallback(() => rootCleanups.forEach((cleanup) => cleanup()));
@@ -359,12 +377,7 @@ export class ComponentFactory {
     // In a template: its element's input bindings, then the directives and
     // child components of its own template's elements, now that its view
     // exists, and before the first render.
-    try {
-      template.createDirectivesAndComponents(view, ownInjector.injector);
-    } catch (error) {
-      view.destroy(); // undoes the directives created so far, and the injectors
-      throw error;
-    }
+    template.createDirectivesAndComponents(view, ownInjector.injector);
     // Its own host bindings: listeners now. The class bindings (with its host
     // directives') belong to whichever view contains its host element: the
     // parent's for a component in a template, which updates them with its
@@ -395,8 +408,8 @@ export class ComponentFactory {
   }
 
   /**
-   * Create the instance in `ownInjector`, and build its template. If either
-   * fails, `ownInjector` is destroyed (no view exists yet to do it).
+   * Create the instance in `ownInjector`, and build its template. A failure is thrown: the
+   * boundary in `createPrepared` undoes what was made.
    */
   private createAndBuild<T extends object>(
     type: Class<T>,
@@ -406,23 +419,18 @@ export class ComponentFactory {
     projected: ReadonlyMap<string, Node[]>,
     node: ViewNode,
   ): { instance: T; hostInstances: object[]; rendered: Node[]; template: TemplateBuilder } {
-    try {
-      // Host directives first, in order, so the component can inject them.
-      // The component is a provider of its injector too: created by it (so
-      // its onDestroy() runs with the view), and injectable below it.
-      const { hostInstances, instance } = runInInjectionContext(ownInjector.injector, () => ({
-        hostInstances: hostDirectives.map((directive) => inject(directive)),
-        instance: inject(type),
-      }));
-      // The builder creates the template's child components with this factory.
-      const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
-      const template = this.builders.create(instance, this, queries, undefined, true, node);
-      const rendered = template.build(this.templateOf(type, metadata), projected);
-      return { instance, hostInstances, rendered, template };
-    } catch (error) {
-      ownInjector.destroy();
-      throw error;
-    }
+    // Host directives first, in order, so the component can inject them.
+    // The component is a provider of its injector too: created by it (so
+    // its onDestroy() runs with the view), and injectable below it.
+    const { hostInstances, instance } = runInInjectionContext(ownInjector.injector, () => ({
+      hostInstances: hostDirectives.map((directive) => inject(directive)),
+      instance: inject(type),
+    }));
+    // The builder creates the template's child components with this factory.
+    const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
+    const template = this.builders.create(instance, this, queries, undefined, true, node);
+    const rendered = template.build(this.templateOf(type, metadata), projected);
+    return { instance, hostInstances, rendered, template };
   }
 
   /** Create the host element `plan` describes. */

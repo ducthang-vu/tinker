@@ -57,8 +57,10 @@ export class TemplateBuilderFactory {
   private readonly bindingFactory = inject(BindingFactory);
   private readonly directiveFactory = inject(DirectiveFactory);
   private readonly embedded = inject(EmbeddedViewFactory);
+  /** Whether the app is in development mode: its checks, and its placeholders for failures. */
+  private readonly devMode = inject(DEV_MODE);
   /** The dev-mode checks, in development mode only. */
-  private readonly checks = inject(DEV_MODE) ? devChecks() : undefined;
+  private readonly checks = this.devMode ? devChecks() : undefined;
 
   /**
    * A builder for the template of `component`, creating the components in
@@ -89,6 +91,7 @@ export class TemplateBuilderFactory {
       queries,
       root,
       node,
+      this.devMode,
     );
   }
 }
@@ -165,6 +168,8 @@ export class TemplateBuilder {
     private readonly root: boolean,
     /** The view this builds, in the view tree: a block's views are owned by it. */
     readonly node: ViewNode,
+    /** In development mode, a failed child leaves a comment naming it in its element. */
+    private readonly devMode: boolean,
   ) {
     this.scope = scope;
     this.styleScope = scopeOfComponent(component.constructor as Class<object>);
@@ -266,6 +271,9 @@ export class TemplateBuilder {
         use(created, {
           Left: (error) => {
             console.error(`${type.name} failed to create, so its element is left without it: ${error.message}`);
+            if (this.devMode && element !== undefined) {
+              this.renderer.appendChild(element, this.renderer.createComment(`${node.name} failed to create`));
+            }
             bindInputs(this.ownedOf(node.directives, directives));
           },
           Right: (child) => {

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { tick } from "../test-support.ts";
-import { inject, Injectable } from "../../../di/index.ts";
+import { inject, Injectable, provide } from "../../../di/index.ts";
+import { DEV_MODE } from "../tokens.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component, type ComponentMetadata, Directive } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
@@ -262,5 +263,35 @@ describe("recursion", () => {
     await tick();
     expect(valueOrThrow(renderComponent(Engine.create(), Pair)).host.nativeElement.querySelectorAll("tk-leaf"))
       .toHaveLength(2);
+  });
+});
+
+describe("a failed child in development mode", () => {
+  @Component({ selector: "tk-fails", template: "" })
+  class Fails {
+    constructor() {
+      throw new Error("child failed");
+    }
+  }
+  @Component({ selector: "tk-host", template: "<p><tk-fails></tk-fails></p>", imports: [Fails] })
+  class Host {}
+
+  test("its element keeps a comment naming the failed selector", () => {
+    const error = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
+    const view = valueOrThrow(renderComponent(engine, Host));
+    expect(view.host.nativeElement.innerHTML)
+      .toBe("<p><tk-fails><!--tk-fails failed to create--></tk-fails></p>");
+    error.mockRestore();
+  });
+
+  test("outside development mode the element is left empty, with no comment", () => {
+    const error = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const view = valueOrThrow(renderComponent(Engine.create(), Host));
+    expect(view.host.nativeElement.innerHTML)
+      .toBe("<p><tk-fails></tk-fails></p>");
+    error.mockRestore();
   });
 });
