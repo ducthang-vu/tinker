@@ -15,15 +15,11 @@ class ApiStub {}
 @Component({ selector: "tk-stub-missing", template: "<h1>Missing stub</h1>" })
 class MissingStub {}
 
-const ROUTES = {
-  path: "",
-  component: App,
-  children: [
-    { path: "/", component: HomeStub },
-    { path: "/api", component: ApiStub },
-    { path: "**", component: MissingStub },
-  ],
-};
+const ROUTES = [
+  { path: "/", component: HomeStub },
+  { path: "/api", component: ApiStub },
+  { path: "**", component: MissingStub },
+];
 
 /** The app, over the stub routes, at `url`. */
 function appAt(url: string) {

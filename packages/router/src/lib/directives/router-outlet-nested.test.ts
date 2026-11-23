@@ -18,21 +18,17 @@ class Parent {}
 @Component({ selector: "tk-app", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
 class App {}
 
-const ROOT = {
-  path: "",
-  component: App,
-  children: [
-    {
-      path: "/parent",
-      component: Parent,
-      children: [{ path: "child", component: Child }],
-    },
-  ],
-};
+const ROUTES = [
+  {
+    path: "/parent",
+    component: Parent,
+    children: [{ path: "child", component: Child }],
+  },
+];
 
 test("a routed component with an outlet shows the next level inside it", () => {
   window.history.replaceState(null, "", "/parent/child");
-  const fixture = TestBed.providers(...provideRouter(ROOT))
+  const fixture = TestBed.providers(...provideRouter(ROUTES))
     .component(App)
     .build();
   expect(fixture.root.text())

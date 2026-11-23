@@ -8,10 +8,16 @@ import { ActivatedRoute } from "../state/activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "../state/child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
-import type { Route } from "./route.ts";
+import { type Route, componentOf } from "./route.ts";
 
-/** The providers for a router over the tree under `root`, using the browser's location. */
-export function provideRouter(root: Route): readonly Provider[] {
+/**
+ * The providers for a router over `routes`, the top-level routes of the app, using the browser's
+ * location. Every route shows a component, and the top-level ones are checked too.
+ */
+export function provideRouter(routes: readonly Route[]): readonly Provider[] {
+  checkComponents(routes);
+  // The router matches over one tree: the routes are the children of a root that is never shown.
+  const root: Route = { path: "", children: routes };
   return [
     provide(PLATFORM_LOCATION, { useValue: browserPlatformLocation }),
     provide(Location, { useClass: Location }),
@@ -28,4 +34,12 @@ export function provideRouter(root: Route): readonly Provider[] {
       },
     }),
   ];
+}
+
+/** Every route must name the component it shows, the top-level ones and their children alike. */
+function checkComponents(routes: readonly Route[]): void {
+  for (const route of routes) {
+    componentOf(route);
+    checkComponents(route.children ?? []);
+  }
 }

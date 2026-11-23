@@ -7,11 +7,10 @@ import type { Route } from "./route.ts";
 import { getOrThrow } from "@tinker/functional";
 
 class TodoList {}
-class Root {}
-const ROOT: Route = { path: "", component: Root, children: [{ path: "/todos", component: TodoList }] };
+const ROUTES: Route[] = [{ path: "/todos", component: TodoList }];
 
 test("provideRouter gives a router over the browser's address bar", () => {
-  const { injector, destroy } = Injector.create({ providers: provideRouter(ROOT) });
+  const { injector, destroy } = Injector.create({ providers: provideRouter(ROUTES) });
   const router = runInInjectionContext(injector, () => inject(Router));
   router.navigate("/todos?tab=open");
   expect(router.url())
@@ -26,10 +25,19 @@ test("provideRouter gives a router over the browser's address bar", () => {
 
 test("ChildActivatedRoute is the activated route after the root, as a signal", () => {
   window.history.replaceState(null, "", "/todos");
-  const { injector, destroy } = Injector.create({ providers: provideRouter(ROOT) });
+  const { injector, destroy } = Injector.create({ providers: provideRouter(ROUTES) });
   const child = runInInjectionContext(injector, () => inject(ChildActivatedRoute));
   expect(getOrThrow(child(), () => new Error("no child")).route.component)
     .toBe(TodoList);
   destroy();
   window.history.replaceState(null, "", "/");
+});
+
+test("every route shows a component, the top-level ones too", () => {
+  expect(() => provideRouter([{ path: "/todos", component: TodoList }]))
+    .not.toThrow();
+  expect(() => provideRouter([{ path: "/todos" }]))
+    .toThrow("The route \"/todos\" needs a component");
+  expect(() => provideRouter([{ path: "/a", component: TodoList, children: [{ path: "b" }] }]))
+    .toThrow("The route \"b\" needs a component");
 });

@@ -337,10 +337,3 @@ router reads the URL itself. Any other static host needs the same fallback.
 
 **To do.** Warn when a single-token provider is registered twice, in developer mode, or let a
 later provider replace an earlier one on purpose.
-
-### 4. The root route's component is never shown
-
-**Problem.** `ROUTES` needs a component for its root route, so the shell (`App`) is given, though
-the outlet shows only the children. A reader could take that for a page.
-
-**To do.** Allow a root route without a component, when it only groups children.

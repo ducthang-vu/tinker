@@ -6723,12 +6723,12 @@
               "name": "component",
               "kind": "property",
               "source": "packages/router/src/lib/router/route.ts:15",
-              "description": "The component shown when the route matches.",
+              "description": "The component shown when the route matches. Every route needs one.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "type": "Class<object>"
+              "type": "Class<object> | undefined"
             },
             {
               "name": "data",
@@ -6944,7 +6944,7 @@
         {
           "name": "RouterOutlet",
           "kind": "class",
-          "source": "packages/router/src/lib/directives/router-outlet.ts:11",
+          "source": "packages/router/src/lib/directives/router-outlet.ts:12",
           "description": "",
           "params": [],
           "examples": [],
@@ -7061,14 +7061,14 @@
         {
           "name": "provideRouter",
           "kind": "function",
-          "source": "packages/router/src/lib/router/provide-router.ts:14",
-          "description": "The providers for a router over the tree under `root`, using the browser's location.",
+          "source": "packages/router/src/lib/router/provide-router.ts:17",
+          "description": "The providers for a router over `routes`, the top-level routes of the app, using the browser's\nlocation. Every route shows a component, and the top-level ones are checked too.",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
           "signatures": [
-            "provideRouter(root: Route): readonly Provider[]"
+            "provideRouter(routes: readonly Route[]): readonly Provider[]"
           ]
         }
       ]
