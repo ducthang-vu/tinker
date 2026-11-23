@@ -1,3 +1,4 @@
+import { tick } from "../test-support.ts";
 import { describe, expect, test, vi } from "vitest";
 import { inject, Injector, runInInjectionContext } from "../../../di/index.ts";
 import { signal, watch } from "../../../signals/index.ts";
@@ -59,24 +60,24 @@ describe("ChangeDetection", () => {
     view("b");
     expect(log)
       .toEqual([]);
-    await Promise.resolve();
+    await tick();
     expect(log)
       .toEqual(["views:a", "views:b"]);
     view("c"); // after the tick, a new request
-    await Promise.resolve();
+    await tick();
     expect(log)
       .toEqual(["views:a", "views:b", "views:c"]);
   });
 
   test("work queued during a tick runs in it, without an extra empty tick", async () => {
     const { changeDetection, log, effect, view } = setup();
-    const tick = vi.spyOn(changeDetection, "tick");
+    const spy = vi.spyOn(changeDetection, "tick");
     view("a", () => effect("b"));
-    await Promise.resolve();
-    await Promise.resolve();
+    await tick();
+    await tick();
     expect(log)
       .toEqual(["views:a", "effects:b"]);
-    expect(tick)
+    expect(spy)
       .toHaveBeenCalledOnce();
   });
 

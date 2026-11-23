@@ -16,10 +16,11 @@ has these gaps.
 `a.set(1); await x; b.set(2);` runs two cycles in one frame. The result is
 correct, the work is not minimal.
 
-**To do.** Nothing yet: the cost is not measured. If it shows up in profiles, try
-another strategy, e.g. Angular's zoneless race between `setTimeout` and
-`requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
-runs, so this is a change in one place.
+**Done.** The ticker now waits for the next frame or a timer, whichever comes first
+(`runtime/ticker.ts`), as in Angular's zoneless scheduler. A write made after an `await` that
+resolves in the same task is covered by the same tick. The cost is not measured yet: count ticks
+per frame in an example app before and after, and check that the DOM never lags behind the signals.
+Tests advance ticks with `tick()` (a timer), since a frame is not drawn in them.
 
 ### 2. A view cannot be refreshed by its author
 
