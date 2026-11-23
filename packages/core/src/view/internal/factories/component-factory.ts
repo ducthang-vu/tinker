@@ -66,6 +66,7 @@ import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ElementScope } from "./element-scope.ts";
 import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+import type { HostBindings } from "./host-bindings.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
 import { applyComponentStyles } from "../runtime/component-styles.ts";
@@ -190,7 +191,20 @@ export class ComponentFactory {
     host: Element | undefined,
   ): Either<Prepared, Error> {
     return flatMap(this.hostDirectivesOf(type, metadata), (hostDirectives) =>
-      this.withTarget(type, metadata, hostDirectives, host));
+      flatMap(this.hostsOf(type, hostDirectives), () =>
+        this.withTarget(type, metadata, hostDirectives, host)));
+  }
+
+  /**
+   * The parsed `host` options of `type` and its host directives: an invalid one
+   * fails before anything is created.
+   */
+  private hostsOf(
+    type: Class<unknown>,
+    hostDirectives: readonly Class<object>[],
+  ): Either<readonly HostBindings[], Error> {
+    return sequence([type, ...hostDirectives]
+      .map((directive) => this.directives.hostOf(directive)));
   }
 
   /** The host: the element given, if it holds no component yet, or else a plan for a new one. */
