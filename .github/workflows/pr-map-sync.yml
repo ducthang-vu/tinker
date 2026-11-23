@@ -53,7 +53,7 @@ jobs:
           fi
 
           conflicts=$(git diff --name-only --diff-filter=U)
-          others=$(printf '%s\n' "$conflicts" | grep -vE '(\.repo-map\.md|^examples/basics/api/api-reference\.json)$' || true)
+          others=$(printf '%s\n' "$conflicts" | grep -vE '(\.repo-map\.md|^examples/basics/src/features/apidoc/api-reference\.json)$' || true)
           if [ -n "$others" ]; then
             git merge --abort
             body=$(printf '%s\n' \

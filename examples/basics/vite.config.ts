@@ -4,6 +4,7 @@ import { tinkerCompiler } from "@tinker/compiler";
 import { standardDecorators, workspaceAlias } from "../../vite.shared.ts";
 
 export default defineConfig({
+  root: "src",
   base: "./",
   // The check reads the decorators, so it runs before the decorator transform.
   plugins: [tinkerCompiler({ emit: true }), standardDecorators()],
@@ -14,7 +15,7 @@ export default defineConfig({
     open: "/",
   },
   build: {
-    outDir: "../../dist/example",
+    outDir: "../../../dist/example",
     emptyOutDir: true,
   },
 });

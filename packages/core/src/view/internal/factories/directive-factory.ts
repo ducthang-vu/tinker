@@ -31,7 +31,7 @@ import type { AttributeNode } from "../template/ast.ts";
 import { RENDERER } from "../tokens.ts";
 import { HostBindings } from "./host-bindings.ts";
 import type { View } from "../runtime/view.ts";
-import { type Either, Left, Right, valueOrThrow, Some, None, match, partial } from "@tinker/functional";
+import { type Either, flatMap, Left, map, mapLeft, Right, valueOrThrow, Some, None, match, partial } from "@tinker/functional";
 
 @Injectable()
 export class DirectiveFactory {
@@ -165,15 +165,26 @@ export class DirectiveFactory {
     ];
   }
 
-  private hostBindingsOf(type: Class<unknown>): HostBindings {
-    let bindings = this.hostBindings.get(type);
-    if (!bindings) {
-      // The view builder above this call does not return errors yet, so an invalid host
-      // option is thrown here, where the directive is first used. (See IMPROVEMENTS.md.)
-      const metadata = valueOrThrow(this.metadataOf(type));
-      bindings = valueOrThrow(HostBindings.parse(metadata.host));
-      this.hostBindings.set(type, bindings);
+  /**
+   * The parsed `host` option of `type` (components included), parsed once. An
+   * invalid option, or a class that is not a directive, is a Left.
+   */
+  hostOf(type: Class<unknown>): Either<HostBindings, Error> {
+    const cached = this.hostBindings.get(type);
+    if (cached) {
+      return Right.of(cached);
     }
-    return bindings;
+    return flatMap(this.metadataOf(type), (metadata) =>
+      map(mapLeft(HostBindings.parse(metadata.host), (error): Error => error), (bindings) => {
+        this.hostBindings.set(type, bindings);
+        return bindings;
+      }));
+  }
+
+  private hostBindingsOf(type: Class<unknown>): HostBindings {
+    // The template builder does not return errors yet. Every directive a component's
+    // template names is checked by `hostOf` (through ComponentFactory) before anything is
+    // created, so this throw is not reached for them.
+    return valueOrThrow(this.hostOf(type));
   }
 }

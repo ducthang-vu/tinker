@@ -63,31 +63,57 @@ export class Emitter<T, R = void, E = never> {
     this.stream = Stream.hot((observer) => this.subscribe(observer));
   }
 
-  /** A new emitter with no subscribers. */
+  /**
+   * A new emitter with no subscribers.
+   *
+   * @returns An emitter that has no subscribers yet.
+   */
   static create<T, R = void, E = never>(): Emitter<T, R, E> {
     return new Emitter<T, R, E>();
   }
 
-  /** Emit a successful item. */
+  /**
+   * Emit a successful item.
+   *
+   * @param value The item to deliver to the subscribers.
+   */
   emit(value: T): void {
     this.enqueue({ kind: "item", item: Right.of(value) });
   }
 
-  /** Emit a failure as an item: the stream goes on. */
+  /**
+   * Emit a failure as an item: the stream goes on.
+   *
+   * @param error The failure to deliver as an item.
+   */
   emitError(error: E): void {
     this.enqueue({ kind: "item", item: Left.of(error) });
   }
 
-  /** End the stream successfully, with `result`. */
+  /**
+   * End the stream successfully, with `result`.
+   *
+   * @param result The result the subscribers' `end` receives.
+   */
   complete(result: R): void {
     this.enqueue({ kind: "end", result: Right.of(result) });
   }
 
-  /** End the stream with a failure: it will not go on. */
+  /**
+   * End the stream with a failure: it will not go on.
+   *
+   * @param error The failure the subscribers' `end` receives.
+   */
   fail(error: E): void {
     this.enqueue({ kind: "end", result: Left.of(error) });
   }
 
+  /**
+   * Adds a subscriber, or tells it at once when the stream is already over.
+   *
+   * @param observer The subscriber's handlers.
+   * @returns A function that stops the subscriber from receiving anything more.
+   */
   private subscribe(observer: StreamObserver<T, R, E>): Cancel {
     const over = match(this.final, {
       Some: (result) => ({ result }),
@@ -106,6 +132,11 @@ export class Emitter<T, R = void, E = never> {
     };
   }
 
+  /**
+   * Adds an event to the queue, and delivers the queue unless a delivery is already running.
+   *
+   * @param event The item or the end to emit.
+   */
   private enqueue(event: Event<T, R, E>): void {
     if (this.ended) {
       return;
@@ -127,6 +158,11 @@ export class Emitter<T, R = void, E = never> {
     }
   }
 
+  /**
+   * Sends one event to every active subscriber, in the order they subscribed.
+   *
+   * @param event The item or the end to send.
+   */
   private deliver(event: Event<T, R, E>): void {
     if (event.kind === "end") {
       this.final = Some.of(event.result);
@@ -148,7 +184,11 @@ export class Emitter<T, R = void, E = never> {
     }
   }
 
-  /** Call a listener: what it throws is reported, and does not reach the others or the owner. */
+  /**
+   * Call a listener: what it throws is reported, and does not reach the others or the owner.
+   *
+   * @param listener The call to make.
+   */
   private call(listener: () => void): void {
     try {
       listener();

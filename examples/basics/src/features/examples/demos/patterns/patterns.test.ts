@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { TestBed } from "@tinker/testing";
 import { Patterns } from "./patterns.ts";
-import { buttonNamed } from "./testing-helpers.ts";
+import { buttonNamed } from "../../../../../testing/testing-helpers.ts";
 
 describe("Patterns", () => {
   test("the status moves through its values, and the alternatives match", () => {

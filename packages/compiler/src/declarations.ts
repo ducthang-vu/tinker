@@ -50,6 +50,10 @@ export interface Declaration {
   readonly exportAs: string | undefined;
   /** Whether the decorator gives an `exportAs` that is not a literal, which is not read. */
   readonly exportAsIsDynamic: boolean;
+  /** The template names of its inputs, by property: from `input(…, { name: "…" })`. */
+  readonly inputNames: Readonly<Record<string, string>>;
+  /** Where the class statement ends: the registration of its input names goes after it. */
+  readonly statementEnd: number;
 }
 
 /** A `styleUrls` or `templateUrl` property: the file it names (if a literal), and where it is. */
@@ -75,6 +79,10 @@ export interface ImportBinding {
 export interface SourceInfo {
   readonly declarations: readonly Declaration[];
   readonly imports: readonly ImportBinding[];
+  /** The named re-exports: `export { imported as local } from "source"`. */
+  readonly reexports: readonly ImportBinding[];
+  /** The modules it re-exports everything from: `export * from "source"`. */
+  readonly starExports: readonly string[];
   /** The `const`s of the file whose value is a string literal or a template without `${}`. */
   readonly constants: ReadonlyMap<string, string>;
   /** The initializer of every top-level `const`, to evaluate the ones not in `constants`. */
@@ -97,6 +105,8 @@ export function readSource(code: string, filename: string): SourceInfo {
   return {
     declarations: body.flatMap((statement) => declarationOf(statement, constants)),
     imports: body.flatMap(importsOf),
+    reexports: body.flatMap(reexportsOf),
+    starExports: body.flatMap(starExportsOf),
     constants,
     expressions: expressionsOf(body),
   };
@@ -165,14 +175,59 @@ function declarationOf(
   if (decorator === undefined) {
     return [];
   }
-  return [{ name: declared.id.name, ...decorator }];
+  return [{
+    name: declared.id.name,
+    ...decorator,
+    inputNames: inputNamesOf(declared, constants),
+    statementEnd: statement.end as number,
+  }];
+}
+
+/**
+ * The template names of a class's inputs, by property: each `x = input(…, { name: "…" })` whose
+ * name is a literal (or a constant of the file). An input without a name is not listed.
+ */
+function inputNamesOf(
+  declared: t.ClassDeclaration,
+  constants: ReadonlyMap<string, string>,
+): Readonly<Record<string, string>> {
+  const names: Record<string, string> = {};
+  for (const member of declared.body.body) {
+    if (!t.isClassProperty(member) || member.computed || !t.isIdentifier(member.key)) {
+      continue;
+    }
+    const name = nameOfInput(member.value, constants);
+    if (name !== undefined) {
+      names[member.key.name] = name;
+    }
+  }
+  return names;
+}
+
+/**
+ * The `name` of an `input(…)` call: its options are the argument that is an object, the
+ * second one or (alone) the first, as `input()` reads them. Undefined when there is none.
+ */
+function nameOfInput(
+  value: t.Expression | null | undefined,
+  constants: ReadonlyMap<string, string>,
+): string | undefined {
+  if (!t.isCallExpression(value) || !t.isIdentifier(value.callee, { name: "input" })) {
+    return undefined;
+  }
+  const args = value.arguments;
+  const options = args.length === 1 ? args[0] : args[1];
+  if (!t.isObjectExpression(options)) {
+    return undefined;
+  }
+  return literalOf(propertyOf(options, "name"), constants);
 }
 
 /** The kind and the literal options of a `@Component({...})` or `@Directive({...})`. */
 function decoratorInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name"> | undefined {
+): Omit<Declaration, "name" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)) {
     return undefined;
@@ -361,6 +416,34 @@ function identifiersOf(value: t.Expression | undefined): readonly string[] | und
   const names = value.elements.map((element) =>
     t.isIdentifier(element) ? element.name : undefined);
   return names.every((name) => name !== undefined) ? names as string[] : undefined;
+}
+
+/**
+ * The named re-exports of an `export { imported as local } from "source"` declaration, as
+ * bindings: `local` is the exported name, `imported` the name in `source`.
+ */
+function reexportsOf(statement: t.Statement): ImportBinding[] {
+  if (!t.isExportNamedDeclaration(statement) || !statement.source) {
+    return [];
+  }
+  const source = statement.source.value;
+  return statement.specifiers.flatMap((specifier) => {
+    if (!t.isExportSpecifier(specifier)) {
+      return [];
+    }
+    const local = t.isIdentifier(specifier.exported)
+      ? specifier.exported.name
+      : specifier.exported.value;
+    const imported = t.isIdentifier(specifier.local)
+      ? specifier.local.name
+      : specifier.local.value;
+    return [{ local, imported, source }];
+  });
+}
+
+/** The modules a file re-exports everything from: `export * from "source"`. */
+function starExportsOf(statement: t.Statement): string[] {
+  return t.isExportAllDeclaration(statement) ? [statement.source.value] : [];
 }
 
 /** The named imports of an `import` declaration. Default and namespace imports are not read. */

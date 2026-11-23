@@ -42,6 +42,11 @@ export type TaskComputation<T, E> = (
 
 /** The error of a task that took longer than its `timeout`. */
 export class TimeoutError extends Error {
+  /**
+   * The error for a task that ran past its limit.
+   *
+   * @param milliseconds The limit the task ran past, in milliseconds.
+   */
   constructor(readonly milliseconds: number) {
     super(`Task timed out after ${milliseconds} ms`);
     this.name = "TimeoutError";
@@ -51,6 +56,9 @@ export class TimeoutError extends Error {
 /**
  * A task doing `computation` when it is run. What it throws becomes a failure, an Error: hence
  * `E | Error`.
+ *
+ * @param computation How the task calls `ok` or `error`, and how to cancel it.
+ * @returns A task that runs `computation` each time it is run.
  */
 export function fromComputation<T, E = Error>(
   computation: TaskComputation<T, E>,
@@ -62,17 +70,32 @@ export function fromComputation<T, E = Error>(
     ));
 }
 
-/** A task that succeeds with `value`. */
+/**
+ * A task that succeeds with `value`.
+ *
+ * @param value The value the task succeeds with.
+ * @returns A task that succeeds with `value`.
+ */
 export function succeed<T>(value: T): Task<T, never> {
   return Stream.end(value);
 }
 
-/** A task that fails with `error`. */
+/**
+ * A task that fails with `error`.
+ *
+ * @param error The error the task fails with.
+ * @returns A task that fails with `error`.
+ */
 export function fail<E>(error: E): Task<never, E> {
   return Stream.fail(error);
 }
 
-/** A task with the outcome of an Either: a Right succeeds, a Left fails. */
+/**
+ * A task with the outcome of an Either: a Right succeeds, a Left fails.
+ *
+ * @param either The outcome the task has.
+ * @returns A task with that outcome.
+ */
 export function fromOutcome<T, E>(either: Either<T, E>): Task<T, E> {
   return Stream.fromEither(either);
 }
@@ -80,6 +103,9 @@ export function fromOutcome<T, E>(either: Either<T, E>): Task<T, E> {
 /**
  * A task running the promise `start` returns. `start` is called only when the task runs, and
  * receives an AbortSignal that is aborted on cancel. A rejection becomes a failure, an Error.
+ *
+ * @param start Makes the promise. It receives a signal that is aborted when the task is cancelled.
+ * @returns A task that succeeds with the promise's value, or fails with its rejection.
  */
 export function fromPromise<T>(start: (signal: AbortSignal) => PromiseLike<T>): Task<T, Error> {
   return fromComputation<T, Error>((ok, error) => {
@@ -90,7 +116,12 @@ export function fromPromise<T>(start: (signal: AbortSignal) => PromiseLike<T>): 
   });
 }
 
-/** A task that succeeds after `milliseconds`. Cancelling clears the timer. */
+/**
+ * A task that succeeds after `milliseconds`. Cancelling clears the timer.
+ *
+ * @param milliseconds How long to wait, in milliseconds.
+ * @returns A task that succeeds once the time has passed.
+ */
 export function delay(milliseconds: number): Task<void, Error> {
   return fromComputation<void, never>((ok) => {
     const timer = setTimeout(() => ok(undefined), milliseconds);
@@ -98,7 +129,13 @@ export function delay(milliseconds: number): Task<void, Error> {
   });
 }
 
-/** `task`, failing with a TimeoutError if it takes longer than `milliseconds` (and cancelled). */
+/**
+ * `task`, failing with a TimeoutError if it takes longer than `milliseconds` (and cancelled).
+ *
+ * @param task The task to limit.
+ * @param milliseconds The limit, in milliseconds.
+ * @returns A task with the outcome of `task`, or a TimeoutError when it runs past the limit.
+ */
 export function timeout<T, E>(task: Task<T, E>, milliseconds: number): Task<T, E | Error> {
   return fromComputation<T, E | Error>((ok, error) => {
     const timer = setTimeout(() => {
@@ -122,7 +159,12 @@ export function timeout<T, E>(task: Task<T, E>, milliseconds: number): Task<T, E
   });
 }
 
-/** Run the task as a Promise (which cannot be cancelled). */
+/**
+ * Run the task as a Promise (which cannot be cancelled).
+ *
+ * @param task The task to run.
+ * @returns A promise of the task's value, rejected with its failure.
+ */
 export function toPromise<T, E>(task: Task<T, E>): Promise<T> {
   return new Promise((resolve, reject) => {
     run(task, { ok: resolve, error: reject });

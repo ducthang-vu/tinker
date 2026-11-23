@@ -9,7 +9,7 @@ import {
   Effect,
   type EffectContext,
 } from "@tinker/core";
-import { Highlight, Tooltip } from "./highlight.ts";
+import { Highlight, Tooltip } from "../highlight/highlight.ts";
 
 @Component({
   selector: "tk-clock",

@@ -123,13 +123,13 @@ describe("host class bindings", () => {
       .toBe("focusable");
   });
 
-  test("an invalid expression is reported when the directive is used", () => {
+  test("an invalid expression is reported when the component is created", () => {
     @Directive({ selector: "[bad]", host: { "[class.on]": "a(1 2)" } })
     class Bad {}
     @Component({ selector: "tk-a", template: `<p bad></p>`, imports: [Bad] })
     class A {}
-    expect(() => Engine.create()
-      .createComponent(A))
+    expect(() => valueOrThrow(Engine.create()
+      .createComponent(A)))
       .toThrow(`in host binding "[class.on]"`);
   });
 });

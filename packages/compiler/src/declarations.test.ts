@@ -19,13 +19,19 @@ describe("readSource", () => {
         imports: ["Item"],
         exportAs: undefined,
         exportAsIsDynamic: false,
+        inputNames: {},
+        statementEnd: expect.any(Number),
       }]);
   });
 
   test("reads a directive, with its selector", () => {
     expect(read(`@Directive({ selector: "[item]" }) class Item {}`).declarations)
       .toEqual([{ name: "Item", kind: "directive", selector: "[item]", template: undefined, imports: [],
-        exportAs: undefined, exportAsIsDynamic: false }]);
+        exportAs: undefined,
+        exportAsIsDynamic: false,
+        inputNames: {},
+        statementEnd: expect.any(Number),
+      }]);
   });
 
   test("reads an exportAs literal, and marks one that is not a literal as dynamic", () => {
@@ -171,5 +177,26 @@ describe("readSource", () => {
     `, "file.ts");
     expect([...constants.keys()])
       .toEqual(["plain"]);
+  });
+
+  test("reads the input names of a class: an options object alone, or as the second argument", () => {
+    const [declaration] = read(`
+      @Component({ selector: "tk-a", template: "" })
+      class A {
+        readonly alone = input({ name: "one" });
+        readonly second = input(1, { name: "two" });
+        readonly first = input(1, { adapter: numberAdapter });
+        readonly none = input();
+        readonly value = input(1);
+        readonly literal = input(name);
+        readonly object = input({ name: "x" }, { adapter: numberAdapter });
+        readonly notInput = other({ name: "y" });
+        readonly plain = 3;
+        ["computed"] = input(1, { name: "z" });
+        method() {}
+      }
+    `).declarations;
+    expect(declaration!.inputNames)
+      .toEqual({ alone: "one", second: "two" });
   });
 });

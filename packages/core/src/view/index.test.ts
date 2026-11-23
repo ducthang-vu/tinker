@@ -28,6 +28,8 @@ test("the public API exports exactly these values", () => {
         "ViewContainerRef",
         "ChangeDetectionLoopError",
         "input",
+        "inputNamesOf",
+        "registerInputNames",
         "output",
         "queryAll",
         "query",

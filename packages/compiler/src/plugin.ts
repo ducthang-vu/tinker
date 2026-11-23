@@ -116,18 +116,45 @@ export async function emitFile(
   mode: CompileMode,
 ): Promise<EmittedFile | undefined> {
   const replacements = await compileComponents(code, filename, host, mode);
-  if (replacements.length === 0) {
+  const registrations = registrationsOf(code, filename);
+  if (replacements.length === 0 && registrations.length === 0) {
     return undefined;
   }
   const output = new MagicString(code);
   for (const replacement of replacements) {
     output.overwrite(replacement.start, replacement.end, replacement.text);
   }
-  output.prepend(HELPER_IMPORTS);
+  for (const registration of registrations) {
+    output.appendLeft(registration.start, registration.text);
+  }
+  if (registrations.length > 0) {
+    output.prepend(REGISTER_IMPORT);
+  }
+  if (replacements.length > 0) {
+    output.prepend(HELPER_IMPORTS);
+  }
   return {
     code: output.toString(),
     map: output.generateMap({ hires: true, source: filename, includeContent: true }),
   };
+}
+
+/** The name the emitted code uses for the input registration, aliased like the other helpers. */
+const REGISTER = "__tinkerRegisterInputs";
+const REGISTER_IMPORT = `import { registerInputNames as ${REGISTER} } from "@tinker/core";\n`;
+
+/**
+ * The registration of each class's input names, placed after the class: the class then knows
+ * the names its templates use, without an instance. Given whether or not templates are emitted.
+ */
+function registrationsOf(code: string, filename: string): Replacement[] {
+  return readSource(code, filename).declarations
+    .filter(({ inputNames }) => Object.keys(inputNames).length > 0)
+    .map((declaration) => ({
+      start: declaration.statementEnd,
+      end: declaration.statementEnd,
+      text: `\n${REGISTER}(${declaration.name}, ${JSON.stringify(declaration.inputNames)});`,
+    }));
 }
 
 /** Whether `id` is a TypeScript file outside node_modules that mentions a component. */
@@ -471,10 +498,51 @@ async function selectorOf(
   if (file === null) {
     return undefined;
   }
-  const fileSource = readSource(readFileSync(file, "utf8"), file);
-  const declared = fileSource.declarations
-    .find((declaration) => declaration.name === binding.imported);
-  return declared === undefined ? undefined : selectorInfo(declared, fileSource, file, host);
+  const found = await exportedDeclaration(binding.imported, file, host, new Set());
+  return found === undefined
+    ? undefined
+    : selectorInfo(found.declaration, found.source, found.filename, host);
+}
+
+/** A declaration found by its exported name, with the file that declares it. */
+interface FoundDeclaration {
+  readonly declaration: Declaration;
+  readonly source: SourceInfo;
+  readonly filename: string;
+}
+
+/**
+ * The declaration that `file` exports as `exported`: declared there, or re-exported from another
+ * file (`export { X } from "..."`, or `export * from "..."`). `seen` stops a cycle of re-exports.
+ */
+async function exportedDeclaration(
+  exported: string,
+  file: string,
+  host: CheckHost,
+  seen: Set<string>,
+): Promise<FoundDeclaration | undefined> {
+  const key = `${file}\0${exported}`;
+  if (seen.has(key)) {
+    return undefined;
+  }
+  seen.add(key);
+  const source = readSource(readFileSync(file, "utf8"), file);
+  const declaration = source.declarations.find((candidate) => candidate.name === exported);
+  if (declaration !== undefined) {
+    return { declaration, source, filename: file };
+  }
+  const named = source.reexports.find((reexport) => reexport.local === exported);
+  const candidates = named === undefined
+    ? source.starExports.map((from) => ({ from, name: exported }))
+    : [{ from: named.source, name: named.imported }];
+  for (const { from, name } of candidates) {
+    const next = await host.resolve(from, file);
+    const found = next === null ? undefined : await exportedDeclaration(name, next, host, seen);
+    if (found !== undefined) {
+      return found;
+    }
+  }
+  return undefined;
 }
 
 /**

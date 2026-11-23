@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ApiReference } from "./api-reference.ts";
-import { nth } from "../testing-helpers.ts";
+import { nth } from "../../../testing/testing-helpers.ts";
 import { anchorId, docBlocks, toSections } from "./api-view.ts";
 
 describe("docBlocks", () => {
@@ -41,9 +41,11 @@ describe("docBlocks", () => {
 });
 
 describe("anchorId", () => {
-  test("makes a lower-case id with one dash per run of other characters", () => {
+  test("makes an id with one dash per run of other characters, and keeps the case", () => {
     expect(anchorId("@tinker/core/compiler", "compileSource"))
-      .toBe("tinker-core-compiler-compilesource");
+      .toBe("tinker-core-compiler-compileSource");
+    expect(anchorId("@tinker/functional", "MAP"))
+      .not.toBe(anchorId("@tinker/functional", "map"));
     expect(anchorId("--a  b--"))
       .toBe("a-b");
   });
@@ -108,7 +110,7 @@ describe("toSections", () => {
       .toBe(true);
     expect(lib.items.map((item) => item.id))
       .toEqual([
-        "demo-lib-counter",
+        "demo-lib-Counter",
         "demo-lib-legacy",
       ]);
     expect(empty.hasItems)

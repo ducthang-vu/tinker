@@ -173,17 +173,6 @@ sheet's rules one at a time if a list of files is ever scoped separately.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
-### 1. The testing helpers do not know an input's template name
-
-**Problem.** `input(…, { name })` gives the template name, but `InputName<T>` and the
-mock builders (`requiredInputs`, `optionalInputs`) work on the property names. They were
-written before options existed, so a mock may not copy the template name: a test that
-sets `title="…"` on a mock of `label` could then fail. Not yet checked by a test.
-
-**To do.** Have the mock builders read `InputBinding.alias` (through `inputsOf` or a new
-accessor) and copy each input under its template name, keeping the property name for
-the typed side.
-
 ### 2. Adapters report no errors
 
 **Problem.** `numberAdapter` gives NaN for text that is not a number, and nothing tells the
@@ -273,20 +262,7 @@ delays the whole view. Nothing limits its cost.
 risk and leave the author to write a linear regex.
 
 
-## Errors in the view builder (`packages/core/src/view/internal/factories/`)
-
-### 1. An invalid `host` option is thrown where the directive is first used
-
-**Problem.** `HostBindings.parse` returns an `Either`, so an invalid `host` option is a
-value. But the directive factory (`directive-factory.ts`) builds the bindings during view
-creation, and the code above it returns plain values, not `Either`s. So the factory calls
-matching its Left and throwing, and the error is thrown there instead of being returned to the caller.
-
-**To do.** Make the view builder (`template-builder.ts` and its callers) return an `Either`
-for the directive's bindings, so the caller that creates the directive decides what to do
-with the error. This follows from converting the template compiler to `Either`.
-
-## API reference (`scripts/api-docs.mjs`, `examples/basics/api/`)
+## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
 ### 1. Descriptions are plain text with code spans and fences
 
@@ -295,9 +271,22 @@ markup is shown as written: a `{@link X}` may appear as text, and lists, heading
 are not rendered. Spaces around a code span are also wrong when the text is next to a
 punctuation mark, such as "`inject(Injector)` , the token".
 
-**To do.** Render the TSDoc inline tags (`{@link}`) as links to the reference anchors, and
-fix the template whitespace in `api-docs.ts` (`DocBody`) so a code span has no space before
-the text after it.
+**What was tried.** The spaces are not in the data: each paragraph's parts are rendered
+by a `@map` loop in `DocBody`, and the engine keeps the whitespace-only text between the
+rows as text, as HTML does. Two template changes were tried and reverted:
+
+- Removing the spaces inside the `@if` and `@else` braces: the spaces between rows stayed.
+- Putting the loop body on one line: the spaces went, but the rows came out in reverse order
+  (`.`, `create()`, `, then`, `inject(Injector)`, `Use`), even with `track $index`.
+
+The reverse order is a bug in the engine's `@map` row placement when a row has no whitespace
+around it; it is not specific to this page. A regression test (a paragraph with two code spans,
+checked for its exact text) reproduces the spaces.
+
+**To do.** Fix the engine's `@map` for rows without surrounding whitespace first (it is the
+cause of the reverse order), then drop the whitespace between the rows in `DocBody`. Or render
+each paragraph as one element, with the code spans as children it places by position. Also
+render the TSDoc inline tags (`{@link}`) as links to the reference anchors.
 
 ### 2. Inherited members are not listed
 
@@ -315,7 +304,7 @@ the package index (`packages/core/src/view/index.ts`), so an app can still impor
 **To do.** Move them out of the public index, or keep them there and accept that the
 reference does not show them.
 
-## Example app: routing and the GitHub Pages base (`examples/basics/app/`, `.github/workflows/gh-pages.yml`)
+## Example app: routing and the GitHub Pages base (`examples/basics/src/features/examples/app/`, `.github/workflows/gh-pages.yml`)
 
 ### 1. Links are not base-aware
 
