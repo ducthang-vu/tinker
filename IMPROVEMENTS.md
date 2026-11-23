@@ -329,11 +329,3 @@ workflow copies `index.html` to `404.html`, and GitHub Pages serves that page fo
 router reads the URL itself. Any other static host needs the same fallback.
 
 **To do.** Nothing in the app; document the fallback for any new host.
-
-### 3. The first provider of a token wins
-
-**Problem.** A token with a provider the app adds before the framework's (such as `provideRouter`'s
-`PLATFORM_LOCATION`) is used; a later one is ignored with no error. Nothing tells the author.
-
-**To do.** Warn when a single-token provider is registered twice, in developer mode, or let a
-later provider replace an earlier one on purpose.
