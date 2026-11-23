@@ -143,6 +143,7 @@ function hasMethod(value: unknown, key: symbol): boolean {
  * @param value The value to read the case name from.
  * @param message The error message, for a value that is not matchable.
  * @returns The case name of the box.
+ * @throws {Error} With `message`, when `value` is not matchable.
  */
 function caseNameOf(value: unknown, message: string): string {
   if (typeof value === "object" && value !== null && MATCHABLE in value) {

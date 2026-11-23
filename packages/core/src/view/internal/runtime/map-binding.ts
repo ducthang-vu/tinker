@@ -33,6 +33,8 @@ export type RowRenderer = (
 /** One item of the list, as a row on the page. Its key is the parts of its identity. */
 interface Row {
   readonly key: readonly unknown[];
+  /** Where the row starts: its nodes are the ones from here to `anchor`, nested blocks included. */
+  readonly start: Comment;
   readonly anchor: Comment;
   readonly view: EmbeddedView;
   /** What the item's pattern binds, by name: a signal each, so the row follows the item. */
@@ -130,7 +132,7 @@ export class MapBinding implements Binding {
         ?? this.create(keys[index]!, list[index], index, list.length, before);
       rows[index] = row;
       // A row is its nodes, then its anchor: the row before starts where this one starts.
-      before = row.view.nodes[0] ?? row.anchor;
+      before = row.start;
     }
     this.rows = rows;
   }
@@ -194,6 +196,8 @@ export class MapBinding implements Binding {
     count: number,
     before: Node,
   ): Row {
+    const start = this.renderer.createComment("");
+    this.renderer.insertBefore(this.parent(), start, before);
     const anchor = this.renderer.createComment("");
     this.renderer.insertBefore(this.parent(), anchor, before);
     const names = new Map(
@@ -207,23 +211,37 @@ export class MapBinding implements Binding {
       this.rowContext(names, indexSignal, countSignal),
     );
     const view = this.render(this.node.body, scope, anchor, this.injector);
-    return { key, anchor, view, names, index: indexSignal, count: countSignal };
+    return { key, start, anchor, view, names, index: indexSignal, count: countSignal };
   }
 
-  /** Put every row's nodes, then its anchor, in order before the map's anchor. */
+  /** Put every row in order before the map's anchor. */
   private placeRows(): void {
     const parent = this.parent();
     for (const row of this.rows) {
-      for (const node of row.view.nodes) {
-        this.renderer.insertBefore(parent, node, this.anchor);
-      }
-      this.renderer.insertBefore(parent, row.anchor, this.anchor);
+      this.moveRow(parent, row);
     }
     this.queries.reordered();
   }
 
+  /**
+   * Move a row's nodes before the map's anchor, from its start marker to its anchor. The walk takes
+   * every node in between, so the nodes of a block nested in the row move with it, in order.
+   */
+  private moveRow(parent: Node, row: Row): void {
+    let node: Node | null = row.start;
+    while (node !== null) {
+      const next: Node | null = node.nextSibling;
+      this.renderer.insertBefore(parent, node, this.anchor);
+      if (node === row.anchor) {
+        return;
+      }
+      node = next;
+    }
+  }
+
   private remove(row: Row): void {
     row.view.destroy();
+    this.renderer.removeChild(this.parent(), row.start);
     this.renderer.removeChild(this.parent(), row.anchor);
   }
 

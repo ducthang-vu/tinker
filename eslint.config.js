@@ -45,6 +45,7 @@ export default [
       }],
       "jsdoc/require-param": "error",
       "jsdoc/require-returns": "error",
+      "jsdoc/require-throws": "error",
     },
   },
   // Disable comments must name their rules and give a reason (after `--`).

@@ -4914,7 +4914,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:121",
+          "source": "packages/functional/src/lib/monad/either.ts:124",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [
             {
@@ -5021,7 +5021,7 @@
         {
           "name": "flatMap",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:171",
+          "source": "packages/functional/src/lib/functor/functor.ts:172",
           "description": "Chain a box through `f`: `f` takes the value inside the box and returns a box, and that box is\nthe result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or\ndata-last `flatMap(f)`, which returns a function of the box.",
           "params": [
             {
@@ -5547,7 +5547,7 @@
         {
           "name": "sequence",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:282",
+          "source": "packages/functional/src/lib/functor/functor.ts:283",
           "description": "The values of a list of Eithers, in order: a Right of all of them, or the first Left. Every\nstep is run, so use it for steps that have no effects.",
           "params": [
             {
@@ -5654,7 +5654,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:141",
+          "source": "packages/functional/src/lib/monad/either.ts:144",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [
             {
@@ -5717,7 +5717,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:153",
+          "source": "packages/functional/src/lib/monad/either.ts:156",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {
@@ -5989,7 +5989,7 @@
         {
           "name": "chainLaws",
           "kind": "function",
-          "source": "packages/functional/src/testing.ts:138",
+          "source": "packages/functional/src/testing.ts:139",
           "description": "The chain laws, as checks: flatMap's left identity, right identity and associativity. Use it\nfor a type that has `flatMap` and no `map`. Each check is a `[description, check]` pair: `check`\nthrows when its law fails.",
           "params": [
             {
@@ -6010,7 +6010,7 @@
         {
           "name": "functorLaws",
           "kind": "function",
-          "source": "packages/functional/src/testing.ts:100",
+          "source": "packages/functional/src/testing.ts:101",
           "description": "The functor laws, as checks: `map` with the identity leaves each box unchanged, and `map`\ncomposes. Use it for a type that has `map` but no `flatMap`. Each check is a\n`[description, check]` pair: `check` throws when its law fails.",
           "params": [
             {
@@ -6031,7 +6031,7 @@
         {
           "name": "monadLaws",
           "kind": "function",
-          "source": "packages/functional/src/testing.ts:189",
+          "source": "packages/functional/src/testing.ts:190",
           "description": "The monad laws, as checks: the functor laws, the chain laws, and the interaction with `map`,\n`flatMap` and `match`. Use it to test a monad defined outside this package, with the monad's\nown samples (include edge values, as in `EDGE_VALUES`). Each check is a `[description, check]`\npair: `check` throws when its law fails, so any test framework can run it.",
           "params": [
             {

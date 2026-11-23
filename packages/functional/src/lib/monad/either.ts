@@ -110,6 +110,9 @@ export function mapLeft(...args: readonly unknown[]): unknown {
   });
 }
 
+// Passes an error the caller did not expect through: the description says so, so there is no
+// @throws for it.
+// eslint-disable-next-line jsdoc/require-throws -- a pass-through, documented in the description
 /**
  * Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.
  * Any other throw is a bug, and it propagates.

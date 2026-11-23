@@ -71,3 +71,37 @@ describe("the API page, rendered from the generated reference", () => {
     ref.destroy();
   });
 });
+
+describe("text around code spans", () => {
+  test("a code span is set in place: no space before the text after it", () => {
+    const doc = {
+      name: "demo",
+      kind: "function",
+      source: "x.ts:1",
+      static: false,
+      final: false,
+      signatures: [],
+      type: "",
+      declaration: "",
+      description: [{ isCode: false, text: "", parts: [
+        { text: "Use ", code: false },
+        { text: "inject(Injector)", code: true },
+        { text: ", then ", code: false },
+        { text: "create()", code: true },
+        { text: ".", code: false },
+      ] }],
+      params: [],
+      returns: "",
+      examples: [],
+      see: [],
+      throws: [],
+    };
+    const ref = TestBed.component(DocBody)
+      .inputs({ doc })
+      .build();
+    const paragraph = nth(ref.root.queryAll("p"), 0);
+    expect(paragraph.text())
+      .toBe("Use inject(Injector), then create().");
+    ref.destroy();
+  });
+});
