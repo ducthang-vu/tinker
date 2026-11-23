@@ -17,7 +17,6 @@
 // The API reference, generated from the TSDoc, is at "/api" (features/apidoc/api-docs.ts).
 
 import { bootstrap, provide } from "@tinker/core";
-import { valueOrThrow } from "@tinker/functional";
 import { PLATFORM_LOCATION, provideRouter } from "@tinker/router";
 import { App } from "./features/examples/app/app.ts";
 import { basedPlatformLocation } from "./features/examples/app/base-location.ts";
@@ -29,9 +28,9 @@ const base = new URL("../", import.meta.url /* @vite-ignore: resolved at run tim
 
 // The first provider of a token wins, so the location for the base comes before provideRouter's,
 // which would otherwise use the browser's own location.
-valueOrThrow(bootstrap(App, {
+bootstrap(App, {
   providers: [
     provide(PLATFORM_LOCATION, { useValue: basedPlatformLocation(base) }),
     ...provideRouter(ROUTES),
   ],
-}));
+});

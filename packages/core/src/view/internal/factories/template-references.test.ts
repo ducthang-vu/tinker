@@ -35,7 +35,7 @@ describe("template references", () => {
     })
     class Ref {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Ref, { host: el }));
+    const app = bootstrap(Ref, { host: el });
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("P");
@@ -50,7 +50,7 @@ describe("template references", () => {
     })
     class RefDirective {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(RefDirective, { host: el }));
+    const app = bootstrap(RefDirective, { host: el });
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("P");
@@ -65,7 +65,7 @@ describe("template references", () => {
     })
     class RefComponent {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(RefComponent, { host: el }));
+    const app = bootstrap(RefComponent, { host: el });
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("TK-TAGGED");
@@ -79,7 +79,7 @@ describe("template references", () => {
     })
     class RefForward {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(RefForward, { host: el }));
+    const app = bootstrap(RefForward, { host: el });
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("SPAN");
@@ -95,7 +95,7 @@ describe("template references", () => {
       readonly on = signal(false);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(RefBranch, { host: el }));
+    const app = bootstrap(RefBranch, { host: el });
     await tick();
     app.root.instance.on.set(true);
     await tick();
@@ -141,7 +141,7 @@ describe("template references", () => {
     })
     class Both {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Both, { host: el }));
+    const app = bootstrap(Both, { host: el });
     await tick();
     expect(el.querySelector("p")!.textContent)
       .toBe("TK-TAGGED hi");

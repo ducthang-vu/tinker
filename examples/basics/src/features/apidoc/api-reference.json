@@ -63,7 +63,7 @@
         {
           "name": "AppRef",
           "kind": "class",
-          "source": "packages/core/src/view/bootstrap.ts:23",
+          "source": "packages/core/src/view/bootstrap.ts:26",
           "description": "A started application: its root component, and how to destroy it.",
           "params": [],
           "examples": [],
@@ -76,7 +76,7 @@
             {
               "name": "destroy",
               "kind": "method",
-              "source": "packages/core/src/view/bootstrap.ts:31",
+              "source": "packages/core/src/view/bootstrap.ts:34",
               "description": "Destroy the app: its root component, and everything it owns. Calling it again does nothing.",
               "params": [],
               "examples": [],
@@ -125,7 +125,7 @@
         {
           "name": "BootstrapOptions",
           "kind": "interface",
-          "source": "packages/core/src/view/bootstrap.ts:15",
+          "source": "packages/core/src/view/bootstrap.ts:18",
           "description": "What `bootstrap` takes besides the root component. Both are optional.",
           "params": [],
           "examples": [],
@@ -135,7 +135,7 @@
             {
               "name": "host",
               "kind": "property",
-              "source": "packages/core/src/view/bootstrap.ts:17",
+              "source": "packages/core/src/view/bootstrap.ts:20",
               "description": "The element the root renders into. Without it, the page element matching its selector.",
               "params": [],
               "examples": [],
@@ -146,7 +146,7 @@
             {
               "name": "providers",
               "kind": "property",
-              "source": "packages/core/src/view/bootstrap.ts:19",
+              "source": "packages/core/src/view/bootstrap.ts:22",
               "description": "Providers for the app, as for a component's `providers` but app-wide.",
               "params": [],
               "examples": [],
@@ -1432,7 +1432,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@779",
+              "name": "__@INPUT_TYPE@780",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -3354,14 +3354,26 @@
         {
           "name": "bootstrap",
           "kind": "function",
-          "source": "packages/core/src/view/bootstrap.ts:37",
+          "source": "packages/core/src/view/bootstrap.ts:47",
           "description": "Start the application whose root component is `type`.",
-          "params": [],
+          "params": [
+            {
+              "name": "type",
+              "text": "The root component."
+            },
+            {
+              "name": "options",
+              "text": "The host element and the app's providers."
+            }
+          ],
           "examples": [],
           "see": [],
-          "throws": [],
+          "throws": [
+            "The error that stopped the root from starting, such as a missing provider."
+          ],
+          "returns": "The started app.",
           "signatures": [
-            "bootstrap<T extends object>(type: Class<T>, options?: BootstrapOptions): Either<AppRef<T>, Error>"
+            "bootstrap<T extends object>(type: Class<T>, options?: BootstrapOptions): AppRef<T>"
           ]
         },
         {
@@ -3892,7 +3904,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@934",
+              "name": "__@CHAIN@933",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:61",
               "description": "",
@@ -3901,7 +3913,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@934<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@933<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4135,7 +4147,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@932",
+              "name": "__@MAP@931",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
@@ -4144,7 +4156,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@932<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@931<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -4554,7 +4566,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@932",
+              "name": "__@MAP@931",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:214",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -4569,11 +4581,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@932<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@931<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@934",
+              "name": "__@CHAIN@933",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:234",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -4588,7 +4600,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@934<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@933<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {

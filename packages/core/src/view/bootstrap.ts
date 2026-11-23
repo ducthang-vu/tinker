@@ -2,6 +2,9 @@
 // of an app; the engine behind it is internal.
 //
 //   const app = bootstrap(AppComponent, { host: document.querySelector("app")! });
+//
+// bootstrap is the edge of the app: it throws when the root cannot start, since there is nothing
+// else a caller could do with the error.
 //   app.root.instance;   // the root component
 //   app.destroy();       // destroys the app and everything it owns
 
@@ -9,7 +12,7 @@ import type { Provider } from "../di/index.ts";
 import type { Class } from "../utils/types.ts";
 import type { ComponentRef } from "./internal/component-ref.ts";
 import { Engine } from "./internal/engine.ts";
-import { type Either, map, use } from "@tinker/functional";
+import { map, use, valueOrThrow } from "@tinker/functional";
 
 /** What `bootstrap` takes besides the root component. Both are optional. */
 export interface BootstrapOptions {
@@ -33,14 +36,21 @@ export class AppRef<T extends object> {
   }
 }
 
-/** Start the application whose root component is `type`. */
+/**
+ * Start the application whose root component is `type`.
+ *
+ * @param type The root component.
+ * @param options The host element and the app's providers.
+ * @returns The started app.
+ * @throws The error that stopped the root from starting, such as a missing provider.
+ */
 export function bootstrap<T extends object>(
   type: Class<T>,
   options: BootstrapOptions = {},
-): Either<AppRef<T>, Error> {
+): AppRef<T> {
   const engine = Engine.create({ providers: options.providers });
   const started = engine.bootstrap(type, options.host);
   // A root that cannot start leaves no engine behind.
   use(started, { Left: () => engine.destroy(), Right: () => undefined });
-  return map(started, (ref) => new AppRef(ref, engine));
+  return valueOrThrow(map(started, (ref) => new AppRef(ref, engine)));
 }

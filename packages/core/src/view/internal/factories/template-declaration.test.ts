@@ -5,7 +5,6 @@ import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
 import { Component, Directive, input, Outlet, type TemplateRef, ViewContainerRef, queryAll } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional";
 
 describe("<template #name> and the outlet", () => {
   test("the declaration renders nothing; the outlet on a container renders it after the container's content", async () => {
@@ -16,7 +15,7 @@ describe("<template #name> and the outlet", () => {
     })
     class Declared {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Declared, { host: el }));
+    const app = bootstrap(Declared, { host: el });
     await tick();
     await tick();
     expect(el.textContent)
@@ -34,7 +33,7 @@ describe("<template #name> and the outlet", () => {
     })
     class TwiceOutlet {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(TwiceOutlet, { host: el }));
+    const app = bootstrap(TwiceOutlet, { host: el });
     await tick();
     await tick();
     expect(el.querySelectorAll("i"))
@@ -52,7 +51,7 @@ describe("<template #name> and the outlet", () => {
       readonly title = "from the declaration";
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(ClosureTemplate, { host: el }));
+    const app = bootstrap(ClosureTemplate, { host: el });
     await tick();
     await tick();
     expect(el.textContent!.trim())
@@ -68,7 +67,7 @@ describe("<template #name> and the outlet", () => {
     })
     class ElementOutlet {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(ElementOutlet, { host: el }));
+    const app = bootstrap(ElementOutlet, { host: el });
     await tick();
     await tick();
     expect(el.querySelector("div")!.childElementCount)
@@ -88,7 +87,7 @@ describe("<template #name> and the outlet", () => {
       readonly missing = undefined;
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(NoOutletTemplate, { host: el }));
+    const app = bootstrap(NoOutletTemplate, { host: el });
     await tick();
     await tick();
     expect(el.textContent)
@@ -106,7 +105,7 @@ describe("<template #name> and the outlet", () => {
       readonly ctx = { item: "x" };
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(ContextTemplate, { host: el }));
+    const app = bootstrap(ContextTemplate, { host: el });
     await tick();
     await tick();
     expect(el.querySelector("b")!.textContent)
@@ -124,7 +123,7 @@ describe("<template #name> and the outlet", () => {
       readonly ctx = signal<Record<string, unknown>>({ item: "first" });
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(ChangedContext, { host: el }));
+    const app = bootstrap(ChangedContext, { host: el });
     await tick();
     await tick();
     const before = el.querySelector("b");
@@ -150,7 +149,7 @@ describe("<template #name> and the outlet", () => {
       readonly ctx = signal<Record<string, unknown>>({});
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(EmptyOutletContext, { host: el }));
+    const app = bootstrap(EmptyOutletContext, { host: el });
     await tick();
     await tick();
     app.root.instance.ctx.set({ item: "x" });
@@ -203,7 +202,7 @@ describe("code can render a declared template too", () => {
       readonly found = queryAll(Renders);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(CodeRender, { host: el }));
+    const app = bootstrap(CodeRender, { host: el });
     await tick();
     await tick();
     const [host] = app.root.instance.found();

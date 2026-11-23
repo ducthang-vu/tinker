@@ -3,7 +3,6 @@ import { tick } from "../test-support.ts";
 import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional";
 
 describe("the conditional operator in a template", () => {
   test("in a text and an attribute, nested, and updating with its values", async () => {
@@ -16,7 +15,7 @@ describe("the conditional operator in a template", () => {
       readonly score = signal(70);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Conditional, { host: el }));
+    const app = bootstrap(Conditional, { host: el });
     await tick();
     const p = () => el.querySelector("p")!;
     expect([p().textContent, p()

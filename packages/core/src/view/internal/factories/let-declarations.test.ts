@@ -5,7 +5,6 @@ import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
-import { valueOrThrow } from "@tinker/functional";
 
 @Component({
   selector: "tk-greeting",
@@ -59,7 +58,7 @@ class Parent {
 describe("@let template variables", () => {
   test("a declared variable is shown, and follows the signals it reads", async () => {
     const host = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Greeting, { host }));
+    const app = bootstrap(Greeting, { host });
     await tick();
     expect(host.textContent!.trim())
       .toBe("Hi Ana (2)");
@@ -117,7 +116,7 @@ describe("@let template variables", () => {
       }
     }
     const host = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Shared, { host }));
+    const app = bootstrap(Shared, { host });
     await tick();
     expect(calls)
       .toBe(1);

@@ -45,7 +45,7 @@ describe("template operators", () => {
       }
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Keys, { host: el }));
+    const app = bootstrap(Keys, { host: el });
     await tick();
     const input = el.querySelector("input")!;
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
@@ -68,7 +68,7 @@ describe("template operators", () => {
       }
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Space, { host: el }));
+    const app = bootstrap(Space, { host: el });
     await tick();
     const input = el.querySelector("input")!;
     const pressedSpace = new KeyboardEvent("keydown", { key: " ", cancelable: true });
@@ -87,7 +87,7 @@ describe("template operators", () => {
       readonly user = signal<{ name: string } | null>(null);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Safe, { host: el }));
+    const app = bootstrap(Safe, { host: el });
     await tick();
     const p = () => el.querySelector("p")!;
     expect([p().textContent, p()
