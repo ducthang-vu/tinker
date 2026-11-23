@@ -544,3 +544,75 @@ describe("@map rows without nodes", () => {
     app.destroy();
   });
 });
+
+describe("@map rows whose body is a block", () => {
+  test("a one-line body that is an @if keeps the rows in order", async () => {
+    @Component({
+      selector: "tk-if-rows",
+      template: "<ul>@map todos(); let todo {@if (todo !== 'z') {<li>{{ todo }}</li>} @else {<li>Z</li>}}</ul>",
+    })
+    class IfRows {
+      readonly todos = signal(["a", "b", "c"]);
+    }
+    const el = document.createElement("section");
+    const app = valueOrThrow(bootstrap(IfRows, { host: el }));
+    await tick();
+    expect(rows(el))
+      .toEqual(["a", "b", "c"]);
+    app.destroy();
+  });
+
+  test("a one-line body that is a @match keeps the rows in order", async () => {
+    @Component({
+      selector: "tk-match-rows",
+      template: "<ul>@map todos(); let todo {@match todo { @case 'b' { <li>B</li> } @default { <li>{{ todo }}</li> } }}</ul>",
+    })
+    class MatchRows {
+      readonly todos = signal(["a", "b", "c"]);
+    }
+    const el = document.createElement("section");
+    const app = valueOrThrow(bootstrap(MatchRows, { host: el }));
+    await tick();
+    expect(rows(el))
+      .toEqual(["a", "B", "c"]);
+    app.destroy();
+  });
+
+  test("reordering the list moves each row with the block in it", async () => {
+    @Component({
+      selector: "tk-reorder-rows",
+      template: "<ul>@map todos(); let todo {@if (todo !== 'z') {<li>{{ todo }}</li>}}</ul>",
+    })
+    class ReorderRows {
+      readonly todos = signal(["a", "b", "c"]);
+    }
+    const el = document.createElement("section");
+    const app = valueOrThrow(bootstrap(ReorderRows, { host: el }));
+    await tick();
+    const component = app.root.instance as ReorderRows;
+    component.todos.set(["c", "a", "b"]);
+    await tick();
+    expect(rows(el))
+      .toEqual(["c", "a", "b"]);
+    app.destroy();
+  });
+
+  test("removing a row removes the block nested in it", async () => {
+    @Component({
+      selector: "tk-remove-rows",
+      template: "<ul>@map todos(); let todo {@if (todo !== 'z') {<li>{{ todo }}</li>}}</ul>",
+    })
+    class RemoveRows {
+      readonly todos = signal(["a", "b", "c"]);
+    }
+    const el = document.createElement("section");
+    const app = valueOrThrow(bootstrap(RemoveRows, { host: el }));
+    await tick();
+    const component = app.root.instance as RemoveRows;
+    component.todos.set(["a", "c"]);
+    await tick();
+    expect(rows(el))
+      .toEqual(["a", "c"]);
+    app.destroy();
+  });
+});

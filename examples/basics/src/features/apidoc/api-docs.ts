@@ -75,9 +75,7 @@ import { toSections, type ViewDoc } from "./api-view.ts";
       @if (block.isCode) {
         <pre>{{ block.text }}</pre>
       } @else {
-        <p>@map block.parts; let part {
-          @if (part.code) { <code>{{ part.text }}</code> } @else { {{ part.text }} }
-        }</p>
+        <p>@map block.parts; let part {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}</p>
       }
     }
     @map doc().params; let param {
@@ -89,9 +87,7 @@ import { toSections, type ViewDoc } from "./api-view.ts";
       @if (block.isCode) {
         <pre>{{ block.text }}</pre>
       } @else {
-        <p>@map block.parts; let part {
-          @if (part.code) { <code>{{ part.text }}</code> } @else { {{ part.text }} }
-        }</p>
+        <p>@map block.parts; let part {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}</p>
       }
     }
     @map doc().see; let target { <p><strong>See:</strong> {{ target }}</p> }
