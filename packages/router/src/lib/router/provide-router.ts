@@ -10,9 +10,14 @@ import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform
 import { Router } from "./router.ts";
 import { type Route, componentOf } from "./route.ts";
 
-/** The providers for a router over the tree under `root`, using the browser's location. */
-export function provideRouter(root: Route): readonly Provider[] {
-  checkComponents(root, true);
+/**
+ * The providers for a router over `routes`, the top-level routes of the app, using the browser's
+ * location. Every route shows a component, and the top-level ones are checked too.
+ */
+export function provideRouter(routes: readonly Route[]): readonly Provider[] {
+  checkComponents(routes);
+  // The router matches over one tree: the routes are the children of a root that is never shown.
+  const root: Route = { path: "", children: routes };
   return [
     provide(PLATFORM_LOCATION, { useValue: browserPlatformLocation }),
     provide(Location, { useClass: Location }),
@@ -31,12 +36,10 @@ export function provideRouter(root: Route): readonly Provider[] {
   ];
 }
 
-/** Every route but the root must name the component it shows: checked through the whole tree. */
-function checkComponents(route: Route, isRoot: boolean): void {
-  if (!isRoot) {
+/** Every route must name the component it shows, the top-level ones and their children alike. */
+function checkComponents(routes: readonly Route[]): void {
+  for (const route of routes) {
     componentOf(route);
-  }
-  for (const child of route.children ?? []) {
-    checkComponents(child, false);
+    checkComponents(route.children ?? []);
   }
 }

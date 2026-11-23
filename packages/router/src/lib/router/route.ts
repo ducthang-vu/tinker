@@ -1,7 +1,6 @@
-// A route: a path, and the component it shows. The routes form a tree, from one root route: a
-// route's children match the segments its path leaves over, and the router matches a URL against
-// the tree, from the root. The root route has no component: the app's own component (bootstrapped
-// with the router) is the page around the outlet, and the root is never shown.
+// A route: a path, and the component it shows. The app gives its top-level routes to the router
+// (provideRouter); a route's children match the segments its path leaves over, and the router
+// matches a URL against the tree, from a root that is never shown.
 
 import type { Class } from "@tinker/core";
 
@@ -12,10 +11,7 @@ export interface Route {
    * for a page shown when nothing else matches; declare it last among the children.
    */
   readonly path: string;
-  /**
-   * The component shown when the route matches. Every route but the root needs one: the root is
-   * not shown, so it may leave this out.
-   */
+  /** The component shown when the route matches. Every route needs one. */
   readonly component?: Class<object>;
   /** Static data of the route, read from the `ActivatedRoute` of the component it shows. */
   readonly data?: Readonly<Record<string, unknown>>;
@@ -26,10 +22,10 @@ export interface Route {
   readonly children?: readonly Route[];
 }
 
-/** The component a route shows. Throws for a route with none: only the root may have none. */
+/** The component a route shows. Throws for a route with none: every route shows one. */
 export function componentOf(route: Route): Class<object> {
   if (route.component === undefined) {
-    throw new Error(`The route "${route.path}" needs a component: only the root route may have none`);
+    throw new Error(`The route "${route.path}" needs a component: every route shows one`);
   }
   return route.component;
 }

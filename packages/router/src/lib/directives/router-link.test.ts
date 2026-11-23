@@ -41,14 +41,10 @@ class Root {}
 })
 class App {}
 
-const ROOT = {
-  path: "",
-  component: Root,
-  children: [
-    { path: "/todos", component: TodoList },
-    { path: "/todos/:id", component: Root },
-  ],
-};
+const ROUTES = [
+  { path: "/todos", component: TodoList },
+  { path: "/todos/:id", component: Root },
+];
 
 /** Clicks the anchor with the mouse init given; tells whether the default was stopped. */
 function clickLink(
@@ -65,7 +61,7 @@ function clickLink(
 /** An app with the router over ROOT, starting at `url`. */
 function appAt(url: string) {
   window.history.replaceState(null, "", url);
-  return TestBed.providers(...provideRouter(ROOT))
+  return TestBed.providers(...provideRouter(ROUTES))
     .component(App)
     .build();
 }
@@ -225,7 +221,7 @@ test("the href attribute is in the platform's form, when the platform has one", 
   const platform = { ...browserPlatformLocation, href: (path: string) => `/base${path}` };
   // The first provider of a token wins, so the platform comes before provideRouter's.
   const fixture = TestBed
-    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROOT))
+    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROUTES))
     .component(App)
     .build();
   expect(fixture.root.query("a.root").element.getAttribute("href"))
@@ -237,7 +233,7 @@ test("without an href on the platform, the href attribute is the app's path", ()
   window.history.replaceState(null, "", "/todos");
   const platform = { ...browserPlatformLocation, href: undefined };
   const fixture = TestBed
-    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROOT))
+    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROUTES))
     .component(App)
     .build();
   expect(fixture.root.query("a.root").element.getAttribute("href"))

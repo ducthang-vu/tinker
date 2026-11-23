@@ -33,21 +33,17 @@ class App {
   readonly router = inject(Router);
 }
 
-const ROOT = {
-  path: "",
-  component: Root,
-  children: [
-    { path: "/todos", component: TodoList },
-    { path: "/todos/:id", component: TodoDetail },
-  ],
-};
+const ROUTES = [
+  { path: "/todos", component: TodoList },
+  { path: "/todos/:id", component: TodoDetail },
+];
 
 /** An app with the router over ROOT, starting at `url`. */
 function appAt(url: string) {
   window.history.replaceState(null, "", url);
   made.list = 0;
   made.detail = 0;
-  return TestBed.providers(...provideRouter(ROOT))
+  return TestBed.providers(...provideRouter(ROUTES))
     .component(App)
     .build();
 }
