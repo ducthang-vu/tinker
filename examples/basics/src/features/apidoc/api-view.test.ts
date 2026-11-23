@@ -10,14 +10,16 @@ describe("docBlocks", () => {
       .toEqual([
         {
           isCode: false,
+          isList: false,
+          items: [],
           text: "",
           parts: [
-            { text: "Adds ", code: false },
-            { text: "amount", code: true },
-            { text: ". Second line.", code: false },
+            { text: "Adds ", code: false, href: "" },
+            { text: "amount", code: true, href: "" },
+            { text: ". Second line.", code: false, href: "" },
           ],
         },
-        { isCode: false, text: "", parts: [{ text: "A new paragraph.", code: false }] },
+        { isCode: false, isList: false, items: [], text: "", parts: [{ text: "A new paragraph.", code: false, href: "" }] },
       ]);
   });
 
@@ -26,12 +28,12 @@ describe("docBlocks", () => {
     expect(blocks)
       .toHaveLength(2);
     expect(blocks[1])
-      .toEqual({ isCode: true, text: "const a = 1;\n\nconst b = 2;", parts: [] });
+      .toEqual({ isCode: true, isList: false, items: [], text: "const a = 1;\n\nconst b = 2;", parts: [] });
   });
 
   test("an unclosed fence is still a code block", () => {
     expect(docBlocks("```\nopen"))
-      .toEqual([{ isCode: true, text: "open", parts: [] }]);
+      .toEqual([{ isCode: true, isList: false, items: [], text: "open", parts: [] }]);
   });
 
   test("empty text has no blocks", () => {
@@ -125,7 +127,7 @@ describe("toSections", () => {
       .toBe("");
     expect(counter.description)
       .toEqual([
-        { isCode: false, text: "", parts: [{ text: "A counter.", code: false }] },
+        { isCode: false, isList: false, items: [], text: "", parts: [{ text: "A counter.", code: false, href: "" }] },
       ]);
     expect(nth(counter.examples, 0).isCode)
       .toBe(true);
@@ -159,5 +161,50 @@ describe("toSections", () => {
       .toBe("");
     expect(legacy.returns)
       .toBe("");
+  });
+});
+
+describe("links and lists in descriptions", () => {
+  const links = new Map([["Adder", "#core-Adder"]]);
+
+  test("{@link Name} is a link to the export it names, and an unknown name is plain text", () => {
+    const [block] = docBlocks("See {@link Adder}, or {@link Missing}.", links);
+    expect(block!.parts.map((part) => [part.text, part.href]))
+      .toEqual([["See ", ""], ["Adder", "#core-Adder"], [", or ", ""], ["Missing", ""], [".", ""]]);
+  });
+
+  test("a Markdown link is a link to its target", () => {
+    const [block] = docBlocks("Read [the guide](https://example.com/guide) first.");
+    expect(block!.parts[1])
+      .toEqual({ text: "the guide", code: false, href: "https://example.com/guide" });
+  });
+
+  test("a code span is kept as written, even with a link inside it", () => {
+    const [block] = docBlocks("Use `{@link Adder}` here.", links);
+    expect(block!.parts[1])
+      .toEqual({ text: "{@link Adder}", code: true, href: "" });
+  });
+
+  test("lines starting with - or * form a list, with its items' parts", () => {
+    const blocks = docBlocks("Options:\n- first {@link Adder}\n* second\n\nAfter.", links);
+    expect(blocks.map((block) => block.isList))
+      .toEqual([false, true, false]);
+    expect(blocks[1]!.items.map((item) => item.map((part) => part.text)))
+      .toEqual([["first ", "Adder"], ["second"]]);
+  });
+
+  test("toSections gives every link the anchor of its export", () => {
+    const reference = {
+      entries: [{
+        specifier: "@tinker/core",
+        exports: [
+          { name: "Adder", kind: "function", source: "", description: "See {@link Subtractor}.", signatures: [], examples: [], params: [], see: [], throws: [] },
+          { name: "Subtractor", kind: "function", source: "", description: "", signatures: [], examples: [], params: [], see: [], throws: [] },
+        ],
+      }],
+    } as unknown as Parameters<typeof toSections>[0];
+    const [section] = toSections(reference);
+    expect(section!.items[0]!.description[0]!.parts[1]!.href)
+      .toBe(`#${anchorId("@tinker/core", "Subtractor")}`);
   });
 });

@@ -75,7 +75,11 @@ import { toSections, type ViewDoc } from "./api-view.ts";
       @if (block.isCode) {
         <pre>{{ block.text }}</pre>
       } @else {
-        <p>@map block.parts; let part {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}</p>
+        @if (block.isList) {
+          <ul>@map block.items; let item { <li>@map item; let part {@if (part.href) {<a href="{{ part.href }}">{{ part.text }}</a>} @else {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}}</li> }</ul>
+        } @else {
+          <p>@map block.parts; let part {@if (part.href) {<a href="{{ part.href }}">{{ part.text }}</a>} @else {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}}</p>
+        }
       }
     }
     @map doc().params; let param {
@@ -87,7 +91,11 @@ import { toSections, type ViewDoc } from "./api-view.ts";
       @if (block.isCode) {
         <pre>{{ block.text }}</pre>
       } @else {
-        <p>@map block.parts; let part {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}</p>
+        @if (block.isList) {
+          <ul>@map block.items; let item { <li>@map item; let part {@if (part.href) {<a href="{{ part.href }}">{{ part.text }}</a>} @else {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}}</li> }</ul>
+        } @else {
+          <p>@map block.parts; let part {@if (part.href) {<a href="{{ part.href }}">{{ part.text }}</a>} @else {@if (part.code) {<code>{{ part.text }}</code>} @else {<span>{{ part.text }}</span>}}}</p>
+        }
       }
     }
     @map doc().see; let target { <p><strong>See:</strong> {{ target }}</p> }
