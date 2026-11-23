@@ -74,6 +74,18 @@
           ],
           "members": [
             {
+              "name": "root",
+              "kind": "property",
+              "source": "packages/core/src/view/bootstrap.ts:29",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "ComponentRef<T>"
+            },
+            {
               "name": "destroy",
               "kind": "method",
               "source": "packages/core/src/view/bootstrap.ts:34",
@@ -303,6 +315,42 @@
               "see": [],
               "throws": [],
               "type": "readonly Class<object>[] | undefined"
+            },
+            {
+              "name": "selector",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:23",
+              "description": "Where the directive applies, e.g. `\"[highlight]\"`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "DirectiveMetadata",
+              "type": "string"
+            },
+            {
+              "name": "exportAs",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:28",
+              "description": "The name a template uses to get this instance: `#name=\"exportAs\"` on the\nelement it is on. Without it, the directive can only be read by its type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "DirectiveMetadata",
+              "type": "string | undefined"
+            },
+            {
+              "name": "host",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:33",
+              "description": "Bindings on the host element. For now only event listeners, calling a\nmethod with or without the event: `{ \"(click)\": \"toggle($event)\" }`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "DirectiveMetadata",
+              "type": "Readonly<Record<string, string>> | undefined"
             }
           ]
         },
@@ -934,7 +982,25 @@
           "signatures": [
             "new ElementRef<T extends Element = Element>(nativeElement: T): ElementRef<T>"
           ],
-          "members": []
+          "members": [
+            {
+              "name": "nativeElement",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/runtime/element-ref.ts:21",
+              "description": "The underlying element (the framework creates ElementRefs).",
+              "params": [
+                {
+                  "name": "nativeElement",
+                  "text": "The underlying element (the framework creates ElementRefs)."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "T"
+            }
+          ]
         },
         {
           "name": "Emitter",
@@ -1270,6 +1336,40 @@
           ],
           "members": [
             {
+              "name": "name",
+              "kind": "property",
+              "source": "packages/core/src/di/internal/inject.ts:66",
+              "description": "Used in messages, e.g. \"No provider for API_URL\".",
+              "params": [
+                {
+                  "name": "name",
+                  "text": "Used in messages, e.g. \"No provider for API_URL\"."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
+            {
+              "name": "multi",
+              "kind": "property",
+              "source": "packages/core/src/di/internal/inject.ts:67",
+              "description": "Whether several providers contribute to it: use `InjectionToken.multi()`.",
+              "params": [
+                {
+                  "name": "multi",
+                  "text": "Whether several providers contribute to it: use `InjectionToken.multi()`."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "boolean"
+            },
+            {
               "name": "__@TOKEN_TYPE@382",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:59",
@@ -1590,6 +1690,18 @@
               "signatures": [
                 "asReadonly(): ReadonlySignal<T>"
               ]
+            },
+            {
+              "name": "__@INPUT_TYPE@780",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/authoring/input.ts:40",
+              "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "InputSignal",
+              "type": "T"
             }
           ]
         },
@@ -3031,6 +3143,18 @@
           ],
           "members": [
             {
+              "name": "html",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:34",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
+            {
               "name": "toString",
               "kind": "method",
               "source": "packages/core/src/view/internal/runtime/sanitization.ts:36",
@@ -3059,6 +3183,18 @@
           ],
           "members": [
             {
+              "name": "css",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:43",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
+            {
               "name": "toString",
               "kind": "method",
               "source": "packages/core/src/view/internal/runtime/sanitization.ts:45",
@@ -3086,6 +3222,18 @@
             "new TrustedUrl(url: string, _seal: typeof SEAL): TrustedUrl"
           ],
           "members": [
+            {
+              "name": "url",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/runtime/sanitization.ts:25",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
             {
               "name": "toString",
               "kind": "method",
@@ -3148,6 +3296,23 @@
             "new ViewContainerRef(anchor: Node, components: ComponentFactory, renderer: Renderer, parentInjector: Injector, owner?: ContainerOwner | undefined, ownsAnchor?: boolean): ViewContainerRef"
           ],
           "members": [
+            {
+              "name": "anchor",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/runtime/view-container-ref.ts:71",
+              "description": "Where the container is: its views sit just before it.",
+              "params": [
+                {
+                  "name": "anchor",
+                  "text": "Where the container is: its views sit just before it."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "Node"
+            },
             {
               "name": "length",
               "kind": "property",
@@ -3749,6 +3914,18 @@
           ],
           "members": [
             {
+              "name": "source",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/template/selector.ts:51",
+              "description": "The source, for error messages.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
+            {
               "name": "matches",
               "kind": "method",
               "source": "packages/core/src/view/internal/template/selector.ts:86",
@@ -3803,7 +3980,20 @@
           "signatures": [
             "new TemplateCompileError(message: string, span: Span): TemplateCompileError"
           ],
-          "members": []
+          "members": [
+            {
+              "name": "span",
+              "kind": "property",
+              "source": "packages/core/src/view/internal/template/compile-error.ts:12",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "Span"
+            }
+          ]
         },
         {
           "name": "compileSource",
@@ -4921,7 +5111,25 @@
           "signatures": [
             "new TimeoutError(milliseconds: number): TimeoutError"
           ],
-          "members": []
+          "members": [
+            {
+              "name": "milliseconds",
+              "kind": "property",
+              "source": "packages/functional/src/lib/stream/task.ts:50",
+              "description": "The limit the task ran past, in milliseconds.",
+              "params": [
+                {
+                  "name": "milliseconds",
+                  "text": "The limit the task ran past, in milliseconds."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "number"
+            }
+          ]
         },
         {
           "name": "attempt",
@@ -5995,6 +6203,138 @@
               "see": [],
               "throws": [],
               "type": "(box: M) => string"
+            },
+            {
+              "name": "name",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:22",
+              "description": "The name shown in each description, e.g. \"Maybe\".",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "FunctorUnderTest",
+              "type": "string"
+            },
+            {
+              "name": "samples",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:24",
+              "description": "Boxes to test the laws on. Include a success, a failure or none, and a nested box.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "FunctorUnderTest",
+              "type": "readonly M[]"
+            },
+            {
+              "name": "map",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:26",
+              "description": "The functor's map, data-first.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "FunctorUnderTest",
+              "type": "(box: M, f: (value: A) => A) => M"
+            },
+            {
+              "name": "equal",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:28",
+              "description": "Whether two boxes are equal. Defaults to `isEqual`, which uses the EQUALS protocol.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "FunctorUnderTest",
+              "type": "((a: M, b: M) => boolean) | undefined"
+            },
+            {
+              "name": "f",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:30",
+              "description": "Two transforms for the map laws.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "FunctorUnderTest",
+              "type": "(value: A) => A"
+            },
+            {
+              "name": "g",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:31",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "FunctorUnderTest",
+              "type": "(value: A) => A"
+            },
+            {
+              "name": "values",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:41",
+              "description": "Values to test the left identity on.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "ChainUnderTest",
+              "type": "readonly A[]"
+            },
+            {
+              "name": "of",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:43",
+              "description": "Builds a box holding a value: the chain's `of`, e.g. `Some.of`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "ChainUnderTest",
+              "type": "(value: A) => M"
+            },
+            {
+              "name": "flatMap",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:45",
+              "description": "The chain's flatMap, data-first.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "ChainUnderTest",
+              "type": "(box: M, f: (value: A) => M) => M"
+            },
+            {
+              "name": "step",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:49",
+              "description": "Two steps for the flatMap laws.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "ChainUnderTest",
+              "type": "(value: A) => M"
+            },
+            {
+              "name": "nextStep",
+              "kind": "property",
+              "source": "packages/functional/src/testing.ts:50",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "ChainUnderTest",
+              "type": "(value: A) => M"
             }
           ]
         },
@@ -6151,7 +6491,20 @@
           "signatures": [
             "new HttpError(response: HttpResponse<unknown>): HttpError"
           ],
-          "members": []
+          "members": [
+            {
+              "name": "response",
+              "kind": "property",
+              "source": "packages/http/src/lib/backend/backend.ts:18",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "HttpResponse<unknown>"
+            }
+          ]
         },
         {
           "name": "HttpInterceptor",
@@ -6184,6 +6537,30 @@
               "see": [],
               "throws": [],
               "type": "Readonly<Record<string, string>> | undefined"
+            },
+            {
+              "name": "resource",
+              "kind": "property",
+              "source": "packages/core/src/resource/mutation.ts:19",
+              "description": "The resource the write affects.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "MutationOptions",
+              "type": "Resource<U, unknown> | undefined"
+            },
+            {
+              "name": "onSuccess",
+              "kind": "property",
+              "source": "packages/core/src/resource/mutation.ts:21",
+              "description": "Update the resource from the response. Without it, the resource is reloaded.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "MutationOptions",
+              "type": "((current: U, result: T) => U) | undefined"
             }
           ]
         },
@@ -6229,6 +6606,30 @@
               "see": [],
               "throws": [],
               "type": "string"
+            },
+            {
+              "name": "headers",
+              "kind": "property",
+              "source": "packages/http/src/lib/backend/request.ts:7",
+              "description": "The headers to send. A JSON body sets `content-type` unless one is given here.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "RequestOptions",
+              "type": "Readonly<Record<string, string>> | undefined"
+            },
+            {
+              "name": "body",
+              "kind": "property",
+              "source": "packages/http/src/lib/backend/request.ts:9",
+              "description": "The body. Strings and Blobs are sent as they are; anything else as JSON.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "RequestOptions",
+              "type": "unknown"
             }
           ]
         },
@@ -6461,6 +6862,54 @@
               "see": [],
               "throws": [],
               "type": "readonly string[]"
+            },
+            {
+              "name": "route",
+              "kind": "property",
+              "source": "packages/router/src/lib/state/activated-route.ts:20",
+              "description": "The route of this level.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "Route"
+            },
+            {
+              "name": "params",
+              "kind": "property",
+              "source": "packages/router/src/lib/state/activated-route.ts:22",
+              "description": "The params this level read from its segments.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "Readonly<Record<string, string>>"
+            },
+            {
+              "name": "segments",
+              "kind": "property",
+              "source": "packages/router/src/lib/state/activated-route.ts:24",
+              "description": "The URL segments this level consumed.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "readonly string[]"
+            },
+            {
+              "name": "parent",
+              "kind": "property",
+              "source": "packages/router/src/lib/state/activated-route.ts:26",
+              "description": "The level above this one, or None for the root.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "Maybe<ActivatedRoute>"
             }
           ]
         },
@@ -6597,7 +7046,20 @@
           "signatures": [
             "new NoRouteError(url: string): NoRouteError"
           ],
-          "members": []
+          "members": [
+            {
+              "name": "url",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/router.ts:25",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            }
+          ]
         },
         {
           "name": "PLATFORM_LOCATION",
@@ -6968,6 +7430,18 @@
             "new UrlBuilder(path: string, query: URLSearchParams, hash: string): UrlBuilder"
           ],
           "members": [
+            {
+              "name": "path",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/url-builder.ts:8",
+              "description": "The path, without its query and hash, e.g. `\"/todos/7\"`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
             {
               "name": "segments",
               "kind": "property",

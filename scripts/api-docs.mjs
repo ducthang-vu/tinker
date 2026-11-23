@@ -166,11 +166,14 @@ function kindOf(symbol) {
   return "other";
 }
 
-/** Public members declared by this symbol's own declaration (not inherited ones). */
-function ownMembers(properties, symbol) {
+/**
+ * The members a class or interface has: its own, and those it inherits from a base declared in
+ * this project's sources. A member of a library (such as Error's message) is not listed.
+ */
+function projectMembers(properties) {
   return properties.filter((property) => {
-    const declarations = property.getDeclarations() ?? [];
-    return declarations.some((declaration) => symbol.declarations?.includes(declaration.parent));
+    const declaration = property.declarations?.[0];
+    return declaration !== undefined && !declaration.getSourceFile().isDeclarationFile;
   });
 }
 
@@ -182,7 +185,7 @@ function isHidden(declaration, doc) {
   return declaration.name !== undefined && ts.isPrivateIdentifier(declaration.name);
 }
 
-function describeMember(property, checker, rootDir, isStatic) {
+function describeMember(property, checker, rootDir, isStatic, inheritedFrom) {
   const declaration = property.declarations?.[0];
   const doc = readDoc(property, checker);
   if (declaration === undefined || isHidden(declaration, doc)) return undefined;
@@ -195,6 +198,7 @@ function describeMember(property, checker, rootDir, isStatic) {
     ...toDocFields(doc),
   };
   if (isStatic) member.static = true;
+  if (inheritedFrom !== undefined) member.inheritedFrom = inheritedFrom;
   if (isMethod) {
     member.signatures = callSignatures(type, member.name, checker, declaration);
   } else {
@@ -212,11 +216,16 @@ function describeMembers(symbol, checker, rootDir) {
         .getProperties()
         .filter((property) => property.getName() !== "prototype")
     : [];
+  // A member declared by a base (not by this symbol) is shown with the name of that base.
+  const from = (property, isStatic) => {
+    const owner = property.declarations?.[0].parent;
+    return symbol.declarations?.includes(owner) ? undefined : owner?.name?.getText() ?? "";
+  };
   return [
-    ...ownMembers(instance, symbol)
-      .map((p) => describeMember(p, checker, rootDir, false)),
-    ...ownMembers(statics, symbol)
-      .map((p) => describeMember(p, checker, rootDir, true)),
+    ...projectMembers(instance)
+      .map((p) => describeMember(p, checker, rootDir, false, from(p, false))),
+    ...projectMembers(statics)
+      .map((p) => describeMember(p, checker, rootDir, true, from(p, true))),
   ].filter((member) => member !== undefined);
 }
 

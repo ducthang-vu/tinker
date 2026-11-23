@@ -24,6 +24,8 @@ export interface ApiDoc {
   /** Present when the class is marked `@final`: it cannot be subclassed. */
   readonly final?: boolean;
   readonly static?: boolean;
+  /** Present for a member inherited from a base class: the name of that class. */
+  readonly inheritedFrom?: string;
   readonly signatures?: readonly string[];
   readonly type?: string;
   /** The source of a type alias, as written. */
