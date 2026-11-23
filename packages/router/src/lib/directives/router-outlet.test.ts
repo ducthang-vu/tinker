@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { Component, getDirectiveMetadata, inject } from "@tinker/core";
+import { Component, inject } from "@tinker/core";
+import { getDirectiveMetadata } from "@tinker/core/testing";
 import { TestBed } from "@tinker/testing";
 import { provideRouter } from "../router/provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";

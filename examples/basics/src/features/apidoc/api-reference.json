@@ -1118,29 +1118,6 @@
           ]
         },
         {
-          "name": "EngineOptions",
-          "kind": "interface",
-          "source": "packages/core/src/view/internal/engine.ts:45",
-          "description": "What the engine is built from.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "members": [
-            {
-              "name": "providers",
-              "kind": "property",
-              "source": "packages/core/src/view/internal/engine.ts:47",
-              "description": "Providers for the engine's root injector; they replace the defaults.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "readonly Provider[] | undefined"
-            }
-          ]
-        },
-        {
           "name": "EqualityFn",
           "kind": "type",
           "source": "packages/core/src/signals/internal/types.ts:34",
@@ -3560,32 +3537,6 @@
           ]
         },
         {
-          "name": "getComponentMetadata",
-          "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/decorators.ts:175",
-          "description": "The component metadata of `type`, if it is a component.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "signatures": [
-            "getComponentMetadata(type: AbstractClass): Maybe<ComponentMetadata>"
-          ]
-        },
-        {
-          "name": "getDirectiveMetadata",
-          "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/decorators.ts:170",
-          "description": "The directive metadata of `type` (components included), if it is a directive.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "signatures": [
-            "getDirectiveMetadata(type: AbstractClass): Maybe<DirectiveMetadata>"
-          ]
-        },
-        {
           "name": "inject",
           "kind": "function",
           "source": "packages/core/src/di/inject.ts:19",
@@ -3612,32 +3563,6 @@
             "input<T>(defaultValue: T): InputSignal<T>",
             "input<T>(options: InputOptions<T>): InputSignal<T>",
             "input<T>(defaultValue: T, options: InputOptions<T>): InputSignal<T>"
-          ]
-        },
-        {
-          "name": "inputNamesOf",
-          "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/input-names.ts:21",
-          "description": "The template names of the inputs of `type`, by property: only those given a `name`.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "signatures": [
-            "inputNamesOf(type: AbstractClass): Readonly<Record<string, string>>"
-          ]
-        },
-        {
-          "name": "inputsOf",
-          "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/input.ts:187",
-          "description": "",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "signatures": [
-            "inputsOf(directive: object): ReadonlyMap<string, InputBinding<unknown>>"
           ]
         },
         {
@@ -3689,19 +3614,6 @@
           "throws": [],
           "signatures": [
             "output<T>(): Output<T>"
-          ]
-        },
-        {
-          "name": "outputsOf",
-          "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/output.ts:64",
-          "description": "The outputs of `instance`, by property name.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "signatures": [
-            "outputsOf(instance: object): ReadonlyMap<string, Emitter<unknown, void, never>>"
           ]
         },
         {
@@ -5958,452 +5870,6 @@
       ]
     },
     {
-      "specifier": "@tinker/functional/testing",
-      "source": "packages/functional/src/testing.ts",
-      "exports": [
-        {
-          "name": "ChainUnderTest",
-          "kind": "interface",
-          "source": "packages/functional/src/testing.ts:35",
-          "description": "A chain to check: its boxes, its of, and its flatMap. FlatMap must obey the chain laws.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "members": [
-            {
-              "name": "name",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:37",
-              "description": "The name shown in each description, e.g. \"Maybe\".",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "string"
-            },
-            {
-              "name": "samples",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:39",
-              "description": "Boxes to test the laws on. Include a success, a failure or none, and a nested box.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "readonly M[]"
-            },
-            {
-              "name": "values",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:41",
-              "description": "Values to test the left identity on.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "readonly A[]"
-            },
-            {
-              "name": "of",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:43",
-              "description": "Builds a box holding a value: the chain's `of`, e.g. `Some.of`.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(value: A) => M"
-            },
-            {
-              "name": "flatMap",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:45",
-              "description": "The chain's flatMap, data-first.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(box: M, f: (value: A) => M) => M"
-            },
-            {
-              "name": "equal",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:47",
-              "description": "Whether two boxes are equal. Defaults to `isEqual`, which uses the EQUALS protocol.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "((a: M, b: M) => boolean) | undefined"
-            },
-            {
-              "name": "step",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:49",
-              "description": "Two steps for the flatMap laws.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(value: A) => M"
-            },
-            {
-              "name": "nextStep",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:50",
-              "description": "",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(value: A) => M"
-            }
-          ]
-        },
-        {
-          "name": "EDGE_VALUES",
-          "kind": "const",
-          "source": "packages/functional/src/testing.ts:8",
-          "description": "",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "type": "readonly unknown[]"
-        },
-        {
-          "name": "FunctorUnderTest",
-          "kind": "interface",
-          "source": "packages/functional/src/testing.ts:20",
-          "description": "A functor to check: its boxes, and its map. Map must obey the functor laws.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "members": [
-            {
-              "name": "name",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:22",
-              "description": "The name shown in each description, e.g. \"Maybe\".",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "string"
-            },
-            {
-              "name": "samples",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:24",
-              "description": "Boxes to test the laws on. Include a success, a failure or none, and a nested box.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "readonly M[]"
-            },
-            {
-              "name": "map",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:26",
-              "description": "The functor's map, data-first.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(box: M, f: (value: A) => A) => M"
-            },
-            {
-              "name": "equal",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:28",
-              "description": "Whether two boxes are equal. Defaults to `isEqual`, which uses the EQUALS protocol.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "((a: M, b: M) => boolean) | undefined"
-            },
-            {
-              "name": "f",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:30",
-              "description": "Two transforms for the map laws.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(value: A) => A"
-            },
-            {
-              "name": "g",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:31",
-              "description": "",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(value: A) => A"
-            }
-          ]
-        },
-        {
-          "name": "LawCheck",
-          "kind": "type",
-          "source": "packages/functional/src/testing.ts:64",
-          "description": "A check: its description, and a function that throws when the law fails.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "declaration": "export type LawCheck = readonly [description: string, check: () => void];"
-        },
-        {
-          "name": "MonadUnderTest",
-          "kind": "interface",
-          "source": "packages/functional/src/testing.ts:54",
-          "description": "A monad to check: a functor and a chain, whose match names each box's case.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "members": [
-            {
-              "name": "cases",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:56",
-              "description": "The names of the monad's cases, e.g. [\"Some\", \"None\"].",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "readonly string[]"
-            },
-            {
-              "name": "successCase",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:58",
-              "description": "The case that `of` builds, e.g. \"Some\".",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "string"
-            },
-            {
-              "name": "caseOf",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:60",
-              "description": "The case a box is in, read through the monad's match, e.g. `match(box, { Some, None })`.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "(box: M) => string"
-            },
-            {
-              "name": "name",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:22",
-              "description": "The name shown in each description, e.g. \"Maybe\".",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "FunctorUnderTest",
-              "type": "string"
-            },
-            {
-              "name": "samples",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:24",
-              "description": "Boxes to test the laws on. Include a success, a failure or none, and a nested box.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "FunctorUnderTest",
-              "type": "readonly M[]"
-            },
-            {
-              "name": "map",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:26",
-              "description": "The functor's map, data-first.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "FunctorUnderTest",
-              "type": "(box: M, f: (value: A) => A) => M"
-            },
-            {
-              "name": "equal",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:28",
-              "description": "Whether two boxes are equal. Defaults to `isEqual`, which uses the EQUALS protocol.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "FunctorUnderTest",
-              "type": "((a: M, b: M) => boolean) | undefined"
-            },
-            {
-              "name": "f",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:30",
-              "description": "Two transforms for the map laws.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "FunctorUnderTest",
-              "type": "(value: A) => A"
-            },
-            {
-              "name": "g",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:31",
-              "description": "",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "FunctorUnderTest",
-              "type": "(value: A) => A"
-            },
-            {
-              "name": "values",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:41",
-              "description": "Values to test the left identity on.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "ChainUnderTest",
-              "type": "readonly A[]"
-            },
-            {
-              "name": "of",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:43",
-              "description": "Builds a box holding a value: the chain's `of`, e.g. `Some.of`.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "ChainUnderTest",
-              "type": "(value: A) => M"
-            },
-            {
-              "name": "flatMap",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:45",
-              "description": "The chain's flatMap, data-first.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "ChainUnderTest",
-              "type": "(box: M, f: (value: A) => M) => M"
-            },
-            {
-              "name": "step",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:49",
-              "description": "Two steps for the flatMap laws.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "ChainUnderTest",
-              "type": "(value: A) => M"
-            },
-            {
-              "name": "nextStep",
-              "kind": "property",
-              "source": "packages/functional/src/testing.ts:50",
-              "description": "",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "ChainUnderTest",
-              "type": "(value: A) => M"
-            }
-          ]
-        },
-        {
-          "name": "chainLaws",
-          "kind": "function",
-          "source": "packages/functional/src/testing.ts:139",
-          "description": "The chain laws, as checks: flatMap's left identity, right identity and associativity. Use it\nfor a type that has `flatMap` and no `map`. Each check is a `[description, check]` pair: `check`\nthrows when its law fails.",
-          "params": [
-            {
-              "name": "chain",
-              "text": "The chain to check: its boxes, its `of`, and its flatMap."
-            }
-          ],
-          "examples": [
-            "```ts\nimport { test } from \"vitest\";\nimport { chainLaws } from \"@tinker/functional/testing\";\n\nfor (const [description, check] of chainLaws(myChain)) {\n  test(description, check);\n}\n```"
-          ],
-          "see": [],
-          "throws": [],
-          "returns": "One `[description, check]` pair per law, for each box of the chain.",
-          "signatures": [
-            "chainLaws<M, A>(chain: ChainUnderTest<M, A>): LawCheck[]"
-          ]
-        },
-        {
-          "name": "functorLaws",
-          "kind": "function",
-          "source": "packages/functional/src/testing.ts:101",
-          "description": "The functor laws, as checks: `map` with the identity leaves each box unchanged, and `map`\ncomposes. Use it for a type that has `map` but no `flatMap`. Each check is a\n`[description, check]` pair: `check` throws when its law fails.",
-          "params": [
-            {
-              "name": "functor",
-              "text": "The functor to check: its boxes, and its map."
-            }
-          ],
-          "examples": [
-            "```ts\nimport { test } from \"vitest\";\nimport { functorLaws } from \"@tinker/functional/testing\";\n\nfor (const [description, check] of functorLaws(myFunctor)) {\n  test(description, check);\n}\n```"
-          ],
-          "see": [],
-          "throws": [],
-          "returns": "One `[description, check]` pair per law, for each box of the functor.",
-          "signatures": [
-            "functorLaws<M, A>(functor: FunctorUnderTest<M, A>): LawCheck[]"
-          ]
-        },
-        {
-          "name": "monadLaws",
-          "kind": "function",
-          "source": "packages/functional/src/testing.ts:190",
-          "description": "The monad laws, as checks: the functor laws, the chain laws, and the interaction with `map`,\n`flatMap` and `match`. Use it to test a monad defined outside this package, with the monad's\nown samples (include edge values, as in `EDGE_VALUES`). Each check is a `[description, check]`\npair: `check` throws when its law fails, so any test framework can run it.",
-          "params": [
-            {
-              "name": "monad",
-              "text": "The monad to check: its boxes, `of`, `map`, `flatMap`, and its case names."
-            }
-          ],
-          "examples": [
-            "```ts\nimport { test } from \"vitest\";\nimport { monadLaws } from \"@tinker/functional/testing\";\n\nfor (const [description, check] of monadLaws(myMonad)) {\n  test(description, check);\n}\n```"
-          ],
-          "see": [],
-          "throws": [],
-          "returns": "The functor and chain checks, and the checks of `match`, as `[description, check]`\npairs.",
-          "signatures": [
-            "monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[]"
-          ]
-        }
-      ]
-    },
-    {
       "specifier": "@tinker/http",
       "source": "packages/http/src/index.ts",
       "exports": [
@@ -7554,7 +7020,7 @@
         {
           "name": "ComponentBuilder",
           "kind": "type",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:38",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:40",
           "description": "The static start: a builder for a component with a template.",
           "params": [],
           "examples": [],
@@ -7565,7 +7031,7 @@
         {
           "name": "ComponentBuilderType",
           "kind": "type",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:38",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:40",
           "description": "The static start: a builder for a component with a template.",
           "params": [],
           "examples": [],
@@ -7673,7 +7139,7 @@
         {
           "name": "MockComponentBuilder",
           "kind": "class",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:297",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:299",
           "description": "A builder for a mock of a component: a component with the same selector and exportAs,\nthe inputs and outputs named here, and no template. Immutable, like the other builders.",
           "params": [],
           "examples": [],
@@ -7686,7 +7152,7 @@
             {
               "name": "requiredInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:316",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:318",
               "description": "Required inputs of `F` that the mock has too: a parent template must bind them.",
               "params": [],
               "examples": [],
@@ -7699,7 +7165,7 @@
             {
               "name": "optionalInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:324",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:326",
               "description": "Optional inputs of `F` that the mock has too, each with the default the real input has.",
               "params": [],
               "examples": [],
@@ -7712,7 +7178,7 @@
             {
               "name": "fields",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:334",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:336",
               "description": "Fields of the mock, with their values: the template reads them as the real class's.",
               "params": [],
               "examples": [],
@@ -7725,7 +7191,7 @@
             {
               "name": "methods",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:347",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:349",
               "description": "Methods of the mock, each with its implementation: the mock's method has the real\nsignature and passes its arguments to the implementation. A spy is an implementation.",
               "params": [],
               "examples": [],
@@ -7738,7 +7204,7 @@
             {
               "name": "outputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:360",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:362",
               "description": "Outputs of `F` that the mock has too, so a parent template can listen to them.",
               "params": [],
               "examples": [],
@@ -7751,7 +7217,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:368",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:370",
               "description": "Create the mock class. It renders nothing.",
               "params": [],
               "examples": [],
@@ -7764,7 +7230,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:302",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:304",
               "description": "The same as `new MockComponentBuilder(type)`: the start of a chain.",
               "params": [],
               "examples": [],
@@ -7780,7 +7246,7 @@
         {
           "name": "MockDirectiveBuilder",
           "kind": "class",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:386",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:388",
           "description": "A builder for a mock of a directive: a directive with the same selector and exportAs,\nthe inputs and outputs named here, and nothing else. Immutable, like the other builders.",
           "params": [],
           "examples": [],
@@ -7793,7 +7259,7 @@
             {
               "name": "requiredInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:408",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:410",
               "description": "Required inputs of `F` that the mock has too: a parent template must bind them.",
               "params": [],
               "examples": [],
@@ -7806,7 +7272,7 @@
             {
               "name": "optionalInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:416",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:418",
               "description": "Optional inputs of `F` that the mock has too, each with the default the real input has.",
               "params": [],
               "examples": [],
@@ -7819,7 +7285,7 @@
             {
               "name": "fields",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:426",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:428",
               "description": "Fields of the mock, with their values: the template reads them as the real class's.",
               "params": [],
               "examples": [],
@@ -7832,7 +7298,7 @@
             {
               "name": "methods",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:439",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:441",
               "description": "Methods of the mock, each with its implementation: the mock's method has the real\nsignature and passes its arguments to the implementation. A spy is an implementation.",
               "params": [],
               "examples": [],
@@ -7845,7 +7311,7 @@
             {
               "name": "outputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:452",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:454",
               "description": "Outputs of `F` that the mock has too, so a parent template can listen to them.",
               "params": [],
               "examples": [],
@@ -7858,7 +7324,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:460",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:462",
               "description": "Create the mock class.",
               "params": [],
               "examples": [],
@@ -7871,7 +7337,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:391",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:393",
               "description": "The same as `new MockDirectiveBuilder(type)`: the start of a chain.",
               "params": [],
               "examples": [],
@@ -7909,7 +7375,7 @@
         {
           "name": "TestBed",
           "kind": "type",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:37",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:39",
           "description": "The static starts: each one is a fresh builder with that one setting.",
           "params": [],
           "examples": [],
@@ -7920,7 +7386,7 @@
         {
           "name": "TestBedType",
           "kind": "type",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:37",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:39",
           "description": "The static starts: each one is a fresh builder with that one setting.",
           "params": [],
           "examples": [],
@@ -7931,7 +7397,7 @@
         {
           "name": "TestRunner",
           "kind": "interface",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:65",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:67",
           "description": "What the package takes from the test runner. Both are optional.",
           "params": [],
           "examples": [],
@@ -7941,7 +7407,7 @@
             {
               "name": "afterEach",
               "kind": "property",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:67",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:69",
               "description": "Runs `cleanup` after each test: the runner's `afterEach`.",
               "params": [],
               "examples": [],
@@ -7952,7 +7418,7 @@
             {
               "name": "inTest",
               "kind": "property",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:69",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:71",
               "description": "Whether a test is running now: a fixture without `manualCleanup()` must be built in one.",
               "params": [],
               "examples": [],
@@ -7963,7 +7429,7 @@
             {
               "name": "onTestFinished",
               "kind": "property",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:74",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:76",
               "description": "Runs a hook when the test running now ends (Vitest's `onTestFinished`). A fixture built in a\ntest is destroyed by its own hook, so concurrent tests do not destroy each other's fixtures.",
               "params": [],
               "examples": [],
@@ -7987,7 +7453,7 @@
         {
           "name": "cleanup",
           "kind": "function",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:57",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:59",
           "description": "Destroy every fixture still alive, e.g. the ones a test left behind.",
           "params": [],
           "examples": [],
@@ -8000,7 +7466,7 @@
         {
           "name": "registerRunner",
           "kind": "function",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:86",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:88",
           "description": "Give the package the test runner's hooks. Call it once in the test setup (a Vitest setup file\ndoes: see vitest.setup.ts). Without a runner, no cleanup is registered and nothing is checked.",
           "params": [],
           "examples": [],

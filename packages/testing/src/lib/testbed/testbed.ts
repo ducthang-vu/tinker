@@ -4,20 +4,22 @@
 
 import { valueOrThrow, isSome, getOrThrow, use } from "@tinker/functional";
 import {
-  CLASS_REPLACEMENTS,
   Component,
   Directive,
-  getComponentMetadata,
-  getDirectiveMetadata,
   input,
-  inputNamesOf,
   output,
-  Engine,
   type Provider,
   type ProviderToken,
   provide,
   type Token,
 } from "@tinker/core";
+import {
+  CLASS_REPLACEMENTS,
+  Engine,
+  getComponentMetadata,
+  getDirectiveMetadata,
+  inputNamesOf,
+} from "@tinker/core/testing";
 import { testingElementOf, type Scope } from "./fixture.ts";
 import type {
   InputName,

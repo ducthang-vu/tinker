@@ -13,6 +13,11 @@
       "development": "./src/view/compiler/index.ts",
       "types": "./dist/view/compiler/index.d.ts",
       "default": "./dist/view/compiler/index.js"
+    },
+    "./testing": {
+      "development": "./src/view/testing.ts",
+      "types": "./dist/view/testing.d.ts",
+      "default": "./dist/view/testing.js"
     }
   },
   "dependencies": {
