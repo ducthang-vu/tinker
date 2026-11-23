@@ -120,6 +120,8 @@ export function mapLeft(...args: readonly unknown[]): unknown {
  * @param fn The function to run.
  * @param isExpected Tells the errors the caller expects, which become a Left.
  * @returns A Right of `fn`'s result, or a Left of the expected error it threw.
+ * @deprecated Internal functions return an Either themselves, so nothing needs to wrap a throw.
+ *   Use the function's own Either instead of catching what it throws.
  */
 export function attempt<T, E>(
   fn: () => T,
