@@ -5,7 +5,6 @@ import { signal } from "../../../signals/index.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { inject } from "../../../di/index.ts";
 import { Component, Directive, ElementRef, input, ViewContainerRef, queryAll } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional";
 
 @Directive({ selector: "[label]" })
 class Label {
@@ -35,7 +34,7 @@ describe("<tk-container>", () => {
     })
     class WithContainer {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(WithContainer, { host: el }));
+    const app = bootstrap(WithContainer, { host: el });
     await tick();
     await tick();
     expect(el.textContent)
@@ -52,7 +51,7 @@ describe("<tk-container>", () => {
     })
     class PlainContainer {}
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(PlainContainer, { host: el }));
+    const app = bootstrap(PlainContainer, { host: el });
     await tick();
     await tick();
     expect(el.textContent)
@@ -71,7 +70,7 @@ describe("<tk-container>", () => {
       readonly label = queryAll(Label);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(InputContainer, { host: el }));
+    const app = bootstrap(InputContainer, { host: el });
     await tick();
     await tick();
     expect(app.root.instance.label()[0]!.label())
@@ -124,7 +123,7 @@ describe("<tk-container>", () => {
       readonly labels = queryAll(Label);
       readonly elements = queryAll(Label, { read: ElementRef });
     }
-    const app = valueOrThrow(bootstrap(ListedContainer, { host: document.createElement("section") }));
+    const app = bootstrap(ListedContainer, { host: document.createElement("section") });
     await tick();
     expect(app.root.instance.labels())
       .toHaveLength(1);
@@ -143,7 +142,7 @@ describe("<tk-container>", () => {
       readonly here = queryAll(Here);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(CreatingContainer, { host: el }));
+    const app = bootstrap(CreatingContainer, { host: el });
     await tick();
     const container = app.root.instance.here()[0]!.container;
     container.createComponent(Tagged);

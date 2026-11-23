@@ -5,6 +5,8 @@ import { provideRouter } from "../router/provide-router.ts";
 import { RouterLink } from "./router-link.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { Router } from "../router/router.ts";
+import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
+import { provide } from "@tinker/core";
 
 @Component({
   selector: "tk-todo-list",
@@ -215,5 +217,30 @@ test("a destination given as segments is joined, and resolved against the route"
   expect(fixture.root.query("a.segments")
     .getAttribute("href"))
     .toBe("/todos/7");
+  fixture.destroy();
+});
+
+test("the href attribute is in the platform's form, when the platform has one", () => {
+  window.history.replaceState(null, "", "/todos");
+  const platform = { ...browserPlatformLocation, href: (path: string) => `/base${path}` };
+  // The first provider of a token wins, so the platform comes before provideRouter's.
+  const fixture = TestBed
+    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROOT))
+    .component(App)
+    .build();
+  expect(fixture.root.query("a.root").element.getAttribute("href"))
+    .toBe("/base/todos");
+  fixture.destroy();
+});
+
+test("without an href on the platform, the href attribute is the app's path", () => {
+  window.history.replaceState(null, "", "/todos");
+  const platform = { ...browserPlatformLocation, href: undefined };
+  const fixture = TestBed
+    .providers(provide(PLATFORM_LOCATION, { useValue: platform }), ...provideRouter(ROOT))
+    .component(App)
+    .build();
+  expect(fixture.root.query("a.root").element.getAttribute("href"))
+    .toBe("/todos");
   fixture.destroy();
 });

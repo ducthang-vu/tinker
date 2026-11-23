@@ -3,7 +3,6 @@ import { tick } from "../test-support.ts";
 import { Engine } from "../engine.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, output, queryAll } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional";
 import { renderComponent } from "../test-support.ts";
 
 @Directive({ selector: "[fires]" })
@@ -31,7 +30,7 @@ describe("qualified outputs: (owner.name)", () => {
         seen.push(value);
       }
     }
-    const app = valueOrThrow(bootstrap(Two, { host: document.createElement("section") }));
+    const app = bootstrap(Two, { host: document.createElement("section") });
     await tick();
     app.root.instance.alsoFires()[0]!.fired.emit(7);
     expect(seen)

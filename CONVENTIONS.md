@@ -64,7 +64,8 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 - Lookups that may find nothing return `Maybe`, not `T | undefined`.
   Operations that may fail return an `Either`, a box holding a Right (the value) or
   a Left (the error). The caller handles the Left, or matches it and throws to go back
-  to exceptions.
+  to exceptions. A public function at the edge of the app, such as `bootstrap`, throws
+  directly: the caller has nothing else to do with the error.
 
 ## Documentation: every function and method has TSDoc
 

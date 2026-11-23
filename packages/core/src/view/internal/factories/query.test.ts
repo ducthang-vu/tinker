@@ -28,7 +28,7 @@ describe("query", () => {
       readonly first = query(FirstItem);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(First, { host: el }));
+    const app = bootstrap(First, { host: el });
     await tick();
     expect(isNone(app.root.instance.first()))
       .toBe(true);
@@ -55,7 +55,7 @@ describe("query", () => {
       readonly first = query(FirstItem, { read: ElementRef });
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(FirstElement, { host: el }));
+    const app = bootstrap(FirstElement, { host: el });
     await tick();
     const ref = getOrThrow(app.root.instance.first(), () => new Error("expected a first element"));
     expect(ref.nativeElement)
@@ -74,7 +74,7 @@ describe("query", () => {
       readonly item = query.required(FirstItem);
     }
     const el = document.createElement("section");
-    const app = valueOrThrow(bootstrap(Required, { host: el }));
+    const app = bootstrap(Required, { host: el });
     await tick();
     expect(() => app.root.instance.item())
       .toThrow(QueryMissingError);
@@ -94,7 +94,7 @@ describe("query", () => {
     class RequiredMessage {
       readonly item = query.required(FirstItem);
     }
-    const app = valueOrThrow(bootstrap(RequiredMessage, { host: document.createElement("section") }));
+    const app = bootstrap(RequiredMessage, { host: document.createElement("section") });
     await tick();
     expect(() => app.root.instance.item())
       .toThrow("No FirstItem found, which query.required(FirstItem) needs");
@@ -109,7 +109,7 @@ describe("query", () => {
     class RequiredElement {
       readonly element = query.required(FirstItem, { read: ElementRef });
     }
-    const app = valueOrThrow(bootstrap(RequiredElement, { host: document.createElement("section") }));
+    const app = bootstrap(RequiredElement, { host: document.createElement("section") });
     await tick();
     expect(() => app.root.instance.element())
       .toThrow(QueryMissingError);

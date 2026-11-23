@@ -2,7 +2,6 @@ import { expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component } from "../../index.ts";
-import { valueOrThrow } from "@tinker/functional";
 
 test("a DOM handler gets arguments, including a field of $event", () => {
   const calls: unknown[][] = [];
@@ -17,7 +16,7 @@ test("a DOM handler gets arguments, including a field of $event", () => {
     }
   }
   const el = document.createElement("section");
-  const app = valueOrThrow(bootstrap(Args, { host: el }));
+  const app = bootstrap(Args, { host: el });
   el.querySelector("button")!
     .dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
   expect(calls)

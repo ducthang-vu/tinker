@@ -10,7 +10,7 @@ Client code sees a few objects. Everything else is internal.
 
 | Public | What it is for |
 |---|---|
-| `bootstrap` | Starts an app and returns its `AppRef` (`root`, `destroy()`). The engine behind it is internal. |
+| `bootstrap` | Starts an app and returns its `AppRef` (`root`, `destroy()`); throws if the root cannot start. The engine behind it is internal. |
 | `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |

@@ -6,13 +6,14 @@
 import { computed, Directive, input, inject } from "@tinker/core";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import { Router } from "../router/router.ts";
+import { PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { UrlBuilder } from "../router/url-builder.ts";
 
 @Directive({
   selector: "a[routerlink]",
   host: {
     "(click.plain.primary)": "navigateTo($event)",
-    "[attr.href]": "href()",
+    "[attr.href]": "attributeHref()",
     "[attr.target]": "target()",
     "[attr.aria-current]": "ariaCurrent()",
   },
@@ -29,6 +30,7 @@ export class RouterLink {
   /** The state of the history entry a click creates. */
   readonly state = input<unknown>(undefined);
   private readonly router = inject(Router);
+  private readonly platform = inject(PLATFORM_LOCATION);
   /** The activated route of the component this link sits in: a relative destination's base. */
   private readonly own = inject(ActivatedRoute);
   /** Where a click goes: the destination, with its query params and fragment. */
@@ -50,6 +52,12 @@ export class RouterLink {
       : UrlBuilder.from(destination)
           .resolve(this.own.path)
           .build();
+  });
+
+  /** The href attribute: the app's href, in the browser's form when the platform has one. */
+  private readonly attributeHref = computed(() => {
+    const href = this.href();
+    return href === undefined ? undefined : (this.platform.href?.(href) ?? href);
   });
 
   /** `page` while the link's path is the current one, for assistive technology. */

@@ -53,7 +53,7 @@ function compile(source: string, candidates: readonly DirectiveCandidate[] = [])
 }
 
 function setup() {
-  const app = valueOrThrow(bootstrap(Owner, { host: document.createElement("section") }));
+  const app = bootstrap(Owner, { host: document.createElement("section") });
   const host = document.createElement("section");
   const anchor = document.createComment("anchor");
   host.append(anchor);

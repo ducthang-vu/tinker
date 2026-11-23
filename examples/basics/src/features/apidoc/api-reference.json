@@ -63,7 +63,7 @@
         {
           "name": "AppRef",
           "kind": "class",
-          "source": "packages/core/src/view/bootstrap.ts:23",
+          "source": "packages/core/src/view/bootstrap.ts:26",
           "description": "A started application: its root component, and how to destroy it.",
           "params": [],
           "examples": [],
@@ -76,7 +76,7 @@
             {
               "name": "destroy",
               "kind": "method",
-              "source": "packages/core/src/view/bootstrap.ts:31",
+              "source": "packages/core/src/view/bootstrap.ts:34",
               "description": "Destroy the app: its root component, and everything it owns. Calling it again does nothing.",
               "params": [],
               "examples": [],
@@ -125,7 +125,7 @@
         {
           "name": "BootstrapOptions",
           "kind": "interface",
-          "source": "packages/core/src/view/bootstrap.ts:15",
+          "source": "packages/core/src/view/bootstrap.ts:18",
           "description": "What `bootstrap` takes besides the root component. Both are optional.",
           "params": [],
           "examples": [],
@@ -135,7 +135,7 @@
             {
               "name": "host",
               "kind": "property",
-              "source": "packages/core/src/view/bootstrap.ts:17",
+              "source": "packages/core/src/view/bootstrap.ts:20",
               "description": "The element the root renders into. Without it, the page element matching its selector.",
               "params": [],
               "examples": [],
@@ -146,7 +146,7 @@
             {
               "name": "providers",
               "kind": "property",
-              "source": "packages/core/src/view/bootstrap.ts:19",
+              "source": "packages/core/src/view/bootstrap.ts:22",
               "description": "Providers for the app, as for a component's `providers` but app-wide.",
               "params": [],
               "examples": [],
@@ -1432,7 +1432,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@779",
+              "name": "__@INPUT_TYPE@780",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -3354,14 +3354,26 @@
         {
           "name": "bootstrap",
           "kind": "function",
-          "source": "packages/core/src/view/bootstrap.ts:37",
+          "source": "packages/core/src/view/bootstrap.ts:47",
           "description": "Start the application whose root component is `type`.",
-          "params": [],
+          "params": [
+            {
+              "name": "type",
+              "text": "The root component."
+            },
+            {
+              "name": "options",
+              "text": "The host element and the app's providers."
+            }
+          ],
           "examples": [],
           "see": [],
-          "throws": [],
+          "throws": [
+            "The error that stopped the root from starting, such as a missing provider."
+          ],
+          "returns": "The started app.",
           "signatures": [
-            "bootstrap<T extends object>(type: Class<T>, options?: BootstrapOptions): Either<AppRef<T>, Error>"
+            "bootstrap<T extends object>(type: Class<T>, options?: BootstrapOptions): AppRef<T>"
           ]
         },
         {
@@ -3892,7 +3904,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@934",
+              "name": "__@CHAIN@933",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:61",
               "description": "",
@@ -3901,7 +3913,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@934<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@933<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4135,7 +4147,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@932",
+              "name": "__@MAP@931",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
@@ -4144,7 +4156,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@932<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@931<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -4554,7 +4566,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@932",
+              "name": "__@MAP@931",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:214",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -4569,11 +4581,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@932<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@931<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@934",
+              "name": "__@CHAIN@933",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:234",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -4588,7 +4600,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@934<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@933<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -6590,7 +6602,7 @@
         {
           "name": "PLATFORM_LOCATION",
           "kind": "const",
-          "source": "packages/router/src/lib/location/platform-location.ts:20",
+          "source": "packages/router/src/lib/location/platform-location.ts:29",
           "description": "The platform location, a token so a test can replace the browser.",
           "params": [],
           "examples": [],
@@ -6601,7 +6613,7 @@
         {
           "name": "PlatformLocation",
           "kind": "interface",
-          "source": "packages/router/src/lib/location/platform-location.ts:6",
+          "source": "packages/router/src/lib/location/platform-location.ts:10",
           "description": "",
           "params": [],
           "examples": [],
@@ -6611,7 +6623,7 @@
             {
               "name": "url",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:8",
+              "source": "packages/router/src/lib/location/platform-location.ts:12",
               "description": "The current path, query and hash, e.g. `\"/todos/7?tab=done#top\"`.",
               "params": [],
               "examples": [],
@@ -6624,7 +6636,7 @@
             {
               "name": "state",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:10",
+              "source": "packages/router/src/lib/location/platform-location.ts:14",
               "description": "The state of the current history entry.",
               "params": [],
               "examples": [],
@@ -6637,7 +6649,7 @@
             {
               "name": "push",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:12",
+              "source": "packages/router/src/lib/location/platform-location.ts:16",
               "description": "Add a history entry for `url`, with `state`. Does not fire `popstate`.",
               "params": [],
               "examples": [],
@@ -6650,7 +6662,7 @@
             {
               "name": "replace",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:14",
+              "source": "packages/router/src/lib/location/platform-location.ts:18",
               "description": "Replace the current history entry with `url` and `state`.",
               "params": [],
               "examples": [],
@@ -6663,7 +6675,7 @@
             {
               "name": "onPop",
               "kind": "method",
-              "source": "packages/router/src/lib/location/platform-location.ts:16",
+              "source": "packages/router/src/lib/location/platform-location.ts:20",
               "description": "Call `listener` when the user goes back or forward. Returns the function that stops it.",
               "params": [],
               "examples": [],
@@ -6672,6 +6684,17 @@
               "signatures": [
                 "onPop(listener: () => void): () => void"
               ]
+            },
+            {
+              "name": "href",
+              "kind": "method",
+              "source": "packages/router/src/lib/location/platform-location.ts:25",
+              "description": "The `href` a link to the app's `path` gets in the page, in the browser's form: for an app\nserved under a folder, the folder is added. Optional: without it, the path is the href.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": []
             }
           ]
         },
@@ -6851,7 +6874,7 @@
         {
           "name": "RouterLink",
           "kind": "class",
-          "source": "packages/router/src/lib/directives/router-link.ts:11",
+          "source": "packages/router/src/lib/directives/router-link.ts:12",
           "description": "",
           "params": [],
           "examples": [],
@@ -6864,7 +6887,7 @@
             {
               "name": "routerlink",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:22",
+              "source": "packages/router/src/lib/directives/router-link.ts:23",
               "description": "The destination: a path, or the segments of one, e.g. `\"/todos\"` or `[\"todos\", \"7\"]`.",
               "params": [],
               "examples": [],
@@ -6875,7 +6898,7 @@
             {
               "name": "target",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:24",
+              "source": "packages/router/src/lib/directives/router-link.ts:25",
               "description": "The browser's target, set on the link. `_blank` opens it in a new tab: left to the browser.",
               "params": [],
               "examples": [],
@@ -6886,7 +6909,7 @@
             {
               "name": "queryParams",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:26",
+              "source": "packages/router/src/lib/directives/router-link.ts:27",
               "description": "Query params set on the destination; a param replaces the same key of its own query.",
               "params": [],
               "examples": [],
@@ -6897,7 +6920,7 @@
             {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:28",
+              "source": "packages/router/src/lib/directives/router-link.ts:29",
               "description": "The fragment (hash) of the destination, without the `#`.",
               "params": [],
               "examples": [],
@@ -6908,7 +6931,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:30",
+              "source": "packages/router/src/lib/directives/router-link.ts:31",
               "description": "The state of the history entry a click creates.",
               "params": [],
               "examples": [],
@@ -7027,8 +7050,8 @@
         {
           "name": "browserPlatformLocation",
           "kind": "const",
-          "source": "packages/router/src/lib/location/platform-location.ts:23",
-          "description": "The browser's own location and history.",
+          "source": "packages/router/src/lib/location/platform-location.ts:73",
+          "description": "The browser's own location and history, under the folder the app is served from.",
           "params": [],
           "examples": [],
           "see": [],
