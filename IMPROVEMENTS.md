@@ -39,28 +39,7 @@ itself.
 
 ## The engine's entry points (`packages/core/src/view/internal/engine.ts`, `packages/core/src/view/internal/factories/component-factory.ts`)
 
-### 1. `engine.createComponent` is deprecated; remove it
-
-**Problem.** It creates a component without a place in the page, which is
-the job of a container, and it renders into a host, which is the job of
-`bootstrap`. It is used mostly by tests, and tests should not drive the API.
-Keeping it means two entry points for each case.
-
-**To do.** Move the tests off it, then delete it:
-
-- Tests that render a component at runtime use
-  `engine.createViewContainer(anchor)` on a comment node in a parent they
-  control, then `createComponent`. Their checks read the parent, not the
-  detached host.
-- Tests that render the root component use `bootstrap`, with the host
-  attached to the document first.
-- The few tests that check the factory itself call `ComponentFactory` through
-  the engine's providers, not through a public method.
-
-A test helper in the test folder (not in `src`) can absorb the two
-differences (host identity, attachment) so each test changes by one line.
-
-### 2. The component factory still takes the parent's host bindings and projected content
+### 1. The component factory still takes the parent's host bindings and projected content
 
 **Problem.** The parent context still carries `adoptHostBindings`, which hands the child's host
 bindings back to the parent's watch, and the projected content and content queries. Those
@@ -70,7 +49,7 @@ input bindings now go through one `setInputs` callback, supplied by the template
 **To do.** Move the host bindings and the projection out of the factory the same way, or
 document them as the parent-to-child contract that the factory must hold.
 
-### 3. Make the root path consistent with the container
+### 2. Make the root path consistent with the container
 
 **Problem.** Bootstrap renders into an existing element, which a container
 (which inserts a new element before its anchor) cannot do. So the root is a

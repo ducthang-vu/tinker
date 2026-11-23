@@ -6,6 +6,7 @@ import { model } from "./model.ts";
 import { outputsOf } from "./output.ts";
 import { Engine } from "../engine.ts";
 import { valueOrThrow, getOrThrow, getOrElse, map, flatMap, run } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 /** Subscribe to the `valueChange` output of `owner`, recording the values. */
 function hear(owner: object): unknown[] {
@@ -117,7 +118,7 @@ describe("two-way binding in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(Form));
+    const view = valueOrThrow(renderComponent(engine, Form));
     const itemHost = view.host.nativeElement.querySelector("tk-item")!;
     const item = getOrThrow(map(
       flatMap(engine.getContext(itemHost), (context) => context.componentView),
@@ -182,7 +183,7 @@ describe("two-way binding in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const [pick] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives), []) as [Pick];
     expect(pick!.value())
       .toBe("first");

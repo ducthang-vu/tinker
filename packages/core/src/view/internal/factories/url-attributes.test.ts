@@ -7,6 +7,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Sanitizer } from "../runtime/sanitization.ts";
 import { HostBindings } from "./host-bindings.ts";
 import { match, Left, Right, valueOrThrow, getOrElse, map, use } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 /** Render `<a [attr.name]="value()">` for `value`, and return the attribute `attribute`. */
 function attributeFor(attribute: string, value: string | null): string | null {
@@ -77,7 +78,7 @@ describe("host attribute bindings to URL attributes", () => {
     @Component({ selector: "tk-links", template: "<a link>x</a>", imports: [Link] })
     class Links {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(Links));
+    const view = valueOrThrow(renderComponent(engine, Links));
     const a = view.host.nativeElement.querySelector("a")!;
     engine.flush();
     expect(a.getAttribute("href"))

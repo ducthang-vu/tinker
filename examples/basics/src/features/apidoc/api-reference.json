@@ -1054,7 +1054,7 @@
         {
           "name": "EngineOptions",
           "kind": "interface",
-          "source": "packages/core/src/view/internal/engine.ts:46",
+          "source": "packages/core/src/view/internal/engine.ts:45",
           "description": "What the engine is built from.",
           "params": [],
           "examples": [],
@@ -1064,7 +1064,7 @@
             {
               "name": "providers",
               "kind": "property",
-              "source": "packages/core/src/view/internal/engine.ts:48",
+              "source": "packages/core/src/view/internal/engine.ts:47",
               "description": "Providers for the engine's root injector; they replace the defaults.",
               "params": [],
               "examples": [],

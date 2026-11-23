@@ -28,6 +28,7 @@ function changeDetection(): ChangeDetection {
 import { ComponentRef } from "./component-ref.ts";
 import type { ComponentView } from "./runtime/component-view.ts";
 import { valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional";
+import { renderComponent } from "./test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -277,13 +278,13 @@ describe("Engine.bootstrap", () => {
       .toBe(true);
   });
 
-  test("createComponent renders into a given host", async () => {
+  test("bootstrap renders into a given host", async () => {
     const host = document.createElement("section");
     @Component({ selector: "tk-x", template: "<p>x</p>" })
     class X {}
     const engine = Engine.create();
 
-    const view = valueOrThrow(engine.createComponent(X, host));
+    const view = valueOrThrow(engine.bootstrap(X, host));
 
     await tick();
 
@@ -298,7 +299,7 @@ describe("Engine.bootstrap", () => {
       .toBe(view.host.nativeElement);
   });
 
-  test("createComponent without a host creates one from the selector", async () => {
+  test("a component rendered at runtime gets a host from its selector", async () => {
     @Component({ selector: "tk-tag", template: "" })
     class Tag {}
     @Component({ selector: "[attr-only]", template: "" })
@@ -309,26 +310,26 @@ describe("Engine.bootstrap", () => {
 
     await tick();
 
-    expect(valueOrThrow(engine.createComponent(Tag)).host.nativeElement.outerHTML)
+    expect(valueOrThrow(renderComponent(engine, Tag)).host.nativeElement.outerHTML)
       .toBe("<tk-tag></tk-tag>");
-    expect(valueOrThrow(engine.createComponent(AttrOnly)).host.nativeElement.outerHTML)
+    expect(valueOrThrow(renderComponent(engine, AttrOnly)).host.nativeElement.outerHTML)
       .toBe(`<div attr-only=""></div>`);
-    expect(valueOrThrow(engine.createComponent(Both)).host.nativeElement.outerHTML)
+    expect(valueOrThrow(renderComponent(engine, Both)).host.nativeElement.outerHTML)
       .toBe(`<tk-both extra=""></tk-both>`);
-    expect(valueOrThrow(engine.createComponent(Tag)).host.nativeElement.isConnected)
+    expect(valueOrThrow(renderComponent(engine, Tag)).host.nativeElement.isConnected)
       .toBe(false);
   });
 
-  test("createComponent fails for a selector it cannot build a host from", () => {
+  test("rendering at runtime fails for a selector it cannot build a host from", () => {
     @Component({ selector: ".a-class", template: "" })
     class ByClass {}
     @Component({ selector: "", template: "" })
     class Empty {}
     const engine = Engine.create();
 
-    expect(messageOf(engine.createComponent(ByClass)))
+    expect(messageOf(renderComponent(engine, ByClass)))
       .toBe(`Cannot create a host element for ByClass from selector ".a-class"`);
-    expect(messageOf(engine.createComponent(Empty)))
+    expect(messageOf(renderComponent(engine, Empty)))
       .toContain(`from selector ""`);
   });
 
@@ -375,7 +376,7 @@ describe("Engine view updates", () => {
     const engine = Engine.create({
       providers: [provide(ChangeDetection, { useValue: detection })],
     });
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     engine.flush();
     view.instance.count.set(2);
     expect(detection.views.pending)
@@ -395,7 +396,7 @@ describe("Engine view updates", () => {
     const one = changeDetection();
     const two = changeDetection();
     const engine = Engine.create({ providers: [provide(ChangeDetection, { useValue: one })] });
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     engine.flush();
     Engine.create({ providers: [provide(ChangeDetection, { useValue: two })] });
     view.instance.count.set(2);

@@ -20,7 +20,7 @@ describe("content projection", () => {
     class A {}
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     await tick();
     expect(host.querySelector("tk-card div p")!.textContent)
       .toBe("hi");
@@ -35,7 +35,7 @@ describe("content projection", () => {
     class A {}
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     expect(host.querySelector("h1 b")!.textContent)
       .toBe("T");
     expect(host.querySelector("section i")!.textContent)
@@ -51,7 +51,7 @@ describe("content projection", () => {
     class A {}
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     await tick();
     expect(host.querySelector("tk-card div")!.textContent)
       .toBe("plain text");
@@ -68,7 +68,7 @@ describe("content projection", () => {
     class A {}
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     await tick();
     expect(host.textContent)
       .toBe("inside");
@@ -88,7 +88,7 @@ describe("content projection", () => {
     class A {}
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     await tick();
     expect(host.querySelectorAll("p"))
       .toHaveLength(1);
@@ -109,7 +109,7 @@ describe("content projection", () => {
     }
     const engine = Engine.create();
     const host = document.createElement("div");
-    const view = valueOrThrow(engine.createComponent(A, host));
+    const view = valueOrThrow(engine.bootstrap(A, host));
     await tick();
     expect(host.querySelector("p")!.textContent)
       .toBe("first");
@@ -133,7 +133,7 @@ describe("content projection", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     host.querySelector("button")!.click();
     await tick();
     expect(clicks)
@@ -149,7 +149,7 @@ describe("content projection", () => {
     class A {}
     const host = document.createElement("div");
     const view = valueOrThrow(Engine.create()
-      .createComponent(A, host));
+      .bootstrap(A, host));
     view.destroy();
     await tick();
     expect(host.children)

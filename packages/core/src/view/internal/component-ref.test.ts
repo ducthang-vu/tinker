@@ -3,6 +3,7 @@ import { Component, input, output } from "../index.ts";
 import { Engine } from "./engine.ts";
 import { type Either, valueOrThrow } from "@tinker/functional";
 import { messageOf } from "./test-support.ts";
+import { renderComponent } from "./test-support.ts";
 
 @Component({ selector: "tk-label", template: "<p>{{ label() }}</p>" })
 class Label {
@@ -18,7 +19,7 @@ describe("ComponentRef", () => {
   test("gives the instance and the host the component was rendered into", () => {
     const host = document.createElement("section");
     const ref = valueOrThrow(Engine.create()
-      .createComponent(Label, host));
+      .bootstrap(Label, host));
     expect(ref.instance)
       .toBeInstanceOf(Label);
     expect(ref.host.nativeElement)
@@ -27,7 +28,7 @@ describe("ComponentRef", () => {
 
   test("setInput sets a public input; the DOM follows at the next flush", () => {
     const engine = Engine.create();
-    const ref = valueOrThrow(engine.createComponent(Label));
+    const ref = valueOrThrow(renderComponent(engine, Label));
     ref.setInput("label", "first");
     engine.flush();
     expect(ref.host.nativeElement.textContent)
@@ -40,7 +41,7 @@ describe("ComponentRef", () => {
 
   test("subscribe hears the public output's values until it is cancelled", () => {
     const engine = Engine.create();
-    const ref = valueOrThrow(engine.createComponent(Label));
+    const ref = valueOrThrow(renderComponent(engine, Label));
     const seen: number[] = [];
     const cancel = valueOrThrow(ref.subscribe("picked", (value) => seen.push(value)));
     ref.instance.pick(1);
@@ -52,7 +53,7 @@ describe("ComponentRef", () => {
 
   test("emit sends a value through a public output, as if the component emitted it", () => {
     const engine = Engine.create();
-    const ref = valueOrThrow(engine.createComponent(Label));
+    const ref = valueOrThrow(renderComponent(engine, Label));
     const seen: number[] = [];
     ref.subscribe("picked", (value) => seen.push(value));
     ref.emit("picked", 7);
@@ -61,8 +62,7 @@ describe("ComponentRef", () => {
   });
 
   test("emit or subscribe to a name that is not an output is an error", () => {
-    const untyped = valueOrThrow(Engine.create()
-      .createComponent(Label)) as unknown as {
+    const untyped = valueOrThrow(renderComponent(Engine.create(), Label)) as unknown as {
       emit(name: string, value: unknown): Either<void, Error>;
       subscribe(name: string, handler: () => void): Either<() => void, Error>;
     };
@@ -75,7 +75,7 @@ describe("ComponentRef", () => {
   test("destroy removes the component from its host, and is harmless when repeated", () => {
     const host = document.createElement("section");
     const ref = valueOrThrow(Engine.create()
-      .createComponent(Label, host));
+      .bootstrap(Label, host));
     ref.setInput("label", "x");
     ref.destroy();
     expect(host.innerHTML)

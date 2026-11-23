@@ -7,6 +7,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { TEMPLATE_PARSER } from "../tokens.ts";
 import { match, Left, Right, valueOrThrow } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 /** A parser that fails if it is ever used: a precompiled template must not reach it. */
 const noParsing = provide(TEMPLATE_PARSER, {
@@ -25,7 +26,7 @@ describe("a component with a precompiled template", () => {
       readonly name = signal("Ada");
     }
     const engine = Engine.create({ providers: [noParsing] });
-    const view = valueOrThrow(engine.createComponent(Greet));
+    const view = valueOrThrow(renderComponent(engine, Greet));
     engine.flush();
     expect(view.host.nativeElement.textContent)
       .toBe("Ada");
@@ -43,7 +44,7 @@ describe("a component with a precompiled template", () => {
     @Component({ selector: "tk-list", template: nodes, imports: [Item] })
     class List {}
     const engine = Engine.create({ providers: [noParsing] });
-    engine.createComponent(List);
+    renderComponent(engine, List);
     engine.flush();
     expect(created)
       .toBe(1);
@@ -53,7 +54,7 @@ describe("a component with a precompiled template", () => {
     @Component({ selector: "tk-plain", template: "<p>plain</p>" })
     class Plain {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(Plain));
+    const view = valueOrThrow(renderComponent(engine, Plain));
     engine.flush();
     expect(view.host.nativeElement.textContent)
       .toBe("plain");

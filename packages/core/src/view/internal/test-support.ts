@@ -1,4 +1,7 @@
 import { type Either, match } from "@tinker/functional";
+import type { Class } from "../../utils/types.ts";
+import type { ComponentRef } from "./component-ref.ts";
+import type { Engine } from "./engine.ts";
 import type { TemplateNode } from "./template/ast.ts";
 import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 // Helpers for core's own tests. Not part of the public API.
@@ -6,6 +9,22 @@ import { TinkerTemplateParser } from "./template/tinker-parser.ts";
 /** The message of a failure, or "no error" for a success: what a test checks against. */
 export const messageOf = (result: Either<unknown, Error>): string =>
   match(result, { Left: (error) => error.message, Right: () => "no error" });
+
+/**
+ * Create `type` at runtime, in a container on a comment that is in a parent of its own: the
+ * component's host is in that parent, which the test can read. Tests that render into an
+ * element of their own use `engine.bootstrap(type, host)` instead.
+ */
+export function renderComponent<T extends object>(
+  engine: Engine,
+  type: Class<T>,
+): Either<ComponentRef<T>, Error> {
+  const anchor = document.createComment("");
+  document.createElement("div")
+    .append(anchor);
+  return engine.createViewContainer(anchor)
+    .createComponent(type);
+}
 
 /**
  * Wait for the next tick of the app's ticker, so the first render and any pending

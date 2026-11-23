@@ -4,6 +4,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { query, queryAll } from "../authoring/query.ts";
 import { Engine } from "../engine.ts";
 import { valueOrThrow } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -34,8 +35,7 @@ describe("content queries", () => {
       readonly list = query.required(List);
       readonly all = queryAll(Item);
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(Parent));
+    const view = valueOrThrow(renderComponent(Engine.create(), Parent));
     const list = view.instance.list();
     expect(list.items())
       .toHaveLength(1);
@@ -56,8 +56,7 @@ describe("content queries", () => {
     class Empty {
       readonly list = query.required(List);
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(Empty));
+    const view = valueOrThrow(renderComponent(Engine.create(), Empty));
     expect(() => view.instance.list()
       .firstItem())
       .toThrow("No Item found, which query.required(Item) needs");
