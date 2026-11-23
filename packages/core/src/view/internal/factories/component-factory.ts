@@ -50,7 +50,7 @@ import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
-import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
+import { inputsOf } from "../authoring/input.ts";
 import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
@@ -110,7 +110,6 @@ export interface ParentContext {
   readonly parentView: View;
   /** The parent view's node: the child's view is owned by it, for the order of updates. */
   readonly node: ViewNode;
-  readonly attributes: readonly AttributeNode[];
   /**
    * Takes the child's host bindings (its own and its host directives'): its
    * host element is in the parent's template, so the parent's watch updates
@@ -118,11 +117,11 @@ export interface ParentContext {
    */
   readonly adoptHostBindings: (bindings: readonly Binding[]) => void;
   /**
-   * Binds the input bindings of its element (`[label]="…"`) to the new
-   * component (and the directives on that element): called before its
+   * Sets the inputs of the new component, and of the directives on its element, from the
+   * element: its plain attributes, then its input bindings (`[label]="…"`). Called before its
    * first render, so they have their first values.
    */
-  readonly bindInputs: (component: object) => void;
+  readonly setInputs: (component: object) => void;
   /** The content of its element's children, by slot name, which its template's `<slot>`s show. */
   readonly projected: ReadonlyMap<string, Node[]>;
   /** The registry the parent records the element's projected children in, for `from: "content"`. */
@@ -345,8 +344,8 @@ export class ComponentFactory {
     view.addDestroyCallback(partial(endOutputs, instance));
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
-    // In a template: its element's plain attributes set its inputs, before it renders.
-    bindInputsToAttributes(instance, child?.attributes ?? []);
+    // In a template: the element's inputs are set (attributes, then bindings), before it renders.
+    child?.setInputs(instance);
     // Its host directives, on its host element (their host bindings: below).
     const hostBindings = hostDirectives.flatMap((directive, i) =>
       this.directives.attach(directive, hostInstances[i]!, host, view));
@@ -354,7 +353,6 @@ export class ComponentFactory {
     // child components of its own template's elements, now that its view
     // exists, and before the first render.
     try {
-      child?.bindInputs(instance);
       template.createDirectivesAndComponents(view, ownInjector.injector);
     } catch (error) {
       view.destroy(); // undoes the directives created so far, and the injectors
