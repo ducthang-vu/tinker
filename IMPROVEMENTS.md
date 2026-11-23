@@ -287,29 +287,19 @@ with the error. This follows from converting the template compiler to `Either`.
 
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
-### 1. Descriptions are plain text with code spans and fences
+### 1. Descriptions show only paragraphs, code spans and fences
 
 **Problem.** The page shows TSDoc as paragraphs, `code spans` and fenced code blocks. Other
 markup is shown as written: a `{@link X}` may appear as text, and lists, headings and links
-are not rendered. Spaces around a code span are also wrong when the text is next to a
-punctuation mark, such as "`inject(Injector)` , the token".
+are not rendered.
 
-**What was tried.** The spaces are not in the data: each paragraph's parts are rendered
-by a `@map` loop in `DocBody`, and the engine keeps the whitespace-only text between the
-rows as text, as HTML does. Two template changes were tried and reverted:
+**What was fixed.** Code spans were followed by a stray space, and the rows of a one-line
+`@map` came out in reverse order. Both were engine bugs: a row whose body was a block (`@if`,
+`@match`) left the nodes of that block behind when the rows were moved. Each row now has a start
+marker, and its nodes are moved from there to its anchor. The page's loop is one line again.
 
-- Removing the spaces inside the `@if` and `@else` braces: the spaces between rows stayed.
-- Putting the loop body on one line: the spaces went, but the rows came out in reverse order
-  (`.`, `create()`, `, then`, `inject(Injector)`, `Use`), even with `track $index`.
-
-The reverse order is a bug in the engine's `@map` row placement when a row has no whitespace
-around it; it is not specific to this page. A regression test (a paragraph with two code spans,
-checked for its exact text) reproduces the spaces.
-
-**To do.** Fix the engine's `@map` for rows without surrounding whitespace first (it is the
-cause of the reverse order), then drop the whitespace between the rows in `DocBody`. Or render
-each paragraph as one element, with the code spans as children it places by position. Also
-render the TSDoc inline tags (`{@link}`) as links to the reference anchors.
+**To do.** Render the TSDoc inline tags (`{@link}`) as links to the reference anchors, and
+render lists and links from the description.
 
 ### 2. Inherited members are not listed
 
