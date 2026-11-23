@@ -70,7 +70,7 @@ of `signals`, `di` and `functional`. Tests may always use `new`.
 
 Each function and each method of a package listed in `DOCUMENTED_PACKAGES` (in
 `eslint.config.js`) has a TSDoc block, checked by ESLint (`jsdoc/require-jsdoc`,
-`jsdoc/require-param`, `jsdoc/require-returns`):
+`jsdoc/require-param`, `jsdoc/require-returns`, `jsdoc/require-throws`):
 
 - a description, saying what it does, not how;
 - a `@param` for each parameter, saying what it is, with the name first;

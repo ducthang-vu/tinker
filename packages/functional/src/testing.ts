@@ -69,6 +69,7 @@ export type LawCheck = readonly [description: string, check: () => void];
  * @param items The items to check.
  * @param holds Tells whether the law holds for one item.
  * @param message The error message, when the law fails for some item.
+ * @throws {Error} With `message`, when `holds` is false for some item.
  */
 const holdsForAll = <X>(
   items: readonly X[],
