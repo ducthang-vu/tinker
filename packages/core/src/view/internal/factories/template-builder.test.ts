@@ -23,12 +23,14 @@ import { EffectScheduler } from "../runtime/schedulers/effect-scheduler.ts";
 import { ViewScheduler } from "../runtime/schedulers/view-scheduler.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
 import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
+import { DEV_MODE } from "../tokens.ts";
 
 /** A TemplateBuilderFactory created the way the engine creates it: through an injector. */
 function builderFactory(renderer = new DomRenderer()): TemplateBuilderFactory {
   const { injector } = Injector.create({
     providers: [
       provide(RENDERER, { useValue: renderer }),
+      provide(DEV_MODE, { useValue: false }),
       BindingFactory,
       ElementContexts,
       DirectiveFactory,

@@ -7,7 +7,7 @@
         {
           "name": "tinkerCompiler",
           "kind": "function",
-          "source": "packages/compiler/src/plugin.ts:87",
+          "source": "packages/compiler/src/plugin.ts:90",
           "description": "The plugin: compiles the templates of components in each source file it transforms.",
           "params": [],
           "examples": [],

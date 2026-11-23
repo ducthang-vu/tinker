@@ -29,12 +29,12 @@ import type {
 import { outputsNamed } from "../authoring/output.ts";
 import { bindInputsToAttributes, inputsNamed } from "../authoring/input.ts";
 import { type Owned, ownerName } from "../runtime/owner.ts";
-import { Scope } from "../template/scope.ts";
+import { devChecks, Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { requireMethod, runHandler } from "../template/handler.ts";
 import { computed, type Signal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
-import { RENDERER } from "../tokens.ts";
+import { DEV_MODE, RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
 import type { ComponentFactory } from "./component-factory.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
@@ -57,6 +57,8 @@ export class TemplateBuilderFactory {
   private readonly bindingFactory = inject(BindingFactory);
   private readonly directiveFactory = inject(DirectiveFactory);
   private readonly embedded = inject(EmbeddedViewFactory);
+  /** The dev-mode checks, in development mode only. */
+  private readonly checks = inject(DEV_MODE) ? devChecks() : undefined;
 
   /**
    * A builder for the template of `component`, creating the components in
@@ -71,7 +73,7 @@ export class TemplateBuilderFactory {
     component: object,
     components: ComponentFactory,
     queries: ViewQueries,
-    scope = new Scope(component),
+    scope = new Scope(component, new Map(), this.checks),
     root = true,
     node: ViewNode = {},
   ): TemplateBuilder {
@@ -435,7 +437,10 @@ export class TemplateBuilder {
     if (node.kind === "let") {
       // The value is a computed signal: it sees only the `@let`s declared above
       // it (a snapshot), and reading it makes the reader depend on what it reads.
-      const above = new Scope(this.component, new Map(this.scope.lets));
+      const above = new Scope(this.component, new Map(this.scope.lets), this.scope.checks);
+      if (this.scope.checks !== undefined && node.name in this.component) {
+        this.scope.checks.warn(`@let ${node.name} hides the ${this.component.constructor.name} member of the same name: the template reads the @let`);
+      }
       this.scope.lets.set(node.name, computed(partial(evaluate, node.expression, above)));
       return [];
     }

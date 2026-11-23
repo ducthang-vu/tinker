@@ -22,6 +22,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       if (declared) {
         return declared();
       }
+      if (expression.receiver.kind === "component" && scope.checks !== undefined
+        && !(expression.name in scope.component)) {
+        scope.checks.warn(`The template reads "${expression.name}", which ${scope.component.constructor.name} does not have`);
+      }
       const receiver = evaluate(expression.receiver, scope);
       return expression.optional && receiver == null ? undefined : read(receiver, expression.name);
     }
