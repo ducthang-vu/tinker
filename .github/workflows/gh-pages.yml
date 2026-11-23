@@ -32,6 +32,9 @@ jobs:
 
       - name: Build the example
         working-directory: source
+        env:
+          # A project site is served under its repository's name: /<repo>/.
+          TINKER_BASE: /${{ github.event.repository.name }}/
         run: |
           npm ci
           npm run build:example
