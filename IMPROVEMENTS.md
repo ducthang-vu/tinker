@@ -250,16 +250,6 @@ So for this app the trees are worth their size, and the example app now uses the
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
 
-## Testing: concurrent tests
-
-A fixture built outside a test now throws unless it is `manualCleanup()` (see `docs/testing.md`).
-A concurrent test still needs `manualCleanup()` by hand, because `cleanup()` would destroy its
-fixture while other tests run.
-
-**To do.** Vitest's public API does not say whether the running test is concurrent. Either
-the package takes that from the runner when Vitest exposes it, or each fixture is tied to the
-test that built it through `onTestFinished`, so `cleanup()` destroys only that test's fixtures.
-
 ## Template patterns: regex (`packages/core/src/view/internal/template/`)
 
 ### 1. A regex is not checked for catastrophic backtracking
