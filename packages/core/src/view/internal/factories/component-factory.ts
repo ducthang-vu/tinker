@@ -60,6 +60,7 @@ import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
+import { classesIn } from "../template/classes-in.ts";
 import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
 import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
@@ -191,20 +192,44 @@ export class ComponentFactory {
     host: Element | undefined,
   ): Either<Prepared, Error> {
     return flatMap(this.hostDirectivesOf(type, metadata), (hostDirectives) =>
-      flatMap(this.hostsOf(type, hostDirectives), () =>
+      flatMap(this.hostsOf(type, metadata, hostDirectives), () =>
         this.withTarget(type, metadata, hostDirectives, host)));
   }
 
   /**
-   * The parsed `host` options of `type` and its host directives: an invalid one
-   * fails before anything is created.
+   * The parsed `host` options of `type`, its host directives, and every directive
+   * and component its template names: an invalid one fails before anything is created.
    */
   private hostsOf(
     type: Class<unknown>,
+    metadata: ComponentMetadata,
     hostDirectives: readonly Class<object>[],
   ): Either<readonly HostBindings[], Error> {
-    return sequence([type, ...hostDirectives]
+    const templateClasses = this.classesInTemplates(type, metadata, new Set());
+    return sequence([type, ...hostDirectives, ...templateClasses]
       .map((directive) => this.directives.hostOf(directive)));
+  }
+
+  /**
+   * The classes named by the template of `type`, and by the templates of the
+   * components it names, at any depth: a component's template is built while its
+   * parent's is, so it is checked now too. `seen` stops at a cycle (the cycle is
+   * reported when such a component is created).
+   */
+  private classesInTemplates(
+    type: Class<unknown>,
+    metadata: ComponentMetadata,
+    seen: Set<Class<unknown>>,
+  ): Class<object>[] {
+    seen.add(type);
+    return classesIn(this.templateOf(type, metadata))
+      .flatMap((klass) =>
+        match(getComponentMetadata(klass), {
+          Some: (childMetadata) => seen.has(klass)
+            ? [klass]
+            : [klass, ...this.classesInTemplates(klass, childMetadata, seen)],
+          None: () => [klass],
+        }));
   }
 
   /** The host: the element given, if it holds no component yet, or else a plan for a new one. */

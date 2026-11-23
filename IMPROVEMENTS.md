@@ -272,20 +272,6 @@ delays the whole view. Nothing limits its cost.
 risk and leave the author to write a linear regex.
 
 
-## Errors in the view builder (`packages/core/src/view/internal/factories/`)
-
-### 1. An invalid `host` option of a directive in a template is thrown where it is first used
-
-**Problem.** A component's own `host` option and those of its host directives are checked
-by `ComponentFactory.create`, which returns the error as a Left before anything is created.
-A directive declared in a template is still parsed by `DirectiveFactory` during view
-creation, and the template builder above it returns plain values, not `Either`s. So that
-error is thrown where the directive is first used.
-
-**To do.** Make the template builder (`template-builder.ts` and its callers) return an
-`Either` for the directive's bindings, so the caller that creates the directive decides what
-to do with the error. This follows from converting the template compiler to `Either`.
-
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
 ### 1. Descriptions are plain text with code spans and fences

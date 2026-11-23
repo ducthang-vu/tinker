@@ -182,9 +182,9 @@ export class DirectiveFactory {
   }
 
   private hostBindingsOf(type: Class<unknown>): HostBindings {
-    // The template builder does not return errors yet, so an invalid host option is
-    // thrown here, where the directive is first used. Components and their host
-    // directives are checked by `hostOf` before anything is created. (See IMPROVEMENTS.md.)
+    // The template builder does not return errors yet. Every directive a component's
+    // template names is checked by `hostOf` (through ComponentFactory) before anything is
+    // created, so this throw is not reached for them.
     return valueOrThrow(this.hostOf(type));
   }
 }
