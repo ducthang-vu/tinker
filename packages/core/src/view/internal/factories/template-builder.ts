@@ -48,7 +48,7 @@ import { EmbeddedViewFactory } from "./embedded-view-factory.ts";
 import { TemplateRef } from "../runtime/template-ref.ts";
 import { ContentQueries, type ViewQueries } from "../runtime/view-queries.ts";
 import { type StyleScope, scopeOfComponent } from "../runtime/component-styles.ts";
-import { match, map, valueOrThrow, Some, None, fromNullable, isSome, isNone, use, type Maybe, partial, run } from "@tinker/functional";
+import { match, map, valueOrThrow, Some, None, Left, type Either, toError, fromNullable, isSome, isNone, use, type Maybe, partial, run } from "@tinker/functional";
 
 /** Creates the TemplateBuilder of each view, with the app's services. */
 @Injectable()
@@ -244,8 +244,9 @@ export class TemplateBuilder {
       let instances = directives;
       let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
       match(node.component, { Some: (type) => {
-        // The parent build does not return errors yet: a child that fails to create throws here.
-        const child = valueOrThrow(this.components.create(type, element, {
+        // A child that fails to create (whether it returns the error or throws it) leaves its
+        // element empty: the error is reported, and the rest of the parent still renders.
+        const created = attemptChild(() => this.components.create(type, element, {
           parentInjector: injector,
           parentView: view,
           node: this.node,
@@ -260,8 +261,15 @@ export class TemplateBuilder {
             ]);
           },
         }));
-        instances = [...directives, child.component];
-        owner = { type, instance: child.component };
+        match(created, {
+          Right: (child) => {
+            instances = [...directives, child.component];
+            owner = { type, instance: child.component };
+          },
+          Left: (error) => {
+            console.error(`<${node.name}> did not render: ${error.message}`);
+          },
+        });
       }, None: () => bindInputs(this.ownedOf(node.directives, directives)) });
       this.resolveReferences(
         node,
@@ -660,4 +668,13 @@ function slotOf(node: CompiledNode): string {
     return "";
   }
   return node.attributes.find((attribute) => attribute.name === "slot")?.value ?? "";
+}
+
+/** A child's creation as an Either: a throw is a Left too, so a child cannot stop its parent. */
+function attemptChild<T>(create: () => Either<T, Error>): Either<T, Error> {
+  try {
+    return create();
+  } catch (error) {
+    return Left.of(toError(error));
+  }
 }

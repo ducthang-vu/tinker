@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { Component } from "../authoring/decorators.ts";
 import { booleanAdapter, numberAdapter } from "../authoring/input-adapters.ts";
 import { input, InputNotBoundError } from "../authoring/input.ts";
@@ -142,16 +142,22 @@ describe("input options: a required input with an adapter", () => {
   });
 });
 
-describe("input options: an adapter's error names the attribute", () => {
-  test("a plain attribute the adapter cannot read fails the render, naming the attribute and the component", () => {
+describe("input options: an adapter's error stays with its component", () => {
+  test("a child whose attribute the adapter cannot read leaves its element empty, and its siblings render", () => {
+    const errors = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
     @Component({
       selector: "tk-parent-bad",
-      template: `<tk-item size="big"></tk-item>`,
+      template: `<tk-item size="big"></tk-item><p>still here</p>`,
       imports: [Item],
     })
     class BadParent {}
     const engine = Engine.create();
-    expect(() => renderComponent(engine, BadParent))
-      .toThrow("Item: attribute size=\"big\": \"big\" is not a number");
+    const view = valueOrThrow(renderComponent(engine, BadParent));
+    expect(view.host.nativeElement.querySelector("p")?.textContent)
+      .toBe("still here");
+    expect(errors)
+      .toHaveBeenCalledWith("<tk-item> did not render: Item: attribute size=\"big\": \"big\" is not a number");
+    errors.mockRestore();
   });
 });

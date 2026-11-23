@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { tick } from "../test-support.ts";
 import { computed, signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -83,8 +83,12 @@ describe("input bindings", () => {
     class List {
       readonly name = "Milk";
     }
-    expect(() => renderComponent(Engine.create(), List))
-      .toThrow("[label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one");
+    const errors = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    valueOrThrow(renderComponent(Engine.create(), List));
+    expect(errors)
+      .toHaveBeenCalledWith("<tk-item> did not render: [label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one");
+    errors.mockRestore();
   });
 
   test("[owner.input] sets the input of the directive or component with that selector", async () => {
@@ -163,7 +167,7 @@ describe("input bindings", () => {
       .toBe(1);
   });
 
-  test("an input no directive or component on the element has is an error, and leaves nothing behind", () => {
+  test("an input no directive or component on the element has is reported, and the element stays empty", () => {
     @Component({ selector: "tk-item", template: "" })
     class Item {}
     @Component({ selector: "tk-list", template: `<tk-item [label]="name"></tk-item>`, imports: [Item] })
@@ -172,12 +176,14 @@ describe("input bindings", () => {
     }
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.bootstrap(List, host))
-      .toThrow(`[label] on <tk-item>: no directive or component on this element has an input "label"`);
-    expect(host.innerHTML)
-      .toBe("");
-    expect(isNone(engine.getContext(host)))
-      .toBe(true);
+    const errors = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    valueOrThrow(engine.bootstrap(List, host));
+    expect(errors)
+      .toHaveBeenCalledWith(`<tk-item> did not render: [label] on <tk-item>: no directive or component on this element has an input "label"`);
+    expect(host.querySelector("tk-item")?.childNodes.length)
+      .toBe(0);
+    errors.mockRestore();
   });
 
   test("an invalid expression is reported where it is written", () => {
