@@ -50,7 +50,7 @@ import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
-import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
+import { inputsOf } from "../authoring/input.ts";
 import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
@@ -60,12 +60,14 @@ import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
+import { classesIn } from "../template/classes-in.ts";
 import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
 import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { ElementScope } from "./element-scope.ts";
 import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
+import type { HostBindings } from "./host-bindings.ts";
 import { type TemplateBuilder, TemplateBuilderFactory } from "./template-builder.ts";
 import { ContentQueries, ViewQueries } from "../runtime/view-queries.ts";
 import { applyComponentStyles } from "../runtime/component-styles.ts";
@@ -108,7 +110,6 @@ export interface ParentContext {
   readonly parentView: View;
   /** The parent view's node: the child's view is owned by it, for the order of updates. */
   readonly node: ViewNode;
-  readonly attributes: readonly AttributeNode[];
   /**
    * Takes the child's host bindings (its own and its host directives'): its
    * host element is in the parent's template, so the parent's watch updates
@@ -116,11 +117,11 @@ export interface ParentContext {
    */
   readonly adoptHostBindings: (bindings: readonly Binding[]) => void;
   /**
-   * Binds the input bindings of its element (`[label]="…"`) to the new
-   * component (and the directives on that element): called before its
+   * Sets the inputs of the new component, and of the directives on its element, from the
+   * element: its plain attributes, then its input bindings (`[label]="…"`). Called before its
    * first render, so they have their first values.
    */
-  readonly bindInputs: (component: object) => void;
+  readonly setInputs: (component: object) => void;
   /** The content of its element's children, by slot name, which its template's `<slot>`s show. */
   readonly projected: ReadonlyMap<string, Node[]>;
   /** The registry the parent records the element's projected children in, for `from: "content"`. */
@@ -190,7 +191,44 @@ export class ComponentFactory {
     host: Element | undefined,
   ): Either<Prepared, Error> {
     return flatMap(this.hostDirectivesOf(type, metadata), (hostDirectives) =>
-      this.withTarget(type, metadata, hostDirectives, host));
+      flatMap(this.hostsOf(type, metadata, hostDirectives), () =>
+        this.withTarget(type, metadata, hostDirectives, host)));
+  }
+
+  /**
+   * The parsed `host` options of `type`, its host directives, and every directive
+   * and component its template names: an invalid one fails before anything is created.
+   */
+  private hostsOf(
+    type: Class<unknown>,
+    metadata: ComponentMetadata,
+    hostDirectives: readonly Class<object>[],
+  ): Either<readonly HostBindings[], Error> {
+    const templateClasses = this.classesInTemplates(type, metadata, new Set());
+    return sequence([type, ...hostDirectives, ...templateClasses]
+      .map((directive) => this.directives.hostOf(directive)));
+  }
+
+  /**
+   * The classes named by the template of `type`, and by the templates of the
+   * components it names, at any depth: a component's template is built while its
+   * parent's is, so it is checked now too. `seen` stops at a cycle (the cycle is
+   * reported when such a component is created).
+   */
+  private classesInTemplates(
+    type: Class<unknown>,
+    metadata: ComponentMetadata,
+    seen: Set<Class<unknown>>,
+  ): Class<object>[] {
+    seen.add(type);
+    return classesIn(this.templateOf(type, metadata))
+      .flatMap((klass) =>
+        match(getComponentMetadata(klass), {
+          Some: (childMetadata) => seen.has(klass)
+            ? [klass]
+            : [klass, ...this.classesInTemplates(klass, childMetadata, seen)],
+          None: () => [klass],
+        }));
   }
 
   /** The host: the element given, if it holds no component yet, or else a plan for a new one. */
@@ -306,8 +344,8 @@ export class ComponentFactory {
     view.addDestroyCallback(partial(endOutputs, instance));
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
-    // In a template: its element's plain attributes set its inputs, before it renders.
-    bindInputsToAttributes(instance, child?.attributes ?? []);
+    // In a template: the element's inputs are set (attributes, then bindings), before it renders.
+    child?.setInputs(instance);
     // Its host directives, on its host element (their host bindings: below).
     const hostBindings = hostDirectives.flatMap((directive, i) =>
       this.directives.attach(directive, hostInstances[i]!, host, view));
@@ -315,7 +353,6 @@ export class ComponentFactory {
     // child components of its own template's elements, now that its view
     // exists, and before the first render.
     try {
-      child?.bindInputs(instance);
       template.createDirectivesAndComponents(view, ownInjector.injector);
     } catch (error) {
       view.destroy(); // undoes the directives created so far, and the injectors

@@ -5,6 +5,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { valueOrThrow, isNone, getOrElse, map, match } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -29,7 +30,7 @@ describe("input bindings", () => {
       readonly name = signal("Milk");
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(List));
+    const view = valueOrThrow(renderComponent(engine, List));
     const span = view.host.nativeElement.querySelector("span")!;
     await tick();
     expect(span.textContent)
@@ -54,7 +55,7 @@ describe("input bindings", () => {
       readonly hint = signal("save");
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const [tooltip] = instancesOn(engine, view.host.nativeElement.querySelector("button")!) as [Tooltip];
     await tick();
     expect(tooltip.shout())
@@ -82,8 +83,7 @@ describe("input bindings", () => {
     class List {
       readonly name = "Milk";
     }
-    expect(() => Engine.create()
-      .createComponent(List))
+    expect(() => renderComponent(Engine.create(), List))
       .toThrow("[label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one");
   });
 
@@ -106,7 +106,7 @@ describe("input bindings", () => {
       readonly other = "Bread";
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(List));
+    const view = valueOrThrow(renderComponent(engine, List));
     const [labelled, item] = instancesOn(engine, view.host.nativeElement.querySelector("tk-item")!) as [Labelled, Item];
     await tick();
     expect([labelled.label(), item.label()])
@@ -127,7 +127,7 @@ describe("input bindings", () => {
       readonly width = "200";
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     engine.flush();
     expect(view.host.nativeElement.querySelector("tk-box")!.textContent)
       .toBe("200");
@@ -153,7 +153,7 @@ describe("input bindings", () => {
       readonly name = signal("Milk");
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(List));
+    const view = valueOrThrow(renderComponent(engine, List));
     await tick();
     expect(childRenders)
       .toBe(1);
@@ -172,7 +172,7 @@ describe("input bindings", () => {
     }
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.createComponent(List, host))
+    expect(() => engine.bootstrap(List, host))
       .toThrow(`[label] on <tk-item>: no directive or component on this element has an input "label"`);
     expect(host.innerHTML)
       .toBe("");
@@ -187,8 +187,7 @@ describe("input bindings", () => {
     }
     @Component({ selector: "tk-list", template: `<tk-item [label]="a(1 2)"></tk-item>`, imports: [Item] })
     class List {}
-    expect(() => Engine.create()
-      .createComponent(List))
+    expect(() => renderComponent(Engine.create(), List))
       .toThrow(`in [label] on <tk-item>`);
   });
 });

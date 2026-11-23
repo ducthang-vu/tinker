@@ -5,6 +5,7 @@ import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
 import { output, type Output } from "../authoring/output.ts";
 import { valueOrThrow, getOrElse, map, match } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -34,7 +35,7 @@ describe("output bindings in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     view.host.nativeElement.querySelector("button")!.click();
     view.host.nativeElement.querySelector("button")!.click();
     expect(view.instance.chosen)
@@ -53,8 +54,7 @@ describe("output bindings in templates", () => {
         seen.push(args);
       }
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(A));
+    const view = valueOrThrow(renderComponent(Engine.create(), A));
     view.host.nativeElement.querySelector("button")!.click();
     expect(seen)
       .toEqual([[]]);
@@ -73,7 +73,7 @@ describe("output bindings in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const button = view.host.nativeElement.querySelector("button")!;
     view.destroy();
     button.click(); // the directive is gone: nothing is called
@@ -95,7 +95,7 @@ describe("output bindings in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const button = view.host.nativeElement.querySelector("button")!;
     const [pick] = getOrElse(
       map(engine.getContext(button), (context) => context.directives),
@@ -121,8 +121,7 @@ describe("output bindings in templates", () => {
         chosen.push(id);
       }
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(A));
+    const view = valueOrThrow(renderComponent(Engine.create(), A));
     view.host.nativeElement.querySelector("button")!.click();
     await tick();
     expect(chosen)
@@ -143,7 +142,7 @@ describe("output bindings in templates", () => {
     }
     const host = document.createElement("div");
     const engine = Engine.create();
-    engine.createComponent(A, host);
+    engine.bootstrap(A, host);
     host.querySelector("button")!.dispatchEvent(new Event("other"));
     await tick();
     expect(calls)
@@ -159,8 +158,7 @@ describe("output bindings in templates", () => {
       imports: [Pick],
     })
     class A {}
-    expect(() => Engine.create()
-      .createComponent(A))
+    expect(() => renderComponent(Engine.create(), A))
       .toThrow(`A has no method "missing" for event "(selected)"`);
   });
 
@@ -174,7 +172,7 @@ describe("output bindings in templates", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     host.querySelector("button")!.click();
     await tick();
     expect(clicks)
@@ -203,7 +201,7 @@ describe("output bindings in templates", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     host.querySelector("button")!.click();
     await tick();
     expect(seen.sort())
@@ -217,8 +215,7 @@ describe("output bindings in templates", () => {
       imports: [Pick],
     })
     class A {}
-    expect(() => Engine.create()
-      .createComponent(A))
+    expect(() => renderComponent(Engine.create(), A))
       .toThrow(`Unsupported event handler "a + b": write a call of a method, as in "method()", "method($event)" or "g.method()", on <button>`);
   });
 
@@ -242,8 +239,7 @@ describe("output bindings in templates", () => {
         this.seen_.push(value);
       }
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(A));
+    const view = valueOrThrow(renderComponent(Engine.create(), A));
     const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
@@ -265,7 +261,7 @@ describe("output bindings in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const [pick, relay] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("button")!), (context) => context.directives), []) as [Pick, Relay];
     await tick();
     expect(relay.pick)

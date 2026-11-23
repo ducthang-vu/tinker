@@ -3,6 +3,7 @@ import { tick } from "../test-support.ts";
 import { Engine } from "../engine.ts";
 import { bootstrap } from "../../bootstrap.ts";
 import { Component, Directive, output, queryAll } from "../../index.ts";
+import { renderComponent } from "../test-support.ts";
 
 @Directive({ selector: "[fires]" })
 class Fires {
@@ -49,8 +50,7 @@ describe("qualified outputs: (owner.name)", () => {
     class AmbiguousOutput {
       onFired() {}
     }
-    expect(() => Engine.create()
-      .createComponent(AmbiguousOutput))
+    expect(() => renderComponent(Engine.create(), AmbiguousOutput))
       .toThrow("(fired) on <p> would reach fires and alsoFires: write (fires.fired) to choose one");
   });
 
@@ -63,8 +63,7 @@ describe("qualified outputs: (owner.name)", () => {
     class NoOwner {
       onFired() {}
     }
-    expect(() => Engine.create()
-      .createComponent(NoOwner))
+    expect(() => renderComponent(Engine.create(), NoOwner))
       .toThrow("no directive or component has the selector \"nobody\", or a DOM modifier such as .prevent");
 
     @Component({
@@ -75,8 +74,7 @@ describe("qualified outputs: (owner.name)", () => {
     class NoOutput {
       onFired() {}
     }
-    expect(() => Engine.create()
-      .createComponent(NoOutput))
+    expect(() => renderComponent(Engine.create(), NoOutput))
       .toThrow("\"fires\" has no output \"missing\"");
   });
 });
@@ -91,8 +89,7 @@ describe("qualified inputs: [owner.name]", () => {
     class NoInputOwner {
       readonly text = "x";
     }
-    expect(() => Engine.create()
-      .createComponent(NoInputOwner))
+    expect(() => renderComponent(Engine.create(), NoInputOwner))
       .toThrow("[nobody.label] on <p>: no directive or component has the selector \"nobody\"");
   });
 });

@@ -21,6 +21,45 @@ another strategy, e.g. Angular's zoneless race between `setTimeout` and
 `requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
 runs, so this is a change in one place.
 
+### 2. A view cannot be refreshed by its author
+
+**Problem.** A plain field changed by code outside the signal graph (a library callback, an
+in-place mutation of a plain object, a socket message) updates nothing: the view's watch runs only
+when a signal it read changed. There is no public way to say "refresh this view". Scheduling the
+view's watch by hand does nothing either: `Watch.run()` returns early when no recorded dependency
+changed (`runOnce`), and the watch's `dirty` flag is private. Angular's `watch` behaves the same way
+(its `run` checks `consumerPollProducersForChange` after the first run), so an Angular-style
+`markForCheck` cannot be copied as is.
+
+**To do.** Split each view's update in two, in `component-factory.ts` and `embedded-view-factory.ts`:
+
+- `dependencies()` reads every signal the view's bindings use, and returns the values. It is the
+  only code that reads signals, so the watch records exactly the reads that matter.
+- `writeTemplate(...args)` takes plain values and writes the DOM (rule 6: only changed values). It
+  reads no signals, so it can be called from anywhere without changing the recorded dependencies.
+
+The watch becomes `watch(() => writeTemplate(...dependencies()), scheduler)`. A refresh from
+outside is then `writeTemplate(...dependencies())`, and it needs no check signal and no change to
+`Watch`. Before this, check two things:
+
+- `dependencies()` must read the same signals on every run. A read made only under a condition
+  inside it is tracked only when the condition holds, which is the stale-dependency problem.
+- A structural binding (`@if`, `@map`) creates child views in its write, and a child's reads come
+  after that write. So the split applies per view: each child has its own `dependencies()` and
+  `writeTemplate`, run by its own watch. The evaluation order of the bindings must stay the same.
+
+On top of the split, one author-facing API with two methods, both on the view's own handle:
+
+- `scheduleForNextTick()` queues a `Runnable` that calls `writeTemplate(...dependencies())`, through
+  the view scheduler. It keeps the parent-first order and the single tick.
+- `detectChangesNow()` runs the same expression at once. For the subtree it recurses over the view's
+  children, pre-order (parent before children), so a child's `dependencies()` sees the values its
+  parent just wrote. Its cost is that it reads every view below, even when nothing changed there.
+  Rule 6 keeps the DOM writes down.
+
+Both are a second way to write a view, so they need tests showing that the watch's own runs and
+the manual ones agree on the DOM, and that a manual run with no change writes nothing.
+
 ## Components
 
 ### 1. Recursive components cannot be written, and are banned
@@ -39,40 +78,17 @@ itself.
 
 ## The engine's entry points (`packages/core/src/view/internal/engine.ts`, `packages/core/src/view/internal/factories/component-factory.ts`)
 
-### 1. `engine.createComponent` is deprecated; remove it
+### 1. The component factory still takes the parent's host bindings and projected content
 
-**Problem.** It creates a component without a place in the page, which is
-the job of a container, and it renders into a host, which is the job of
-`bootstrap`. It is used mostly by tests, and tests should not drive the API.
-Keeping it means two entry points for each case.
+**Problem.** The parent context still carries `adoptHostBindings`, which hands the child's host
+bindings back to the parent's watch, and the projected content and content queries. Those
+describe the parent's template, not how to build the component. The plain attributes and the
+input bindings now go through one `setInputs` callback, supplied by the template builder.
 
-**To do.** Move the tests off it, then delete it:
+**To do.** Move the host bindings and the projection out of the factory the same way, or
+document them as the parent-to-child contract that the factory must hold.
 
-- Tests that render a component at runtime use
-  `engine.createViewContainer(anchor)` on a comment node in a parent they
-  control, then `createComponent`. Their checks read the parent, not the
-  detached host.
-- Tests that render the root component use `bootstrap`, with the host
-  attached to the document first.
-- The few tests that check the factory itself call `ComponentFactory` through
-  the engine's providers, not through a public method.
-
-A test helper in the test folder (not in `src`) can absorb the two
-differences (host identity, attachment) so each test changes by one line.
-
-### 2. Move template-only work out of the component factory
-
-**Problem.** The factory still takes `attributes`, `bindInputs` and
-`adoptHostBindings`, which describe the parent's template, not how to build
-the component.
-
-**To do.** The template builder applies the element's inputs and adopts the
-host bindings around the factory call. The factory then takes only the host,
-the type, the parent context (injector and owner view), and the slot content.
-This is a cleanup, not a new architecture: the factory's API keeps the same
-shape.
-
-### 3. Make the root path consistent with the container
+### 2. Make the root path consistent with the container
 
 **Problem.** Bootstrap renders into an existing element, which a container
 (which inserts a new element before its anchor) cannot do. So the root is a
@@ -250,16 +266,6 @@ So for this app the trees are worth their size, and the example app now uses the
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
 
-## Testing: concurrent tests
-
-A fixture built outside a test now throws unless it is `manualCleanup()` (see `docs/testing.md`).
-A concurrent test still needs `manualCleanup()` by hand, because `cleanup()` would destroy its
-fixture while other tests run.
-
-**To do.** Vitest's public API does not say whether the running test is concurrent. Either
-the package takes that from the runner when Vitest exposes it, or each fixture is tied to the
-test that built it through `onTestFinished`, so `cleanup()` destroys only that test's fixtures.
-
 ## Template patterns: regex (`packages/core/src/view/internal/template/`)
 
 ### 1. A regex is not checked for catastrophic backtracking
@@ -271,19 +277,6 @@ delays the whole view. Nothing limits its cost.
 **To do.** Decide whether to refuse nested quantifiers at parse time, or to document the
 risk and leave the author to write a linear regex.
 
-
-## Errors in the view builder (`packages/core/src/view/internal/factories/`)
-
-### 1. An invalid `host` option is thrown where the directive is first used
-
-**Problem.** `HostBindings.parse` returns an `Either`, so an invalid `host` option is a
-value. But the directive factory (`directive-factory.ts`) builds the bindings during view
-creation, and the code above it returns plain values, not `Either`s. So the factory calls
-matching its Left and throwing, and the error is thrown there instead of being returned to the caller.
-
-**To do.** Make the view builder (`template-builder.ts` and its callers) return an `Either`
-for the directive's bindings, so the caller that creates the directive decides what to do
-with the error. This follows from converting the template compiler to `Either`.
 
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 

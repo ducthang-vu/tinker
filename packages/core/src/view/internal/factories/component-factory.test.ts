@@ -3,7 +3,7 @@ import { messageOf, tick } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
 import { inject, Injector, provide, type Provider, runInInjectionContext } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
-import { Component } from "../authoring/decorators.ts";
+import { Component, Directive } from "../authoring/decorators.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { input } from "../authoring/input.ts";
 import { DomRenderer } from "../renderer.ts";
@@ -152,6 +152,50 @@ describe("ComponentFactory host listeners", () => {
       .toThrow(
         `Broken has no method "missing" for host listener "(click)"`,
       );
+  });
+
+  test("an invalid host option is a Left from create, not a throw", () => {
+    @Component({ selector: "tk-bad-host", template: "", host: { bogus: "x" } })
+    class BadHost {}
+    const result = makeFactory().factory.create(BadHost);
+    expect(() => valueOrThrow(result))
+      .toThrow("Unsupported host binding");
+  });
+
+  test("an invalid host option of a directive in the template is a Left from create", () => {
+    @Directive({ selector: "[tk-bad-in-template]", host: { bogus: "x" } })
+    class BadInTemplate {}
+    @Component({
+      selector: "tk-uses-bad-directive",
+      template: "<p tk-bad-in-template></p>",
+      imports: [BadInTemplate],
+    })
+    class UsesBadDirective {}
+    const result = makeFactory().factory.create(UsesBadDirective);
+    expect(() => valueOrThrow(result))
+      .toThrow("Unsupported host binding");
+  });
+
+  test("an invalid host option in a child component's template is a Left from create", () => {
+    @Directive({ selector: "[tk-bad-in-child]", host: { bogus: "x" } })
+    class BadInChild {}
+    @Component({ selector: "tk-child-bad", template: "<p tk-bad-in-child></p>", imports: [BadInChild] })
+    class ChildBad {}
+    @Component({ selector: "tk-parent-ok", template: "<tk-child-bad></tk-child-bad>", imports: [ChildBad] })
+    class ParentOk {}
+    const result = makeFactory().factory.create(ParentOk);
+    expect(() => valueOrThrow(result))
+      .toThrow("Unsupported host binding");
+  });
+
+  test("an invalid host option of a host directive is a Left from create", () => {
+    @Directive({ selector: "[tk-bad-directive]", host: { bogus: "x" } })
+    class BadDirective {}
+    @Component({ selector: "tk-with-bad-directive", template: "", hostDirectives: [BadDirective] })
+    class WithBadDirective {}
+    const result = makeFactory().factory.create(WithBadDirective);
+    expect(() => valueOrThrow(result))
+      .toThrow("Unsupported host binding");
   });
 });
 

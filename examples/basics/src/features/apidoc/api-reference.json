@@ -1054,7 +1054,7 @@
         {
           "name": "EngineOptions",
           "kind": "interface",
-          "source": "packages/core/src/view/internal/engine.ts:46",
+          "source": "packages/core/src/view/internal/engine.ts:45",
           "description": "What the engine is built from.",
           "params": [],
           "examples": [],
@@ -1064,7 +1064,7 @@
             {
               "name": "providers",
               "kind": "property",
-              "source": "packages/core/src/view/internal/engine.ts:48",
+              "source": "packages/core/src/view/internal/engine.ts:47",
               "description": "Providers for the engine's root injector; they replace the defaults.",
               "params": [],
               "examples": [],
@@ -4926,7 +4926,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:121",
+          "source": "packages/functional/src/lib/monad/either.ts:124",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [
             {
@@ -5033,7 +5033,7 @@
         {
           "name": "flatMap",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:171",
+          "source": "packages/functional/src/lib/functor/functor.ts:172",
           "description": "Chain a box through `f`: `f` takes the value inside the box and returns a box, and that box is\nthe result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or\ndata-last `flatMap(f)`, which returns a function of the box.",
           "params": [
             {
@@ -5559,7 +5559,7 @@
         {
           "name": "sequence",
           "kind": "function",
-          "source": "packages/functional/src/lib/functor/functor.ts:282",
+          "source": "packages/functional/src/lib/functor/functor.ts:283",
           "description": "The values of a list of Eithers, in order: a Right of all of them, or the first Left. Every\nstep is run, so use it for steps that have no effects.",
           "params": [
             {
@@ -5666,7 +5666,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:141",
+          "source": "packages/functional/src/lib/monad/either.ts:144",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [
             {
@@ -5729,7 +5729,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:153",
+          "source": "packages/functional/src/lib/monad/either.ts:156",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {
@@ -6001,7 +6001,7 @@
         {
           "name": "chainLaws",
           "kind": "function",
-          "source": "packages/functional/src/testing.ts:138",
+          "source": "packages/functional/src/testing.ts:139",
           "description": "The chain laws, as checks: flatMap's left identity, right identity and associativity. Use it\nfor a type that has `flatMap` and no `map`. Each check is a `[description, check]` pair: `check`\nthrows when its law fails.",
           "params": [
             {
@@ -6022,7 +6022,7 @@
         {
           "name": "functorLaws",
           "kind": "function",
-          "source": "packages/functional/src/testing.ts:100",
+          "source": "packages/functional/src/testing.ts:101",
           "description": "The functor laws, as checks: `map` with the identity leaves each box unchanged, and `map`\ncomposes. Use it for a type that has `map` but no `flatMap`. Each check is a\n`[description, check]` pair: `check` throws when its law fails.",
           "params": [
             {
@@ -6043,7 +6043,7 @@
         {
           "name": "monadLaws",
           "kind": "function",
-          "source": "packages/functional/src/testing.ts:189",
+          "source": "packages/functional/src/testing.ts:190",
           "description": "The monad laws, as checks: the functor laws, the chain laws, and the interaction with `map`,\n`flatMap` and `match`. Use it to test a monad defined outside this package, with the monad's\nown samples (include edge values, as in `EDGE_VALUES`). Each check is a `[description, check]`\npair: `check` throws when its law fails, so any test framework can run it.",
           "params": [
             {
@@ -7199,7 +7199,7 @@
         {
           "name": "MockComponentBuilder",
           "kind": "class",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:277",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:297",
           "description": "A builder for a mock of a component: a component with the same selector and exportAs,\nthe inputs and outputs named here, and no template. Immutable, like the other builders.",
           "params": [],
           "examples": [],
@@ -7212,7 +7212,7 @@
             {
               "name": "requiredInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:296",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:316",
               "description": "Required inputs of `F` that the mock has too: a parent template must bind them.",
               "params": [],
               "examples": [],
@@ -7225,7 +7225,7 @@
             {
               "name": "optionalInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:304",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:324",
               "description": "Optional inputs of `F` that the mock has too, each with the default the real input has.",
               "params": [],
               "examples": [],
@@ -7238,7 +7238,7 @@
             {
               "name": "fields",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:314",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:334",
               "description": "Fields of the mock, with their values: the template reads them as the real class's.",
               "params": [],
               "examples": [],
@@ -7251,7 +7251,7 @@
             {
               "name": "methods",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:327",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:347",
               "description": "Methods of the mock, each with its implementation: the mock's method has the real\nsignature and passes its arguments to the implementation. A spy is an implementation.",
               "params": [],
               "examples": [],
@@ -7264,7 +7264,7 @@
             {
               "name": "outputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:340",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:360",
               "description": "Outputs of `F` that the mock has too, so a parent template can listen to them.",
               "params": [],
               "examples": [],
@@ -7277,7 +7277,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:348",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:368",
               "description": "Create the mock class. It renders nothing.",
               "params": [],
               "examples": [],
@@ -7290,7 +7290,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:282",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:302",
               "description": "The same as `new MockComponentBuilder(type)`: the start of a chain.",
               "params": [],
               "examples": [],
@@ -7306,7 +7306,7 @@
         {
           "name": "MockDirectiveBuilder",
           "kind": "class",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:366",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:386",
           "description": "A builder for a mock of a directive: a directive with the same selector and exportAs,\nthe inputs and outputs named here, and nothing else. Immutable, like the other builders.",
           "params": [],
           "examples": [],
@@ -7319,7 +7319,7 @@
             {
               "name": "requiredInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:388",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:408",
               "description": "Required inputs of `F` that the mock has too: a parent template must bind them.",
               "params": [],
               "examples": [],
@@ -7332,7 +7332,7 @@
             {
               "name": "optionalInputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:396",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:416",
               "description": "Optional inputs of `F` that the mock has too, each with the default the real input has.",
               "params": [],
               "examples": [],
@@ -7345,7 +7345,7 @@
             {
               "name": "fields",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:406",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:426",
               "description": "Fields of the mock, with their values: the template reads them as the real class's.",
               "params": [],
               "examples": [],
@@ -7358,7 +7358,7 @@
             {
               "name": "methods",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:419",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:439",
               "description": "Methods of the mock, each with its implementation: the mock's method has the real\nsignature and passes its arguments to the implementation. A spy is an implementation.",
               "params": [],
               "examples": [],
@@ -7371,7 +7371,7 @@
             {
               "name": "outputs",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:432",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:452",
               "description": "Outputs of `F` that the mock has too, so a parent template can listen to them.",
               "params": [],
               "examples": [],
@@ -7384,7 +7384,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:440",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:460",
               "description": "Create the mock class.",
               "params": [],
               "examples": [],
@@ -7397,7 +7397,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/testing/src/lib/testbed/testbed.ts:371",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:391",
               "description": "The same as `new MockDirectiveBuilder(type)`: the start of a chain.",
               "params": [],
               "examples": [],
@@ -7485,6 +7485,17 @@
               "see": [],
               "throws": [],
               "type": "(() => boolean) | undefined"
+            },
+            {
+              "name": "onTestFinished",
+              "kind": "property",
+              "source": "packages/testing/src/lib/testbed/testbed.ts:74",
+              "description": "Runs a hook when the test running now ends (Vitest's `onTestFinished`). A fixture built in a\ntest is destroyed by its own hook, so concurrent tests do not destroy each other's fixtures.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "((hook: () => void) => void) | undefined"
             }
           ]
         },
@@ -7515,7 +7526,7 @@
         {
           "name": "registerRunner",
           "kind": "function",
-          "source": "packages/testing/src/lib/testbed/testbed.ts:79",
+          "source": "packages/testing/src/lib/testbed/testbed.ts:86",
           "description": "Give the package the test runner's hooks. Call it once in the test setup (a Vitest setup file\ndoes: see vitest.setup.ts). Without a runner, no cleanup is registered and nothing is checked.",
           "params": [],
           "examples": [],

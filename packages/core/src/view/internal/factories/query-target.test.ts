@@ -5,6 +5,7 @@ import { query } from "../authoring/query.ts";
 import { QueryMissingError } from "../authoring/query.ts";
 import { Engine } from "../engine.ts";
 import { valueOrThrow, isNone, getOrElse } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 @Directive({ selector: "[marker]", exportAs: "marker" })
 class Marker {
@@ -26,8 +27,7 @@ describe("query with a template variable as the target", () => {
     class A {
       readonly item = query<Tagged>("item");
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(A));
+    const view = valueOrThrow(renderComponent(Engine.create(), A));
     await tick();
     expect(getOrElse(view.instance.item(), undefined))
       .toBeInstanceOf(Tagged);
@@ -42,8 +42,7 @@ describe("query with a template variable as the target", () => {
     class B {
       readonly m = query.required<Marker>("m");
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(B));
+    const view = valueOrThrow(renderComponent(Engine.create(), B));
     expect(view.instance.m())
       .toBeInstanceOf(Marker);
   });
@@ -56,8 +55,7 @@ describe("query with a template variable as the target", () => {
     class C {
       readonly para = query<HTMLParagraphElement>("para");
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(C));
+    const view = valueOrThrow(renderComponent(Engine.create(), C));
     await tick();
     expect(getOrElse(view.instance.para(), undefined)?.tagName)
       .toBe("P");
@@ -71,8 +69,7 @@ describe("query with a template variable as the target", () => {
     class D {
       readonly inner = query("inner");
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(D));
+    const view = valueOrThrow(renderComponent(Engine.create(), D));
     await tick();
     expect(isNone(view.instance.inner()))
       .toBe(true);
@@ -86,8 +83,7 @@ describe("query with a template variable as the target", () => {
     class E {
       readonly missing = query.required("missing");
     }
-    const view = valueOrThrow(Engine.create()
-      .createComponent(E));
+    const view = valueOrThrow(renderComponent(Engine.create(), E));
     expect(() => view.instance.missing())
       .toThrow(QueryMissingError);
     expect(() => view.instance.missing())
