@@ -234,7 +234,7 @@ describe("directives in templates", () => {
     class A {}
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.bootstrap(A, host))
+    expect(() => valueOrThrow(engine.bootstrap(A, host)))
       .toThrow("directive failed");
     expect(host.innerHTML)
       .toBe("");
@@ -250,7 +250,7 @@ describe("imports errors", () => {
     class Plain {}
     @Component({ selector: "tk-a", template: "", imports: [Plain] })
     class A {}
-    expect(() => renderComponent(Engine.create(), A))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), A)))
       .toThrow("Plain is not a directive: decorate it with @Directive");
   });
 
@@ -259,7 +259,7 @@ describe("imports errors", () => {
     class Nested {}
     @Component({ selector: "tk-a", template: "", imports: [Nested] })
     class A {}
-    expect(() => renderComponent(Engine.create(), A))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), A)))
       .toThrow(`Nested, imported by A: Unsupported selector "div p"`);
   });
 });

@@ -127,7 +127,7 @@ describe("event attributes cannot be bound", () => {
     const el = document.createElement("section");
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(Bad, el))
+    expect(() => valueOrThrow(engine.bootstrap(Bad, el)))
 
       .toThrow("[attr.onclick] on <button>: event attributes cannot be bound; use (click) instead");
   });

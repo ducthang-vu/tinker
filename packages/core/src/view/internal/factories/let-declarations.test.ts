@@ -1,3 +1,4 @@
+import { valueOrThrow } from "@tinker/functional";
 import { describe, expect, test } from "vitest";
 import { Engine } from "../engine.ts";
 import { tick } from "../test-support.ts";
@@ -99,7 +100,7 @@ describe("@let template variables", () => {
     class Bad {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(Bad, document.createElement("div")))
+    expect(() => valueOrThrow(engine.bootstrap(Bad, document.createElement("div"))))
 
       .toThrow("in @let x");
   });

@@ -1,3 +1,4 @@
+import { valueOrThrow } from "@tinker/functional";
 import { describe, expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -114,7 +115,7 @@ describe("event modifiers in templates and host listeners", () => {
     class A {
       go() {}
     }
-    expect(() => renderComponent(Engine.create(), A))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), A)))
       .toThrow(`(click.prevnt) on <button>: no directive or component has the selector "click", or a DOM modifier such as .prevent`);
   });
 });

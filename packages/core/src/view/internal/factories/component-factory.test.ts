@@ -150,7 +150,7 @@ describe("ComponentFactory host listeners", () => {
   test("a missing method is reported when the component is created", () => {
     @Component({ selector: "tk-broken", template: "", host: { "(click)": "missing()" } })
     class Broken {}
-    expect(() => makeFactory().factory.create(Broken))
+    expect(() => valueOrThrow(makeFactory().factory.create(Broken)))
       .toThrow(
         `Broken has no method "missing" for host listener "(click)"`,
       );

@@ -158,7 +158,7 @@ describe("output bindings in templates", () => {
       imports: [Pick],
     })
     class A {}
-    expect(() => renderComponent(Engine.create(), A))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), A)))
       .toThrow(`A has no method "missing" for event "(selected)"`);
   });
 
@@ -215,7 +215,7 @@ describe("output bindings in templates", () => {
       imports: [Pick],
     })
     class A {}
-    expect(() => renderComponent(Engine.create(), A))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), A)))
       .toThrow(`Unsupported event handler "a + b": write a call of a method, as in "method()", "method($event)" or "g.method()", on <button>`);
   });
 

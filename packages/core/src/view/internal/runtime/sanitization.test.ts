@@ -186,7 +186,7 @@ describe("sanitization in a view", () => {
     }
     const el = document.createElement("section");
     const engine = Engine.create();
-    expect(() => engine.bootstrap(BadXmlns, el))
+    expect(() => valueOrThrow(engine.bootstrap(BadXmlns, el)))
       .toThrow("[attr.xmlns] on <div>: xmlns cannot be bound: it changes how the element is built");
   });
 

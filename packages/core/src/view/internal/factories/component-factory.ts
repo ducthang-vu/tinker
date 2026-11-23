@@ -45,7 +45,7 @@ import {
   runInInjectionContext,
 } from "../../../di/index.ts";
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
-import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow, Some, None, isSome, use, run, partial } from "@tinker/functional";
+import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow, Some, None, isSome, use, run, partial, toError } from "@tinker/functional";
 import { watch } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
@@ -175,7 +175,7 @@ export class ComponentFactory {
         .join(" → ");
       return Left.of(new Error(`${type.name} contains itself: ${path}`));
     }
-    return map(this.prepare(type, host), (prepared) =>
+    return flatMap(this.prepare(type, host), (prepared) =>
       this.createPrepared(type, prepared, child, parentInjector, owner));
   }
 
@@ -264,17 +264,24 @@ export class ComponentFactory {
       : Right.of(prepared);
   }
 
-  /** Creates `type` once `create` has checked it: it is on the cycle path while it is built. */
+  /**
+   * Creates `type` once `create` has checked it: it is on the cycle path while it is built.
+   * This is the one boundary of a component's failure. A throw from anywhere in its build
+   * (its constructor, its template, its directives) is a Left here, so the component that
+   * failed is the only one lost: its parent decides what its element shows.
+   */
   private createPrepared<T extends object>(
     type: Class<T>,
     prepared: Prepared,
     child: ParentContext | undefined,
     parentInjector: Injector | undefined,
     owner: ViewNode | undefined,
-  ): ComponentView<T> {
+  ): Either<ComponentView<T>, Error> {
     this.creating.push(type);
     try {
-      return this.createView(type, prepared, child, parentInjector, owner);
+      return Right.of(this.createView(type, prepared, child, parentInjector, owner));
+    } catch (error) {
+      return Left.of(toError(error));
     } finally {
       this.creating.pop();
     }

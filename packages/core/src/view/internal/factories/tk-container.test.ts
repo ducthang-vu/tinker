@@ -1,3 +1,4 @@
+import { valueOrThrow } from "@tinker/functional";
 import { describe, expect, test } from "vitest";
 import { Engine } from "../engine.ts";
 import { tick } from "../test-support.ts";
@@ -87,7 +88,7 @@ describe("<tk-container>", () => {
     class HostedContainer {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(HostedContainer, document.createElement("section")))
+    expect(() => valueOrThrow(engine.bootstrap(HostedContainer, document.createElement("section"))))
 
       .toThrow("has host bindings, so it needs an element");
   });

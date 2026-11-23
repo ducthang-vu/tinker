@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { tick } from "../test-support.ts";
 import { computed, signal } from "../../../signals/index.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
@@ -83,8 +83,16 @@ describe("input bindings", () => {
     class List {
       readonly name = "Milk";
     }
-    expect(() => renderComponent(Engine.create(), List))
-      .toThrow("[label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one");
+    const error = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const view = valueOrThrow(renderComponent(Engine.create(), List));
+    expect(error)
+      .toHaveBeenCalledWith(expect.stringContaining(
+        "[label] on <tk-item> would reach labelled and tk-item: write [labelled.label] to choose one",
+      ));
+    expect(view.host.nativeElement.innerHTML)
+      .toBe("<tk-item labelled=\"\"></tk-item>");
+    error.mockRestore();
   });
 
   test("[owner.input] sets the input of the directive or component with that selector", async () => {
@@ -172,7 +180,7 @@ describe("input bindings", () => {
     }
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.bootstrap(List, host))
+    expect(() => valueOrThrow(engine.bootstrap(List, host)))
       .toThrow(`[label] on <tk-item>: no directive or component on this element has an input "label"`);
     expect(host.innerHTML)
       .toBe("");
@@ -187,7 +195,7 @@ describe("input bindings", () => {
     }
     @Component({ selector: "tk-list", template: `<tk-item [label]="a(1 2)"></tk-item>`, imports: [Item] })
     class List {}
-    expect(() => renderComponent(Engine.create(), List))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), List)))
       .toThrow(`in [label] on <tk-item>`);
   });
 });
