@@ -8,6 +8,7 @@ import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import type { Class } from "../../../utils/types.ts";
 import { valueOrThrow, isNone, getOrThrow, map, flatMap } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -32,7 +33,7 @@ describe("components in templates", () => {
     })
     class List {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(List));
+    const view = valueOrThrow(renderComponent(engine, List));
 
     await tick();
 
@@ -69,7 +70,7 @@ describe("components in templates", () => {
       readonly store = inject(ListStore);
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(List));
+    const view = valueOrThrow(renderComponent(engine, List));
     const item = componentOn<Item>(engine, view.host.nativeElement.querySelector("tk-item")!);
     await tick();
     expect(item.list)
@@ -92,7 +93,7 @@ describe("components in templates", () => {
     @Component({ selector: "tk-a", template: "<tk-b></tk-b>", imports: [B] })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     await tick();
     expect(componentOn<C>(engine, view.host.nativeElement.querySelector("tk-c")!).a)
       .toBe(view.instance);
@@ -105,8 +106,7 @@ describe("components in templates", () => {
     }
     @Component({ selector: "tk-list", template: `<tk-item label="Milk"></tk-item>`, imports: [Item] })
     class List {}
-    const view = valueOrThrow(Engine.create()
-      .createComponent(List));
+    const view = valueOrThrow(renderComponent(Engine.create(), List));
     await tick();
     expect(view.host.nativeElement.querySelector("span")!.textContent)
       .toBe("Milk");
@@ -137,8 +137,7 @@ describe("components in templates", () => {
         return "";
       }
     }
-    Engine.create()
-      .createComponent(List);
+    renderComponent(Engine.create(), List);
     await tick();
     expect(log)
       .toEqual(["parent", "directive", "child", "parent renders"]);
@@ -165,7 +164,7 @@ describe("components in templates", () => {
       }
     }
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(List));
+    const view = valueOrThrow(renderComponent(engine, List));
     const itemHost = view.host.nativeElement.querySelector("tk-item")!;
     engine.flush();
     view.destroy();
@@ -200,7 +199,7 @@ describe("components in templates", () => {
     }
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.createComponent(List, host))
+    expect(() => engine.bootstrap(List, host))
       .toThrow("child failed");
     expect(host.innerHTML)
       .toBe("");
@@ -223,8 +222,7 @@ describe("recursion", () => {
   test("a component containing itself is reported", () => {
     class Tree {}
     decorate(Tree, { selector: "tk-tree", template: "<tk-tree></tk-tree>", imports: [Tree] });
-    expect(() => Engine.create()
-      .createComponent(Tree))
+    expect(() => renderComponent(Engine.create(), Tree))
       .toThrow("Tree contains itself: Tree → Tree");
   });
 
@@ -235,7 +233,7 @@ describe("recursion", () => {
     decorate(B, { selector: "tk-b", template: "<tk-a></tk-a>", imports: [A] });
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.createComponent(A, host))
+    expect(() => engine.bootstrap(A, host))
       .toThrow("A contains itself: A → B → A");
     expect(host.innerHTML)
       .toBe("");
@@ -249,8 +247,7 @@ describe("recursion", () => {
     @Component({ selector: "tk-pair", template: "<tk-leaf></tk-leaf><tk-leaf></tk-leaf>", imports: [Leaf] })
     class Pair {}
     await tick();
-    expect(valueOrThrow(Engine.create()
-      .createComponent(Pair)).host.nativeElement.querySelectorAll("tk-leaf"))
+    expect(valueOrThrow(renderComponent(Engine.create(), Pair)).host.nativeElement.querySelectorAll("tk-leaf"))
       .toHaveLength(2);
   });
 });

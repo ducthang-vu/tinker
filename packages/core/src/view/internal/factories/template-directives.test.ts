@@ -8,6 +8,7 @@ import { input } from "../authoring/input.ts";
 import { Engine } from "../engine.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { valueOrThrow, isNone, getOrElse, map } from "@tinker/functional";
+import { renderComponent } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -30,7 +31,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
 
     await tick();
 
@@ -51,8 +52,7 @@ describe("directives in templates", () => {
     }
     @Component({ selector: "tk-a", template: `<p tip>a</p>` })
     class WithoutImport {}
-    Engine.create()
-      .createComponent(WithoutImport);
+    renderComponent(Engine.create(), WithoutImport);
     await tick();
     expect(created)
       .toEqual([]);
@@ -71,7 +71,7 @@ describe("directives in templates", () => {
     @Component({ selector: "tk-a", template: `<button counter>+</button>`, imports: [Counter] })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const button = view.host.nativeElement.querySelector("button")!;
     button.click();
     button.click();
@@ -100,7 +100,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const [validator, model] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives), []) as [Validator, Model];
     await tick();
     expect(validator.model)
@@ -127,7 +127,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const [form] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("form")!), (context) => context.directives), []) as [Form];
     const [model] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("input")!), (context) => context.directives), []) as [Model];
     await tick();
@@ -151,7 +151,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const [parent] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("div")!), (context) => context.directives), []) as [Parent];
     await tick();
     expect(parent.child)
@@ -177,7 +177,7 @@ describe("directives in templates", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     engine.flush();
     await tick();
     expect(seen)
@@ -203,7 +203,7 @@ describe("directives in templates", () => {
     @Component({ selector: "tk-a", template: `<p tracked>a</p>`, imports: [Tracked] })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const p = view.host.nativeElement.querySelector("p")!;
     engine.flush();
     view.destroy();
@@ -234,7 +234,7 @@ describe("directives in templates", () => {
     class A {}
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.createComponent(A, host))
+    expect(() => engine.bootstrap(A, host))
       .toThrow("directive failed");
     expect(host.innerHTML)
       .toBe("");
@@ -250,8 +250,7 @@ describe("imports errors", () => {
     class Plain {}
     @Component({ selector: "tk-a", template: "", imports: [Plain] })
     class A {}
-    expect(() => Engine.create()
-      .createComponent(A))
+    expect(() => renderComponent(Engine.create(), A))
       .toThrow("Plain is not a directive: decorate it with @Directive");
   });
 
@@ -260,8 +259,7 @@ describe("imports errors", () => {
     class Nested {}
     @Component({ selector: "tk-a", template: "", imports: [Nested] })
     class A {}
-    expect(() => Engine.create()
-      .createComponent(A))
+    expect(() => renderComponent(Engine.create(), A))
       .toThrow(`Nested, imported by A: Unsupported selector "div p"`);
   });
 });
@@ -292,7 +290,7 @@ describe("directive providers", () => {
     })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const directivesOf = (element: Element) =>
       getOrElse(map(engine.getContext(element), (context) => context.directives), []);
     const [first, second] = [...view.host.nativeElement.querySelectorAll("div")];
@@ -326,8 +324,7 @@ describe("directive providers", () => {
     }
     @Component({ selector: "tk-a", template: `<p owner></p>`, imports: [Owner] })
     class A {}
-    const view = valueOrThrow(Engine.create()
-      .createComponent(A));
+    const view = valueOrThrow(renderComponent(Engine.create(), A));
     await tick();
     expect(destroyed)
       .toEqual([]);
@@ -355,7 +352,7 @@ describe("directive providers", () => {
     @Component({ selector: "tk-a", template: `<p first second></p>`, imports: [First, Second] })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     const p = view.host.nativeElement.querySelector("p")!;
     const [first] = getOrElse(
       map(engine.getContext(p), (context) => context.directives),
@@ -384,7 +381,7 @@ describe("ElementRef", () => {
     @Component({ selector: "tk-a", template: `<input autofocus value="hi">`, imports: [Autofocus] })
     class A {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(A));
+    const view = valueOrThrow(renderComponent(engine, A));
     document.body.append(view.host.nativeElement);
     const input = view.host.nativeElement.querySelector("input")!;
     const [autofocus] = getOrElse(
@@ -410,7 +407,7 @@ describe("ElementRef", () => {
     @Component({ selector: "tk-x", template: `<p a b></p>`, imports: [A, B] })
     class X {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(X));
+    const view = valueOrThrow(renderComponent(engine, X));
     const [a, b] = getOrElse(map(engine.getContext(view.host.nativeElement.querySelector("p")!), (context) => context.directives), []) as [A, B];
     await tick();
     expect(a.host)
@@ -429,7 +426,7 @@ describe("a :not(...) selector in directive metadata", () => {
     })
     class Buttons {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(Buttons));
+    const view = valueOrThrow(renderComponent(engine, Buttons));
     engine.flush();
     const [first, second] = Array.from(view.host.nativeElement.querySelectorAll("button"));
     expect(first!.getAttribute("data-enabled"))
@@ -452,7 +449,7 @@ describe("a comma list of selectors in directive metadata", () => {
     })
     class ListOfSelectors {}
     const engine = Engine.create();
-    const view = valueOrThrow(engine.createComponent(ListOfSelectors));
+    const view = valueOrThrow(renderComponent(engine, ListOfSelectors));
     engine.flush();
     const marked = (tag: string) => view.host.nativeElement.querySelector(tag)!
       .hasAttribute("data-marked");

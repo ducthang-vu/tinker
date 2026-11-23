@@ -27,7 +27,7 @@ import type {
   CompiledText,
 } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
-import { inputsNamed } from "../authoring/input.ts";
+import { bindInputsToAttributes, inputsNamed } from "../authoring/input.ts";
 import { type Owned, ownerName } from "../runtime/owner.ts";
 import { Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
@@ -249,14 +249,16 @@ export class TemplateBuilder {
           parentInjector: injector,
           parentView: view,
           node: this.node,
-          attributes: node.attributes,
           projected,
           contentQueries: content,
           adoptHostBindings: hostBindings,
-          bindInputs: (component) => bindInputs([
-            ...this.ownedOf(node.directives, directives),
-            ...this.ownedOf([type], [component]),
-          ]),
+          setInputs: (component) => {
+            bindInputsToAttributes(component, node.attributes);
+            bindInputs([
+              ...this.ownedOf(node.directives, directives),
+              ...this.ownedOf([type], [component]),
+            ]);
+          },
         }));
         instances = [...directives, child.component];
         owner = { type, instance: child.component };

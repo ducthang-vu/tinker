@@ -4,6 +4,7 @@ import { Engine } from "../engine.ts";
 import { ComponentRef } from "../component-ref.ts";
 import { Left, valueOrThrow, isNone, getOrElse, map, flatMap } from "@tinker/functional";
 import { messageOf } from "../test-support.ts";
+import { renderComponent } from "../test-support.ts";
 
 let tracked = 0;
 const order: number[] = [];
@@ -84,7 +85,7 @@ describe("ViewContainerRef", () => {
   test("get and indexOf", () => {
     const container = engine.createViewContainer(anchor);
     const a = valueOrThrow(container.createComponent(Item));
-    const other = valueOrThrow(engine.createComponent(Item));
+    const other = valueOrThrow(renderComponent(engine, Item));
 
     expect(getOrElse(container.get(0), undefined))
       .toBe(a);
@@ -189,7 +190,7 @@ describe("ViewContainerRef", () => {
 
   test("move rejects a view that is not in the container", () => {
     const container = engine.createViewContainer(anchor);
-    expect(messageOf(container.move(valueOrThrow(engine.createComponent(Item)), 0)))
+    expect(messageOf(container.move(valueOrThrow(renderComponent(engine, Item)), 0)))
       .toBe("The component is not in this container");
   });
 

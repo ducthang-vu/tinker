@@ -12,7 +12,6 @@
 // `bootstrap(AppComponent)` finds the component's host element in the page
 // (by its selector, e.g. `<tk-app></tk-app>` in index.html) and creates the
 // component there. The engine also offers:
-// - `createComponent(type, host?)`, for the root component and any other;
 // - `createViewContainer(anchor)`, for views added and removed at runtime;
 // - `getContext(element)`, to answer "what is on this element?";
 // - `flush()`, to run a change detection tick now (see ChangeDetection);
@@ -143,21 +142,6 @@ export class Engine {
     }
     return flatMap(this.components.metadataOf(type), ({ selector }) =>
       match(fromNullable(this.document.querySelector(selector)), { Some: (element) => Right.of(element), None: () => Left.of(new Error(`No host element matches "${selector}" for ${type.name}`)) }));
-  }
-
-  /**
-   * Render component `type` into `host`, or into a new (detached) host
-   * element created from its selector.
-   *
-   * @deprecated Use `engine.createViewContainer(anchor).createComponent(type)`
-   * for components added at runtime, or `engine.bootstrap(type)` for the root
-   * component. Planned removal: see IMPROVEMENTS.md, "The engine's entry points".
-   */
-  createComponent<T extends object>(
-    type: Class<T>,
-    host?: Element,
-  ): Either<ComponentRef<T>, Error> {
-    return map(this.components.create(type, host), (view) => refOf(view));
   }
 
   /**

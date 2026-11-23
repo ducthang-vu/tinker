@@ -29,7 +29,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     class A {}
     const host = document.createElement("section");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     const div = host.querySelector("div")!;
     await tick();
     expect(div.nextElementSibling!.tagName)
@@ -50,7 +50,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     class A {}
     const host = document.createElement("section");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     await tick();
     expect(host.querySelector("tk-item p")!.textContent)
       .toBe("store");
@@ -68,7 +68,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     class A {}
     const host = document.createElement("section");
     const view = valueOrThrow(Engine.create()
-      .createComponent(A, host));
+      .bootstrap(A, host));
     await tick();
     expect(host.querySelector("tk-item"))
       .not.toBeNull();
@@ -84,7 +84,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     class A {}
     const host = document.createElement("section");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     await tick();
     expect(host.innerHTML)
       .toBe("<div plain=\"\"></div>");
@@ -105,7 +105,7 @@ describe("a directive can inject the ViewContainerRef of its element", () => {
     class A {}
     const host = document.createElement("section");
     const view = valueOrThrow(Engine.create()
-      .createComponent(A, host));
+      .bootstrap(A, host));
     expect(() => view.destroy())
       .not.toThrow();
   });

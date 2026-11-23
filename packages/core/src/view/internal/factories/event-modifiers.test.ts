@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
 import { Engine } from "../engine.ts";
+import { renderComponent } from "../test-support.ts";
 
 describe("event modifiers in templates and host listeners", () => {
   test("(click.prevent.once) in a template: the default is cancelled, and the handler runs once", async () => {
@@ -14,7 +15,7 @@ describe("event modifiers in templates and host listeners", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     const link = host.querySelector("a")!;
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
     link.dispatchEvent(event);
@@ -36,7 +37,7 @@ describe("event modifiers in templates and host listeners", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     const button = host.querySelector("button")!;
     button.dispatchEvent(new MouseEvent("click", { ctrlKey: true }));
     button.dispatchEvent(new MouseEvent("click"));
@@ -54,7 +55,7 @@ describe("event modifiers in templates and host listeners", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     const input = host.querySelector("input")!;
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", shiftKey: true }));
@@ -72,7 +73,7 @@ describe("event modifiers in templates and host listeners", () => {
     }
     const host = document.createElement("div");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     const box = host.querySelector("div")!;
     box.dispatchEvent(new MouseEvent("mousedown", { button: 0 }));
     box.dispatchEvent(new MouseEvent("mousedown", { button: 2 }));
@@ -99,7 +100,7 @@ describe("event modifiers in templates and host listeners", () => {
     class A {}
     const host = document.createElement("section");
     Engine.create()
-      .createComponent(A, host);
+      .bootstrap(A, host);
     host.querySelector("span")!.click();
     expect(calls)
       .toBe(0);
@@ -113,8 +114,7 @@ describe("event modifiers in templates and host listeners", () => {
     class A {
       go() {}
     }
-    expect(() => Engine.create()
-      .createComponent(A))
+    expect(() => renderComponent(Engine.create(), A))
       .toThrow(`(click.prevnt) on <button>: no directive or component has the selector "click", or a DOM modifier such as .prevent`);
   });
 });

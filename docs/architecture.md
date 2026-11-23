@@ -29,9 +29,6 @@ Client code sees a few objects. Everything else is internal.
 | `DirectiveFactory` | Creates the directives of one element, with the element's injector. |
 | `ElementContext` | What is on one element: its directive instances, and at most one child `ComponentView`. |
 
-`engine.createComponent` is deprecated and will be removed. See
-[IMPROVEMENTS.md](../IMPROVEMENTS.md), "The engine's entry points".
-
 ## Three ways a component is created
 
 Every component is created in one of three ways. Each one asks
@@ -62,7 +59,7 @@ flowchart LR
    inside it, passing the parent context: the parent's injector and the
    parent's view, which owns the child.
 3. **Runtime.** A directive injects `ViewContainerRef` on its element, and
-   calls `createComponent(type)`. The factory creates the element from the
+   calls `createComponent(type)` on a container. The factory creates the element from the
    selector, and the container inserts it before its anchor, in order.
 
 Only the runtime case uses a container. A template child is built by its
