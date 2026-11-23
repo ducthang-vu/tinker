@@ -1,3 +1,4 @@
+import { valueOrThrow } from "@tinker/functional";
 import { describe, expect, test } from "vitest";
 import { Engine } from "../engine.ts";
 import { tick } from "../test-support.ts";
@@ -167,7 +168,7 @@ describe("<template #name> and the outlet", () => {
     class BadLet {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(BadLet, document.createElement("section")))
+    expect(() => valueOrThrow(engine.bootstrap(BadLet, document.createElement("section"))))
 
       .toThrow("is not a name");
   });
@@ -180,7 +181,7 @@ describe("<template #name> and the outlet", () => {
     class TwiceTemplate {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(TwiceTemplate, document.createElement("section")))
+    expect(() => valueOrThrow(engine.bootstrap(TwiceTemplate, document.createElement("section"))))
 
       .toThrow("#row is already declared in this template");
   });

@@ -246,8 +246,9 @@ export class TemplateBuilder {
       let instances = directives;
       let owner: { readonly type: Class<object>; readonly instance: object } | undefined;
       match(node.component, { Some: (type) => {
-        // The parent build does not return errors yet: a child that fails to create throws here.
-        const child = valueOrThrow(this.components.create(type, element, {
+        // A child that fails to create loses only itself: its element stays without it, its
+        // directives stay, and the parent keeps rendering. The error is reported, not thrown.
+        const created = this.components.create(type, element, {
           parentInjector: injector,
           parentView: view,
           node: this.node,
@@ -261,9 +262,17 @@ export class TemplateBuilder {
               ...this.ownedOf([type], [component]),
             ]);
           },
-        }));
-        instances = [...directives, child.component];
-        owner = { type, instance: child.component };
+        });
+        use(created, {
+          Left: (error) => {
+            console.error(`${type.name} failed to create, so its element is left without it: ${error.message}`);
+            bindInputs(this.ownedOf(node.directives, directives));
+          },
+          Right: (child) => {
+            instances = [...directives, child.component];
+            owner = { type, instance: child.component };
+          },
+        });
       }, None: () => bindInputs(this.ownedOf(node.directives, directives)) });
       this.resolveReferences(
         node,

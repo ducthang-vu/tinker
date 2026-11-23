@@ -1,3 +1,4 @@
+import { valueOrThrow } from "@tinker/functional";
 import { describe, expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { Engine } from "../engine.ts";
@@ -50,7 +51,7 @@ describe("qualified outputs: (owner.name)", () => {
     class AmbiguousOutput {
       onFired() {}
     }
-    expect(() => renderComponent(Engine.create(), AmbiguousOutput))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), AmbiguousOutput)))
       .toThrow("(fired) on <p> would reach fires and alsoFires: write (fires.fired) to choose one");
   });
 
@@ -63,7 +64,7 @@ describe("qualified outputs: (owner.name)", () => {
     class NoOwner {
       onFired() {}
     }
-    expect(() => renderComponent(Engine.create(), NoOwner))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), NoOwner)))
       .toThrow("no directive or component has the selector \"nobody\", or a DOM modifier such as .prevent");
 
     @Component({
@@ -74,7 +75,7 @@ describe("qualified outputs: (owner.name)", () => {
     class NoOutput {
       onFired() {}
     }
-    expect(() => renderComponent(Engine.create(), NoOutput))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), NoOutput)))
       .toThrow("\"fires\" has no output \"missing\"");
   });
 });
@@ -89,7 +90,7 @@ describe("qualified inputs: [owner.name]", () => {
     class NoInputOwner {
       readonly text = "x";
     }
-    expect(() => renderComponent(Engine.create(), NoInputOwner))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), NoInputOwner)))
       .toThrow("[nobody.label] on <p>: no directive or component has the selector \"nobody\"");
   });
 });

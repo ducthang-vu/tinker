@@ -112,7 +112,7 @@ describe("template references", () => {
     class RefTwice {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(RefTwice, document.createElement("section")))
+    expect(() => valueOrThrow(engine.bootstrap(RefTwice, document.createElement("section"))))
 
       .toThrow("#box is already declared in this template");
   });
@@ -172,7 +172,7 @@ describe("template references", () => {
     class MissingExport {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(MissingExport, document.createElement("section")))
+    expect(() => valueOrThrow(engine.bootstrap(MissingExport, document.createElement("section"))))
 
       .toThrow("no directive on <p> is exported as \"nope\"");
   });
@@ -185,7 +185,7 @@ describe("template references", () => {
     class NoComponent {}
     const engine = Engine.create();
 
-    expect(() => engine.bootstrap(NoComponent, document.createElement("section")))
+    expect(() => valueOrThrow(engine.bootstrap(NoComponent, document.createElement("section"))))
 
       .toThrow("has no component");
   });

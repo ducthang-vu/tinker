@@ -94,7 +94,7 @@ describe("each component has its own injector", () => {
         throw new Error("constructor failed");
       }
     }
-    expect(() => renderComponent(Engine.create(), A))
+    expect(() => valueOrThrow(renderComponent(Engine.create(), A)))
       .toThrow("constructor failed");
     expect(destroyed)
       .toEqual(["resource"]);

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { tick } from "../test-support.ts";
 import { inject, Injectable } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
@@ -177,7 +177,7 @@ describe("components in templates", () => {
       .toBe(true);
   });
 
-  test("a child that fails leaves nothing of the parent behind", () => {
+  test("a child that fails is reported; its element is left empty and the parent renders", () => {
     const destroyed: string[] = [];
     @Component({ selector: "tk-ok", template: "" })
     class Ok {
@@ -197,16 +197,21 @@ describe("components in templates", () => {
         destroyed.push("list");
       }
     }
+    const error = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
     const host = document.createElement("div");
     const engine = Engine.create();
-    expect(() => engine.bootstrap(List, host))
-      .toThrow("child failed");
+    const ref = valueOrThrow(engine.bootstrap(List, host));
+    expect(error)
+      .toHaveBeenCalledWith(expect.stringContaining("Broken failed to create"));
     expect(host.innerHTML)
-      .toBe("");
+      .toBe("<tk-ok></tk-ok><tk-broken></tk-broken>");
+    expect(host.querySelector("tk-broken")!.childNodes)
+      .toHaveLength(0);
+    ref.destroy();
     expect(destroyed)
       .toEqual(["ok", "list"]);
-    expect(isNone(engine.getContext(host)))
-      .toBe(true);
+    error.mockRestore();
   });
 });
 
@@ -219,26 +224,34 @@ describe("recursion", () => {
     Component(options)(type, {} as ClassDecoratorContext<Class<object>>);
   }
 
-  test("a component containing itself is reported", () => {
+  test("a component containing itself is reported, and its element is left empty", () => {
     class Tree {}
     decorate(Tree, { selector: "tk-tree", template: "<tk-tree></tk-tree>", imports: [Tree] });
-    expect(() => renderComponent(Engine.create(), Tree))
-      .toThrow("Tree contains itself: Tree → Tree");
+    const error = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const view = valueOrThrow(renderComponent(Engine.create(), Tree));
+    expect(error)
+      .toHaveBeenCalledWith(expect.stringContaining("Tree contains itself: Tree → Tree"));
+    expect(view.host.nativeElement.innerHTML)
+      .toBe("<tk-tree></tk-tree>");
+    error.mockRestore();
   });
 
-  test("through other components too: the path is named, and nothing is left behind", () => {
+  test("through other components too: the path is named, and the cycle's element is empty", () => {
     class A {}
     class B {}
     decorate(A, { selector: "tk-a", template: "<p><tk-b></tk-b></p>", imports: [B] });
     decorate(B, { selector: "tk-b", template: "<tk-a></tk-a>", imports: [A] });
+    const error = vi.spyOn(console, "error")
+      .mockImplementation(() => undefined);
     const host = document.createElement("div");
-    const engine = Engine.create();
-    expect(() => engine.bootstrap(A, host))
-      .toThrow("A contains itself: A → B → A");
+    valueOrThrow(Engine.create()
+      .bootstrap(A, host));
+    expect(error)
+      .toHaveBeenCalledWith(expect.stringContaining("A contains itself: A → B → A"));
     expect(host.innerHTML)
-      .toBe("");
-    expect(isNone(engine.getContext(host)))
-      .toBe(true);
+      .toBe("<p><tk-b><tk-a></tk-a></tk-b></p>");
+    error.mockRestore();
   });
 
   test("the same component twice side by side is not recursion", async () => {
