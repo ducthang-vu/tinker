@@ -75,6 +75,23 @@ describe("scopeStyles", () => {
       .toBe(squash("@media (x) { .card[tk-c1] .title { } }"));
   });
 
+  test("a nested rule is scoped too, so it does not reach a child component's elements", () => {
+    expect(scoped(".a { .c { d: 2 } }"))
+      .toBe(squash(".a[tk-c1]{ .c[tk-c1]{ d: 2 } }"));
+    expect(scoped(".a { .b { .c { x: 1 } } }"))
+      .toBe(squash(".a[tk-c1]{ .b[tk-c1]{ .c[tk-c1]{ x: 1 } } }"));
+  });
+
+  test("a nested & selector refers to the scoped parent, so it is left as it is", () => {
+    expect(scoped(".a { color: red; &:hover { color: blue } }"))
+      .toBe(squash(".a[tk-c1]{ color: red; &:hover { color: blue } }"));
+  });
+
+  test("a brace inside a quoted value does not start a nested rule", () => {
+    expect(scoped(`.a { content: "{"; .c { x: 1 } }`))
+      .toBe(squash(`.a[tk-c1]{ content: "{"; .c[tk-c1]{ x: 1 } }`));
+  });
+
   test("a block that is never closed takes the rest of the sheet", () => {
     expect(scoped("p { color: red"))
       .toBe(squash("p[tk-c1] { color: red }"));
