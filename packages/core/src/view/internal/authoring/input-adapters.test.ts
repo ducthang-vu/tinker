@@ -9,13 +9,13 @@ describe("numberAdapter", () => {
       .toBe(2.5);
   });
 
-  test("gives NaN for an empty attribute or text that is not a number", () => {
-    expect(numberAdapter(""))
-      .toBeNaN();
-    expect(numberAdapter("   "))
-      .toBeNaN();
-    expect(numberAdapter("abc"))
-      .toBeNaN();
+  test("an empty attribute or text that is not a number is an error", () => {
+    expect(() => numberAdapter(""))
+      .toThrow("\"\" is not a number");
+    expect(() => numberAdapter("   "))
+      .toThrow("is not a number");
+    expect(() => numberAdapter("abc"))
+      .toThrow("\"abc\" is not a number");
   });
 });
 

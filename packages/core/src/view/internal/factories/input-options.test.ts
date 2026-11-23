@@ -141,3 +141,17 @@ describe("input options: a required input with an adapter", () => {
       .toThrow(InputNotBoundError);
   });
 });
+
+describe("input options: an adapter's error names the attribute", () => {
+  test("a plain attribute the adapter cannot read fails the render, naming the attribute and the component", () => {
+    @Component({
+      selector: "tk-parent-bad",
+      template: `<tk-item size="big"></tk-item>`,
+      imports: [Item],
+    })
+    class BadParent {}
+    const engine = Engine.create();
+    expect(() => renderComponent(engine, BadParent))
+      .toThrow("Item: attribute size=\"big\": \"big\" is not a number");
+  });
+});

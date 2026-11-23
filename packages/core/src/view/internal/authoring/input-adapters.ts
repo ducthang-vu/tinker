@@ -3,12 +3,16 @@
 // so an app can write its own the same way.
 
 /**
- * Reads a plain attribute as a number: `size="3"` is 3. Text that is not a number, and an
- * empty attribute, give NaN.
+ * Reads a plain attribute as a number: `size="3"` is 3. Text that is not a number, and an empty
+ * attribute, are an error: the attribute's binding reports it with the attribute named.
  */
 export const numberAdapter = (value: string): number => {
   const text = value.trim();
-  return text === "" ? Number.NaN : Number(text);
+  const number = text === "" ? Number.NaN : Number(text);
+  if (Number.isNaN(number)) {
+    throw new TypeError(`"${value}" is not a number`);
+  }
+  return number;
 };
 
 /**

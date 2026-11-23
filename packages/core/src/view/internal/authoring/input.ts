@@ -218,7 +218,22 @@ export function bindInputsToAttributes(
   for (const attribute of attributes) {
     use(
       fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase())),
-      { Some: ([, input]) => input.bindText(attribute.value), None: () => undefined },
+      { Some: ([, input]) => bindAttribute(instance, attribute, input), None: () => undefined },
+    );
+  }
+}
+
+/** Set `input` from a plain attribute. An adapter's error names the attribute and the component. */
+function bindAttribute(
+  instance: object,
+  attribute: { readonly name: string; readonly value: string },
+  input: { bindText(text: string): void },
+): void {
+  try {
+    input.bindText(attribute.value);
+  } catch (error) {
+    throw new Error(
+      `${instance.constructor.name}: attribute ${attribute.name}="${attribute.value}": ${(error as Error).message}`,
     );
   }
 }

@@ -3481,7 +3481,7 @@
         {
           "name": "booleanAdapter",
           "kind": "const",
-          "source": "packages/core/src/view/internal/authoring/input-adapters.ts:18",
+          "source": "packages/core/src/view/internal/authoring/input-adapters.ts:22",
           "description": "Reads a plain attribute as a boolean, as HTML does: a bare `open` and `open=\"open\"`\nare true, and only `open=\"false\"` is false.",
           "params": [],
           "examples": [],
@@ -3592,7 +3592,7 @@
           "name": "numberAdapter",
           "kind": "const",
           "source": "packages/core/src/view/internal/authoring/input-adapters.ts:9",
-          "description": "Reads a plain attribute as a number: `size=\"3\"` is 3. Text that is not a number, and an\nempty attribute, give NaN.",
+          "description": "Reads a plain attribute as a number: `size=\"3\"` is 3. Text that is not a number, and an empty\nattribute, are an error: the attribute's binding reports it with the attribute named.",
           "params": [],
           "examples": [],
           "see": [],
