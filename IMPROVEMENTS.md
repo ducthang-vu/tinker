@@ -21,6 +21,45 @@ another strategy, e.g. Angular's zoneless race between `setTimeout` and
 `requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
 runs, so this is a change in one place.
 
+### 2. A view cannot be refreshed by its author
+
+**Problem.** A plain field changed by code outside the signal graph (a library callback, an
+in-place mutation of a plain object, a socket message) updates nothing: the view's watch runs only
+when a signal it read changed. There is no public way to say "refresh this view". Scheduling the
+view's watch by hand does nothing either: `Watch.run()` returns early when no recorded dependency
+changed (`runOnce`), and the watch's `dirty` flag is private. Angular's `watch` behaves the same way
+(its `run` checks `consumerPollProducersForChange` after the first run), so an Angular-style
+`markForCheck` cannot be copied as is.
+
+**To do.** Split each view's update in two, in `component-factory.ts` and `embedded-view-factory.ts`:
+
+- `dependencies()` reads every signal the view's bindings use, and returns the values. It is the
+  only code that reads signals, so the watch records exactly the reads that matter.
+- `writeTemplate(...args)` takes plain values and writes the DOM (rule 6: only changed values). It
+  reads no signals, so it can be called from anywhere without changing the recorded dependencies.
+
+The watch becomes `watch(() => writeTemplate(...dependencies()), scheduler)`. A refresh from
+outside is then `writeTemplate(...dependencies())`, and it needs no check signal and no change to
+`Watch`. Before this, check two things:
+
+- `dependencies()` must read the same signals on every run. A read made only under a condition
+  inside it is tracked only when the condition holds, which is the stale-dependency problem.
+- A structural binding (`@if`, `@map`) creates child views in its write, and a child's reads come
+  after that write. So the split applies per view: each child has its own `dependencies()` and
+  `writeTemplate`, run by its own watch. The evaluation order of the bindings must stay the same.
+
+On top of the split, one author-facing API with two methods, both on the view's own handle:
+
+- `scheduleForNextTick()` queues a `Runnable` that calls `writeTemplate(...dependencies())`, through
+  the view scheduler. It keeps the parent-first order and the single tick.
+- `detectChangesNow()` runs the same expression at once. For the subtree it recurses over the view's
+  children, pre-order (parent before children), so a child's `dependencies()` sees the values its
+  parent just wrote. Its cost is that it reads every view below, even when nothing changed there.
+  Rule 6 keeps the DOM writes down.
+
+Both are a second way to write a view, so they need tests showing that the watch's own runs and
+the manual ones agree on the DOM, and that a manual run with no change writes nothing.
+
 ## Components
 
 ### 1. Recursive components cannot be written, and are banned
