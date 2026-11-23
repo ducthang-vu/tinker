@@ -212,17 +212,6 @@ sheet's rules one at a time if a list of files is ever scoped separately.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
-### 1. The testing helpers do not know an input's template name
-
-**Problem.** `input(…, { name })` gives the template name, but `InputName<T>` and the
-mock builders (`requiredInputs`, `optionalInputs`) work on the property names. They were
-written before options existed, so a mock may not copy the template name: a test that
-sets `title="…"` on a mock of `label` could then fail. Not yet checked by a test.
-
-**To do.** Have the mock builders read `InputBinding.alias` (through `inputsOf` or a new
-accessor) and copy each input under its template name, keeping the property name for
-the typed side.
-
 ### 2. Adapters report no errors
 
 **Problem.** `numberAdapter` gives NaN for text that is not a number, and nothing tells the
@@ -300,16 +289,6 @@ So for this app the trees are worth their size, and the example app now uses the
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
 
-## Testing: concurrent tests
-
-A fixture built outside a test now throws unless it is `manualCleanup()` (see `docs/testing.md`).
-A concurrent test still needs `manualCleanup()` by hand, because `cleanup()` would destroy its
-fixture while other tests run.
-
-**To do.** Vitest's public API does not say whether the running test is concurrent. Either
-the package takes that from the runner when Vitest exposes it, or each fixture is tied to the
-test that built it through `onTestFinished`, so `cleanup()` destroys only that test's fixtures.
-
 ## Template patterns: regex (`packages/core/src/view/internal/template/`)
 
 ### 1. A regex is not checked for catastrophic backtracking
@@ -322,31 +301,21 @@ delays the whole view. Nothing limits its cost.
 risk and leave the author to write a linear regex.
 
 
-## Errors in the view builder (`packages/core/src/view/internal/factories/`)
-
-### 1. An invalid `host` option is thrown where the directive is first used
-
-**Problem.** `HostBindings.parse` returns an `Either`, so an invalid `host` option is a
-value. But the directive factory (`directive-factory.ts`) builds the bindings during view
-creation, and the code above it returns plain values, not `Either`s. So the factory calls
-matching its Left and throwing, and the error is thrown there instead of being returned to the caller.
-
-**To do.** Make the view builder (`template-builder.ts` and its callers) return an `Either`
-for the directive's bindings, so the caller that creates the directive decides what to do
-with the error. This follows from converting the template compiler to `Either`.
-
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
-### 1. Descriptions are plain text with code spans and fences
+### 1. Descriptions show only paragraphs, code spans and fences
 
 **Problem.** The page shows TSDoc as paragraphs, `code spans` and fenced code blocks. Other
 markup is shown as written: a `{@link X}` may appear as text, and lists, headings and links
-are not rendered. Spaces around a code span are also wrong when the text is next to a
-punctuation mark, such as "`inject(Injector)` , the token".
+are not rendered.
+
+**What was fixed.** Code spans were followed by a stray space, and the rows of a one-line
+`@map` came out in reverse order. Both were engine bugs: a row whose body was a block (`@if`,
+`@match`) left the nodes of that block behind when the rows were moved. Each row now has a start
+marker, and its nodes are moved from there to its anchor. The page's loop is one line again.
 
 **To do.** Render the TSDoc inline tags (`{@link}`) as links to the reference anchors, and
-fix the template whitespace in `api-docs.ts` (`DocBody`) so a code span has no space before
-the text after it.
+render lists and links from the description.
 
 ### 2. Inherited members are not listed
 

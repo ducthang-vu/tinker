@@ -50,6 +50,12 @@ class StubItem {
   static readonly mockOf = Item;
 }
 
+// An input under a template name: the compiler registers the name when the class is defined.
+@Component({ selector: "tk-titled", template: "<i>{{ label() }}</i>" })
+class Titled {
+  readonly label = input("", { name: "title" });
+}
+
 describe("TestBed.build", () => {
   test("needs a component", () => {
     expect(() => TestBed.providers()
@@ -365,6 +371,40 @@ describe("registerRunner", () => {
   });
 });
 
+describe("a fixture is destroyed by the end of the test that built it", () => {
+  @Component({ selector: "tk-owned", template: "<p>x</p>" })
+  class Owned {}
+
+  test("registers its own destroy with the runner's hook, not with cleanup()", () => {
+    const hooks: (() => void)[] = [];
+    registerRunner({
+      inTest: () => true,
+      onTestFinished: (hook) => {
+        hooks.push(hook);
+      },
+    });
+    try {
+      const fixture = TestBed.component(Owned)
+        .build();
+      expect(hooks)
+        .toHaveLength(1);
+      hooks[0]!();
+      expect(() => fixture.detectChanges())
+        .not.toThrow();
+    } finally {
+      registerRunner(undefined);
+    }
+  });
+
+  test.concurrent("a concurrent test builds its fixture inside the test, and keeps it", async () => {
+    const fixture = TestBed.component(Owned)
+      .build();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(fixture.root.text())
+      .toBe("x");
+  });
+});
+
 describe("a fixture built under a runner must be built inside a test", () => {
   @Component({ selector: "tk-checked", template: "<p>x</p>" })
   class Checked {}
@@ -417,6 +457,36 @@ describe("mock builders", () => {
       .toHaveLength(0);
     expect(ref.root.queryAll(Item))
       .toHaveLength(1);
+    ref.destroy();
+  });
+
+  test("a mock of an input with a template name is bound by that name", () => {
+    const mock = new MockComponentBuilder(Titled)
+      .optionalInputs({ label: "" })
+      .build();
+    const Host = ComponentBuilder.template(`<tk-titled title="Hello"></tk-titled>`)
+      .directives(Titled)
+      .build();
+    const ref = TestBed.override(Titled, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Titled).inputs.label)
+      .toBe("Hello");
+    ref.destroy();
+  });
+
+  test("a required mock input with a template name is bound by that name", () => {
+    const mock = new MockComponentBuilder(Titled)
+      .requiredInputs("label")
+      .build();
+    const Host = ComponentBuilder.template(`<tk-titled title="Hello"></tk-titled>`)
+      .directives(Titled)
+      .build();
+    const ref = TestBed.override(Titled, mock)
+      .component(Host)
+      .build();
+    expect(ref.root.query(Titled).inputs.label)
+      .toBe("Hello");
     ref.destroy();
   });
 
