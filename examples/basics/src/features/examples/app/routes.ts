@@ -4,13 +4,11 @@
 
 import type { Route } from "@tinker/router";
 import { ApiDocs } from "../../apidoc/api-docs.ts";
-import { App } from "./app.ts";
 import { Examples } from "./examples-page.ts";
 import { NotFound } from "./not-found.ts";
 
 export const ROUTES: Route = {
   path: "",
-  component: App,
   children: [
     { path: "/", component: Examples },
     { path: "/api", component: ApiDocs },

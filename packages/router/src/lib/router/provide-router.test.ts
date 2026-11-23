@@ -33,3 +33,12 @@ test("ChildActivatedRoute is the activated route after the root, as a signal", (
   destroy();
   window.history.replaceState(null, "", "/");
 });
+
+test("the root route may have no component, but every other route needs one", () => {
+  expect(() => provideRouter({ path: "", children: [{ path: "/todos", component: TodoList }] }))
+    .not.toThrow();
+  expect(() => provideRouter({ path: "", children: [{ path: "/todos" }] }))
+    .toThrow("The route \"/todos\" needs a component: only the root route may have none");
+  expect(() => provideRouter({ path: "", children: [{ path: "/a", children: [{ path: "b" }] }] }))
+    .toThrow("The route \"/a\" needs a component");
+});

@@ -6701,7 +6701,7 @@
         {
           "name": "Route",
           "kind": "interface",
-          "source": "packages/router/src/lib/router/route.ts:7",
+          "source": "packages/router/src/lib/router/route.ts:8",
           "description": "",
           "params": [],
           "examples": [],
@@ -6711,7 +6711,7 @@
             {
               "name": "path",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:13",
+              "source": "packages/router/src/lib/router/route.ts:14",
               "description": "The path the route consumes, e.g. `\"/todos\"`. A segment that starts with `:` is a param, so\n`\"/todos/:id\"` matches `\"/todos/7\"` with `id` set to `\"7\"`. The path `\"**\"` matches any URL,\nfor a page shown when nothing else matches; declare it last among the children.",
               "params": [],
               "examples": [],
@@ -6722,18 +6722,18 @@
             {
               "name": "component",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:15",
-              "description": "The component shown when the route matches.",
+              "source": "packages/router/src/lib/router/route.ts:19",
+              "description": "The component shown when the route matches. Every route but the root needs one: the root is\nnot shown, so it may leave this out.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "type": "Class<object>"
+              "type": "Class<object> | undefined"
             },
             {
               "name": "data",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:17",
+              "source": "packages/router/src/lib/router/route.ts:21",
               "description": "Static data of the route, read from the `ActivatedRoute` of the component it shows.",
               "params": [],
               "examples": [],
@@ -6744,7 +6744,7 @@
             {
               "name": "children",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:22",
+              "source": "packages/router/src/lib/router/route.ts:26",
               "description": "The routes under this one, matched against the segments its path leaves over, in order; the\nfirst that matches wins. A route without children must match the whole URL.",
               "params": [],
               "examples": [],
@@ -6944,7 +6944,7 @@
         {
           "name": "RouterOutlet",
           "kind": "class",
-          "source": "packages/router/src/lib/directives/router-outlet.ts:11",
+          "source": "packages/router/src/lib/directives/router-outlet.ts:12",
           "description": "",
           "params": [],
           "examples": [],
