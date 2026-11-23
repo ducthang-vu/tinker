@@ -109,9 +109,10 @@ function scopeBlock(css: string, scope: StyleScope): string {
       const prelude = css.slice(index, next)
         .trim();
       const body = css.slice(next + 1, close);
+      // A rule's body holds declarations and nested rules: the nested rules are scoped too.
       out += prelude.startsWith("@")
         ? `${prelude}{${AT_BLOCK_WITH_RULES.test(prelude) ? scopeBlock(body, scope) : body}}`
-        : `${scopeSelectorList(prelude, scope)}{${body}}`;
+        : `${scopeSelectorList(prelude, scope)}{${scopeBlock(body, scope)}}`;
       index = close + 1;
     }
   }
@@ -120,9 +121,18 @@ function scopeBlock(css: string, scope: StyleScope): string {
 
 /** The index of the first `{` or `;` from `from`, or undefined when there is none. */
 function nextStatementEnd(css: string, from: number): number | undefined {
-  const found = [css.indexOf("{", from), css.indexOf(";", from)]
-    .filter((index) => index !== -1);
-  return found.length === 0 ? undefined : Math.min(...found);
+  let quote: string | undefined;
+  for (let i = from; i < css.length; i += 1) {
+    const char = css[i]!;
+    if (quote !== undefined) {
+      quote = char === quote ? undefined : quote;
+    } else if (char === "\"" || char === "'") {
+      quote = char;
+    } else if (char === "{" || char === ";") {
+      return i;
+    }
+  }
+  return undefined;
 }
 
 /** The index of the `}` closing the `{` at `open`, or the end of `css` when it is not closed. */
@@ -168,6 +178,10 @@ function scopeSelector(selector: string, scope: StyleScope): string {
   const replaced = selector
     .replace(/:host\(([^()]*)\)/g, `${host}$1`)
     .replace(/:host\b/g, host);
+  // `&` is the scoped parent (a nested rule's selector): it is already scoped, so is left as it is.
+  if (replaced.includes("&")) {
+    return replaced;
+  }
   const deep = replaced.indexOf(DEEP);
   return deep === -1
     ? markLastCompound(replaced, scope)

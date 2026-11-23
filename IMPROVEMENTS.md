@@ -176,17 +176,6 @@ should be an error, and nothing tells the author today.
 Shadowing across scopes is allowed, as in most languages: this is a warning for
 the author, not a ban.
 
-## Component styles (`packages/core/src/view/internal/runtime/component-styles.ts`, `renderer.ts`)
-
-### 1. The rewriter does not handle nested rules, and `styles` is one string
-
-**Problem.** A stylesheet is rewritten by a small hand-written parser, so nested rules and
-`@container` inside `@media` are not handled. `styles` is one string, so a list of files
-(`styleUrls`) is joined before scoping.
-
-**To do.** Scope nested rules and `@container` with the same walk, and check the joined
-sheet's rules one at a time if a list of files is ever scoped separately.
-
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
 ### 2. Adapters report no errors
