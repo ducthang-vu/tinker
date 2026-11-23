@@ -32,6 +32,7 @@ Options:
 |---|---|---|
 | `emit` | `false` | Replace each compiled template with its tree. Costs bundle size: see `IMPROVEMENTS.md`. |
 | `strict` | `false` | Fail the build for a component that cannot be checked. By default it is skipped with a warning. |
+| `dev` | Vite's development mode | Whether the app runs in development mode: apps read it as the `DEV_MODE` token (`inject(DEV_MODE)`). The build defines `globalThis.__TINKER_DEV__`; without the plugin, `DEV_MODE` is `false`. |
 
 ## What is checked, and what is skipped
 

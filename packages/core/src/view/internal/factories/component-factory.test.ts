@@ -1,3 +1,4 @@
+import { DEV_MODE } from "../tokens.ts";
 import { ElementScope } from "../factories/element-scope.ts";
 import { messageOf, tick } from "../test-support.ts";
 import { describe, expect, test } from "vitest";
@@ -29,6 +30,7 @@ function makeFactory(overrides: readonly Provider[] = []) {
     providers: [
       ...overrides,
       provide(RENDERER, { useValue: new DomRenderer() }),
+      provide(DEV_MODE, { useValue: false }),
       provide(TEMPLATE_PARSER, { useValue: new TinkerTemplateParser() }),
       provide(CLASS_REPLACEMENTS, { useValue: new Map() }),
       ElementContexts,

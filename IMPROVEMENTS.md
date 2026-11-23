@@ -162,8 +162,9 @@ should be an error, and nothing tells the author today.
 
 **To do.** Add a developer mode, off in production:
 
-- **Turned on** by a `dev` option on `bootstrap`, which is the simplest choice
-  without a bundler.
+- **Turned on** by the compiler's `dev` option (`tinkerCompiler({ dev })`, which
+  defaults to Vite's development mode). The app reads it as the `DEV_MODE` token,
+  which is already built: the compiler defines `globalThis.__TINKER_DEV__`.
 - **Checks**: shadowing (a `@let`, or later a block's name, over a field or
   method, or over an outer name), and an unknown name read from the component.
   They are warnings. Declaring the same name twice in one scope stays an error

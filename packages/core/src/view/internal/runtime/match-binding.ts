@@ -92,7 +92,8 @@ export class MatchBinding implements Binding {
       for (const [name, bound] of this.names) {
         lets.set(name, bound);
       }
-      this.shown = this.render(choice.body, new Scope(this.scope.component, lets), this.injector);
+      const scope = new Scope(this.scope.component, lets, this.scope.checks);
+      this.shown = this.render(choice.body, scope, this.injector);
     }
   }
 
@@ -117,7 +118,7 @@ export class MatchBinding implements Binding {
     for (const [name, bound] of bindings) {
       lets.set(name, computed(() => bound));
     }
-    return new Scope(this.scope.component, lets);
+    return new Scope(this.scope.component, lets, this.scope.checks);
   }
 
   private hide(): void {

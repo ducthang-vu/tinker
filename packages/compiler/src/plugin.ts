@@ -7,6 +7,9 @@
 // the directives its `imports` list gives. It runs compileSource on them: a template
 // that does not compile fails the build, with the file, the component and the error.
 //
+// It also defines the build constant `globalThis.__TINKER_DEV__` (the `dev` option, which
+// defaults to Vite's development mode), which core reads into the DEV_MODE token.
+//
 // By default that is all: the source is unchanged, and the templates stay strings.
 // With `emit: true`, a template that compiles is also replaced in the file by the
 // expression that rebuilds its compiled tree (emitCompiled), so the component skips
@@ -70,6 +73,11 @@ export interface CompilerOptions {
    * selector that is not a literal), instead of skipping it with a warning. Off by default.
    */
   readonly strict?: boolean;
+  /**
+   * Whether the app runs in development mode (DEV_MODE). Defaults to Vite's development mode:
+   * off in a production build.
+   */
+  readonly dev?: boolean;
 }
 
 /** How a compile run behaves: see CompilerOptions. */
@@ -84,6 +92,11 @@ export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
   return {
     name: "tinker:compile-templates",
     enforce: "pre",
+    // Defines the build constant that core reads for DEV_MODE.
+    config(_config, env) {
+      const dev = options.dev ?? env.mode === "development";
+      return { define: { "globalThis.__TINKER_DEV__": JSON.stringify(dev) } };
+    },
     async transform(code, id) {
       if (!isSourceWithComponents(code, id)) {
         return null;

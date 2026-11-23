@@ -7,7 +7,7 @@
         {
           "name": "tinkerCompiler",
           "kind": "function",
-          "source": "packages/compiler/src/plugin.ts:82",
+          "source": "packages/compiler/src/plugin.ts:90",
           "description": "The plugin: compiles the templates of components in each source file it transforms.",
           "params": [],
           "examples": [],
@@ -474,9 +474,20 @@
           ]
         },
         {
+          "name": "DEV_MODE",
+          "kind": "const",
+          "source": "packages/core/src/view/internal/tokens.ts:15",
+          "description": "Whether the app runs in development mode. The compiler plugin (tinkerCompiler) defines\n`globalThis.__TINKER_DEV__` at build time; without it, the app is not in development mode.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "type": "InjectionToken<boolean>"
+        },
+        {
           "name": "DOCUMENT",
           "kind": "const",
-          "source": "packages/core/src/view/internal/tokens.ts:12",
+          "source": "packages/core/src/view/internal/tokens.ts:20",
           "description": "The document the app runs in (default: the global one).",
           "params": [],
           "examples": [],
@@ -2057,7 +2068,7 @@
         {
           "name": "RENDERER",
           "kind": "const",
-          "source": "packages/core/src/view/internal/tokens.ts:15",
+          "source": "packages/core/src/view/internal/tokens.ts:23",
           "description": "Builds the DOM (default: a DomRenderer on DOCUMENT).",
           "params": [],
           "examples": [],
@@ -2792,7 +2803,7 @@
         {
           "name": "TEMPLATE_PARSER",
           "kind": "const",
-          "source": "packages/core/src/view/internal/tokens.ts:18",
+          "source": "packages/core/src/view/internal/tokens.ts:26",
           "description": "Turns templates into syntax trees (default: the browser's parser on DOCUMENT).",
           "params": [],
           "examples": [],
@@ -5042,7 +5053,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:124",
+          "source": "packages/functional/src/lib/monad/either.ts:126",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [
             {
@@ -5058,6 +5069,7 @@
           "see": [],
           "throws": [],
           "returns": "A Right of `fn`'s result, or a Left of the expected error it threw.",
+          "deprecated": "Internal functions return an Either themselves, so nothing needs to wrap a throw.\nUse the function's own Either instead of catching what it throws.",
           "signatures": [
             "attempt<T, E>(fn: () => T, isExpected: (error: unknown) => error is E): Either<T, E>"
           ]
@@ -5782,7 +5794,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:144",
+          "source": "packages/functional/src/lib/monad/either.ts:146",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [
             {
@@ -5845,7 +5857,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:156",
+          "source": "packages/functional/src/lib/monad/either.ts:158",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {
