@@ -269,21 +269,7 @@ risk and leave the author to write a linear regex.
 
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
-### 1. Descriptions show only paragraphs, code spans and fences
-
-**Problem.** The page shows TSDoc as paragraphs, `code spans` and fenced code blocks. Other
-markup is shown as written: a `{@link X}` may appear as text, and lists, headings and links
-are not rendered.
-
-**What was fixed.** Code spans were followed by a stray space, and the rows of a one-line
-`@map` came out in reverse order. Both were engine bugs: a row whose body was a block (`@if`,
-`@match`) left the nodes of that block behind when the rows were moved. Each row now has a start
-marker, and its nodes are moved from there to its anchor. The page's loop is one line again.
-
-**To do.** Render the TSDoc inline tags (`{@link}`) as links to the reference anchors, and
-render lists and links from the description.
-
-### 2. Inherited members are not listed
+### 1. Inherited members are not listed
 
 **Problem.** A class's members are listed only where it declares them. A member a class
 inherits from its base class is missing from the subclass's entry.
@@ -291,7 +277,7 @@ inherits from its base class is missing from the subclass's entry.
 **To do.** Include inherited public members, marked with the class they come from, if the
 reference should be complete for subclasses.
 
-### 3. The public index and `@privateAPI`
+### 2. The public index and `@privateAPI`
 
 **Problem.** `@privateAPI` items are left out of the reference, but they stay exported from
 the package index (`packages/core/src/view/index.ts`), so an app can still import them.

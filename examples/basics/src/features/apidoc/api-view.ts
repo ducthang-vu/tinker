@@ -4,17 +4,23 @@
 
 import type { ApiDoc, ApiEntry, ApiExport, ApiParam, ApiReference } from "./api-reference.ts";
 
-/** A run of text in a paragraph: plain, or a `code span`. */
+/** A run of text in a paragraph: plain, a `code span`, or a link (its `href`, else ""). */
 export interface TextPart {
   readonly text: string;
   readonly code: boolean;
+  readonly href: string;
 }
 
-/** A paragraph (`isCode` false, its `parts`) or a fenced code block (`isCode` true, its `text`). */
+/**
+ * A paragraph (`isCode` and `isList` false, its `parts`), a list (`isList`, its `items`, each a
+ * list of parts) or a fenced code block (`isCode` true, its `text`).
+ */
 export interface DocBlock {
   readonly isCode: boolean;
+  readonly isList: boolean;
   readonly text: string;
   readonly parts: readonly TextPart[];
+  readonly items: readonly (readonly TextPart[])[];
 }
 
 /** A documented thing, ready to show. Empty strings and empty lists mean "not present". */
@@ -56,23 +62,34 @@ export interface ViewSection {
  * Splits TSDoc text into blocks. A line starting with ``` opens or closes a code block, kept as
  * written; other lines form paragraphs, split at blank lines, with `backtick` spans marked.
  */
-export function docBlocks(text: string): DocBlock[] {
+export function docBlocks(
+  text: string,
+  links: ReadonlyMap<string, string> = new Map(),
+): DocBlock[] {
   const blocks: DocBlock[] = [];
   let paragraph: string[] = [];
+  let list: string[] = [];
   let code: string[] | undefined;
 
   const endParagraph = (): void => {
     if (paragraph.length > 0) {
-      blocks.push(textBlock(paragraph.join(" ")));
+      blocks.push(textBlock(paragraph.join(" "), links));
       paragraph = [];
+    }
+  };
+  const endList = (): void => {
+    if (list.length > 0) {
+      blocks.push(listBlock(list, links));
+      list = [];
     }
   };
 
   for (const line of text.split("\n")) {
     if (line.trimStart()
       .startsWith("```")) {
+      endParagraph();
+      endList();
       if (code === undefined) {
-        endParagraph();
         code = [];
       } else {
         blocks.push(codeBlock(code.join("\n")));
@@ -82,27 +99,75 @@ export function docBlocks(text: string): DocBlock[] {
       code.push(line);
     } else if (line.trim() === "") {
       endParagraph();
+      endList();
+    } else if (LIST_ITEM.test(line.trim())) {
+      endParagraph();
+      list.push(line.trim()
+        .replace(LIST_ITEM, ""));
     } else {
+      endList();
       paragraph.push(line.trim());
     }
   }
   endParagraph();
+  endList();
   if (code !== undefined) {
     blocks.push(codeBlock(code.join("\n")));
   }
   return blocks;
 }
 
+/** A line of a list: `- item`, or `* item`. */
+const LIST_ITEM = /^[-*] /;
+/** An inline tag `{@link Name}`, or a Markdown link `[text](url)`: its text, then its target. */
+const INLINE_LINK = /\{@link\s+([^}\s]+)\s*\}|\[([^\]]+)\]\(([^)\s]+)\)/g;
+
 function codeBlock(text: string): DocBlock {
-  return { isCode: true, text, parts: [] };
+  return { isCode: true, isList: false, text, parts: [], items: [] };
 }
 
-function textBlock(text: string): DocBlock {
-  // Odd pieces of the split are between a pair of backticks: they are code.
-  const parts = text.split("`")
-    .map((piece, index): TextPart => ({ text: piece, code: index % 2 === 1 }))
+function textBlock(text: string, links: ReadonlyMap<string, string>): DocBlock {
+  return { isCode: false, isList: false, text: "", parts: partsOf(text, links), items: [] };
+}
+
+function listBlock(items: readonly string[], links: ReadonlyMap<string, string>): DocBlock {
+  return {
+    isCode: false,
+    isList: true,
+    text: "",
+    parts: [],
+    items: items.map((item) => partsOf(item, links)),
+  };
+}
+
+/**
+ * The parts of a line of text. Odd pieces of a backtick split are code spans; the rest holds
+ * the links, which `links` resolves for `{@link Name}` (none, when the name is not exported).
+ */
+function partsOf(text: string, links: ReadonlyMap<string, string>): TextPart[] {
+  return text.split("`")
+    .flatMap((piece, index): TextPart[] => index % 2 === 1
+      ? [{ text: piece, code: true, href: "" }]
+      : linksIn(piece, links))
     .filter((part) => part.text !== "");
-  return { isCode: false, text: "", parts };
+}
+
+function linksIn(text: string, links: ReadonlyMap<string, string>): TextPart[] {
+  const parts: TextPart[] = [];
+  let last = 0;
+  for (const match of text.matchAll(INLINE_LINK)) {
+    parts.push(plainPart(text.slice(last, match.index)));
+    last = match.index + match[0].length;
+    parts.push(match[1] === undefined
+      ? { text: match[2]!, code: false, href: match[3]! }
+      : { text: match[1], code: false, href: links.get(match[1]) ?? "" });
+  }
+  parts.push(plainPart(text.slice(last)));
+  return parts;
+}
+
+function plainPart(text: string): TextPart {
+  return { text, code: false, href: "" };
 }
 
 /**
@@ -115,7 +180,7 @@ export function anchorId(...segments: readonly string[]): string {
     .replace(/^-|-$/g, "");
 }
 
-function viewDoc(doc: ApiDoc): ViewDoc {
+function viewDoc(doc: ApiDoc, links: ReadonlyMap<string, string>): ViewDoc {
   return {
     name: doc.name,
     kind: doc.kind,
@@ -127,19 +192,23 @@ function viewDoc(doc: ApiDoc): ViewDoc {
     signatures: doc.signatures ?? [],
     type: doc.type ?? "",
     declaration: doc.declaration ?? "",
-    description: docBlocks(doc.description),
+    description: docBlocks(doc.description, links),
     params: doc.params,
     returns: doc.returns ?? "",
-    examples: doc.examples.flatMap((example) => docBlocks(example)),
+    examples: doc.examples.flatMap((example) => docBlocks(example, links)),
     see: doc.see,
     throws: doc.throws,
   };
 }
 
-function viewItem(item: ApiExport, specifier: string): ViewItem {
-  const members = (item.members ?? []).map(viewDoc);
+function viewItem(
+  item: ApiExport,
+  specifier: string,
+  links: ReadonlyMap<string, string>,
+): ViewItem {
+  const members = (item.members ?? []).map((member) => viewDoc(member, links));
   return {
-    ...viewDoc(item),
+    ...viewDoc(item, links),
     id: anchorId(specifier, item.name),
     href: `#${anchorId(specifier, item.name)}`,
     members,
@@ -147,8 +216,8 @@ function viewItem(item: ApiExport, specifier: string): ViewItem {
   };
 }
 
-function viewSection(entry: ApiEntry): ViewSection {
-  const items = entry.exports.map((item) => viewItem(item, entry.specifier));
+function viewSection(entry: ApiEntry, links: ReadonlyMap<string, string>): ViewSection {
+  const items = entry.exports.map((item) => viewItem(item, entry.specifier, links));
   return {
     id: anchorId(entry.specifier),
     href: `#${anchorId(entry.specifier)}`,
@@ -160,5 +229,12 @@ function viewSection(entry: ApiEntry): ViewSection {
 
 /** The page's sections, one per entry point, in the order the reference lists them. */
 export function toSections(reference: ApiReference): ViewSection[] {
-  return reference.entries.map(viewSection);
+  // `{@link Name}` goes to the anchor of the export it names, wherever that export is.
+  const links = new Map<string, string>();
+  for (const entry of reference.entries) {
+    for (const item of entry.exports) {
+      links.set(item.name, `#${anchorId(entry.specifier, item.name)}`);
+    }
+  }
+  return reference.entries.map((entry) => viewSection(entry, links));
 }
