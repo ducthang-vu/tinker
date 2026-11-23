@@ -3,7 +3,7 @@
 // stay internal.
 
 // Starting an app
-export { bootstrap, AppRef, type BootstrapOptions } from "./bootstrap.ts";
+export { bootstrap, type AppRef, type BootstrapOptions } from "./bootstrap.ts";
 
 // Writing components and directives
 export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./internal/authoring/decorators.ts";

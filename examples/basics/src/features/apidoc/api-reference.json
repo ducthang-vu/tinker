@@ -62,33 +62,29 @@
         },
         {
           "name": "AppRef",
-          "kind": "class",
+          "kind": "interface",
           "source": "packages/core/src/view/bootstrap.ts:26",
           "description": "A started application: its root component, and how to destroy it.",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "signatures": [
-            "new AppRef<T extends object>(root: ComponentRef<T>, engine: Engine): AppRef<T>"
-          ],
           "members": [
             {
               "name": "root",
               "kind": "property",
-              "source": "packages/core/src/view/bootstrap.ts:29",
-              "description": "",
+              "source": "packages/core/src/view/bootstrap.ts:28",
+              "description": "The root component of the app.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "inheritedFrom": "",
               "type": "ComponentRef<T>"
             },
             {
               "name": "destroy",
               "kind": "method",
-              "source": "packages/core/src/view/bootstrap.ts:34",
+              "source": "packages/core/src/view/bootstrap.ts:30",
               "description": "Destroy the app: its root component, and everything it owns. Calling it again does nothing.",
               "params": [],
               "examples": [],
@@ -1509,7 +1505,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@780",
+              "name": "__@INPUT_TYPE@776",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1669,7 +1665,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@780",
+              "name": "__@INPUT_TYPE@776",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -3496,7 +3492,7 @@
         {
           "name": "bootstrap",
           "kind": "function",
-          "source": "packages/core/src/view/bootstrap.ts:47",
+          "source": "packages/core/src/view/bootstrap.ts:54",
           "description": "Start the application whose root component is `type`.",
           "params": [
             {
@@ -4006,7 +4002,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@933",
+              "name": "__@CHAIN@929",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:61",
               "description": "",
@@ -4015,7 +4011,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@933<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@929<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4249,7 +4245,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@931",
+              "name": "__@MAP@927",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
@@ -4258,7 +4254,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@931<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@927<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -4668,7 +4664,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@931",
+              "name": "__@MAP@927",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:214",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -4683,11 +4679,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@931<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@927<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@933",
+              "name": "__@CHAIN@929",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:234",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -4702,7 +4698,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@933<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@929<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {

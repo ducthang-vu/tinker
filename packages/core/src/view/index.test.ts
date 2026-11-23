@@ -12,7 +12,6 @@ test("the public API exports exactly these values", () => {
         "Directive",
         "DomRenderer",
         "bootstrap",
-        "AppRef",
         "InputNotBoundError",
         "booleanAdapter",
         "registerInputNames",

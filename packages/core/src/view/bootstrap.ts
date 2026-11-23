@@ -23,14 +23,21 @@ export interface BootstrapOptions {
 }
 
 /** A started application: its root component, and how to destroy it. */
-export class AppRef<T extends object> {
+export interface AppRef<T extends object> {
+  /** The root component of the app. */
+  readonly root: ComponentRef<T>;
+  /** Destroy the app: its root component, and everything it owns. Calling it again does nothing. */
+  destroy(): void;
+}
+
+/** The running app `bootstrap` returns, as an AppRef. Not exported: apps see only the interface. */
+class RunningApp<T extends object> implements AppRef<T> {
   /** @param engine The engine the app runs in, destroyed with it. */
   constructor(
     readonly root: ComponentRef<T>,
     private readonly engine: Engine,
   ) {}
 
-  /** Destroy the app: its root component, and everything it owns. Calling it again does nothing. */
   destroy(): void {
     this.engine.destroy();
   }
@@ -52,5 +59,5 @@ export function bootstrap<T extends object>(
   const started = engine.bootstrap(type, options.host);
   // A root that cannot start leaves no engine behind.
   use(started, { Left: () => engine.destroy(), Right: () => undefined });
-  return valueOrThrow(map(started, (ref) => new AppRef(ref, engine)));
+  return valueOrThrow(map(started, (ref) => new RunningApp(ref, engine)));
 }
