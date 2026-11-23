@@ -6590,7 +6590,7 @@
         {
           "name": "PLATFORM_LOCATION",
           "kind": "const",
-          "source": "packages/router/src/lib/location/platform-location.ts:20",
+          "source": "packages/router/src/lib/location/platform-location.ts:25",
           "description": "The platform location, a token so a test can replace the browser.",
           "params": [],
           "examples": [],
@@ -6672,6 +6672,17 @@
               "signatures": [
                 "onPop(listener: () => void): () => void"
               ]
+            },
+            {
+              "name": "href",
+              "kind": "method",
+              "source": "packages/router/src/lib/location/platform-location.ts:21",
+              "description": "The `href` a link to the app's `path` gets in the page, in the browser's form: for an app\nserved under a folder, the folder is added. Optional: without it, the path is the href.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": []
             }
           ]
         },
@@ -6851,7 +6862,7 @@
         {
           "name": "RouterLink",
           "kind": "class",
-          "source": "packages/router/src/lib/directives/router-link.ts:11",
+          "source": "packages/router/src/lib/directives/router-link.ts:12",
           "description": "",
           "params": [],
           "examples": [],
@@ -6864,7 +6875,7 @@
             {
               "name": "routerlink",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:22",
+              "source": "packages/router/src/lib/directives/router-link.ts:23",
               "description": "The destination: a path, or the segments of one, e.g. `\"/todos\"` or `[\"todos\", \"7\"]`.",
               "params": [],
               "examples": [],
@@ -6875,7 +6886,7 @@
             {
               "name": "target",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:24",
+              "source": "packages/router/src/lib/directives/router-link.ts:25",
               "description": "The browser's target, set on the link. `_blank` opens it in a new tab: left to the browser.",
               "params": [],
               "examples": [],
@@ -6886,7 +6897,7 @@
             {
               "name": "queryParams",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:26",
+              "source": "packages/router/src/lib/directives/router-link.ts:27",
               "description": "Query params set on the destination; a param replaces the same key of its own query.",
               "params": [],
               "examples": [],
@@ -6897,7 +6908,7 @@
             {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:28",
+              "source": "packages/router/src/lib/directives/router-link.ts:29",
               "description": "The fragment (hash) of the destination, without the `#`.",
               "params": [],
               "examples": [],
@@ -6908,7 +6919,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:30",
+              "source": "packages/router/src/lib/directives/router-link.ts:31",
               "description": "The state of the history entry a click creates.",
               "params": [],
               "examples": [],
@@ -7027,7 +7038,7 @@
         {
           "name": "browserPlatformLocation",
           "kind": "const",
-          "source": "packages/router/src/lib/location/platform-location.ts:23",
+          "source": "packages/router/src/lib/location/platform-location.ts:28",
           "description": "The browser's own location and history.",
           "params": [],
           "examples": [],

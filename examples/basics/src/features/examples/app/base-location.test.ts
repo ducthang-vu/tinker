@@ -52,6 +52,9 @@ describe("basedPlatformLocation", () => {
     expect(window.location.pathname)
       .toBe("/tinker/todos");
 
+    expect(location.href?.("/api"))
+      .toBe("/tinker/api");
+
     location.replace("/", null);
     expect(window.location.pathname)
       .toBe("/tinker/");

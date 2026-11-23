@@ -26,5 +26,6 @@ export function basedPlatformLocation(base: string): PlatformLocation {
     push: (url, state) => browserPlatformLocation.push(toBrowserPath(base, url), state),
     replace: (url, state) => browserPlatformLocation.replace(toBrowserPath(base, url), state),
     onPop: (listener) => browserPlatformLocation.onPop(listener),
+    href: (path) => toBrowserPath(base, path),
   };
 }

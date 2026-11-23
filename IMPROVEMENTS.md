@@ -319,15 +319,12 @@ reference does not show them.
 
 ## Example app: routing and the GitHub Pages base (`examples/basics/src/features/examples/app/`, `.github/workflows/gh-pages.yml`)
 
-### 1. Links are not base-aware
+### 1. Links are base-aware through PlatformLocation.href
 
-**Problem.** `RouterLink` writes an `href` of the app's own path (`/api`). On GitHub Pages the
-app lives under `/tinker/`, so the href points at the host root. A plain click is handled by the
-router (`basedPlatformLocation` adds the base), but a middle click or "open in a new tab" goes to
-the wrong URL.
-
-**To do.** Let the router know the base: a `base` option on `provideRouter` that prefixes the
-hrefs it writes, rather than only the location it reads and writes.
+**What was fixed.** `RouterLink` writes its `href` in the platform's form: `PlatformLocation.href`
+(optional) adds the base, so a link under `/tinker/` opens the right page in a new tab. Click
+handling and the current-page check still use the app's own path. Any platform that serves
+the app under a folder should provide `href`.
 
 ### 2. Deep links rely on a copy of index.html
 

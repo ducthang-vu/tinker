@@ -14,6 +14,11 @@ export interface PlatformLocation {
   replace(url: string, state: unknown): void;
   /** Call `listener` when the user goes back or forward. Returns the function that stops it. */
   onPop(listener: () => void): () => void;
+  /**
+   * The `href` a link to the app's `path` gets in the page, in the browser's form: for an app
+   * served under a folder, the folder is added. Optional: without it, the path is the href.
+   */
+  href?(path: string): string;
 }
 
 /** The platform location, a token so a test can replace the browser. */
