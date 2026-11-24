@@ -1,8 +1,8 @@
 // The typed URL builder. A UrlBuilder walks the route tree as it is given: each step moves to a
 // child route, and the types only offer the children and params that exist there. The path comes
 // first, then the query, then the fragment; the types enforce that order, and the run-time checks
-// repeat it. A Destination is the complete value a builder returns: plain data, that only this
-// module can make.
+// repeat it. `..` moves to the parent, in the path and in `parse`. A Destination is the complete
+// value a builder returns: plain data, that only this module can make.
 
 import { match } from "@tinker/functional";
 import type { ActivatedRoute } from "../state/activated-route.ts";
@@ -21,14 +21,14 @@ export type Part
 /** The phases of a builder, in the order a URL is written. */
 export type Phase = "path" | "query" | "fragment";
 
-/** A destination still being built: what has been written so far, with no completeness check. */
+/** What has been written so far, with no completeness check. */
 export interface PartialDestination {
   readonly parts: readonly Part[];
   readonly query: readonly (readonly [string, string])[];
   readonly fragment: string | undefined;
 }
 
-/** A complete, app-relative destination. Only `UrlBuilder.build` makes one. */
+/** A complete, app-relative destination. Only this module makes one. */
 export class Destination {
   private constructor(
     private readonly token: typeof BUILT,
@@ -54,7 +54,7 @@ export class Destination {
   }
 
   /**
-   * Builds a destination from parts the builder has checked.
+   * Makes a destination from parts that have been checked against the tree.
    *
    * @param parts The path, in order.
    * @param query The query pairs, in order.
@@ -70,7 +70,7 @@ export class Destination {
   }
 }
 
-/** Only the builder holds this symbol, so only the builder can create a Destination. */
+/** Only this module holds this symbol, so only this module can make a Destination. */
 const BUILT: unique symbol = Symbol("built");
 
 /** A route tree's root: the path is empty and its children are the top-level routes. */
@@ -87,13 +87,13 @@ type PathOf<Node> = Node extends { readonly path: infer P extends string } ? P :
 /** A path without its leading slash. */
 type Trim<P extends string> = P extends `/${infer R}` ? Trim<R> : P;
 
+/** Whether a node's path is only known at run time: then every name is allowed. */
+type Loose<Node> = string extends PathOf<Node> ? true : false;
+
 /** The segments a literal child may be: a child's path without its leading slash. */
 type ChildPaths<Node> = Loose<Node> extends true
   ? string
   : Trim<Exclude<PathOf<Children<Node>>, `${string}:${string}`>>;
-
-/** Whether a node's children are only known at run time: then every name is allowed. */
-type Loose<Node> = string extends PathOf<Node> ? true : false;
 
 /** The param names declared by the children of a node, with or without a leading slash. */
 type ParamNames<Node> = Loose<Node> extends true
@@ -126,18 +126,52 @@ type Pop<Stack extends readonly RouteNode[]> = Stack extends readonly [RouteNode
     ? Rest
     : Stack;
 
+/** The stack after a segment: `..` goes up, anything else goes to a child. */
+type NextStack<Stack extends readonly RouteNode[], S extends string> = S extends ".."
+  ? Pop<Stack>
+  : [...Stack, ChildOf<Last<Stack>, S>];
+
 /** The path of a route node segment, without leading or trailing slashes. */
 function segmentOf(path: string): string {
   return path.replace(/^\/+|\/+$/g, "");
 }
 
-/** The route nodes from the root down to `route`, and the parts they make, root first. */
+/** The route nodes from the root down to `route`, root first. */
 function ancestryOf(route: ActivatedRoute): readonly ActivatedRoute[] {
   const above = match(route.parent, {
     Some: (parent) => ancestryOf(parent),
     None: () => [],
   });
   return [...above, route];
+}
+
+/** A URL that could not be parsed into a destination of the tree. */
+export class ParseError extends Error {
+  constructor(
+    readonly reason: "no-route" | "malformed" | "above-root",
+    /** The raw input. */
+    readonly input: string,
+    /** The part that failed: the segment, the query pair, or the fragment. */
+    readonly at: string,
+  ) {
+    super(`cannot parse "${input}": ${reason} at "${at}"`);
+    this.name = "ParseError";
+  }
+}
+
+/** Decodes one part of a URL, or throws a malformed ParseError for the whole input. */
+function decodeOrThrow(input: string, raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    throw new ParseError("malformed", input, raw);
+  }
+}
+
+/** Splits at the first `separator`: the part before it, and the part after it, if there is one. */
+function splitOnce(text: string, separator: string): [string, string | undefined] {
+  const at = text.indexOf(separator);
+  return at === -1 ? [text, undefined] : [text.slice(0, at), text.slice(at + 1)];
 }
 
 /**
@@ -192,23 +226,28 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     return UrlBuilder.make<readonly RouteNode[], "path">(nodes, parts, [], undefined);
   }
 
-  /** What has been written so far. Inspectable, but not navigable until `build`. */
+  /** What has been written so far. Inspectable, but not a destination until `build`. */
   get partial(): PartialDestination {
     return { parts: this.parts, query: this.query, fragment: this.fragment };
   }
 
   /**
-   * Moves to a child with a literal path. Throws when no such child exists.
+   * Moves to a child with a literal path, or to the parent with `..`. Throws when no such child
+   * exists, or at the root.
    *
-   * @param segment The child's path, without its leading slash.
-   * @returns A builder at that child.
+   * @param segment The child's path without its leading slash, or `..`.
+   * @returns A builder at that child, or at the parent.
    */
-  withSegment<S extends ChildPaths<Last<Stack>>>(
+  withSegment<S extends ChildPaths<Last<Stack>> | "..">(
     this: UrlBuilder<Stack, "path">,
     segment: S,
-  ): UrlBuilder<[...Stack, ChildOf<Last<Stack>, S>], "path"> {
+  ): UrlBuilder<NextStack<Stack, S>, "path"> {
+    this.assertPathPhase();
+    if (segment === "..") {
+      return this.goUp<NextStack<Stack, S>>();
+    }
     const child = this.childNamed(segment, false);
-    return UrlBuilder.make<[...Stack, ChildOf<Last<Stack>, S>], "path">(
+    return UrlBuilder.make<NextStack<Stack, S>, "path">(
       [...this.nodes, child],
       [...this.parts, { kind: "segment", value: segment }],
       this.query,
@@ -246,15 +285,7 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     this: UrlBuilder<Stack, "path"> & (Stack extends readonly [RouteNode] ? never : unknown),
   ): UrlBuilder<Pop<Stack>, "path"> {
     this.assertPathPhase();
-    if (this.nodes.length === 1) {
-      throw new Error("up: already at the root");
-    }
-    return UrlBuilder.make<Pop<Stack>, "path">(
-      this.nodes.slice(0, -1),
-      this.parts.slice(0, -1),
-      this.query,
-      this.fragment,
-    );
+    return this.goUp<Pop<Stack>>();
   }
 
   /**
@@ -306,6 +337,60 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
   }
 
   /**
+   * Parses a raw URL of the whole tree into a destination. Parsing starts at the root whatever the
+   * builder's position, and `..` goes to the parent. Each segment is matched in declaration order,
+   * as the router matches: a literal child, or a param child that takes any value.
+   *
+   * @param raw The raw URL, such as `"/todos/7?tab=done#top"`.
+   * @returns The destination.
+   * @throws ParseError when the URL is not one of the tree's, or a part is malformed.
+   */
+  parse(raw: string): Destination {
+    const [beforeFragment, fragmentRaw] = splitOnce(raw, "#");
+    const [pathRaw, queryRaw] = splitOnce(beforeFragment, "?");
+    const parts: Part[] = [];
+    const nodes: RouteNode[] = [this.nodes[0] as RouteNode];
+
+    for (const rawSegment of pathRaw.split("/")
+      .filter((segment) => segment !== "")) {
+      const segment = decodeOrThrow(raw, rawSegment);
+      if (segment === "..") {
+        if (nodes.length === 1) {
+          throw new ParseError("above-root", raw, segment);
+        }
+        nodes.pop();
+        parts.pop();
+        continue;
+      }
+      const current = nodes[nodes.length - 1] as RouteNode;
+      const child = (current.children ?? []).find((node) => {
+        const name = segmentOf(node.path);
+        return name === segment || name.startsWith(":");
+      });
+      if (child === undefined) {
+        throw new ParseError("no-route", raw, segment);
+      }
+      const name = segmentOf(child.path);
+      parts.push(name.startsWith(":")
+        ? { kind: "param", name: name.slice(1), value: segment }
+        : { kind: "segment", value: segment });
+      nodes.push(child);
+    }
+
+    const query: [string, string][] = [];
+    for (const pair of queryRaw === undefined ? [] : queryRaw.split("&")) {
+      if (pair === "") {
+        continue;
+      }
+      const [nameRaw, valueRaw = ""] = splitOnce(pair, "=");
+      query.push([decodeOrThrow(raw, nameRaw), decodeOrThrow(raw, valueRaw)]);
+    }
+
+    const fragment = fragmentRaw === undefined ? undefined : decodeOrThrow(raw, fragmentRaw);
+    return Destination.make(parts, query, fragment);
+  }
+
+  /**
    * A builder with the given stack, in the given phase. The types carry the stack; the nodes are
    * the same routes, in the same order.
    */
@@ -318,9 +403,21 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     return new UrlBuilder<S, P>(nodes, parts, query, fragment);
   }
 
+  /** One level up: the node and the part of the current route are dropped. Throws at the root. */
+  private goUp<S extends readonly RouteNode[]>(): UrlBuilder<S, "path"> {
+    if (this.nodes.length === 1) {
+      throw new Error("up: already at the root");
+    }
+    return UrlBuilder.make<S, "path">(
+      this.nodes.slice(0, -1),
+      this.parts.slice(0, -1),
+      this.query,
+      this.fragment,
+    );
+  }
+
   /** The child of the current route with the given name, or throws. */
   private childNamed(name: string, isParam: boolean): RouteNode {
-    this.assertPathPhase();
     const current = this.nodes[this.nodes.length - 1] as RouteNode;
     const wanted = isParam ? `:${name}` : name;
     const child = (current.children ?? []).find((node) => segmentOf(node.path) === wanted);

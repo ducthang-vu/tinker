@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { Some, None } from "@tinker/functional";
+import { None, Some } from "@tinker/functional";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Route } from "../router/route.ts";
-import { UrlBuilder } from "./url-builder.ts";
+import { ParseError, UrlBuilder } from "./url-builder.ts";
 
 /** A route tree, declared as a constant so its paths keep their literal types. */
 const tree = [
@@ -257,5 +257,124 @@ describe("from an activated route", () => {
     expect(builder.build()
       .format())
       .toBe("/todos/7");
+  });
+});
+
+/** The error a parse throws, or the test fails when it does not throw. */
+function parseErrorOf(raw: string): ParseError {
+  try {
+    UrlBuilder.for(tree)
+      .parse(raw);
+  } catch (error) {
+    if (error instanceof ParseError) {
+      return error;
+    }
+    throw error;
+  }
+  throw new Error(`expected ${raw} to fail`);
+}
+
+describe("parse", () => {
+  test("a URL of the tree parses to a destination, with its params as params", () => {
+    expect(UrlBuilder.for(tree)
+      .parse("/todos/7").parts)
+      .toEqual([
+        { kind: "segment", value: "todos" },
+        { kind: "param", name: "id", value: "7" },
+      ]);
+  });
+
+  test("the query and the fragment are parsed and decoded", () => {
+    const destination = UrlBuilder.for(tree)
+      .parse("/todos/a%20b?tab=done&q=x%26y#top");
+    expect(destination.format())
+      .toBe("/todos/a%20b?tab=done&q=x%26y#top");
+    expect(destination.query)
+      .toEqual([["tab", "done"], ["q", "x&y"]]);
+  });
+
+  test("a destination the builder makes parses back to the same URL", () => {
+    const built = UrlBuilder.for(tree)
+      .withSegment("todos")
+      .withParam("id", "7")
+      .withQuery("a", "1")
+      .build();
+    expect(UrlBuilder.for(tree)
+      .parse(built.format())
+      .format())
+      .toBe(built.format());
+  });
+
+  test("parsing starts at the root, whatever the builder's position", () => {
+    const fromTodos = UrlBuilder.for(tree)
+      .withSegment("todos");
+    expect(fromTodos.parse("/home")
+      .format())
+      .toBe("/home");
+  });
+
+  test("a segment no route matches throws a no-route ParseError", () => {
+    const error = parseErrorOf("/nowhere");
+    expect(error.reason)
+      .toBe("no-route");
+    expect(error.at)
+      .toBe("nowhere");
+  });
+
+  test("a malformed percent-encoding throws a malformed ParseError", () => {
+    expect(parseErrorOf("/todos/%E0%A4%A").reason)
+      .toBe("malformed");
+  });
+
+  test("a path that goes below a route with no children throws no-route", () => {
+    expect(parseErrorOf("/home/extra").reason)
+      .toBe("no-route");
+  });
+
+  test("an empty path is the root", () => {
+    expect(UrlBuilder.for(tree)
+      .parse("/")
+      .format())
+      .toBe("/");
+  });
+
+  test("a malformed query pair or fragment throws malformed", () => {
+    expect(parseErrorOf("/home?a=%E0%A4%A").reason)
+      .toBe("malformed");
+    expect(parseErrorOf("/home#%E0%A4%A").reason)
+      .toBe("malformed");
+  });
+
+  test("an empty query pair is skipped, and a pair without a value has an empty value", () => {
+    expect(UrlBuilder.for(tree)
+      .parse("/home?&flag&a=1").query)
+      .toEqual([["flag", ""], ["a", "1"]]);
+  });
+
+  test("`..` goes to the parent, and throws above the root", () => {
+    expect(UrlBuilder.for(tree)
+      .parse("/todos/7/../7")
+      .format())
+      .toBe("/todos/7");
+    expect(parseErrorOf("/..").reason)
+      .toBe("above-root");
+  });
+});
+
+describe("the parent segment", () => {
+  test("withSegment('..') goes to the parent, as up does", () => {
+    const url = UrlBuilder.for(tree)
+      .withSegment("todos")
+      .withParam("id", "7")
+      .withSegment("..")
+      .build();
+    expect(url.format())
+      .toBe("/todos");
+  });
+
+  test("withSegment('..') at the root throws", () => {
+    const untyped = UrlBuilder.for(tree) as unknown as { withSegment(segment: string): unknown };
+    expect(() => untyped.withSegment(".."))
+      .toThrow("up: already at the root");
   });
 });
