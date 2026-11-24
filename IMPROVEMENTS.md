@@ -273,23 +273,14 @@ router reads the URL itself. Any other static host needs the same fallback.
 
 ## Navigation: the destination builder (`packages/router/src/lib/destination/`, `pipeline/`)
 
-### 1. `relativeTo()` with no argument is the root in a root-provided builder
-
-**Problem.** `UrlBuilder` is provided once, at the root, so its injected `ActivatedRoute` is the root
-route, not the component that calls it. `relativeTo()` with no argument therefore starts at the
-root. `RouterLink` passes its own route explicitly for that reason.
-
-**To do.** Provide the builder per component (or per route level) so its default is the component's
-route, or require the route argument. The first needs view-layer support for providers per level.
-
-### 2. A builder's checks run when each line runs, not while typing
+### 1. A builder's checks run when each line runs, not while typing
 
 **Problem.** The builder has no compile-time types, so a mistyped segment is found by running the
 line (in the dev server or a test), not in the editor. Dynamic routes need that anyway.
 
 **To do.** A later static layer for routes known at build time, on top of the runtime checks.
 
-### 3. The base prefix is not applied at the browser boundary yet
+### 2. The base prefix is not applied at the browser boundary yet
 
 **Problem.** The commit step is given an empty base, so `Location` still uses the `<base>` element
 read by `browserPlatformLocation`. `APP_BASE` and `toBrowserUrl` are written and tested but not
@@ -298,7 +289,7 @@ wired in.
 **To do.** Make `Location` take browser URLs with the base and convert them with `toBrowserUrl` and
 `fromBrowserUrl`, provide `APP_BASE` from the build, and pass it to the commit step.
 
-### 4. Back and forward moves skip the pipeline
+### 3. Back and forward moves skip the pipeline
 
 **Problem.** A back or forward move (`popstate`) updates the activated routes directly, so its
 guards and redirects never run.
@@ -306,7 +297,7 @@ guards and redirects never run.
 **To do.** Route a `pop` request through the same pipeline with `arrival: "pop"`, so the guards
 and redirects run before the routes change.
 
-### 5. A navigation rejected by a guard is not reported to the app
+### 4. A navigation rejected by a guard is not reported to the app
 
 **Problem.** `navigate` resolves `false` for a guard that says no, a redirect that cannot be
 followed, and a navigation replaced by a newer one. The app cannot tell those apart, and a guard
