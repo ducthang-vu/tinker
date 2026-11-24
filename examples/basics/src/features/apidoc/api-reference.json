@@ -5339,7 +5339,7 @@
         {
           "name": "createTask",
           "kind": "function",
-          "source": "packages/functional/src/lib/stream/task.ts:181",
+          "source": "packages/functional/src/lib/stream/task.ts:171",
           "description": "A task from any outcome: a Continue succeeds with its value, and a Halt fails with its reason.",
           "params": [
             {
@@ -5358,7 +5358,7 @@
         {
           "name": "delay",
           "kind": "function",
-          "source": "packages/functional/src/lib/stream/task.ts:126",
+          "source": "packages/functional/src/lib/stream/task.ts:116",
           "description": "A task that succeeds after `milliseconds`. Cancelling clears the timer.",
           "params": [
             {
@@ -5554,28 +5554,9 @@
           ]
         },
         {
-          "name": "fromOutcome",
-          "kind": "function",
-          "source": "packages/functional/src/lib/stream/task.ts:100",
-          "description": "A task with the outcome of an Either: a Right succeeds, a Left fails.",
-          "params": [
-            {
-              "name": "either",
-              "text": "The outcome the task has."
-            }
-          ],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "returns": "A task with that outcome.",
-          "signatures": [
-            "fromOutcome<T, E>(either: Either<T, E>): Task<T, E>"
-          ]
-        },
-        {
           "name": "fromPromise",
           "kind": "function",
-          "source": "packages/functional/src/lib/stream/task.ts:111",
+          "source": "packages/functional/src/lib/stream/task.ts:101",
           "description": "A task running the promise `start` returns. `start` is called only when the task runs, and\nreceives an AbortSignal that is aborted on cancel. A rejection becomes a failure, an Error.",
           "params": [
             {
@@ -6029,7 +6010,7 @@
         {
           "name": "timeout",
           "kind": "function",
-          "source": "packages/functional/src/lib/stream/task.ts:140",
+          "source": "packages/functional/src/lib/stream/task.ts:130",
           "description": "`task`, failing with a TimeoutError if it takes longer than `milliseconds` (and cancelled).",
           "params": [
             {
@@ -6094,7 +6075,7 @@
         {
           "name": "toPromise",
           "kind": "function",
-          "source": "packages/functional/src/lib/stream/task.ts:169",
+          "source": "packages/functional/src/lib/stream/task.ts:159",
           "description": "Run the task as a Promise (which cannot be cancelled).",
           "params": [
             {
