@@ -10,7 +10,7 @@ import type { Stop } from "./stop.ts";
 /**
  * Builds the pipeline from its steps.
  *
- * @param steps The four steps, in order: match, redirect, guards, browser.
+ * @param steps The four steps, in order: match, redirect, guards, commit.
  * @returns A function from a request to the task that runs it.
  */
 export function createPipeline(
@@ -22,6 +22,6 @@ export function createPipeline(
       flatMap((r: NavigationRequest) => createTask(steps.match(r))),
       flatMap((m: MatchedRequest) => createTask(steps.redirect(m))),
       flatMap(steps.guards),
-      flatMap(steps.browser),
+      flatMap(steps.commit),
     );
 }

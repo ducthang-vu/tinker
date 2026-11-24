@@ -6,7 +6,8 @@
 //   redirect  Either  Does a route send the navigation elsewhere? Stops with Redirect.
 //   guards    Task    Do the guards of the matched routes allow it? Stops with Rejected,
 //                     Redirect, or Failed. A guard may wait, so the step is a Task.
-//   browser   Task    Change the browser. Stops with Failed when the browser refuses.
+//   commit    Task    Commit the navigation: change the browser when the URL needs it, then
+//                     activate the routes. Stops with Failed when the browser refuses.
 
 import type { Either, Task } from "@tinker/functional";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
@@ -21,13 +22,17 @@ export type RedirectStep = (matched: MatchedRequest) => Either<MatchedRequest, S
 /** Runs the matched routes' guards. Allows the navigation by succeeding with it. */
 export type GuardStep = (matched: MatchedRequest) => Task<MatchedRequest, Stop>;
 
-/** Changes the browser to the navigation's URL. Succeeds with the navigation once it changed. */
-export type BrowserStep = (matched: MatchedRequest) => Task<MatchedRequest, Stop>;
+/**
+ * Commits the navigation. A push adds a history entry. A pop changes the browser only when a
+ * redirect moved the URL. Then the activated routes are updated. Succeeds with the navigation once
+ * it is committed.
+ */
+export type CommitStep = (matched: MatchedRequest) => Task<MatchedRequest, Stop>;
 
 /** The four steps the pipeline is built from. */
 export interface PipelineSteps {
   readonly match: MatchStep;
   readonly redirect: RedirectStep;
   readonly guards: GuardStep;
-  readonly browser: BrowserStep;
+  readonly commit: CommitStep;
 }

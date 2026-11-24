@@ -31,8 +31,8 @@ function fakeSteps(log: string[], overrides: Partial<PipelineSteps> = {}): Pipel
       log.push("guards");
       return succeed(m);
     },
-    browser: (m) => {
-      log.push("browser");
+    commit: (m) => {
+      log.push("commit");
       return succeed(m);
     },
     ...overrides,
@@ -54,11 +54,11 @@ function outcomeOf(task: Task<MatchedRequest, Stop>): { ok?: MatchedRequest; err
 }
 
 describe("the pipeline's order", () => {
-  test("runs match, redirect, guards and browser in order, and succeeds with the matched request", () => {
+  test("runs match, redirect, guards and commit in order, and succeeds with the matched request", () => {
     const log: string[] = [];
     const outcome = outcomeOf(createPipeline(fakeSteps(log))(request));
     expect(log)
-      .toEqual(["match", "redirect", "guards", "browser"]);
+      .toEqual(["match", "redirect", "guards", "commit"]);
     expect(outcome.ok?.url)
       .toBe("/todos/7");
   });
@@ -101,7 +101,7 @@ describe("stops", () => {
       .toBeInstanceOf(NoRoute);
   });
 
-  test("a redirect stops at redirect: guards and browser do not run", () => {
+  test("a redirect stops at redirect: guards and commit do not run", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
       redirect: () => Left.of<Stop, MatchedRequest>(Redirect.of("/login")),
@@ -113,7 +113,7 @@ describe("stops", () => {
       .toBeInstanceOf(Redirect);
   });
 
-  test("a rejection from the guards stops before the browser changes", () => {
+  test("a rejection from the guards stops before the commit", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
       guards: (m) => fail<Stop>(Rejected.of(m.url)),
@@ -125,10 +125,10 @@ describe("stops", () => {
       .toBeInstanceOf(Rejected);
   });
 
-  test("a failure in the browser step is the pipeline's failure", () => {
+  test("a failure in the commit step is the pipeline's failure", () => {
     const cause = new Error("refused");
     const steps = fakeSteps([], {
-      browser: (m) => fail<Stop>(Failed.of(m.url, cause)),
+      commit: (m) => fail<Stop>(Failed.of(m.url, cause)),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(outcome.error)
