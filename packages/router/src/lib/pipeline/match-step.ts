@@ -5,7 +5,7 @@
 
 import { Left, Right } from "@tinker/functional";
 import type { Part } from "../destination/url-builder.ts";
-import type { LevelMatch } from "../router/match.ts";
+import { type LevelMatch, levelsOf } from "../router/match.ts";
 import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { MatchStep } from "./steps.ts";
@@ -15,43 +15,15 @@ import { failed, noRoute, type Stop } from "./stop.ts";
 export const MAX_REDIRECTS = 10;
 
 /**
- * A path without its leading slash, as a route is compared with a part.
- * @param path
- * @param path The path of the route node.
- * @returns The path without its leading and trailing slashes.
- */
-function segmentOf(path: string): string {
-  return path.replace(/^\/+|\/+$/g, "");
-}
-
-/**
- * The levels the parts match, root first: the root, then one level per part. A param part matches a
- * param child with its name; a segment part matches a literal child with its value. `undefined`
- * when a part has no route under the one before it.
+ * The levels the parts match, root first: the root, then one level per part a route takes. The
+ * matcher is the router's own, so a request matches exactly the URLs the router shows.
  *
  * @param root The root route of the tree.
  * @param parts The parts of the destination, in order.
  * @returns The matched levels, or undefined.
  */
 export function matchParts(root: Route, parts: readonly Part[]): readonly LevelMatch[] | undefined {
-  const levels: LevelMatch[] = [{ route: root, params: {}, segments: [] }];
-  let current = root;
-  for (const part of parts) {
-    const child = (current.children ?? []).find((node) => {
-      const name = segmentOf(node.path);
-      return part.kind === "param" ? name === `:${part.name}` : name === part.value;
-    });
-    if (child === undefined) {
-      return undefined;
-    }
-    levels.push({
-      route: child,
-      params: part.kind === "param" ? { [part.name]: part.value } : {},
-      segments: [part.value],
-    });
-    current = child;
-  }
-  return levels;
+  return levelsOf(root, parts.map((part) => part.value));
 }
 
 /**

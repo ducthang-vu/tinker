@@ -7,7 +7,7 @@ import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
-import { None, fromNullable, match, type Maybe, Emitter, run, switchMap, Superseded, type Switched, type Cancel, type Task } from "@tinker/functional";
+import { None, fromNullable, map, match, type Maybe, Emitter, run, switchMap, Superseded, type Switched, type Cancel, type Task } from "@tinker/functional";
 import { createPipeline } from "../pipeline/pipeline.ts";
 import { createMatchStep } from "../pipeline/match-step.ts";
 import { createRedirectStep } from "../pipeline/redirect-step.ts";
@@ -119,7 +119,9 @@ export class Router {
    * @throws ParseError when the URL matches no route or is malformed.
    */
   parse(url: string): Destination {
-    return UrlBuilder.for(this.root.children ?? []).parse(url);
+    // The root consumes no segment, so the builder over it parses the same URLs as the router.
+    return UrlBuilder.for([this.root])
+      .parse(url);
   }
 
   /** Stops routing navigations when the injector is destroyed. */
@@ -149,10 +151,8 @@ export class Router {
         ? { kind: "cancelled", navigation, by: this.latestId }
         : reason,
     });
-    match(fromNullable(this.waiting.get(item.value.id)), {
-      Some: (resolve) => resolve(outcome.kind === "done"),
-      None: () => undefined,
-    });
+    // Every navigation has a waiting promise, so the lookup always finds one.
+    map(fromNullable(this.waiting.get(item.value.id)), (resolve) => resolve(outcome.kind === "done"));
     this.waiting.delete(item.value.id);
   }
 }
