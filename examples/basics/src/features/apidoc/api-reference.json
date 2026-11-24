@@ -8011,6 +8011,131 @@
           "declaration": "export type ComponentBuilder = ComponentBuilderApi;"
         },
         {
+          "name": "FakeMutation",
+          "kind": "interface",
+          "source": "packages/testing/src/lib/fakes/fake-mutation.ts:25",
+          "description": "A mutation the test drives.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "resolve",
+              "kind": "method",
+              "source": "packages/testing/src/lib/fakes/fake-mutation.ts:27",
+              "description": "Settle the oldest call in flight with `value`. Throws unless a call is in flight.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "resolve(value: T): void"
+              ]
+            },
+            {
+              "name": "fail",
+              "kind": "method",
+              "source": "packages/testing/src/lib/fakes/fake-mutation.ts:29",
+              "description": "Settle the oldest call in flight with `error`. Throws unless a call is in flight.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "fail(error: E): void"
+              ]
+            },
+            {
+              "name": "calls",
+              "kind": "property",
+              "source": "packages/testing/src/lib/fakes/fake-mutation.ts:31",
+              "description": "The inputs of every call, oldest first.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "readonly I[]"
+            },
+            {
+              "name": "pending",
+              "kind": "property",
+              "source": "packages/core/src/resource/mutation.ts:26",
+              "description": "How many calls are in flight.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Mutation",
+              "type": "ReadonlySignal<number>"
+            },
+            {
+              "name": "outcome",
+              "kind": "property",
+              "source": "packages/core/src/resource/mutation.ts:28",
+              "description": "What the last call to finish did.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Mutation",
+              "type": "ReadonlySignal<MutationOutcome>"
+            },
+            {
+              "name": "result",
+              "kind": "property",
+              "source": "packages/core/src/resource/mutation.ts:30",
+              "description": "The result of the last success.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Mutation",
+              "type": "ReadonlySignal<T | undefined>"
+            },
+            {
+              "name": "error",
+              "kind": "property",
+              "source": "packages/core/src/resource/mutation.ts:32",
+              "description": "The error of the last failure.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Mutation",
+              "type": "ReadonlySignal<E | undefined>"
+            },
+            {
+              "name": "mutate",
+              "kind": "method",
+              "source": "packages/core/src/resource/mutation.ts:34",
+              "description": "Start a call. Always allowed: calls run in parallel.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Mutation",
+              "signatures": [
+                "mutate(input: I): void"
+              ]
+            },
+            {
+              "name": "reset",
+              "kind": "method",
+              "source": "packages/core/src/resource/mutation.ts:36",
+              "description": "Back to \"none\", with no result and no error. In-flight calls are not affected.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Mutation",
+              "signatures": [
+                "reset(): void"
+              ]
+            }
+          ]
+        },
+        {
           "name": "FakeResource",
           "kind": "interface",
           "source": "packages/testing/src/lib/fakes/fake-resource.ts:34",
@@ -8606,6 +8731,19 @@
           "throws": [],
           "signatures": [
             "cleanup(): void"
+          ]
+        },
+        {
+          "name": "fakeMutation",
+          "kind": "function",
+          "source": "packages/testing/src/lib/fakes/fake-mutation.ts:35",
+          "description": "A fake mutation, whose calls the test settles.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "fakeMutation<I, T, E = Error, U = unknown>(options?: MutationOptions<T, U>): FakeMutation<I, T, E>"
           ]
         },
         {
