@@ -2,7 +2,7 @@
 // blocks, and each entry point becomes a section of documented items. The functions are pure,
 // so they are tested without a page.
 
-import type { ApiDoc, ApiEntry, ApiExport, ApiParam, ApiReference } from "./api-reference.ts";
+import type { ApiDoc, ApiEntry, ApiExport, ApiOverload, ApiParam, ApiReference } from "./api-reference.ts";
 
 /** A run of text in a paragraph: plain, a `code span`, or a link (its `href`, else ""). */
 export interface TextPart {
@@ -24,6 +24,15 @@ export interface DocBlock {
 }
 
 /** A documented thing, ready to show. Empty strings and empty lists mean "not present". */
+/** One overload, as the view shows it. */
+export interface ViewOverload {
+  readonly declaration: string;
+  readonly description: readonly DocBlock[];
+  readonly params: readonly ApiParam[];
+  readonly returns: string;
+  readonly examples: readonly DocBlock[];
+}
+
 export interface ViewDoc {
   readonly name: string;
   readonly kind: string;
@@ -34,6 +43,8 @@ export interface ViewDoc {
   readonly final: boolean;
   readonly deprecated: string;
   readonly signatures: readonly string[];
+  /** Each overload of a function or method, with its own doc; none for a single signature. */
+  readonly overloads: readonly ViewOverload[];
   readonly type: string;
   readonly declaration: string;
   readonly description: readonly DocBlock[];
@@ -182,6 +193,16 @@ export function anchorId(...segments: readonly string[]): string {
     .replace(/^-|-$/g, "");
 }
 
+function viewOverload(overload: ApiOverload, links: ReadonlyMap<string, string>): ViewOverload {
+  return {
+    declaration: overload.declaration,
+    description: docBlocks(overload.description, links),
+    params: overload.params,
+    returns: overload.returns ?? "",
+    examples: overload.examples.flatMap((example) => docBlocks(example, links)),
+  };
+}
+
 function viewDoc(doc: ApiDoc, links: ReadonlyMap<string, string>): ViewDoc {
   return {
     name: doc.name,
@@ -192,7 +213,9 @@ function viewDoc(doc: ApiDoc, links: ReadonlyMap<string, string>): ViewDoc {
     final: doc.final === true,
     // A deprecation with no text still says so.
     deprecated: doc.deprecated === undefined ? "" : doc.deprecated || "Deprecated.",
-    signatures: doc.signatures ?? [],
+    // An overloaded function shows its overloads instead of its signatures, which repeat them.
+    signatures: doc.overloads === undefined ? doc.signatures ?? [] : [],
+    overloads: (doc.overloads ?? []).map((overload: ApiOverload) => viewOverload(overload, links)),
     type: doc.type ?? "",
     declaration: doc.declaration ?? "",
     description: docBlocks(doc.description, links),

@@ -40,6 +40,27 @@ function asError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
+/**
+ * A mutation: a write to the server, started by `mutate`. While it runs, `pending` counts the calls
+ * in flight. On success the result is kept, and the resource it affects is updated from it, or
+ * reloaded when there is no `onSuccess`.
+ *
+ * @param mutator Sends the write for one input, and returns a promise or a task of the result.
+ * @param options The resource the write affects, and how its value is updated from the result.
+ * @returns The mutation: `mutate`, `pending`, `result`, `error`, and `outcome`.
+ * @example
+ * ```ts
+ * const save = mutation(
+ *   (user: User) => fetch(`/users/${user.id}`, { method: "PUT", body: JSON.stringify(user) })
+ *     .then((r) => r.json() as Promise<User>),
+ *   {
+ *     resource: users,
+ *     onSuccess: (current, saved) => current.map((u) => (u.id === saved.id ? saved : u)),
+ *   },
+ * );
+ * save.mutate({ id: 1, name: "Ada" });
+ * ```
+ */
 export function mutation<I, T, E = Error, U = unknown>(
   mutator: (input: I) => PromiseLike<T> | Task<T, E>,
   options: MutationOptions<T, U> = {},

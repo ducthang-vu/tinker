@@ -251,3 +251,57 @@ describe("resource that skips its load", () => {
       .toBe("one");
   });
 });
+
+describe("resource with a trigger and a loader", () => {
+  test("the trigger's params reach the loader, with an abort signal, and a change loads again", async () => {
+    const id = signal(1);
+    const loader = vi.fn(({ params }: { params: number }) => succeed(`user ${params}`));
+    const res = resource(() => ({ params: id() }), loader, { default: "none" });
+    await tick();
+    expect(loader)
+      .toHaveBeenLastCalledWith({ params: 1, abortSignal: expect.any(AbortSignal) });
+    expect(res.value())
+      .toBe("user 1");
+    id.set(2);
+    await tick();
+    expect(loader)
+      .toHaveBeenLastCalledWith({ params: 2, abortSignal: expect.any(AbortSignal) });
+    expect(res.value())
+      .toBe("user 2");
+  });
+
+  test("a trigger that returns undefined runs nothing, and the state is idle", async () => {
+    const loader = vi.fn(({ params }: { params: number }) => succeed(params));
+    const res = resource(() => undefined, loader, { default: 0 });
+    await tick();
+    expect(loader)
+      .not.toHaveBeenCalled();
+    expect(res.state())
+      .toBe("idle");
+    expect(res.value())
+      .toBe(0);
+  });
+
+  test("the loader reads no signals: a signal read in it starts no load", async () => {
+    const id = signal(1);
+    const other = signal("x");
+    const loader = vi.fn(({ params }: { params: number }) => succeed(`${params}${other()}`));
+    resource(() => ({ params: id() }), loader, { default: "none" });
+    await tick();
+    other.set("y");
+    await tick();
+    expect(loader)
+      .toHaveBeenCalledTimes(1);
+  });
+
+  test("the params are typed without undefined", async () => {
+    const res = resource(
+      () => ({ params: 1 }),
+      ({ params }) => succeed(params + 1),
+      { default: 0 },
+    );
+    await tick();
+    expect(res.value())
+      .toBe(2);
+  });
+});
