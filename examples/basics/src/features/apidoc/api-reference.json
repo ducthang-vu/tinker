@@ -7250,6 +7250,114 @@
           "type": "InjectionToken<ReadonlySignal<Maybe<ActivatedRoute>>>"
         },
         {
+          "name": "Destination",
+          "kind": "class",
+          "source": "packages/router/src/lib/destination/url-builder.ts:49",
+          "description": "A complete, app-relative destination. Only this module makes one.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new Destination(token: typeof BUILT, parts: readonly Part[], query: readonly (readonly [string, string])[], fragment: string | undefined): Destination"
+          ],
+          "members": [
+            {
+              "name": "parts",
+              "kind": "property",
+              "source": "packages/router/src/lib/destination/url-builder.ts:59",
+              "description": "The parts of the path.",
+              "params": [
+                {
+                  "name": "parts",
+                  "text": "The parts of the path."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "readonly Part[]"
+            },
+            {
+              "name": "query",
+              "kind": "property",
+              "source": "packages/router/src/lib/destination/url-builder.ts:60",
+              "description": "The query pairs.",
+              "params": [
+                {
+                  "name": "query",
+                  "text": "The query pairs."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "readonly (readonly [string, string])[]"
+            },
+            {
+              "name": "fragment",
+              "kind": "property",
+              "source": "packages/router/src/lib/destination/url-builder.ts:61",
+              "description": "The fragment, if any.",
+              "params": [
+                {
+                  "name": "fragment",
+                  "text": "The fragment, if any."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string | undefined"
+            },
+            {
+              "name": "format",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:69",
+              "description": "The destination as an app-relative URL: the path, the query, and the fragment.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "The URL, for the browser boundary or for display.",
+              "signatures": [
+                "format(): string"
+              ]
+            },
+            {
+              "name": "make",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:88",
+              "description": "Makes a destination from parts that have been checked against the tree.",
+              "params": [
+                {
+                  "name": "parts",
+                  "text": "The path, in order."
+                },
+                {
+                  "name": "query",
+                  "text": "The query pairs, in order."
+                },
+                {
+                  "name": "fragment",
+                  "text": "The fragment, if any."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "The destination.",
+              "static": true,
+              "signatures": [
+                "make(parts: readonly Part[], query: readonly (readonly [string, string])[], fragment: string | undefined): Destination"
+              ]
+            }
+          ]
+        },
+        {
           "name": "Location",
           "kind": "class",
           "source": "packages/router/src/lib/location/location.ts:13",
@@ -7362,7 +7470,7 @@
         {
           "name": "NavigateOptions",
           "kind": "interface",
-          "source": "packages/router/src/lib/router/router.ts:13",
+          "source": "packages/router/src/lib/router/router.ts:22",
           "description": "The options of `navigate`.",
           "params": [],
           "examples": [],
@@ -7372,56 +7480,13 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:15",
+              "source": "packages/router/src/lib/router/router.ts:24",
               "description": "The state of the new history entry, `null` when none is given.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
               "type": "unknown"
-            },
-            {
-              "name": "relativeTo",
-              "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:17",
-              "description": "The activated route that a relative URL is resolved against.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "type": "ActivatedRoute | undefined"
-            }
-          ]
-        },
-        {
-          "name": "NoRouteError",
-          "kind": "class",
-          "source": "packages/router/src/lib/router/router.ts:24",
-          "description": "A navigation to a URL that no route matches. The URL does not change.",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "signatures": [
-            "new NoRouteError(url: string): NoRouteError"
-          ],
-          "members": [
-            {
-              "name": "url",
-              "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:29",
-              "description": "",
-              "params": [
-                {
-                  "name": "url",
-                  "text": ""
-                }
-              ],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "",
-              "type": "string"
             }
           ]
         },
@@ -7650,20 +7715,20 @@
         {
           "name": "Router",
           "kind": "class",
-          "source": "packages/router/src/lib/router/router.ts:36",
+          "source": "packages/router/src/lib/router/router.ts:31",
           "description": "The router: the current URL, the matched route, the activated routes, and navigate.",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
           "signatures": [
-            "new Router(root: Route, location: Location): Router"
+            "new Router(root: Route, location: Location, injector: Injector): Router"
           ],
           "members": [
             {
               "name": "url",
               "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:38",
+              "source": "packages/router/src/lib/router/router.ts:33",
               "description": "The current URL: path, query and hash.",
               "params": [],
               "examples": [],
@@ -7674,7 +7739,7 @@
             {
               "name": "match",
               "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:40",
+              "source": "packages/router/src/lib/router/router.ts:35",
               "description": "The route that matches the current URL and its params, or undefined when none does.",
               "params": [],
               "examples": [],
@@ -7685,7 +7750,7 @@
             {
               "name": "activated",
               "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:42",
+              "source": "packages/router/src/lib/router/router.ts:37",
               "description": "The activated routes for the current URL, root first. The first one never changes.",
               "params": [],
               "examples": [],
@@ -7696,7 +7761,7 @@
             {
               "name": "rootRoute",
               "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:46",
+              "source": "packages/router/src/lib/router/router.ts:39",
               "description": "The activated route of the root: the first of the list, which never changes.",
               "params": [],
               "examples": [],
@@ -7707,24 +7772,58 @@
             {
               "name": "navigate",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:78",
-              "description": "Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of\none: `[\"todos\", \"7\"]` is `\"todos/7\"`, and the query and hash then go in the last segment. A\nrelative URL is resolved against the path of `options.relativeTo` (the root when none is\ngiven); see `UrlBuilder.resolve`. The resolved URL is what must match: a URL no route\nmatches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch\nthose URLs.",
+              "source": "packages/router/src/lib/router/router.ts:96",
+              "description": "Go to `destination` as a new history entry, with `options.state`. The navigation runs through\nthe guards and redirects of the matched routes. It resolves `true` when it commits, and `false`\nwhen a guard or a redirect stops it, or a newer navigation replaces it before it commits. A\nstopped navigation changes nothing.",
               "params": [
                 {
-                  "name": "url",
-                  "text": ""
+                  "name": "destination",
+                  "text": "Where to go, built by the URL builder or parsed from a string with `parse`."
                 },
                 {
                   "name": "options",
-                  "text": ""
+                  "text": "The state of the new history entry."
                 }
               ],
               "examples": [],
               "see": [],
               "throws": [],
-              "returns": "A promise of the outcome: the committed navigation, or the error that stopped it.",
+              "returns": "A promise of whether the navigation committed.",
               "signatures": [
-                "navigate(url: string | readonly string[], options?: NavigateOptions): Either<void, NoRouteError>"
+                "navigate(destination: Destination, options?: NavigateOptions): Promise<boolean>"
+              ]
+            },
+            {
+              "name": "parse",
+              "kind": "method",
+              "source": "packages/router/src/lib/router/router.ts:121",
+              "description": "The destination a URL string names in this router's route tree. Throws a ParseError when no\nroute matches it, or when it is malformed. The one place a string becomes a destination.",
+              "params": [
+                {
+                  "name": "url",
+                  "text": "The URL to parse: a path, with an optional query and fragment."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "ParseError when the URL matches no route or is malformed."
+              ],
+              "returns": "The destination the URL names.",
+              "signatures": [
+                "parse(url: string): Destination"
+              ]
+            },
+            {
+              "name": "onDestroy",
+              "kind": "method",
+              "source": "packages/router/src/lib/router/router.ts:126",
+              "description": "Stops routing navigations when the injector is destroyed.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "onDestroy(): void"
               ]
             }
           ]

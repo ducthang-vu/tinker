@@ -64,7 +64,7 @@ test("the outlet shows the component of the URL it starts at", () => {
 
 test("navigating to another route shows its component, which reads its own params", () => {
   const fixture = appAt("/todos");
-  fixture.root.instance.router.navigate("/todos/7");
+  fixture.root.instance.router.navigate(fixture.root.instance.router.parse("/todos/7"));
   fixture.detectChanges();
   expect(fixture.root.text())
     .toBe("Todo 7");
@@ -73,7 +73,7 @@ test("navigating to another route shows its component, which reads its own param
 
 test("a change of params replaces the component", () => {
   const fixture = appAt("/todos/7");
-  fixture.root.instance.router.navigate("/todos/8");
+  fixture.root.instance.router.navigate(fixture.root.instance.router.parse("/todos/8"));
   fixture.detectChanges();
   expect(made.detail)
     .toBe(2);
@@ -82,7 +82,7 @@ test("a change of params replaces the component", () => {
 
 test("a change of the query alone keeps the component", () => {
   const fixture = appAt("/todos/7");
-  fixture.root.instance.router.navigate("/todos/7?tab=done");
+  fixture.root.instance.router.navigate(fixture.root.instance.router.parse("/todos/7?tab=done"));
   fixture.detectChanges();
   expect(made.detail)
     .toBe(1);

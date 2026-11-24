@@ -83,10 +83,10 @@ export class RouterLink {
       return;
     }
     event.preventDefault();
-    const destination = this.destination();
-    if (destination === undefined) {
+    const href = this.href();
+    if (href === undefined) {
       return;
     }
-    this.router.navigate(destination, { relativeTo: this.own, state: this.state() });
+    this.router.navigate(this.router.parse(href), { state: this.state() });
   }
 }

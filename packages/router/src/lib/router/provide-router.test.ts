@@ -12,7 +12,7 @@ const ROUTES: Route[] = [{ path: "/todos", component: TodoList }];
 test("provideRouter gives a router over the browser's address bar", () => {
   const { injector, destroy } = Injector.create({ providers: provideRouter(ROUTES) });
   const router = runInInjectionContext(injector, () => inject(Router));
-  router.navigate("/todos?tab=open");
+  router.navigate(router.parse("/todos?tab=open"));
   expect(router.url())
     .toBe("/todos?tab=open");
   expect(window.location.pathname)

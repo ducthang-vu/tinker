@@ -34,7 +34,7 @@ test("a routed component with an outlet shows the next level inside it", () => {
   expect(fixture.root.text())
     .toBe("ParentChild");
   fixture.get(Router)
-    .navigate("/parent/child?tab=done");
+    .navigate(fixture.get(Router).parse("/parent/child?tab=done"));
   fixture.detectChanges();
   expect(fixture.root.text())
     .toBe("ParentChild");
