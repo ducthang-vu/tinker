@@ -112,9 +112,14 @@ export class InputBinding<T> {
     this.state.set(Some.of(value));
   }
 
-  /** Set the input from a plain attribute's string: through the adapter, if it has one. */
-  bindText(text: string): void {
-    this.bind(this.adapter === undefined ? (text as T) : this.adapter(text));
+  /**
+   * Set the input from a plain attribute's string: through the adapter, if it has one. Returns
+   * the value it set.
+   */
+  bindText(text: string): T {
+    const value = this.adapter === undefined ? (text as T) : this.adapter(text);
+    this.bind(value);
+    return value;
   }
 
   /** The current value, if there is one, read without tracking it. */
@@ -213,14 +218,29 @@ function templateInputsOf(instance: object): [string, InputBinding<unknown>][] {
 export function bindInputsToAttributes(
   instance: object,
   attributes: readonly { readonly name: string; readonly value: string }[],
+  report?: AttributeReport,
 ): void {
   const inputs = templateInputsOf(instance);
   for (const attribute of attributes) {
     use(
       fromNullable(inputs.find(([name]) => name.toLowerCase() === attribute.name.toLowerCase())),
-      { Some: ([, input]) => input.bindText(attribute.value), None: () => undefined },
+      { Some: ([, input]) => {
+        const value = input.bindText(attribute.value);
+        if (report !== undefined && typeof value === "number" && Number.isNaN(value)) {
+          report.warn(`${attribute.name}="${attribute.value}" on <${report.element}> is not a number: the input is NaN`);
+        }
+      }, None: () => undefined },
     );
   }
+}
+
+/**
+ * Where a plain attribute's problem is reported: the element it is on, and a warning sink. Given
+ * only in development mode, so production makes no report.
+ */
+export interface AttributeReport {
+  readonly element: string;
+  readonly warn: (message: string) => void;
 }
 
 /**

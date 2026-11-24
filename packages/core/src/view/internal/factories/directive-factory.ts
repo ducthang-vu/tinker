@@ -18,7 +18,7 @@ import { inject, Injectable, Injector, type InjectorRef, provide, runInInjection
 import type { Class } from "../../../utils/types.ts";
 import { type DirectiveMetadata, getDirectiveMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
-import { bindInputsToAttributes, inputsOf } from "../authoring/input.ts";
+import { bindInputsToAttributes, inputsOf, type AttributeReport } from "../authoring/input.ts";
 import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
@@ -69,6 +69,7 @@ export class DirectiveFactory {
     view: View,
     parent: Injector,
     attributes: readonly AttributeNode[] = [],
+    report?: AttributeReport,
   ): {
     readonly injector: Injector;
     readonly instances: readonly object[];
@@ -90,7 +91,7 @@ export class DirectiveFactory {
       bindings.push(...(placement.kind === "element"
         ? this.attach(type, instance, placement.element, view)
         : this.attachToAnchor(type, instance, view)));
-      bindInputsToAttributes(instance, attributes);
+      bindInputsToAttributes(instance, attributes, report);
       return instance;
     });
     return { injector: elementInjector.injector, instances, bindings };
