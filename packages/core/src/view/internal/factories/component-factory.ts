@@ -47,6 +47,7 @@ import {
 import type { ViewNode } from "../runtime/schedulers/view-scheduler.ts";
 import { flatMap, type Either, Left, map, mapLeft, match, Right, sequence, valueOrThrow, Some, None, isSome, use, run, partial, toError } from "@tinker/functional";
 import { watch } from "../../../signals/index.ts";
+import { resolveForwardRef } from "../../../utils/forward-ref.ts";
 import type { Class } from "../../../utils/types.ts";
 import { type ComponentMetadata, getComponentMetadata } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
@@ -78,6 +79,13 @@ import type { View } from "../runtime/view.ts";
  * optional `[attribute]`.
  */
 const HOST_SELECTOR = /^([a-z][a-z0-9-]*)?(?:\[([^\]=\s]+)\])?$/i;
+
+/**
+ * How many components may be created inside each other. A component that contains itself stops
+ * here, and its failure is contained like a child's. A recursive component (a tree) stops before
+ * it, when its template does (with `@if`).
+ */
+const MAX_NESTING = 100;
 
 /** Where a component in another component's template is: see ComponentFactory.create. */
 /** What `create` has checked, and what building the component then needs. */
@@ -177,11 +185,10 @@ export class ComponentFactory {
     parentInjector?: Injector,
     owner?: ViewNode,
   ): Either<ComponentView<T>, Error> {
-    const start = this.creating.indexOf(type);
-    if (start !== -1) {
-      const path = [...this.creating.slice(start), type].map((creating) => creating.name)
+    if (this.creating.length >= MAX_NESTING) {
+      const path = [...this.creating.slice(-3), type].map((creating) => creating.name)
         .join(" → ");
-      return Left.of(new Error(`${type.name} contains itself: ${path}`));
+      return Left.of(new Error(`${type.name} is nested more than ${MAX_NESTING} components deep: ... → ${path}`));
     }
     return flatMap(this.prepare(type, host), (prepared) =>
       this.createPrepared(type, prepared, child, parentInjector, owner));
@@ -502,7 +509,8 @@ export class ComponentFactory {
    */
   private candidatesOf(type: Class<unknown>, metadata: ComponentMetadata): DirectiveCandidate[] {
     return (metadata.imports ?? []).map((declared) => {
-      const imported = this.replacements.get(declared) ?? declared;
+      const resolved = resolveForwardRef(declared);
+      const imported = this.replacements.get(resolved) ?? resolved;
       const metadata = valueOrThrow(this.directives.metadataOf(imported));
       return {
         type: imported,

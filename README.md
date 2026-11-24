@@ -289,5 +289,5 @@ Run its focused tests with `npm run test:repo-map`.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
 Not there yet: property bindings on plain elements (`[value]` on an `<input>`),
-two-way binding `[(value)]` on plain elements, recursive components, and the
-gaps listed in [IMPROVEMENTS.md](IMPROVEMENTS.md).
+two-way binding `[(value)]` on plain elements, and the gaps listed in
+[IMPROVEMENTS.md](IMPROVEMENTS.md).

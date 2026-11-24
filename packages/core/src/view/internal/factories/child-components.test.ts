@@ -6,6 +6,7 @@ import { signal } from "../../../signals/index.ts";
 import { Component, type ComponentMetadata, Directive } from "../authoring/decorators.ts";
 import { Effects } from "../authoring/effects.ts";
 import { input } from "../authoring/input.ts";
+import { ForwardRef } from "../../../utils/forward-ref.ts";
 import { Engine } from "../engine.ts";
 import type { Class } from "../../../utils/types.ts";
 import { valueOrThrow, isNone, getOrThrow, map, flatMap } from "@tinker/functional";
@@ -225,33 +226,28 @@ describe("recursion", () => {
     Component(options)(type, {} as ClassDecoratorContext<Class<object>>);
   }
 
-  test("a component containing itself is reported, and its element is left empty", () => {
+  test("a component that always contains itself fails at the nesting limit, and the failure is reported", () => {
     class Tree {}
     decorate(Tree, { selector: "tk-tree", template: "<tk-tree></tk-tree>", imports: [Tree] });
     const error = vi.spyOn(console, "error")
       .mockImplementation(() => undefined);
-    const view = valueOrThrow(renderComponent(Engine.create(), Tree));
+    valueOrThrow(renderComponent(Engine.create(), Tree));
     expect(error)
-      .toHaveBeenCalledWith(expect.stringContaining("Tree contains itself: Tree → Tree"));
-    expect(view.host.nativeElement.innerHTML)
-      .toBe("<tk-tree></tk-tree>");
+      .toHaveBeenCalledWith(expect.stringContaining("nested more than 100 components deep"));
     error.mockRestore();
   });
 
-  test("through other components too: the path is named, and the cycle's element is empty", () => {
+  test("a cycle through other components fails at the nesting limit, and is reported", () => {
     class A {}
     class B {}
     decorate(A, { selector: "tk-a", template: "<p><tk-b></tk-b></p>", imports: [B] });
     decorate(B, { selector: "tk-b", template: "<tk-a></tk-a>", imports: [A] });
     const error = vi.spyOn(console, "error")
       .mockImplementation(() => undefined);
-    const host = document.createElement("div");
     valueOrThrow(Engine.create()
-      .bootstrap(A, host));
+      .bootstrap(A, document.createElement("div")));
     expect(error)
-      .toHaveBeenCalledWith(expect.stringContaining("A contains itself: A → B → A"));
-    expect(host.innerHTML)
-      .toBe("<p><tk-b><tk-a></tk-a></tk-b></p>");
+      .toHaveBeenCalledWith(expect.stringContaining("nested more than 100 components deep"));
     error.mockRestore();
   });
 
@@ -293,5 +289,25 @@ describe("a failed child in development mode", () => {
     expect(view.host.nativeElement.innerHTML)
       .toBe("<p><tk-fails></tk-fails></p>");
     error.mockRestore();
+  });
+});
+
+describe("a recursive component", () => {
+  @Component({
+    selector: "tk-tree-node",
+    template: `<p>{{ depth() }}</p>@if (depth() > 0) { <tk-tree-node [depth]="depth() - 1"></tk-tree-node> }`,
+    imports: [ForwardRef.of(() => TreeNode)],
+  })
+  class TreeNode {
+    readonly depth = input(0);
+  }
+
+  test("renders each level, and stops where its template does", async () => {
+    @Component({ selector: "tk-tree-root", template: `<tk-tree-node [depth]="3"></tk-tree-node>`, imports: [TreeNode] })
+    class Root {}
+    const view = valueOrThrow(renderComponent(Engine.create(), Root));
+    await tick();
+    expect([...view.host.nativeElement.querySelectorAll("p")].map((p) => p.textContent))
+      .toEqual(["3", "2", "1", "0"]);
   });
 });
