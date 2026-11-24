@@ -350,31 +350,31 @@ describe("parse", () => {
       .parse("/home?&flag&a=1").query)
       .toEqual([["flag", ""], ["a", "1"]]);
   });
-
-  test("`..` goes to the parent, and throws above the root", () => {
-    expect(UrlBuilder.for(tree)
-      .parse("/todos/7/../7")
-      .format())
-      .toBe("/todos/7");
-    expect(parseErrorOf("/..").reason)
-      .toBe("above-root");
-  });
 });
 
-describe("the parent segment", () => {
-  test("withSegment('..') goes to the parent, as up does", () => {
-    const url = UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "7")
-      .withSegment("..")
-      .build();
-    expect(url.format())
-      .toBe("/todos");
+describe("the parent is up, and .. is not a segment", () => {
+  test("`..` in a raw URL is a segment no route matches", () => {
+    expect(parseErrorOf("/todos/7/../7").reason)
+      .toBe("no-route");
   });
 
-  test("withSegment('..') at the root throws", () => {
-    const untyped = UrlBuilder.for(tree) as unknown as { withSegment(segment: string): unknown };
-    expect(() => untyped.withSegment(".."))
-      .toThrow("up: already at the root");
+  test("withSegment('..') is a type error, and throws", () => {
+    expect(() => {
+      UrlBuilder.for(tree)
+        .withSegment("todos")
+        // @ts-expect-error "..\" is not a child: up() goes to the parent"
+        .withSegment("..");
+    })
+      .toThrow("no segment \"..\" under \"todos\"");
+  });
+
+  test("up() goes to the parent", () => {
+    expect(UrlBuilder.for(tree)
+      .withSegment("todos")
+      .withParam("id", "7")
+      .up()
+      .build()
+      .format())
+      .toBe("/todos");
   });
 });
