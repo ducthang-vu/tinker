@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
     "test:e2e": "playwright test -c src/features/examples/e2e/playwright.config.ts",
-    "predev": "npm run build -w @tinker/compiler",
-    "prebuild": "npm run build -w @tinker/compiler"
+    "predev": "npm run build -w @tinker/compiler && npm run docs:api --prefix ../..",
+    "prebuild": "npm run build -w @tinker/compiler && npm run docs:api --prefix ../.."
   },
   "dependencies": {
     "@tinker/core": "*",
