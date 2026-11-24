@@ -6519,7 +6519,7 @@
         {
           "name": "switchMap",
           "kind": "function",
-          "source": "packages/functional/src/lib/stream/switch-map.ts:47",
+          "source": "packages/functional/src/lib/stream/switch-map.ts:56",
           "description": "Runs `f(value)` for each value of `source`, keeping only the newest running task.",
           "params": [
             {
@@ -6531,7 +6531,9 @@
               "text": "Makes the task for a value."
             }
           ],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { run, Stream, succeed, switchMap } from \"@tinker/functional\";\n\nconst results = switchMap(Stream.fromIterable([\"a\", \"ab\"]), (query) => succeed(`results for ${query}`));\nrun(results, { next: (item) => console.log(item) });\n// Each task settles before the next value arrives, so nothing is superseded here.\n// With a task that waits, a newer value cancels the older task and reports it as Superseded.\n```"
+          ],
           "see": [],
           "throws": [],
           "returns": "A stream of one item per value: its outcome, or Superseded.",
