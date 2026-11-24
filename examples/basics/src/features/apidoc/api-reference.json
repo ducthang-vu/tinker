@@ -8011,6 +8011,180 @@
           "declaration": "export type ComponentBuilder = ComponentBuilderApi;"
         },
         {
+          "name": "FakeResource",
+          "kind": "interface",
+          "source": "packages/testing/src/lib/fakes/fake-resource.ts:34",
+          "description": "A resource the test drives.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "resolve",
+              "kind": "method",
+              "source": "packages/testing/src/lib/fakes/fake-resource.ts:36",
+              "description": "Settle the load in progress with `value`: state \"fetched\". Throws unless loading.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "resolve(value: T): void"
+              ]
+            },
+            {
+              "name": "fail",
+              "kind": "method",
+              "source": "packages/testing/src/lib/fakes/fake-resource.ts:38",
+              "description": "Settle the load in progress with `error`: state \"failed\". Throws unless loading.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "fail(error: E): void"
+              ]
+            },
+            {
+              "name": "trigger",
+              "kind": "method",
+              "source": "packages/testing/src/lib/fakes/fake-resource.ts:40",
+              "description": "A new load, as a change to the inputs starts one: the value is kept, not counted.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "trigger(): void"
+              ]
+            },
+            {
+              "name": "triggerAndResolve",
+              "kind": "method",
+              "source": "packages/testing/src/lib/fakes/fake-resource.ts:42",
+              "description": "`trigger()`, then `resolve(value)`: a new load that ends with `value`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "triggerAndResolve(value: T): void"
+              ]
+            },
+            {
+              "name": "reloads",
+              "kind": "property",
+              "source": "packages/testing/src/lib/fakes/fake-resource.ts:44",
+              "description": "How many times `reload()` was called.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "number"
+            },
+            {
+              "name": "state",
+              "kind": "property",
+              "source": "packages/core/src/resource/resource.ts:36",
+              "description": "What the resource is doing, or what it last did.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "type": "ReadonlySignal<ResourceState>"
+            },
+            {
+              "name": "value",
+              "kind": "property",
+              "source": "packages/core/src/resource/resource.ts:38",
+              "description": "The last success, or the default until there is one.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "type": "ReadonlySignal<T>"
+            },
+            {
+              "name": "error",
+              "kind": "property",
+              "source": "packages/core/src/resource/resource.ts:40",
+              "description": "The last failure, cleared by a success or a write.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "type": "ReadonlySignal<E | undefined>"
+            },
+            {
+              "name": "sourced",
+              "kind": "property",
+              "source": "packages/core/src/resource/resource.ts:42",
+              "description": "Whether a load or a write has ever supplied the value. False while `value` is the default.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "type": "ReadonlySignal<boolean>"
+            },
+            {
+              "name": "lastUpdated",
+              "kind": "property",
+              "source": "packages/core/src/resource/resource.ts:44",
+              "description": "When the value last changed by a success or a write. Undefined until then.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "type": "ReadonlySignal<Date | undefined>"
+            },
+            {
+              "name": "set",
+              "kind": "method",
+              "source": "packages/core/src/resource/resource.ts:46",
+              "description": "Write a value without loading it: aborts the run in progress, and state becomes \"written\".",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "signatures": [
+                "set(value: T): void"
+              ]
+            },
+            {
+              "name": "reload",
+              "kind": "method",
+              "source": "packages/core/src/resource/resource.ts:48",
+              "description": "Run the loader again, aborting the run in progress.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "Resource",
+              "signatures": [
+                "reload(): void"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "FakeResourceOptions",
+          "kind": "type",
+          "source": "packages/testing/src/lib/fakes/fake-resource.ts:23",
+          "description": "The options of a fake resource. `autoLoad` says whether it starts loading, as a real resource\ndoes when its loader runs at creation. With `autoLoad`, `autoResolve` is the value of that first\nload, so the fake starts fetched with it (an initial response).",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "declaration": "export type FakeResourceOptions<T> = {\n  /** The value before the first success. */\n  readonly default: T;\n  /** What the loader reads, as a real loader reads signals: a change to it starts a new load. */\n  readonly inputs?: () => unknown;\n} & (\n  | { readonly autoLoad: true; readonly autoResolve?: T }\n  | { readonly autoLoad: false }\n);"
+        },
+        {
           "name": "Fixture",
           "kind": "interface",
           "source": "packages/testing/src/lib/api/api.ts:136",
@@ -8432,6 +8606,19 @@
           "throws": [],
           "signatures": [
             "cleanup(): void"
+          ]
+        },
+        {
+          "name": "fakeResource",
+          "kind": "function",
+          "source": "packages/testing/src/lib/fakes/fake-resource.ts:54",
+          "description": "A fake resource that starts loading when `autoLoad`, and is idle otherwise.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "fakeResource<T, E = Error>(options: FakeResourceOptions<T>): FakeResource<T, E>"
           ]
         },
         {
