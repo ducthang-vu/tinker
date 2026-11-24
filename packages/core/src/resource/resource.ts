@@ -10,7 +10,8 @@
 // The loader's reads are tracked: when a signal it read changes, it runs again, and the run
 // in progress is aborted through its AbortSignal, so an older result cannot overwrite a newer
 // one. A loader returns a promise or a Task; a Task's cancellation runs when it is superseded.
-// A loader that returns `undefined` skips the load: nothing runs, and the state is "idle".
+// A loader that returns `skip` skips the load: nothing runs, and the state is "idle". It is a
+// symbol, so `undefined` is an ordinary value, a loader can return it.
 
 import { signal, untracked, watch, type ReadonlySignal, type Runnable, type Watch } from "../signals/index.ts";
 import { run, Stream, type Task, use, Left, Right, type Either } from "@tinker/functional";
@@ -20,9 +21,12 @@ export type ResourceState = "idle" | "loading" | "fetched" | "failed" | "written
 
 /**
  * Runs the load: its reads are tracked, and it returns a promise or a task of the value. Returning
- * `undefined` skips the load: the value is kept and the state is "idle".
+ * `skip` skips the load: the value is kept and the state is "idle".
  */
-export type Loader<T, E> = (signal: AbortSignal) => PromiseLike<T> | Task<T, E> | undefined;
+export type Loader<T, E> = (signal: AbortSignal) => PromiseLike<T> | Task<T, E> | typeof skip;
+
+/** Returned by a loader to skip its load: the value is kept and the state is "idle". */
+export const skip: unique symbol = Symbol("skip");
 
 export interface ResourceOptions<T> {
   /** The value before the first success. */
@@ -102,14 +106,14 @@ export function resource<T, E = Error>(
     const controller = new AbortController();
     abortRun = controller;
     untracked(() => state.set("loading"));
-    let pending: PromiseLike<T> | Task<T, E> | undefined;
+    let pending: PromiseLike<T> | Task<T, E> | typeof skip;
     try {
       pending = loader(controller.signal);
     } catch (thrown) {
       settle(id, Left.of(asError(thrown) as E));
       return;
     }
-    if (pending === undefined) {
+    if (pending === skip) {
       cancelTask = undefined;
       untracked(() => state.set("idle"));
       return;

@@ -1621,13 +1621,13 @@
         {
           "name": "Loader",
           "kind": "type",
-          "source": "packages/core/src/resource/resource.ts:25",
-          "description": "Runs the load: its reads are tracked, and it returns a promise or a task of the value. Returning\n`undefined` skips the load: the value is kept and the state is \"idle\".",
+          "source": "packages/core/src/resource/resource.ts:26",
+          "description": "Runs the load: its reads are tracked, and it returns a promise or a task of the value. Returning\n`skip` skips the load: the value is kept and the state is \"idle\".",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "declaration": "export type Loader<T, E> = (signal: AbortSignal) => PromiseLike<T> | Task<T, E> | undefined;"
+          "declaration": "export type Loader<T, E> = (signal: AbortSignal) => PromiseLike<T> | Task<T, E> | typeof skip;"
         },
         {
           "name": "Maybe",
@@ -2391,7 +2391,7 @@
         {
           "name": "Resource",
           "kind": "interface",
-          "source": "packages/core/src/resource/resource.ts:34",
+          "source": "packages/core/src/resource/resource.ts:38",
           "description": "",
           "params": [],
           "examples": [],
@@ -2401,7 +2401,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:36",
+              "source": "packages/core/src/resource/resource.ts:40",
               "description": "What the resource is doing, or what it last did.",
               "params": [],
               "examples": [],
@@ -2412,7 +2412,7 @@
             {
               "name": "value",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:38",
+              "source": "packages/core/src/resource/resource.ts:42",
               "description": "The last success, or the default until there is one.",
               "params": [],
               "examples": [],
@@ -2423,7 +2423,7 @@
             {
               "name": "error",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:40",
+              "source": "packages/core/src/resource/resource.ts:44",
               "description": "The last failure, cleared by a success or a write.",
               "params": [],
               "examples": [],
@@ -2434,7 +2434,7 @@
             {
               "name": "sourced",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:42",
+              "source": "packages/core/src/resource/resource.ts:46",
               "description": "Whether a load or a write has ever supplied the value. False while `value` is the default.",
               "params": [],
               "examples": [],
@@ -2445,7 +2445,7 @@
             {
               "name": "lastUpdated",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:44",
+              "source": "packages/core/src/resource/resource.ts:48",
               "description": "When the value last changed by a success or a write. Undefined until then.",
               "params": [],
               "examples": [],
@@ -2456,7 +2456,7 @@
             {
               "name": "set",
               "kind": "method",
-              "source": "packages/core/src/resource/resource.ts:46",
+              "source": "packages/core/src/resource/resource.ts:50",
               "description": "Write a value without loading it: aborts the run in progress, and state becomes \"written\".",
               "params": [],
               "examples": [],
@@ -2469,7 +2469,7 @@
             {
               "name": "reload",
               "kind": "method",
-              "source": "packages/core/src/resource/resource.ts:48",
+              "source": "packages/core/src/resource/resource.ts:52",
               "description": "Run the loader again, aborting the run in progress.",
               "params": [],
               "examples": [],
@@ -2484,7 +2484,7 @@
         {
           "name": "ResourceOptions",
           "kind": "interface",
-          "source": "packages/core/src/resource/resource.ts:27",
+          "source": "packages/core/src/resource/resource.ts:31",
           "description": "",
           "params": [],
           "examples": [],
@@ -2494,7 +2494,7 @@
             {
               "name": "default",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:29",
+              "source": "packages/core/src/resource/resource.ts:33",
               "description": "The value before the first success.",
               "params": [],
               "examples": [],
@@ -2505,7 +2505,7 @@
             {
               "name": "lazy",
               "kind": "property",
-              "source": "packages/core/src/resource/resource.ts:31",
+              "source": "packages/core/src/resource/resource.ts:35",
               "description": "Whether the loader waits for the first `reload()` instead of running at creation.",
               "params": [],
               "examples": [],
@@ -2518,7 +2518,7 @@
         {
           "name": "ResourceState",
           "kind": "type",
-          "source": "packages/core/src/resource/resource.ts:19",
+          "source": "packages/core/src/resource/resource.ts:20",
           "description": "What the resource is doing, or what it last did.",
           "params": [],
           "examples": [],
@@ -3707,7 +3707,7 @@
         {
           "name": "resource",
           "kind": "function",
-          "source": "packages/core/src/resource/resource.ts:59",
+          "source": "packages/core/src/resource/resource.ts:63",
           "description": "",
           "params": [],
           "examples": [],
@@ -3747,6 +3747,17 @@
           "signatures": [
             "signal<T>(value: T, equal?: EqualityFn<T>): Signal<T>"
           ]
+        },
+        {
+          "name": "skip",
+          "kind": "const",
+          "source": "packages/core/src/resource/resource.ts:29",
+          "description": "Returned by a loader to skip its load: the value is kept and the state is \"idle\".",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "type": "typeof skip"
         },
         {
           "name": "untracked",

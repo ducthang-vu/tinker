@@ -2,7 +2,7 @@
 // loader, so a signal it reads sends the request again, and the request in progress is
 // cancelled, which aborts it. The value is the response body; a failure is in `error`.
 
-import { inject, type Resource, resource, type Task } from "@tinker/core";
+import { inject, type Resource, resource, skip } from "@tinker/core";
 import { HTTP_BACKEND, type HttpError } from "../backend/backend.ts";
 import type { HttpRequest } from "../backend/request.ts";
 import { map } from "@tinker/functional";
@@ -28,7 +28,7 @@ export function httpResource<T = unknown>(
     () => {
       const current = request();
       return current === undefined
-        ? undefined
+        ? skip
         : map(backend.handle(current), (response) => response.body as T);
     },
     options,

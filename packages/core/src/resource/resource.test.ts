@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { signal } from "../signals/index.ts";
 import { tick } from "../view/internal/test-support.ts";
-import { resource } from "./resource.ts";
+import { resource, skip } from "./resource.ts";
 import { type Task, fromComputation, succeed, fail, run } from "@tinker/functional";
 
 /** A promise the test settles by hand. */
@@ -214,9 +214,22 @@ describe("resource set and reload", () => {
   });
 });
 
+describe("resource values", () => {
+  test("undefined is an ordinary value: a loader can load it, and it is sourced", async () => {
+    const res = resource(() => succeed(undefined), { default: "kept" });
+    await tick();
+    expect(res.state())
+      .toBe("fetched");
+    expect(res.value())
+      .toBeUndefined();
+    expect(res.sourced())
+      .toBe(true);
+  });
+});
+
 describe("resource that skips its load", () => {
-  test("a loader that returns undefined runs nothing, and the state is idle", async () => {
-    const loader = vi.fn((): undefined => undefined);
+  test("a loader that returns skip runs nothing, and the state is idle", async () => {
+    const loader = vi.fn((): typeof skip => skip);
     const res = resource(loader, { default: "kept" });
     await tick();
     expect(loader)
@@ -235,7 +248,7 @@ describe("resource that skips its load", () => {
     const res = resource((signal) => {
       const current = id();
       if (current === 2) {
-        return undefined;
+        return skip;
       }
       return current === 1 ? first.promise : succeed("never");
     }, { default: "none" });
