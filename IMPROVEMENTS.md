@@ -5,23 +5,12 @@ what the problem is, why it matters, and what to do.
 
 ## Change detection (`packages/core/src/view/internal/runtime/change-detection.ts`, its schedulers)
 
-A change detection cycle runs in a microtask: every signal write made in the
-same task (an event handler, a fetch callback) leads to one cycle, before the
-browser paints. That is the right default (Vue and Lit do the same), but it
-has these gaps.
+A change detection cycle runs on the next animation frame or timer, whichever comes first:
+every signal write made in the same task (an event handler, a fetch callback, and the code after
+an `await` that resolves in it) leads to one cycle, before the browser paints. The cost of this
+policy is not measured yet, so the gaps below are the ones known today.
 
-### 1. Several cycles with `async` code
-
-**Problem.** Each `await` lets microtasks run, so
-`a.set(1); await x; b.set(2);` runs two cycles in one frame. The result is
-correct, the work is not minimal.
-
-**To do.** Nothing yet: the cost is not measured. If it shows up in profiles, try
-another strategy, e.g. Angular's zoneless race between `setTimeout` and
-`requestAnimationFrame`. Only `ChangeDetection.request` decides when a cycle
-runs, so this is a change in one place.
-
-### 2. A view cannot be refreshed by its author
+### 1. A view cannot be refreshed by its author
 
 **Problem.** A plain field changed by code outside the signal graph (a library callback, an
 in-place mutation of a plain object, a socket message) updates nothing: the view's watch runs only

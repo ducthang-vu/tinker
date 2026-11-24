@@ -23,19 +23,30 @@ export class Ticker {
     this.tick = tick;
   }
 
-  /** Run a tick soon: at most one per microtask, however often it is called. */
+  /**
+   * Run a tick soon, once however often it is called. The tick waits for the next frame
+   * or a timer, whichever comes first: a write made in the same task, or after an `await`
+   * that resolves within it, is covered by the same tick. A frame is not drawn before the
+   * tick runs, so the screen never shows a value the bindings have not written. The timer
+   * is the fallback for a background tab, where no frame is drawn.
+   */
   requestTick(): void {
     if (this.tickRequested) {
       return;
     }
     this.tickRequested = true;
-    queueMicrotask(() => {
+    // Whichever fires first cancels the other, so the tick runs once.
+    const run = () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
       try {
         this.tick();
       } finally {
         // Only now: requests made during the tick were handled by it.
         this.tickRequested = false;
       }
-    });
+    };
+    const frame = requestAnimationFrame(run);
+    const timer = setTimeout(run);
   }
 }

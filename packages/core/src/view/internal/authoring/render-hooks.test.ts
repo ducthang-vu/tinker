@@ -7,7 +7,7 @@ import { Component } from "./decorators.ts";
 import { Effects } from "./effects.ts";
 import { AfterEachRender, AfterNextRender, RenderHooks } from "./render-hooks.ts";
 import { valueOrThrow } from "@tinker/functional";
-import { renderComponent } from "../test-support.ts";
+import { renderComponent, tick } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -75,7 +75,7 @@ describe("RenderHooks in change detection", () => {
     const view = valueOrThrow(renderComponent(Engine.create(), B));
     expect(seen)
       .toEqual([]); // not during create
-    await Promise.resolve();
+    await tick();
     expect(seen)
       .toEqual(["ready"]);
   });

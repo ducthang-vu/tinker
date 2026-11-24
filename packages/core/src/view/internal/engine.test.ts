@@ -119,7 +119,7 @@ describe("Engine.bootstrap", () => {
     expect(view.host.nativeElement.textContent)
       .toBe("1 clicks");
     view.instance.count.set(2);
-    await Promise.resolve(); // the scheduler flushes in a microtask
+    await tick(); // the scheduler flushes in a microtask
     expect(view.host.nativeElement.textContent)
       .toBe("2 clicks");
   });

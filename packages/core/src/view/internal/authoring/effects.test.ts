@@ -5,7 +5,7 @@ import { Engine } from "../engine.ts";
 import { Component } from "./decorators.ts";
 import { Effect, type EffectContext, Effects } from "./effects.ts";
 import { valueOrThrow } from "@tinker/functional";
-import { renderComponent } from "../test-support.ts";
+import { renderComponent, tick } from "../test-support.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -25,12 +25,12 @@ describe("Effects", () => {
     const view = valueOrThrow(renderComponent(Engine.create(), A));
     expect(runs)
       .toEqual([]); // not during create
-    await Promise.resolve();
+    await tick();
     expect(runs)
       .toEqual([1]);
     view.instance.count.set(2);
     view.instance.count.set(3);
-    await Promise.resolve();
+    await tick();
     expect(runs)
       .toEqual([1, 3]);
   });
