@@ -3,6 +3,7 @@
 // matches a URL against the tree, from a root that is never shown.
 
 import type { Class } from "@tinker/core";
+import type { MatchedRequest } from "../pipeline/request.ts";
 
 export interface Route {
   /**
@@ -20,6 +21,12 @@ export interface Route {
    * first that matches wins. A route without children must match the whole URL.
    */
   readonly children?: readonly Route[];
+  /**
+   * Sends a navigation that matches this route to another URL. It is given the matched request,
+   * and returns the URL to go to instead, or `undefined` to leave the navigation alone. It is
+   * asked before any guard runs.
+   */
+  readonly redirect?: (request: MatchedRequest) => string | undefined;
 }
 
 /** The component a route shows. Throws for a route with none: every route shows one. */
