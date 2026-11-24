@@ -1,4 +1,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+
+/** A TypeScript module: the only kind of import that is a file of the map. */
+const TYPESCRIPT = /\.(?:ts|tsx|mts|cts)$/;
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -137,7 +140,11 @@ function getImports(sourceFile, compilerOptions, rootDir) {
       ts.sys,
     ).resolvedModule;
     const resolvedFileName = resolvedModule?.resolvedFileName;
+    // Only TypeScript modules are files of the map. Any other import (a JSON file, say) is an
+    // external reference, whether or not the file exists: a generated file that is not
+    // committed must not change the map.
     const resolved = resolvedFileName
+      && TYPESCRIPT.test(resolvedFileName)
       && isWithinRoot(rootDir, path.resolve(resolvedFileName))
       && !resolvedFileName.split(path.sep)
         .includes("node_modules")
@@ -258,6 +265,7 @@ export function buildRepoMap(rootDir = process.cwd()) {
   const checker = program.getTypeChecker();
   const files = program.getSourceFiles()
     .filter((sourceFile) => isIncludedSourceFile(absoluteRoot, sourceFile))
+    .filter((sourceFile) => TYPESCRIPT.test(sourceFile.fileName))
     .map((sourceFile) => ({
       path: toRepoPath(absoluteRoot, sourceFile.fileName),
       imports: getImports(sourceFile, parsedConfig.options, absoluteRoot),
