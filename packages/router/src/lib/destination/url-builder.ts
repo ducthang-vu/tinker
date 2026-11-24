@@ -5,6 +5,7 @@
 // plain data, that only this module can make.
 
 import { match } from "@tinker/functional";
+import { levelsOf, type SegmentLevel } from "../router/match.ts";
 import type { ActivatedRoute } from "../state/activated-route.ts";
 
 /** A route as the builder sees it: a path (one segment, literal or `:param`) and its children. */
@@ -190,6 +191,41 @@ export class ParseError extends Error {
     super(`cannot parse "${input}": ${reason} at "${at}"`);
     this.name = "ParseError";
   }
+}
+
+/**
+ * The parts one matched level contributes: a param node's segment is a param, any other is a
+ * literal. A level that consumed no segment (`""`) contributes none.
+ * @param level The level of the match.
+ * @returns The parts of the level, in order.
+ */
+function partsOfLevel(level: SegmentLevel<RouteNode>): readonly Part[] {
+  const name = segmentOf(level.route.path);
+  return level.segments.map((value): Part => name.startsWith(":")
+    ? { kind: "param", name: name.slice(1), value }
+    : { kind: "segment", value });
+}
+
+/**
+ * The first segment that no child of the tree takes, walking down from `root`. When every segment
+ * is taken, the last one: the URL stops short of a leaf.
+ * @param root The root of the tree.
+ * @param segments The segments of the URL.
+ * @returns The segment the walk could not place.
+ */
+function failingSegment(root: RouteNode, segments: readonly string[]): string {
+  let node = root;
+  for (const segment of segments) {
+    const child = (node.children ?? []).find((candidate) => {
+      const name = segmentOf(candidate.path);
+      return name === segment || name.startsWith(":") || name === "**";
+    });
+    if (child === undefined) {
+      return segment;
+    }
+    node = child;
+  }
+  return segments[segments.length - 1] ?? "";
 }
 
 /**
@@ -406,26 +442,15 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
   parse(raw: string): Destination {
     const [beforeFragment, fragmentRaw] = splitOnce(raw, "#");
     const [pathRaw, queryRaw] = splitOnce(beforeFragment, "?");
-    const parts: Part[] = [];
-    const nodes: RouteNode[] = [this.nodes[0] as RouteNode];
-
-    for (const rawSegment of pathRaw.split("/")
-      .filter((segment) => segment !== "")) {
-      const segment = decodeOrThrow(raw, rawSegment);
-      const current = nodes[nodes.length - 1] as RouteNode;
-      const child = (current.children ?? []).find((node) => {
-        const name = segmentOf(node.path);
-        return name === segment || name.startsWith(":");
-      });
-      if (child === undefined) {
-        throw new ParseError("no-route", raw, segment);
-      }
-      const name = segmentOf(child.path);
-      parts.push(name.startsWith(":")
-        ? { kind: "param", name: name.slice(1), value: segment }
-        : { kind: "segment", value: segment });
-      nodes.push(child);
+    const segments = pathRaw.split("/")
+      .filter((segment) => segment !== "")
+      .map((segment) => decodeOrThrow(raw, segment));
+    const root = this.nodes[0] as RouteNode;
+    const levels = levelsOf(root, segments);
+    if (levels === undefined) {
+      throw new ParseError("no-route", raw, failingSegment(root, segments));
     }
+    const parts = levels.flatMap(partsOfLevel);
 
     const query: [string, string][] = [];
     for (const pair of queryRaw === undefined ? [] : queryRaw.split("&")) {

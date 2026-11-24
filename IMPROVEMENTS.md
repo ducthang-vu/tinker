@@ -270,3 +270,49 @@ workflow copies `index.html` to `404.html`, and GitHub Pages serves that page fo
 router reads the URL itself. Any other static host needs the same fallback.
 
 **To do.** Nothing in the app; document the fallback for any new host.
+
+## Navigation: the typed destination (`packages/router/src/lib/router/router.ts`, `pipeline/`)
+
+### 1. `RouterLink` and `Router.parse` still take strings
+
+**Problem.** `navigate` takes a `Destination` only, but `RouterLink` still builds its href with the
+old string-based `UrlBuilder` and turns it into a destination with `Router.parse`. A link to a URL
+no route matches throws a `ParseError` in its click handler instead of doing nothing. The strings
+are allowed only at this boundary, which the design says should be `RouterLink` alone.
+
+**To do.** Give `RouterLink` the `string | Destination` input, parse the string once when the
+input changes, and report a bad string at bind time. Move the relative resolution onto the typed
+builder (`UrlBuilder.from(activatedRoute)`), then remove the old `router/url-builder.ts`.
+
+### 2. The typed builder and the old `UrlBuilder` share one name
+
+**Problem.** `packages/router/src/index.ts` still exports the old string-based `UrlBuilder`. The
+typed builder is not exported, so an app cannot build a destination except with `Router.parse`.
+
+**To do.** Export the typed builder as `UrlBuilder` once `RouterLink` no longer uses the old one.
+
+### 3. The base prefix is not applied at the browser boundary yet
+
+**Problem.** The commit step is given an empty base, so `Location` still uses the `<base>` element
+read by `browserPlatformLocation`. `APP_BASE` and `toBrowserUrl` are written and tested but not
+wired in.
+
+**To do.** Make `Location` take browser URLs with the base and convert them with `toBrowserUrl` and
+`fromBrowserUrl`, provide `APP_BASE` from the build, and pass it to the commit step.
+
+### 4. Back and forward moves skip the pipeline
+
+**Problem.** A back or forward move (`popstate`) updates the activated routes directly, so its
+guards and redirects never run.
+
+**To do.** Route a `pop` request through the same pipeline with `arrival: "pop"`, so the guards
+and redirects run before the routes change.
+
+### 5. A navigation rejected by a guard is not reported to the app
+
+**Problem.** `navigate` resolves `false` for a guard that says no, a redirect that cannot be
+followed, and a navigation replaced by a newer one. The app cannot tell those apart, and a guard
+that throws is only visible as `false`.
+
+**To do.** Expose the `NavigationOutcome` (`Done`, `Cancelled`, `Rejected` with its reason) from
+`navigate`, or from an observable on the router.

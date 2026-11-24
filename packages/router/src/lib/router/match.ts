@@ -1,8 +1,9 @@
-// Matches a URL against the route tree, from its root. A route consumes the segments of its path:
-// a `:name` segment takes any one segment, and "**" takes all the rest and matches any URL. A route
-// with children gives the segments it did not consume to them, and the first child that matches
-// wins. A route without children must consume every segment. The query and the hash are not part
-// of the path, and empty segments are ignored, so "/todos/" is "/todos".
+// Matches a URL against the route tree, from its root. A route consumes one segment of the URL: a
+// `:name` segment takes any one segment, `""` takes none, and "**" takes all the rest and matches
+// any URL. A route with children gives the segments it did not consume to them, and the first child
+// that matches wins. A route without children must consume every segment. The query and the hash
+// are not part of the path, and empty segments are ignored, so "/todos/" is "/todos". This is the
+// one matcher: the pipeline and the builder's `parse` use it too.
 
 import type { Route } from "./route.ts";
 import { UrlBuilder } from "./url-builder.ts";
@@ -35,7 +36,7 @@ export interface RouteMatch {
  * @returns The levels, root first, or undefined when no route matches.
  */
 export function matchChain(root: Route, url: string): readonly LevelMatch[] | undefined {
-  return levelsFrom(root, UrlBuilder.from(url).segments);
+  return levelsOf(root, UrlBuilder.from(url).segments);
 }
 
 /**
@@ -55,13 +56,49 @@ export function matchRoute(root: Route, url: string): RouteMatch | undefined {
   };
 }
 
+/** A route as the matcher sees it: its path, and the children it nests. */
+export interface PathNode<N> {
+  /** The path the node consumes: one segment, a `:param`, `""` for none, or `**` for the rest. */
+  readonly path: string;
+  /** The nodes nested under this one. */
+  readonly children?: readonly N[];
+}
+
+/** One level of a segment match: the node, the params it read, and the segments it consumed. */
+export interface SegmentLevel<N> {
+  /** The node of the level. */
+  readonly route: N;
+  /** The params the level read from its segments. */
+  readonly params: RouteParams;
+  /** The segments the level consumed. */
+  readonly segments: readonly string[];
+}
+
+/**
+ * The levels from `root` down that match `segments`, root first, or undefined when none does. The
+ * router's one matcher: the URL matching, the pipeline and the builder's `parse` all use it.
+ *
+ * @param root The node the match starts at.
+ * @param segments The segments to match, in order.
+ * @returns The levels, root first, or undefined when no route matches.
+ */
+export function levelsOf<N extends PathNode<N>>(
+  root: N,
+  segments: readonly string[],
+): readonly SegmentLevel<N>[] | undefined {
+  return levelsFrom(root, segments);
+}
+
 /**
  * The levels of `route` and its descendants that match `segments`, or undefined when none do.
  * @param route
  * @param segments
  * @returns The levels that match, or undefined when none do.
  */
-function levelsFrom(route: Route, segments: readonly string[]): readonly LevelMatch[] | undefined {
+function levelsFrom<N extends PathNode<N>>(
+  route: N,
+  segments: readonly string[],
+): readonly SegmentLevel<N>[] | undefined {
   if (route.path === "**") {
     return [{ route, params: {}, segments }];
   }
@@ -70,7 +107,7 @@ function levelsFrom(route: Route, segments: readonly string[]): readonly LevelMa
     return undefined;
   }
   const rest = segments.slice(consumed.count);
-  const own: LevelMatch = {
+  const own: SegmentLevel<N> = {
     route,
     params: consumed.params,
     segments: segments.slice(0, consumed.count),

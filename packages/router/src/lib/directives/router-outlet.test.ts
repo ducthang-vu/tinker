@@ -34,9 +34,18 @@ class App {
   readonly router = inject(Router);
 }
 
+@Component({ selector: "tk-todos", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
+class TodosShell {}
+
 const ROUTES = [
-  { path: "/todos", component: TodoList },
-  { path: "/todos/:id", component: TodoDetail },
+  {
+    path: "/todos",
+    component: TodosShell,
+    children: [
+      { path: "", component: TodoList },
+      { path: ":id", component: TodoDetail },
+    ],
+  },
 ];
 
 /** An app with the router over ROOT, starting at `url`. */

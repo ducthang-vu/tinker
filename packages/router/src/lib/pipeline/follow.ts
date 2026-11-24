@@ -1,9 +1,21 @@
 // The redirect driver: runs the pipeline for a request, and follows each redirect as a new request.
 // A redirect keeps the navigation's id, moves the destination to the redirect's target, and appends
-// the URL it came from to `redirectFrom`, so the match step can cap the chain. Every other stop ends
-// the navigation as a Rejected. The driver is one Task, so cancelling it cancels the redirect chain.
+// the URL it came from to `redirectFrom`, so the match step can cap the chain. Every other stop
+// ends the navigation as a Rejected. The driver is one Task, so cancelling it cancels the redirect
+// chain.
 
-import { Stream, fail, flatMap, match, run, succeed, Left, Right, type Either, type Task } from "@tinker/functional";
+import {
+  Stream,
+  fail,
+  flatMap,
+  match,
+  run,
+  succeed,
+  Left,
+  Right,
+  type Either,
+  type Task,
+} from "@tinker/functional";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import type { Rejected } from "./navigation-outcome.ts";
 import { Redirect, type Stop } from "./stop.ts";
