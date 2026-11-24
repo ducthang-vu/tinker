@@ -92,16 +92,6 @@ export function fail<E>(error: E): Task<never, E> {
 }
 
 /**
- * A task with the outcome of an Either: a Right succeeds, a Left fails.
- *
- * @param either The outcome the task has.
- * @returns A task with that outcome.
- */
-export function fromOutcome<T, E>(either: Either<T, E>): Task<T, E> {
-  return Stream.fromEither(either);
-}
-
-/**
  * A task running the promise `start` returns. `start` is called only when the task runs, and
  * receives an AbortSignal that is aborted on cancel. A rejection becomes a failure, an Error.
  *

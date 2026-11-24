@@ -7,7 +7,6 @@ import {
   delay,
   fail,
   fromComputation,
-  fromOutcome,
   fromPromise,
   succeed,
   type Task,
@@ -113,13 +112,6 @@ describe("Task", () => {
       throw "in f";
     })).log))
       .toEqual({ message: "in f", cause: "in f" });
-  });
-
-  test("fromOutcome: a Right succeeds, a Left fails", () => {
-    expect(record(fromOutcome(Right.of<number, string>(1))).log)
-      .toEqual([["ok", 1]]);
-    expect(record(fromOutcome(Left.of<string, number>("e"))).log)
-      .toEqual([["error", "e"]]);
   });
 
   test("toPromise resolves or rejects", async () => {

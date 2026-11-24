@@ -55,7 +55,6 @@ export {
   delay,
   fail,
   fromComputation,
-  fromOutcome,
   fromPromise,
   succeed,
   createTask,
