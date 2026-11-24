@@ -4,7 +4,7 @@ import { fail, fromComputation, run, type Task } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import { createGuardStep, type Guard, type GuardResult } from "./guard-step.ts";
 import type { MatchedRequest } from "./request.ts";
-import { Failed, Redirect, Rejected, type Stop } from "./stop.ts";
+import { Redirect, type Stop } from "./stop.ts";
 
 /** A matched request for `url`, over the routes (root first). */
 function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
@@ -64,14 +64,14 @@ describe("the guard step", () => {
     expect(log)
       .toEqual(["root", "child-1", "child-2"]);
     expect(stop)
-      .toBeInstanceOf(Rejected);
+      .toMatchObject({ kind: "rejected", reason: "guard" });
   });
 
   test("a guard that returns a URL stops with a Redirect to it", () => {
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [() => "/login"] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toEqual(Redirect.of("/login"));
+      .toEqual(Redirect.of(matchedAt("/todos", routes), "/login"));
   });
 
   test("a guard that throws stops with a Failed, keeping the throw", () => {
@@ -82,8 +82,8 @@ describe("the guard step", () => {
     }] }];
     const stop = stopOf(step(matchedAt("/todos", routes)));
     expect(stop)
-      .toBeInstanceOf(Failed);
-    expect((stop as Failed).cause)
+      .toMatchObject({ kind: "rejected", reason: "failed" });
+    expect((stop as { cause: unknown }).cause)
       .toBe(thrown);
   });
 
@@ -107,14 +107,14 @@ describe("the guard step", () => {
       .toEqual([]);
     answer(false);
     expect(seen[0])
-      .toBeInstanceOf(Rejected);
+      .toMatchObject({ kind: "rejected", reason: "guard" });
   });
 
   test("a guard's task that fails stops with a Failed", () => {
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [() => fail(new Error("offline"))] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toBeInstanceOf(Failed);
+      .toMatchObject({ kind: "rejected", reason: "failed" });
   });
 
   test("a guard runs in the injection context of the router, so it can inject", () => {
@@ -123,7 +123,7 @@ describe("the guard step", () => {
     const step = createGuardStep(injector);
     const routes: Route[] = [{ ...page, canActivate: [() => inject(SESSION)] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toBeInstanceOf(Rejected);
+      .toMatchObject({ kind: "rejected", reason: "guard" });
   });
 
   test("a guard receives the matched request", () => {

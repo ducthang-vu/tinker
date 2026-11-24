@@ -4,7 +4,7 @@ import { type Either, match } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";
 import { createRedirectStep } from "./redirect-step.ts";
-import { Failed, Redirect, type Stop } from "./stop.ts";
+import { Redirect, type Stop } from "./stop.ts";
 
 /** The stop of an outcome, or `undefined` when the navigation went on. */
 function stopOf(outcome: Either<MatchedRequest, Stop>): Stop | undefined {
@@ -62,11 +62,12 @@ describe("the redirect step", () => {
         return "/elsewhere";
       },
     };
-    const outcome = step(matchedAt("/todos", [root, child]));
+    const matched = matchedAt("/todos", [root, child]);
+    const outcome = step(matched);
     expect(asked)
       .toEqual(["root"]);
     expect(stopOf(outcome))
-      .toEqual(Redirect.of("/home"));
+      .toEqual(Redirect.of(matched, "/home"));
   });
 
   test("a redirect runs in the injection context of the router", () => {
@@ -78,7 +79,7 @@ describe("the redirect step", () => {
     const routes = [{ ...page, redirect: () => inject(TARGET) }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
-      .toEqual(Redirect.of("/login"));
+      .toEqual(Redirect.of(matchedAt("/todos", routes), "/login"));
   });
 
   test("a redirect that throws stops the navigation with a Failed", () => {
@@ -88,6 +89,6 @@ describe("the redirect step", () => {
     } }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
-      .toBeInstanceOf(Failed);
+      .toMatchObject({ kind: "rejected", reason: "failed" });
   });
 });

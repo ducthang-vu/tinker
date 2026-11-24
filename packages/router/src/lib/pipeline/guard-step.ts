@@ -7,7 +7,7 @@ import { type Injector, runInInjectionContext } from "@tinker/core";
 import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker/functional";
 import type { MatchedRequest } from "./request.ts";
 import type { GuardStep } from "./steps.ts";
-import { Failed, Redirect, Rejected, type Stop } from "./stop.ts";
+import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";
 
 /** A guard's answer: allow (true), reject (false), or redirect to a URL. */
 export type GuardResult = boolean | string;
@@ -27,7 +27,8 @@ export function createGuardStep(injector: Injector): GuardStep {
   return (matched) =>
     matched.chain.reduce<Task<MatchedRequest, Stop>>(
       (previous, level) =>
-        flatMap(previous, () => guardsOf(injector, matched, level.route.canActivate ?? [])),
+        flatMap(previous, () =>
+          guardsOf(injector, matched, level.route.path, level.route.canActivate ?? [])),
       succeed(matched),
     );
 }
@@ -36,12 +37,14 @@ export function createGuardStep(injector: Injector): GuardStep {
 function guardsOf(
   injector: Injector,
   matched: MatchedRequest,
+  route: string,
   guards: readonly Guard[],
 ): Task<MatchedRequest, Stop> {
   return guards.reduce<Task<MatchedRequest, Stop>>(
     (previous, guard) =>
       flatMap(previous, () =>
-        flatMap(callGuard(injector, matched, guard), (verdict) => decide(matched, verdict))),
+        flatMap(callGuard(injector, matched, guard), (verdict) =>
+          decide(matched, route, verdict))),
     succeed(matched),
   );
 }
@@ -57,13 +60,13 @@ function callGuard(
     try {
       produced = runInInjectionContext(injector, () => guard(matched));
     } catch (cause) {
-      error(Failed.of(matched.url, cause));
+      error(failed(matched, cause));
       return;
     }
     if (typeof produced === "object") {
       return run(produced, {
         ok,
-        error: (cause) => error(Failed.of(matched.url, cause)),
+        error: (cause) => error(failed(matched, cause)),
       });
     }
     ok(produced);
@@ -71,12 +74,16 @@ function callGuard(
 }
 
 /** Turns an answer into the navigation's next step: allowed, rejected, or redirected. */
-function decide(matched: MatchedRequest, verdict: GuardResult): Task<MatchedRequest, Stop> {
+function decide(
+  matched: MatchedRequest,
+  route: string,
+  verdict: GuardResult,
+): Task<MatchedRequest, Stop> {
   if (verdict === true) {
     return succeed(matched);
   }
   if (verdict === false) {
-    return fail(Rejected.of(matched.url));
+    return fail(guardRejected(matched, route));
   }
-  return fail(Redirect.of(verdict));
+  return fail(Redirect.of(matched, verdict));
 }

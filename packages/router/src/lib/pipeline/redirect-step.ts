@@ -6,7 +6,7 @@ import { type Injector, runInInjectionContext } from "@tinker/core";
 import { Left, Right } from "@tinker/functional";
 import type { MatchedRequest } from "./request.ts";
 import type { RedirectStep } from "./steps.ts";
-import { Failed, Redirect, type Stop } from "./stop.ts";
+import { failed, Redirect, type Stop } from "./stop.ts";
 
 /**
  * The redirect step for a router with `injector`.
@@ -24,9 +24,9 @@ export function createRedirectStep(injector: Injector): RedirectStep {
       );
       return target === undefined
         ? Right.of<MatchedRequest, Stop>(matched)
-        : Left.of<Stop, MatchedRequest>(Redirect.of(target));
+        : Left.of<Stop, MatchedRequest>(Redirect.of(matched, target));
     } catch (cause) {
-      return Left.of<Stop, MatchedRequest>(Failed.of(matched.url, cause));
+      return Left.of<Stop, MatchedRequest>(failed(matched, cause));
     }
   };
 }

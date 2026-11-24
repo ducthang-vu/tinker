@@ -1,66 +1,59 @@
-// The ways the pipeline stops before the navigation is committed. A stop is the error channel of a
-// step, so every step that can stop returns one of these, and the pipeline passes it on unchanged.
+// The stops of the pipeline: the left side before a navigation commits. A redirect is a stop too,
+// but it is not a final result: the router turns it into a new request. Every other stop is a
+// Rejected, which carries the navigation it belongs to.
 
-/** No route matches the URL. */
-export class NoRoute {
-  private constructor(readonly url: string) {}
+import type { NavigationRef, Rejected } from "./navigation-outcome.ts";
 
-  /**
-   * A no-route stop for `url`.
-   *
-   * @param url The URL no route matches.
-   * @returns A NoRoute holding `url`.
-   */
-  static of(url: string): NoRoute {
-    return new NoRoute(url);
-  }
-}
-
-/** A route or a guard sends the navigation to `target` instead. Not a failure. */
+/** A route or a guard sends the navigation to `target` instead. Internal: not a final result. */
 export class Redirect {
-  private constructor(readonly target: string) {}
+  private constructor(
+    readonly navigation: NavigationRef,
+    readonly target: string,
+  ) {}
 
   /**
-   * A redirect to `target`.
+   * A redirect of `navigation` to `target`.
    *
-   * @param target The URL the navigation goes to instead.
-   * @returns A Redirect holding `target`.
+   * @param navigation The navigation being redirected.
+   * @param target The URL it goes to instead.
+   * @returns A Redirect.
    */
-  static of(target: string): Redirect {
-    return new Redirect(target);
+  static of(navigation: NavigationRef, target: string): Redirect {
+    return new Redirect(navigation, target);
   }
 }
 
-/** A guard said no. */
-export class Rejected {
-  private constructor(readonly url: string) {}
+/** Why the pipeline stopped: a redirect to follow, or a rejection that ends the navigation. */
+export type Stop = Redirect | Rejected;
 
-  /**
-   * A rejection of the navigation to `url`.
-   *
-   * @param url The URL whose navigation was rejected.
-   * @returns A Rejected holding `url`.
-   */
-  static of(url: string): Rejected {
-    return new Rejected(url);
-  }
+/**
+ * A rejection for a URL no route matches.
+ *
+ * @param navigation The navigation that matched no route.
+ * @returns A no-route rejection.
+ */
+export function noRoute(navigation: NavigationRef): Rejected {
+  return { kind: "rejected", reason: "no-route", navigation };
 }
 
-/** A step failed: a guard threw, the browser refused the commit, or the redirects never ended. */
-export class Failed {
-  private constructor(readonly url: string, readonly cause: unknown) {}
-
-  /**
-   * A failure of the navigation to `url`.
-   *
-   * @param url The URL whose navigation failed.
-   * @param cause What went wrong.
-   * @returns A Failed holding `url` and `cause`.
-   */
-  static of(url: string, cause: unknown): Failed {
-    return new Failed(url, cause);
-  }
+/**
+ * A rejection by a guard.
+ *
+ * @param navigation The navigation the guard rejected.
+ * @param route The path of the route whose guard said no.
+ * @returns A guard rejection.
+ */
+export function guardRejected(navigation: NavigationRef, route: string): Rejected {
+  return { kind: "rejected", reason: "guard", navigation, route };
 }
 
-/** Why the pipeline stopped. */
-export type Stop = NoRoute | Redirect | Rejected | Failed;
+/**
+ * A rejection because a step failed.
+ *
+ * @param navigation The navigation whose step failed.
+ * @param cause What went wrong.
+ * @returns A failure rejection.
+ */
+export function failed(navigation: NavigationRef, cause: unknown): Rejected {
+  return { kind: "rejected", reason: "failed", navigation, cause };
+}

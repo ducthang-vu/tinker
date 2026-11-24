@@ -3,7 +3,9 @@ import { createTask, Left, Right, run, fail, succeed, type Either, type Task } f
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import { createPipeline } from "./pipeline.ts";
 import type { PipelineSteps } from "./steps.ts";
-import { Failed, NoRoute, Rejected, Redirect, type Stop } from "./stop.ts";
+import { failed, guardRejected, noRoute, Redirect, type Stop } from "./stop.ts";
+
+const ref = { id: 1, url: "/todos/7" };
 
 const request: NavigationRequest = {
   id: 1,
@@ -92,19 +94,19 @@ describe("stops", () => {
   test("no route stops at match: the later steps do not run", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      match: () => Left.of<Stop, MatchedRequest>(NoRoute.of("/nowhere")),
+      match: () => Left.of<Stop, MatchedRequest>(noRoute(ref)),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)
       .toEqual([]);
     expect(outcome.error)
-      .toBeInstanceOf(NoRoute);
+      .toMatchObject({ kind: "rejected", reason: "no-route" });
   });
 
   test("a redirect stops at redirect: guards and commit do not run", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      redirect: () => Left.of<Stop, MatchedRequest>(Redirect.of("/login")),
+      redirect: () => Left.of<Stop, MatchedRequest>(Redirect.of(ref, "/login")),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)
@@ -116,35 +118,35 @@ describe("stops", () => {
   test("a rejection from the guards stops before the commit", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      guards: (m) => fail<Stop>(Rejected.of(m.url)),
+      guards: () => fail<Stop>(guardRejected(ref, "/todos")),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)
       .toEqual(["match", "redirect"]);
     expect(outcome.error)
-      .toBeInstanceOf(Rejected);
+      .toMatchObject({ kind: "rejected", reason: "guard" });
   });
 
   test("a failure in the commit step is the pipeline's failure", () => {
     const cause = new Error("refused");
     const steps = fakeSteps([], {
-      commit: (m) => fail<Stop>(Failed.of(m.url, cause)),
+      commit: () => fail<Stop>(failed(ref, cause)),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(outcome.error)
-      .toBeInstanceOf(Failed);
+      .toMatchObject({ kind: "rejected", reason: "failed" });
   });
 
   test("a navigation past the redirect cap stops at match, before anything else", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      match: (r) => Left.of<Stop, MatchedRequest>(Failed.of(r.url, new Error("too many redirects"))),
+      match: () => Left.of<Stop, MatchedRequest>(failed(ref, new Error("too many redirects"))),
     });
     const outcome = outcomeOf(createPipeline(steps)({ ...request, redirectFrom: Array.from({ length: 11 }, () => "/x") }));
     expect(log)
       .toEqual([]);
     expect(outcome.error)
-      .toBeInstanceOf(Failed);
+      .toMatchObject({ kind: "rejected", reason: "failed" });
   });
 });
 
