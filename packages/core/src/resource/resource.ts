@@ -68,13 +68,41 @@ export interface LoaderArgs<P> {
  * A resource with a trigger and a loader. The trigger reads the signals and returns the request
  * as `params`, or `undefined` to skip the load before anything runs. The loader gets the request
  * and reads no signals: a change to what the trigger reads starts a new load.
+ *
+ * @param trigger Reads the signals, and returns the request as `params`, or `undefined` to skip.
+ * @param loader Runs with `{ params, abortSignal }`, and returns a promise or a task of the value.
+ * @param options The value before the first success, and whether it waits for `reload()`.
+ * @returns The resource: its state, its value and error, and `set` and `reload`.
+ * @example
+ * ```ts
+ * const user = resource(
+ *   () => (id() === 0 ? undefined : { params: { id: id() } }),
+ *   ({ params, abortSignal }) =>
+ *     fetch(`/users/${params.id}`, { signal: abortSignal }).then((r) => r.json()),
+ *   { default: emptyUser },
+ * );
+ * ```
  */
 export function resource<T, E = Error, P = unknown>(
   trigger: () => { readonly params: P } | undefined,
   loader: (args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>,
   options: ResourceOptions<T>,
 ): Resource<T, E>;
-/** A resource whose loader reads the signals it needs: a change to any starts a new load. */
+/**
+ * A resource whose loader reads the signals it needs: a change to any of them starts a new load.
+ * The loader returns `undefined` to skip the load: nothing runs, and the value is kept.
+ *
+ * @param loader Runs when a signal it reads changes, and returns a promise or a task of the value.
+ * @param options The value before the first success, and whether it waits for `reload()`.
+ * @returns The resource: its state, its value and error, and `set` and `reload`.
+ * @example
+ * ```ts
+ * const user = resource(
+ *   (abortSignal) => fetch(`/users/${id()}`, { signal: abortSignal }).then((r) => r.json()),
+ *   { default: emptyUser },
+ * );
+ * ```
+ */
 export function resource<T, E = Error>(
   loader: Loader<T, E>,
   options: ResourceOptions<T>,
