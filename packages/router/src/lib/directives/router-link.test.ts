@@ -200,7 +200,7 @@ test("aria-current is page on the link to the current path, and absent elsewhere
     .getAttribute("aria-current"))
     .toBeNull();
   fixture.get(Router)
-    .navigate("/todos/7");
+    .navigate(fixture.get(Router).parse("/todos/7"));
   fixture.detectChanges();
   expect(fixture.root.query("a.root")
     .getAttribute("aria-current"))
