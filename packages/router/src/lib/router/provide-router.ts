@@ -8,6 +8,7 @@ import { ActivatedRoute } from "../state/activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "../state/child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
+import { UrlBuilder } from "../destination/url-builder.ts";
 import { type Route, componentOf } from "./route.ts";
 
 /**
@@ -24,6 +25,7 @@ export function provideRouter(routes: readonly Route[]): readonly Provider[] {
   return [
     provide(PLATFORM_LOCATION, { useValue: browserPlatformLocation }),
     provide(Location, { useClass: Location }),
+    provide(UrlBuilder, { useClass: UrlBuilder }),
     provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
     provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
     provide(ChildActivatedRoute, {

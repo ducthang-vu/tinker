@@ -7141,21 +7141,9 @@
           ],
           "members": [
             {
-              "name": "path",
-              "kind": "property",
-              "source": "packages/router/src/lib/state/activated-route.ts:17",
-              "description": "The path of this level: the segments of every level from the root down to it.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "returns": "The segments of every level from the root down to it.",
-              "type": "readonly string[]"
-            },
-            {
               "name": "route",
               "kind": "property",
-              "source": "packages/router/src/lib/state/activated-route.ts:35",
+              "source": "packages/router/src/lib/state/activated-route.ts:26",
               "description": "The route of this level.",
               "params": [
                 {
@@ -7176,7 +7164,7 @@
             {
               "name": "params",
               "kind": "property",
-              "source": "packages/router/src/lib/state/activated-route.ts:37",
+              "source": "packages/router/src/lib/state/activated-route.ts:28",
               "description": "The params this level read from its segments.",
               "params": [
                 {
@@ -7197,7 +7185,7 @@
             {
               "name": "segments",
               "kind": "property",
-              "source": "packages/router/src/lib/state/activated-route.ts:39",
+              "source": "packages/router/src/lib/state/activated-route.ts:30",
               "description": "The URL segments this level consumed.",
               "params": [
                 {
@@ -7218,7 +7206,7 @@
             {
               "name": "parent",
               "kind": "property",
-              "source": "packages/router/src/lib/state/activated-route.ts:41",
+              "source": "packages/router/src/lib/state/activated-route.ts:32",
               "description": "The level above this one, or None for the root.",
               "params": [
                 {
@@ -7252,8 +7240,8 @@
         {
           "name": "Destination",
           "kind": "class",
-          "source": "packages/router/src/lib/destination/url-builder.ts:50",
-          "description": "A complete, app-relative destination. Only this module makes one.",
+          "source": "packages/router/src/lib/destination/destination.ts:26",
+          "description": "A complete, app-relative destination. Only the URL builder makes one.",
           "params": [],
           "examples": [],
           "see": [],
@@ -7265,7 +7253,7 @@
             {
               "name": "parts",
               "kind": "property",
-              "source": "packages/router/src/lib/destination/url-builder.ts:60",
+              "source": "packages/router/src/lib/destination/destination.ts:37",
               "description": "The parts of the path.",
               "params": [
                 {
@@ -7282,7 +7270,7 @@
             {
               "name": "query",
               "kind": "property",
-              "source": "packages/router/src/lib/destination/url-builder.ts:61",
+              "source": "packages/router/src/lib/destination/destination.ts:38",
               "description": "The query pairs.",
               "params": [
                 {
@@ -7299,7 +7287,7 @@
             {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/lib/destination/url-builder.ts:62",
+              "source": "packages/router/src/lib/destination/destination.ts:39",
               "description": "The fragment, if any.",
               "params": [
                 {
@@ -7316,7 +7304,7 @@
             {
               "name": "format",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:70",
+              "source": "packages/router/src/lib/destination/destination.ts:47",
               "description": "The destination as an app-relative URL: the path, the query, and the fragment.",
               "params": [],
               "examples": [],
@@ -7330,8 +7318,8 @@
             {
               "name": "make",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:89",
-              "description": "Makes a destination from parts that have been checked against the tree.",
+              "source": "packages/router/src/lib/destination/destination.ts:66",
+              "description": "Makes a destination from parts that have been checked against the route tree.",
               "params": [
                 {
                   "name": "parts",
@@ -7502,6 +7490,270 @@
           "type": "InjectionToken<PlatformLocation>"
         },
         {
+          "name": "ParseError",
+          "kind": "class",
+          "source": "packages/router/src/lib/destination/url-builder.ts:15",
+          "description": "A URL that could not be parsed into a destination of the route tree.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new ParseError(reason: \"no-route\" | \"malformed\", input: string, at: string): ParseError"
+          ],
+          "members": [
+            {
+              "name": "reason",
+              "kind": "property",
+              "source": "packages/router/src/lib/destination/url-builder.ts:24",
+              "description": "Why the URL is not one of the tree's.",
+              "params": [
+                {
+                  "name": "reason",
+                  "text": "Why the URL is not one of the tree's."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "\"no-route\" | \"malformed\""
+            },
+            {
+              "name": "input",
+              "kind": "property",
+              "source": "packages/router/src/lib/destination/url-builder.ts:26",
+              "description": "The raw input.\nThe raw URL.",
+              "params": [
+                {
+                  "name": "input",
+                  "text": "The raw URL."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            },
+            {
+              "name": "at",
+              "kind": "property",
+              "source": "packages/router/src/lib/destination/url-builder.ts:28",
+              "description": "The part that failed: the segment, the query pair, or the fragment.\nThe part that failed.",
+              "params": [
+                {
+                  "name": "at",
+                  "text": "The part that failed."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "name": "Path",
+          "kind": "class",
+          "source": "packages/router/src/lib/destination/url-builder.ts:48",
+          "description": "An immutable position in the route tree, with the parts written so far. Each step returns a new\nposition. A step that no child of the current route takes throws, and a parse that no route\nmatches throws a ParseError.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new Path(levels: readonly Level[], query: readonly (readonly [string, string])[], fragment: string | undefined): Path"
+          ],
+          "members": [
+            {
+              "name": "withSegment",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:90",
+              "description": "Moves to a child with a literal segment. Throws when no such child exists.",
+              "params": [
+                {
+                  "name": "segment",
+                  "text": "The child's path without its leading slash."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "Error when no such child exists under the current route, or the path was already left."
+              ],
+              "returns": "A position at that child.",
+              "signatures": [
+                "withSegment(segment: string): Path"
+              ]
+            },
+            {
+              "name": "withParam",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:105",
+              "description": "Moves to a child with a param, and gives the param its value. Throws when no such param exists.",
+              "params": [
+                {
+                  "name": "name",
+                  "text": "The param's name, as declared with a colon in the path."
+                },
+                {
+                  "name": "value",
+                  "text": "The value of the param, in the URL. It is percent-encoded when formatted."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "Error when no such param exists under the current route, or the path was already left."
+              ],
+              "returns": "A position at that child.",
+              "signatures": [
+                "withParam(name: string, value: string): Path"
+              ]
+            },
+            {
+              "name": "up",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:116",
+              "description": "Moves back to the parent route. Throws at the root.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "Error at the root, which has no parent, or when the path was already left."
+              ],
+              "returns": "A position at the parent.",
+              "signatures": [
+                "up(): Path"
+              ]
+            },
+            {
+              "name": "withQuery",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:132",
+              "description": "Adds a query pair. Allowed after the path and before the fragment, and any number of times.",
+              "params": [
+                {
+                  "name": "name",
+                  "text": "The query name."
+                },
+                {
+                  "name": "value",
+                  "text": "The query value. It is percent-encoded."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "Error when the fragment is already set, since the query comes before it."
+              ],
+              "returns": "A position with the pair added.",
+              "signatures": [
+                "withQuery(name: string, value: string): Path"
+              ]
+            },
+            {
+              "name": "withFragment",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:146",
+              "description": "Sets the fragment. It comes last, so nothing can follow it.",
+              "params": [
+                {
+                  "name": "value",
+                  "text": "The fragment, without its `#`. It is percent-encoded."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "Error when the fragment is already set."
+              ],
+              "returns": "A position with the fragment set.",
+              "signatures": [
+                "withFragment(value: string): Path"
+              ]
+            },
+            {
+              "name": "parse",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:163",
+              "description": "Continues from this position with a raw URL. A URL that starts with `/` is read from the root;\nany other is read from this position. Each segment is matched as the router matches, so a\nsegment that no route takes throws a ParseError. The query and the fragment of the URL are\nadded to the ones written so far.",
+              "params": [
+                {
+                  "name": "raw",
+                  "text": "The raw URL, such as `\"/todos/7?tab=done#top\"` or `\"7\"`."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [
+                "ParseError when the URL is not one of the tree's routes, or a part is malformed."
+              ],
+              "returns": "A position at the end of the URL.",
+              "signatures": [
+                "parse(raw: string): Path"
+              ]
+            },
+            {
+              "name": "build",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:193",
+              "description": "The complete destination.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "The destination, with the path, query and fragment as written.",
+              "signatures": [
+                "build(): Destination"
+              ]
+            },
+            {
+              "name": "at",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:68",
+              "description": "A position at the end of `levels`, with nothing written after them.",
+              "params": [
+                {
+                  "name": "levels",
+                  "text": "The levels from the root down to the current route."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "The position.",
+              "static": true,
+              "signatures": [
+                "at(levels: readonly Level[]): Path"
+              ]
+            },
+            {
+              "name": "rootOf",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:79",
+              "description": "A position at the root of `routes`, for a tree that is not the router's. The root consumes no\nsegment, and its children are `routes`.",
+              "params": [
+                {
+                  "name": "routes",
+                  "text": "The top-level routes."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A position at the root.",
+              "static": true,
+              "signatures": [
+                "rootOf(routes: readonly Route[]): Path"
+              ]
+            }
+          ]
+        },
+        {
           "name": "PlatformLocation",
           "kind": "interface",
           "source": "packages/router/src/lib/location/platform-location.ts:11",
@@ -7670,7 +7922,7 @@
         {
           "name": "RouteMatch",
           "kind": "interface",
-          "source": "packages/router/src/lib/router/match.ts:25",
+          "source": "packages/router/src/lib/router/match.ts:24",
           "description": "The leaf route that matches the URL, with the params read along the whole path.",
           "params": [],
           "examples": [],
@@ -7680,7 +7932,7 @@
             {
               "name": "route",
               "kind": "property",
-              "source": "packages/router/src/lib/router/match.ts:27",
+              "source": "packages/router/src/lib/router/match.ts:26",
               "description": "The leaf route the URL matches.",
               "params": [],
               "examples": [],
@@ -7691,7 +7943,7 @@
             {
               "name": "params",
               "kind": "property",
-              "source": "packages/router/src/lib/router/match.ts:29",
+              "source": "packages/router/src/lib/router/match.ts:28",
               "description": "The params read along the whole path.",
               "params": [],
               "examples": [],
@@ -7704,7 +7956,7 @@
         {
           "name": "RouteParams",
           "kind": "type",
-          "source": "packages/router/src/lib/router/match.ts:12",
+          "source": "packages/router/src/lib/router/match.ts:11",
           "description": "The params a path read, by name.",
           "params": [],
           "examples": [],
@@ -7777,7 +8029,7 @@
               "params": [
                 {
                   "name": "destination",
-                  "text": "Where to go, built by the URL builder or parsed from a string with `parse`."
+                  "text": "Where to go, built by the injected `UrlBuilder`."
                 },
                 {
                   "name": "options",
@@ -7793,30 +8045,9 @@
               ]
             },
             {
-              "name": "parse",
-              "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:121",
-              "description": "The destination a URL string names in this router's route tree. Throws a ParseError when no\nroute matches it, or when it is malformed. The one place a string becomes a destination.",
-              "params": [
-                {
-                  "name": "url",
-                  "text": "The URL to parse: a path, with an optional query and fragment."
-                }
-              ],
-              "examples": [],
-              "see": [],
-              "throws": [
-                "ParseError when the URL matches no route or is malformed."
-              ],
-              "returns": "The destination the URL names.",
-              "signatures": [
-                "parse(url: string): Destination"
-              ]
-            },
-            {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:128",
+              "source": "packages/router/src/lib/router/router.ts:114",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],
@@ -7831,7 +8062,7 @@
         {
           "name": "RouterLink",
           "kind": "class",
-          "source": "packages/router/src/lib/directives/router-link.ts:12",
+          "source": "packages/router/src/lib/directives/router-link.ts:23",
           "description": "",
           "params": [],
           "examples": [],
@@ -7844,8 +8075,8 @@
             {
               "name": "routerlink",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:24",
-              "description": "The destination: a path, or the segments of one, e.g. `\"/todos\"` or `[\"todos\", \"7\"]`.",
+              "source": "packages/router/src/lib/directives/router-link.ts:35",
+              "description": "The URL: absolute, such as `\"/todos/7\"`, or relative, such as `\"7\"`, or its segments.",
               "params": [],
               "examples": [],
               "see": [],
@@ -7855,7 +8086,7 @@
             {
               "name": "target",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:26",
+              "source": "packages/router/src/lib/directives/router-link.ts:37",
               "description": "The browser's target, set on the link. `_blank` opens it in a new tab: left to the browser.",
               "params": [],
               "examples": [],
@@ -7866,8 +8097,8 @@
             {
               "name": "queryParams",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:28",
-              "description": "Query params set on the destination; a param replaces the same key of its own query.",
+              "source": "packages/router/src/lib/directives/router-link.ts:39",
+              "description": "Query params set on the destination; a param is added to the query of the URL.",
               "params": [],
               "examples": [],
               "see": [],
@@ -7877,7 +8108,7 @@
             {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:30",
+              "source": "packages/router/src/lib/directives/router-link.ts:41",
               "description": "The fragment (hash) of the destination, without the `#`.",
               "params": [],
               "examples": [],
@@ -7888,7 +8119,7 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:32",
+              "source": "packages/router/src/lib/directives/router-link.ts:43",
               "description": "The state of the history entry a click creates.",
               "params": [],
               "examples": [],
@@ -7915,134 +8146,68 @@
         {
           "name": "UrlBuilder",
           "kind": "class",
-          "source": "packages/router/src/lib/router/url-builder.ts:6",
-          "description": "A URL built from a path, a query and a fragment, as strings.",
+          "source": "packages/router/src/lib/destination/url-builder.ts:233",
+          "description": "",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
           "signatures": [
-            "new UrlBuilder(path: string, query: URLSearchParams, hash: string): UrlBuilder"
+            "new UrlBuilder(): UrlBuilder"
           ],
           "members": [
             {
-              "name": "path",
-              "kind": "property",
-              "source": "packages/router/src/lib/router/url-builder.ts:15",
-              "description": "The path, without its query and hash, e.g. `\"/todos/7\"`.",
-              "params": [
-                {
-                  "name": "path",
-                  "text": ""
-                }
-              ],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "inheritedFrom": "",
-              "type": "string"
-            },
-            {
-              "name": "segments",
-              "kind": "property",
-              "source": "packages/router/src/lib/router/url-builder.ts:43",
-              "description": "The non-empty segments of the path: `\"/todos/7\"` is `[\"todos\", \"7\"]`.",
+              "name": "root",
+              "kind": "method",
+              "source": "packages/router/src/lib/destination/url-builder.ts:244",
+              "description": "A position at the root of the router's routes.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "returns": "The non-empty segments of the path.",
-              "type": "readonly string[]"
+              "returns": "A position at the root.",
+              "signatures": [
+                "root(): Path"
+              ]
             },
             {
-              "name": "withQuery",
+              "name": "relativeTo",
               "kind": "method",
-              "source": "packages/router/src/lib/router/url-builder.ts:53",
-              "description": "The same URL with `params` set over its query: a param replaces the same key.",
+              "source": "packages/router/src/lib/destination/url-builder.ts:255",
+              "description": "A position at a route, with the parts it was reached by: the current route by default, which is\nthe route the component is shown in.",
               "params": [
                 {
-                  "name": "params",
-                  "text": ""
+                  "name": "route",
+                  "text": "The route to start at. The component's own route by default."
                 }
               ],
               "examples": [],
               "see": [],
               "throws": [],
-              "returns": "A builder with the query set.",
+              "returns": "A position at that route.",
               "signatures": [
-                "withQuery(params: Readonly<Record<string, string>>): UrlBuilder"
+                "relativeTo(route?: ActivatedRoute): Path"
               ]
             },
             {
-              "name": "withFragment",
+              "name": "parse",
               "kind": "method",
-              "source": "packages/router/src/lib/router/url-builder.ts:66",
-              "description": "The same URL with `fragment` as its hash. Undefined keeps the hash; \"\" removes it.",
-              "params": [
-                {
-                  "name": "fragment",
-                  "text": ""
-                }
-              ],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "returns": "A builder with the fragment set.",
-              "signatures": [
-                "withFragment(fragment: string | undefined): UrlBuilder"
-              ]
-            },
-            {
-              "name": "resolve",
-              "kind": "method",
-              "source": "packages/router/src/lib/router/url-builder.ts:77",
-              "description": "The same URL resolved against `base`, the path of the route it is relative to. A path that\nstarts with \"/\" is absolute; \".\" stays, \"..\" goes up one segment (never above the root), and\nany other segment goes down. The query and the hash are kept.",
-              "params": [
-                {
-                  "name": "base",
-                  "text": ""
-                }
-              ],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "returns": "A builder for the URL, resolved against the base.",
-              "signatures": [
-                "resolve(base: readonly string[]): UrlBuilder"
-              ]
-            },
-            {
-              "name": "build",
-              "kind": "method",
-              "source": "packages/router/src/lib/router/url-builder.ts:88",
-              "description": "The URL as a string.",
-              "params": [],
-              "examples": [],
-              "see": [],
-              "throws": [],
-              "returns": "The URL, as a string.",
-              "signatures": [
-                "build(): string"
-              ]
-            },
-            {
-              "name": "from",
-              "kind": "method",
-              "source": "packages/router/src/lib/router/url-builder.ts:26",
-              "description": "The builder of `url`: its path, its query and its hash, as they are. A path given as segments\nis joined first: `[\"todos\", \"7\"]` is `\"todos/7\"`.",
+              "source": "packages/router/src/lib/destination/url-builder.ts:270",
+              "description": "Parses a URL from the root of the router's routes.",
               "params": [
                 {
                   "name": "url",
-                  "text": ""
+                  "text": "The URL, such as `\"/todos/7?tab=done#top\"`."
                 }
               ],
               "examples": [],
               "see": [],
-              "throws": [],
-              "returns": "A builder for the URL.",
-              "static": true,
+              "throws": [
+                "ParseError when no route matches the URL, or a part is malformed."
+              ],
+              "returns": "The destination the URL names.",
               "signatures": [
-                "from(url: string | readonly string[]): UrlBuilder"
+                "parse(url: string): Destination"
               ]
             }
           ]
@@ -8061,7 +8226,7 @@
         {
           "name": "provideRouter",
           "kind": "function",
-          "source": "packages/router/src/lib/router/provide-router.ts:20",
+          "source": "packages/router/src/lib/router/provide-router.ts:21",
           "description": "The providers for a router over `routes`, the top-level routes of the app, using the browser's\nlocation. Every route shows a component, and the top-level ones are checked too.",
           "params": [
             {

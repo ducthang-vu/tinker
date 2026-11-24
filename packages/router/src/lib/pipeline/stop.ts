@@ -2,7 +2,7 @@
 // but it is not a final result: the router turns it into a new request. Every other stop is a
 // Rejected, which carries the navigation it belongs to.
 
-import type { Destination } from "../destination/url-builder.ts";
+import type { Destination } from "../destination/destination.ts";
 import type { NavigationRef, Rejected } from "./navigation-outcome.ts";
 
 /** A route or a guard sends the navigation to `target` instead. Internal: not a final result. */

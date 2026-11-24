@@ -6,7 +6,6 @@
 // one matcher: the pipeline and the builder's `parse` use it too.
 
 import type { Route } from "./route.ts";
-import { UrlBuilder } from "./url-builder.ts";
 
 /** The params a path read, by name. */
 export type RouteParams = Readonly<Record<string, string>>;
@@ -36,7 +35,7 @@ export interface RouteMatch {
  * @returns The levels, root first, or undefined when no route matches.
  */
 export function matchChain(root: Route, url: string): readonly LevelMatch[] | undefined {
-  return levelsOf(root, UrlBuilder.from(url).segments);
+  return levelsOf(root, segmentsOf(url));
 }
 
 /**
@@ -90,6 +89,18 @@ export function levelsOf<N extends PathNode<N>>(
 }
 
 /**
+ * The non-empty segments of a URL's path: the query and the hash are left out.
+ *
+ * @param url The URL or path.
+ * @returns The segments, in order.
+ */
+function segmentsOf(url: string): readonly string[] {
+  return url.replace(/[?#].*$/, "")
+    .split("/")
+    .filter((segment) => segment !== "");
+}
+
+/**
  * The levels of `route` and its descendants that match `segments`, or undefined when none do.
  * @param route
  * @param segments
@@ -134,7 +145,7 @@ function consume(
   pattern: string,
   segments: readonly string[],
 ): { params: RouteParams; count: number } | undefined {
-  const parts = UrlBuilder.from(pattern).segments;
+  const parts = segmentsOf(pattern);
   if (parts.length > segments.length) {
     return undefined;
   }

@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 import type { MatchedRequest } from "../pipeline/request.ts";
 import { componentOf, type Route } from "./route.ts";
-import { UrlBuilder } from "../destination/url-builder.ts";
-import { Destination, type Part } from "../destination/url-builder.ts";
+import { Destination, type Part } from "../destination/destination.ts";
+import { Path } from "../destination/url-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
 function destinationOf(path: string): Destination {
@@ -15,7 +15,7 @@ function destinationOf(path: string): Destination {
   );
 }
 
-const target = UrlBuilder.for([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
+const target = Path.rootOf([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
   .withSegment("todos")
   .withParam("id", "1")
   .build();

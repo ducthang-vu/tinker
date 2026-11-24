@@ -271,25 +271,23 @@ router reads the URL itself. Any other static host needs the same fallback.
 
 **To do.** Nothing in the app; document the fallback for any new host.
 
-## Navigation: the typed destination (`packages/router/src/lib/router/router.ts`, `pipeline/`)
+## Navigation: the destination builder (`packages/router/src/lib/destination/`, `pipeline/`)
 
-### 1. `RouterLink` and `Router.parse` still take strings
+### 1. `relativeTo()` with no argument is the root in a root-provided builder
 
-**Problem.** `navigate` takes a `Destination` only, but `RouterLink` still builds its href with the
-old string-based `UrlBuilder` and turns it into a destination with `Router.parse`. A link to a URL
-no route matches throws a `ParseError` in its click handler instead of doing nothing. The strings
-are allowed only at this boundary, which the design says should be `RouterLink` alone.
+**Problem.** `UrlBuilder` is provided once, at the root, so its injected `ActivatedRoute` is the root
+route, not the component that calls it. `relativeTo()` with no argument therefore starts at the
+root. `RouterLink` passes its own route explicitly for that reason.
 
-**To do.** Give `RouterLink` the `string | Destination` input, parse the string once when the
-input changes, and report a bad string at bind time. Move the relative resolution onto the typed
-builder (`UrlBuilder.from(activatedRoute)`), then remove the old `router/url-builder.ts`.
+**To do.** Provide the builder per component (or per route level) so its default is the component's
+route, or require the route argument. The first needs view-layer support for providers per level.
 
-### 2. The typed builder and the old `UrlBuilder` share one name
+### 2. A builder's checks run when each line runs, not while typing
 
-**Problem.** `packages/router/src/index.ts` still exports the old string-based `UrlBuilder`. The
-typed builder is not exported, so an app cannot build a destination except with `Router.parse`.
+**Problem.** The builder has no compile-time types, so a mistyped segment is found by running the
+line (in the dev server or a test), not in the editor. Dynamic routes need that anyway.
 
-**To do.** Export the typed builder as `UrlBuilder` once `RouterLink` no longer uses the old one.
+**To do.** A later static layer for routes known at build time, on top of the runtime checks.
 
 ### 3. The base prefix is not applied at the browser boundary yet
 

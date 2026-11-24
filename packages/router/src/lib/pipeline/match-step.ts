@@ -4,7 +4,7 @@
 // been redirected too often fails here, before any route is looked at.
 
 import { Left, Right } from "@tinker/functional";
-import type { Part } from "../destination/url-builder.ts";
+import type { Part } from "../destination/destination.ts";
 import { type LevelMatch, levelsOf } from "../router/match.ts";
 import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";

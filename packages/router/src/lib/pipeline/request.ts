@@ -2,7 +2,7 @@
 // one, and each redirect builds the next with the same id, and the URL it came from appended to
 // `redirectFrom`, so the whole chain of redirects can be read from the request.
 
-import type { Destination } from "../destination/url-builder.ts";
+import type { Destination } from "../destination/destination.ts";
 import type { LevelMatch } from "../router/match.ts";
 
 /** A request to go to a URL. */

@@ -4,7 +4,7 @@
 
 import type { Class } from "@tinker/core";
 import type { Guard } from "../pipeline/guard-step.ts";
-import type { Destination } from "../destination/url-builder.ts";
+import type { Destination } from "../destination/destination.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
 /** A route: a path and the component it shows, with its children, guards and redirect. */
