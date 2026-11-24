@@ -234,7 +234,6 @@ export class Path {
 /** The URL builder: starts a position at the root of the routes, or at the current route. */
 export class UrlBuilder {
   private readonly router = inject(Router);
-  private readonly current = inject(ActivatedRoute);
 
   /**
    * A position at the root of the router's routes.
@@ -246,13 +245,13 @@ export class UrlBuilder {
   }
 
   /**
-   * A position at a route, with the parts it was reached by: the current route by default, which is
-   * the route the component is shown in.
+   * A position at an activated route, with the parts it was reached by. The component passes its
+   * own route, which it injects as `ActivatedRoute`.
    *
-   * @param route The route to start at. The component's own route by default.
+   * @param route The activated route to start at.
    * @returns A position at that route.
    */
-  relativeTo(route: ActivatedRoute = this.current): Path {
+  relativeTo(route: ActivatedRoute): Path {
     return Path.at(ancestryOf(route)
       .map((level) => ({
         route: level.route,
