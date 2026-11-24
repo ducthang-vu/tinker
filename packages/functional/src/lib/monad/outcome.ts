@@ -4,7 +4,15 @@
 // succeeding Task continue; Left and a failing Task halt. Build the two halves with
 // `Continue.of(value)` and `Halt.of(reason)`.
 
-/** The symbol under which a value says whether it continues or halts. */
+/**
+ * The symbol under which a value says whether it continues or halts.
+ *
+ * @developerRemarks In principle one would read every monad with `match`, as the rest of the
+ * library does. The protocol exists for a practical reason: it lets a converter such as
+ * `Either.from` take any value that can answer continue or halt, including one a user defines,
+ * without the library knowing its type. Use `match` when the value is one of the library's own
+ * monads.
+ */
 export const OUTCOME: unique symbol = Symbol("outcome");
 
 /** A value that says whether its chain continues with a value, or halts with a reason. */

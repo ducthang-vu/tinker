@@ -4058,7 +4058,7 @@
         {
           "name": "Continue",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/outcome.ts:16",
+          "source": "packages/functional/src/lib/monad/outcome.ts:24",
           "description": "The continue half: the chain goes on, and the next step receives `value`.",
           "params": [],
           "examples": [],
@@ -4071,7 +4071,7 @@
             {
               "name": "value",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/outcome.ts:22",
+              "source": "packages/functional/src/lib/monad/outcome.ts:30",
               "description": "The value the next step receives.",
               "params": [
                 {
@@ -4088,7 +4088,7 @@
             {
               "name": "__@OUTCOME@219",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/outcome.ts:29",
+              "source": "packages/functional/src/lib/monad/outcome.ts:37",
               "description": "The value itself: a Continue is already in the protocol's form.",
               "params": [],
               "examples": [],
@@ -4102,7 +4102,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/outcome.ts:39",
+              "source": "packages/functional/src/lib/monad/outcome.ts:47",
               "description": "A continue with `value`.",
               "params": [
                 {
@@ -4367,7 +4367,7 @@
         {
           "name": "Halt",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/outcome.ts:45",
+          "source": "packages/functional/src/lib/monad/outcome.ts:53",
           "description": "The halt half: the chain stops, with `reason` as the reason. Not necessarily a failure.",
           "params": [],
           "examples": [],
@@ -4380,7 +4380,7 @@
             {
               "name": "reason",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/outcome.ts:51",
+              "source": "packages/functional/src/lib/monad/outcome.ts:59",
               "description": "Why the chain stopped.",
               "params": [
                 {
@@ -4397,7 +4397,7 @@
             {
               "name": "__@OUTCOME@219",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/outcome.ts:58",
+              "source": "packages/functional/src/lib/monad/outcome.ts:66",
               "description": "The value itself: a Halt is already in the protocol's form.",
               "params": [],
               "examples": [],
@@ -4411,7 +4411,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/outcome.ts:68",
+              "source": "packages/functional/src/lib/monad/outcome.ts:76",
               "description": "A halt with `reason`.",
               "params": [
                 {
@@ -4706,7 +4706,7 @@
         {
           "name": "OUTCOME",
           "kind": "const",
-          "source": "packages/functional/src/lib/monad/outcome.ts:8",
+          "source": "packages/functional/src/lib/monad/outcome.ts:16",
           "description": "The symbol under which a value says whether it continues or halts.",
           "params": [],
           "examples": [],
@@ -4717,7 +4717,7 @@
         {
           "name": "Outcome",
           "kind": "interface",
-          "source": "packages/functional/src/lib/monad/outcome.ts:11",
+          "source": "packages/functional/src/lib/monad/outcome.ts:19",
           "description": "A value that says whether its chain continues with a value, or halts with a reason.",
           "params": [],
           "examples": [],
@@ -4727,7 +4727,7 @@
             {
               "name": "__@OUTCOME@219",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/outcome.ts:12",
+              "source": "packages/functional/src/lib/monad/outcome.ts:20",
               "description": "",
               "params": [],
               "examples": [],
