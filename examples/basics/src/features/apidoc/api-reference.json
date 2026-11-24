@@ -4196,7 +4196,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@958",
+              "name": "__@CHAIN@959",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:61",
               "description": "",
@@ -4205,7 +4205,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@958<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@959<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4505,7 +4505,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@956",
+              "name": "__@MAP@957",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
@@ -4514,7 +4514,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@956<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@957<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -5054,7 +5054,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@956",
+              "name": "__@MAP@957",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:214",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -5069,11 +5069,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@956<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@957<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@958",
+              "name": "__@CHAIN@959",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:234",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -5088,7 +5088,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@958<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@959<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -5338,6 +5338,70 @@
               "signatures": [
                 "end(result: Either<R, E>): void"
               ]
+            }
+          ]
+        },
+        {
+          "name": "Superseded",
+          "kind": "class",
+          "source": "packages/functional/src/lib/stream/switch-map.ts:13",
+          "description": "Why a value has no outcome of its own: a newer value replaced it before it settled.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new Superseded(): Superseded"
+          ],
+          "members": [
+            {
+              "name": "of",
+              "kind": "method",
+              "source": "packages/functional/src/lib/stream/switch-map.ts:21",
+              "description": "The marker for a superseded value.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Superseded.",
+              "static": true,
+              "signatures": [
+                "of(): Superseded"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Switched",
+          "kind": "interface",
+          "source": "packages/functional/src/lib/stream/switch-map.ts:27",
+          "description": "One item of a switched stream: a source value, and what became of its task.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "value",
+              "kind": "property",
+              "source": "packages/functional/src/lib/stream/switch-map.ts:29",
+              "description": "The source value this item is about.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "T"
+            },
+            {
+              "name": "outcome",
+              "kind": "property",
+              "source": "packages/functional/src/lib/stream/switch-map.ts:31",
+              "description": "The task's success or failure, or Superseded when a newer value replaced it.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "Either<U, F | Superseded>"
             }
           ]
         },
@@ -6450,6 +6514,29 @@
           "returns": "A task that succeeds with `value`.",
           "signatures": [
             "succeed<T>(value: T): Task<T, never>"
+          ]
+        },
+        {
+          "name": "switchMap",
+          "kind": "function",
+          "source": "packages/functional/src/lib/stream/switch-map.ts:47",
+          "description": "Runs `f(value)` for each value of `source`, keeping only the newest running task.",
+          "params": [
+            {
+              "name": "source",
+              "text": "The stream of values."
+            },
+            {
+              "name": "f",
+              "text": "Makes the task for a value."
+            }
+          ],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "returns": "A stream of one item per value: its outcome, or Superseded.",
+          "signatures": [
+            "switchMap<T, R, E, U, F>(source: Stream<T, R, E>, f: (value: T) => Task<U, F>): Stream<Switched<T, U, F>, void, E | Error>"
           ]
         },
         {
