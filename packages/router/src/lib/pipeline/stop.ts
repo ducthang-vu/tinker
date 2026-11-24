@@ -2,23 +2,30 @@
 // but it is not a final result: the router turns it into a new request. Every other stop is a
 // Rejected, which carries the navigation it belongs to.
 
+import type { Destination } from "../destination/url-builder.ts";
 import type { NavigationRef, Rejected } from "./navigation-outcome.ts";
 
 /** A route or a guard sends the navigation to `target` instead. Internal: not a final result. */
 export class Redirect {
+  /** Only `of` makes one. */
+  /**
+   *
+   * @param navigation
+   * @param target
+   */
   private constructor(
     readonly navigation: NavigationRef,
-    readonly target: string,
+    readonly target: Destination,
   ) {}
 
   /**
    * A redirect of `navigation` to `target`.
    *
    * @param navigation The navigation being redirected.
-   * @param target The URL it goes to instead.
+   * @param target The destination it goes to instead, built by the URL builder.
    * @returns A Redirect.
    */
-  static of(navigation: NavigationRef, target: string): Redirect {
+  static of(navigation: NavigationRef, target: Destination): Redirect {
     return new Redirect(navigation, target);
   }
 }

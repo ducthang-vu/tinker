@@ -2,7 +2,14 @@
 // builder, so a builder can be shared. A query param replaces the same key of the query it has,
 // and a fragment replaces the hash.
 
+/** A URL built from a path, a query and a fragment, as strings. */
 export class UrlBuilder {
+  /**
+   *
+   * @param path
+   * @param query
+   * @param hash
+   */
   private constructor(
     /** The path, without its query and hash, e.g. `"/todos/7"`. */
     readonly path: string,
@@ -13,6 +20,8 @@ export class UrlBuilder {
   /**
    * The builder of `url`: its path, its query and its hash, as they are. A path given as segments
    * is joined first: `["todos", "7"]` is `"todos/7"`.
+   * @param url
+   * @returns A builder for the URL.
    */
   static from(url: string | readonly string[]): UrlBuilder {
     const text = typeof url === "string" ? url : url.join("/");
@@ -27,13 +36,20 @@ export class UrlBuilder {
     );
   }
 
-  /** The non-empty segments of the path: `"/todos/7"` is `["todos", "7"]`. */
+  /**
+   * The non-empty segments of the path: `"/todos/7"` is `["todos", "7"]`.
+   * @returns The non-empty segments of the path.
+   */
   get segments(): readonly string[] {
     return this.path.split("/")
       .filter((segment) => segment !== "");
   }
 
-  /** The same URL with `params` set over its query: a param replaces the same key. */
+  /**
+   * The same URL with `params` set over its query: a param replaces the same key.
+   * @param params
+   * @returns A builder with the query set.
+   */
   withQuery(params: Readonly<Record<string, string>>): UrlBuilder {
     const query = new URLSearchParams(this.query);
     for (const [key, value] of Object.entries(params)) {
@@ -42,7 +58,11 @@ export class UrlBuilder {
     return new UrlBuilder(this.path, query, this.hash);
   }
 
-  /** The same URL with `fragment` as its hash. Undefined keeps the hash; "" removes it. */
+  /**
+   * The same URL with `fragment` as its hash. Undefined keeps the hash; "" removes it.
+   * @param fragment
+   * @returns A builder with the fragment set.
+   */
   withFragment(fragment: string | undefined): UrlBuilder {
     return new UrlBuilder(this.path, this.query, fragment ?? this.hash);
   }
@@ -51,6 +71,8 @@ export class UrlBuilder {
    * The same URL resolved against `base`, the path of the route it is relative to. A path that
    * starts with "/" is absolute; "." stays, ".." goes up one segment (never above the root), and
    * any other segment goes down. The query and the hash are kept.
+   * @param base
+   * @returns A builder for the URL, resolved against the base.
    */
   resolve(base: readonly string[]): UrlBuilder {
     const start = this.path.startsWith("/") ? [] : base;
@@ -59,7 +81,10 @@ export class UrlBuilder {
     return new UrlBuilder(`/${segments.join("/")}`, this.query, this.hash);
   }
 
-  /** The URL as a string. */
+  /**
+   * The URL as a string.
+   * @returns The URL, as a string.
+   */
   build(): string {
     const search = this.query.toString();
     const fragment = this.hash === "" ? "" : `#${this.hash}`;
@@ -67,7 +92,12 @@ export class UrlBuilder {
   }
 }
 
-/** The base after one part of a relative URL. */
+/**
+ * The base after one part of a relative URL.
+ * @param segments The segments so far.
+ * @param part The part to add.
+ * @returns The base after the part.
+ */
 function step(segments: readonly string[], part: string): readonly string[] {
   if (part === "" || part === ".") {
     return segments;

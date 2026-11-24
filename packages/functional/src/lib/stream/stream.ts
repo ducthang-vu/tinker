@@ -40,7 +40,9 @@ export type StreamComputation<T, R, E> = (sink: StreamSink<T, R, E>) => Cancel |
 
 /** What a subscriber is told. Both parts are optional. */
 export interface StreamObserver<T, R, E> {
+  /** Called for each item, as an Either. */
   readonly next?: (item: Either<T, E>) => void;
+  /** Called once, when the stream ends, with its result as an Either. */
   readonly end?: (result: Either<R, E>) => void;
 }
 

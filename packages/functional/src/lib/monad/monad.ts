@@ -11,7 +11,9 @@ export const MATCHABLE: unique symbol = Symbol("matchable");
 
 /** The shape of one case. */
 export interface Case<Name extends string, Args extends readonly unknown[]> {
+  /** The name of the case, which `match` dispatches on. */
   readonly name: Name;
+  /** The values the case holds, in order. */
   readonly args: Args;
 }
 
@@ -20,6 +22,7 @@ export interface Matchable<
   Name extends string = string,
   Args extends readonly unknown[] = readonly unknown[],
 > {
+  /** The case this value is, for `match`. */
   readonly [MATCHABLE]: Case<Name, Args>;
 }
 
@@ -63,13 +66,17 @@ function readCase(
 
 /** The effect handlers of an Either, one per case. */
 export interface EitherEffects<T, E> {
+  /** The handler `match` calls for a Right. */
   readonly Right: (value: T) => void;
+  /** The handler `match` calls for a Left. */
   readonly Left: (error: E) => void;
 }
 
 /** The effect handlers of a Maybe, one per case. */
 export interface MaybeEffects<T> {
+  /** The handler `match` calls for a Some. */
   readonly Some: (value: T) => void;
+  /** The handler `match` calls for a None. */
   readonly None: () => void;
 }
 
@@ -105,6 +112,7 @@ export const EQUALS: unique symbol = Symbol("equals");
 
 /** A value with its own equality. Matchable boxes implement it through `equalCases`. */
 export interface Equatable {
+  /** Whether `other` is equal to this value. */
   [EQUALS](other: unknown): boolean;
 }
 

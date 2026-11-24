@@ -4,8 +4,10 @@
 
 import type { Class } from "@tinker/core";
 import type { Guard } from "../pipeline/guard-step.ts";
+import type { Destination } from "../destination/url-builder.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
+/** A route: a path and the component it shows, with its children, guards and redirect. */
 export interface Route {
   /**
    * The path the route consumes, e.g. `"/todos"`. A segment that starts with `:` is a param, so
@@ -28,7 +30,7 @@ export interface Route {
    * asked before any guard runs, and it runs in the injection context of the router, so it can
    * `inject`.
    */
-  readonly redirect?: (request: MatchedRequest) => string | undefined;
+  readonly redirect?: (request: MatchedRequest) => Destination | undefined;
   /**
    * Guards that decide whether the navigation may go on, run after the redirects. Each returns
    * `true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for
@@ -37,7 +39,13 @@ export interface Route {
   readonly canActivate?: readonly Guard[];
 }
 
-/** The component a route shows. Throws for a route with none: every route shows one. */
+/**
+ * The component a route shows. Throws for a route with none: every route shows one.
+ * @param route
+ * @param route The route.
+ * @returns The component the route shows.
+ * @throws Error when the route has no component.
+ */
 export function componentOf(route: Route): Class<object> {
   if (route.component === undefined) {
     throw new Error(`The route "${route.path}" needs a component: every route shows one`);

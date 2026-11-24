@@ -17,6 +17,7 @@ export const OUTCOME: unique symbol = Symbol("outcome");
 
 /** A value that says whether its chain continues with a value, or halts with a reason. */
 export interface Outcome<T, E> {
+  /** This value as a Continue or a Halt: the form the outcome protocol reads. */
   [OUTCOME](): Continue<T> | Halt<E>;
 }
 

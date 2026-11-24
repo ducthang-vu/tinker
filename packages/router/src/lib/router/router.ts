@@ -22,12 +22,17 @@ const immediately = { schedule: (task: Runnable) => task.run() };
 
 /** A navigation to a URL that no route matches. The URL does not change. */
 export class NoRouteError extends Error {
+  /**
+   *
+   * @param url
+   */
   constructor(readonly url: string) {
     super(`Cannot match any route: ${url}`);
     this.name = "NoRouteError";
   }
 }
 
+/** The router: the current URL, the matched route, the activated routes, and navigate. */
 export class Router {
   /** The current URL: path, query and hash. */
   readonly url: ReadonlySignal<string>;
@@ -41,6 +46,11 @@ export class Router {
   readonly rootRoute: ActivatedRoute;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
 
+  /**
+   *
+   * @param root
+   * @param location
+   */
   constructor(root: Route, location: Location) {
     this.root = root;
     this.location = location;
@@ -61,6 +71,9 @@ export class Router {
    * given); see `UrlBuilder.resolve`. The resolved URL is what must match: a URL no route
    * matches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch
    * those URLs.
+   * @param url
+   * @param options
+   * @returns A promise of the outcome: the committed navigation, or the error that stopped it.
    */
   navigate(
     url: string | readonly string[],
@@ -85,6 +98,10 @@ export class Router {
  * The activated routes for `chain`, root first. The levels that keep their previous instance are
  * the leading ones that are unchanged: a level under a changed level is made again too, since its
  * component sits inside the view of the one above.
+ * @param rootRoute
+ * @param previous
+ * @param chain
+ * @returns The activated routes, root first, with the kept instances reused.
  */
 function activatedFor(
   rootRoute: ActivatedRoute,
@@ -105,12 +122,21 @@ function activatedFor(
   );
 }
 
-/** The last activated route of a non-empty list, which is the parent of the next level. */
+/**
+ * The last activated route of a non-empty list, which is the parent of the next level.
+ * @param made
+ * @returns The last activated route as a Maybe: None for an empty list.
+ */
 function lastOf(made: readonly ActivatedRoute[]): Maybe<ActivatedRoute> {
   return fromNullable(made[made.length - 1]);
 }
 
-/** The previous instances of the leading levels that are still the same, in order. */
+/**
+ * The previous instances of the leading levels that are still the same, in order.
+ * @param previous
+ * @param levels
+ * @returns The previous instances that are still the same, in order.
+ */
 function keptPrefix(
   previous: readonly ActivatedRoute[],
   levels: readonly LevelMatch[],
@@ -126,18 +152,39 @@ function keptPrefix(
   return kept;
 }
 
-/** Whether an activated route is still the level it was made for. */
+/**
+ * Whether an activated route is still the level it was made for.
+ * @param activated
+ * @param level
+ * @returns True when the activated route is still the level it was made for.
+ */
 function sameLevel(activated: ActivatedRoute, level: LevelMatch): boolean {
   return activated.route === level.route
     && sameParams(activated.params, level.params)
     && sameSegments(activated.segments, level.segments);
 }
 
+/**
+ *
+ * @param a
+ * @param b
+ * @param a The first params.
+ * @param b The second params.
+ * @returns True when both hold the same keys and values.
+ */
 function sameParams(a: RouteParams, b: RouteParams): boolean {
   const keys = Object.keys(a);
   return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
 }
 
+/**
+ *
+ * @param a
+ * @param b
+ * @param a The first segments.
+ * @param b The second segments.
+ * @returns True when they are the same, in order.
+ */
 function sameSegments(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((segment, index) => segment === b[index]);
 }

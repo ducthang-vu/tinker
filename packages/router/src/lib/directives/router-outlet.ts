@@ -10,6 +10,7 @@ import { componentOf } from "../router/route.ts";
 import { Some, None, use, isEqual } from "@tinker/functional";
 
 @Directive({ selector: "router-outlet" })
+/** Shows the component of the active route, where the outlet is placed. */
 export class RouterOutlet {
   private readonly container = inject(ViewContainerRef);
   private readonly next = inject(ChildActivatedRoute);

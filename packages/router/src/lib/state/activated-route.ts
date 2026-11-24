@@ -8,13 +8,28 @@ import type { RouteParams } from "../router/match.ts";
 import type { Route } from "../router/route.ts";
 import { Some, None, match, type Maybe } from "@tinker/functional";
 
+/** One level of the route tree as the router matched it, for the current URL. */
 export class ActivatedRoute {
-  /** The path of this level: the segments of every level from the root down to it. */
+  /**
+   * The path of this level: the segments of every level from the root down to it.
+   * @returns The segments of every level from the root down to it.
+   */
   get path(): readonly string[] {
     const above = match(this.parent, { Some: (parent) => parent.path, None: () => [] });
     return [...above, ...this.segments];
   }
 
+  /**
+   *
+   * @param route
+   * @param params
+   * @param segments
+   * @param parent
+   * @param route The route of this level.
+   * @param params The params this level read from its segments.
+   * @param segments The URL segments this level consumed.
+   * @param parent The level above this one, or None for the root.
+   */
   constructor(
     /** The route of this level. */
     readonly route: Route,

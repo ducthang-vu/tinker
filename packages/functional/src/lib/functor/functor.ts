@@ -21,6 +21,7 @@ export const MAP: unique symbol = Symbol("map");
 
 /** A functor: a value with a `map` of its own, under the MAP symbol. */
 export interface Functor<T> {
+  /** The value mapped with `f`: the map of a functor, under the MAP symbol. */
   [MAP]<U>(f: (value: T) => U): Functor<U>;
 }
 
@@ -58,6 +59,7 @@ export const CHAIN: unique symbol = Symbol("chain");
 
 /** A chain: a value with a `flatMap` of its own, under the CHAIN symbol. */
 export interface Chain<T> {
+  /** The chain of `f`: the flatMap of a chain, under the CHAIN symbol. */
   [CHAIN]<U>(f: (value: T) => Chain<U>): Chain<U>;
 }
 

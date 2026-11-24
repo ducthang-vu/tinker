@@ -61,3 +61,5 @@ export {
   timeout,
   toPromise,
 } from "./lib/stream/task.ts";
+export { switchMap, Superseded } from "./lib/stream/switch-map.ts";
+export type { Switched } from "./lib/stream/switch-map.ts";
