@@ -11,6 +11,7 @@ interface Entry {
 }
 
 @Injectable()
+/** The router's view of the browser location: its URL and state, as signals. */
 export class Location {
   private readonly platform = inject(PLATFORM_LOCATION);
   private readonly entry = signal<Entry>(this.read());
@@ -25,15 +26,30 @@ export class Location {
     this.stopListening = this.platform.onPop(() => this.entry.set(this.read()));
   }
 
-  /** Go to `url` as a new entry, with `state`. */
+  /**
+   * Go to `url` as a new entry, with `state`.
+   * @param url
+   * @param state
+   * @param url The URL to go to.
+   * @param state The state of the new entry.
+   */
   go(url: string, state: unknown = null): void {
     this.platform.push(url, state);
     this.entry.set(this.read());
   }
 
-  /** Replace the current entry with `url`, with `state`. */
+  /**
+   * Replace the current entry with `url`, with `state`.
+   * @param url
+   * @param state
+     * @param url The URL to replace the current entry with.
+     * @param state The state of the entry.
+   */
   replace(url: string, state: unknown = null): void {
     this.platform.replace(url, state);
+    /**
+     * Reads the browser's current entry, as the router keeps it.
+     */
     this.entry.set(this.read());
   }
 
@@ -42,6 +58,10 @@ export class Location {
     this.stopListening();
   }
 
+  /**
+   *
+   * @returns The URL and state of the browser's current entry.
+   */
   private read(): Entry {
     return { url: this.platform.url(), state: this.platform.state() };
   }

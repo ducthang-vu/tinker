@@ -18,6 +18,7 @@ import { UrlBuilder } from "../router/url-builder.ts";
     "[attr.aria-current]": "ariaCurrent()",
   },
 })
+/** An anchor that navigates the router instead of following its href. */
 export class RouterLink {
   /** The destination: a path, or the segments of one, e.g. `"/todos"` or `["todos", "7"]`. */
   readonly routerlink = input<string | readonly string[] | undefined>(undefined);
@@ -73,6 +74,8 @@ export class RouterLink {
    * Navigates to the destination, and stops the browser from following the href. Only a plain
    * primary click reaches here (see the host listener). A link that targets another tab is left to
    * the browser.
+   * @param event
+   * @param event The click event.
    */
   private navigateTo(event: MouseEvent): void {
     const target = this.target();

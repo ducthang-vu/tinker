@@ -27,6 +27,7 @@ export type Task<T, E = Error> = Stream<never, T, E>;
 
 /** What to do with a task's outcome. */
 export interface TaskHandlers<T, E = Error> {
+  /** Called with the value when the task succeeds. */
   readonly ok?: (value: T) => void;
   /** Without it, a failure is re-thrown where it happens, so it is never silently lost. */
   readonly error?: (error: E) => void;

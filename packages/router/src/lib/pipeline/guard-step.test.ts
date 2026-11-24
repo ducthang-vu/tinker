@@ -1,16 +1,38 @@
 import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
+import { UrlBuilder } from "../destination/url-builder.ts";
 import { fail, fromComputation, run, type Task } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import { createGuardStep, type Guard, type GuardResult } from "./guard-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import { Redirect, type Stop } from "./stop.ts";
+import { Destination, type Part } from "../destination/url-builder.ts";
+
+/** A destination of literal segments for a path such as "/todos/7". */
+function destinationOf(path: string): Destination {
+  return Destination.make(
+    path.split("/")
+      .filter((segment) => segment !== "")
+      .map((value): Part => ({ kind: "segment", value })),
+    [],
+    undefined,
+  );
+}
+
+const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
+
+/** A destination for one of the targets above, built by the URL builder. */
+function to(path: "login" | "home" | "elsewhere") {
+  return UrlBuilder.for(targets)
+    .withSegment(path)
+    .build();
+}
 
 /** A matched request for `url`, over the routes (root first). */
 function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
   return {
     id: 1,
-    url,
+    destination: destinationOf(url),
     state: null,
     arrival: "push",
     redirectFrom: [],
@@ -69,9 +91,9 @@ describe("the guard step", () => {
 
   test("a guard that returns a URL stops with a Redirect to it", () => {
     const step = createGuardStep(Injector.create().injector);
-    const routes: Route[] = [{ ...page, canActivate: [() => "/login"] }];
+    const routes: Route[] = [{ ...page, canActivate: [() => to("login")] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toEqual(Redirect.of(matchedAt("/todos", routes), "/login"));
+      .toEqual(Redirect.of(matchedAt("/todos", routes), to("login")));
   });
 
   test("a guard that throws stops with a Failed, keeping the throw", () => {
@@ -130,7 +152,7 @@ describe("the guard step", () => {
     const seen: string[] = [];
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [(request) => {
-      seen.push(request.url);
+      seen.push(request.destination.format());
       return true;
     }] }];
     stopOf(step(matchedAt("/todos", routes)));

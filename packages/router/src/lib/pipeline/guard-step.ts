@@ -5,12 +5,13 @@
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker/functional";
+import { Destination } from "../destination/url-builder.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { GuardStep } from "./steps.ts";
 import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";
 
 /** A guard's answer: allow (true), reject (false), or redirect to a URL. */
-export type GuardResult = boolean | string;
+export type GuardResult = boolean | Destination;
 
 /** A guard of a route. It may return its answer, or a Task of it for work that takes time. */
 export type Guard = (
@@ -33,7 +34,18 @@ export function createGuardStep(injector: Injector): GuardStep {
     );
 }
 
-/** The guards of one route, in order. */
+/**
+ * The guards of one route, in order.
+ * @param injector
+ * @param matched
+ * @param route
+ * @param guards
+ * @param injector The injector whose context the guards run in.
+ * @param matched The navigation being guarded.
+ * @param route The path of the route whose guards these are.
+ * @param guards The route's guards, in order.
+ * @returns The request when every guard allows, or the first stop.
+ */
 function guardsOf(
   injector: Injector,
   matched: MatchedRequest,
@@ -49,7 +61,16 @@ function guardsOf(
   );
 }
 
-/** One guard, as a task of its answer. A throw, or a failing task, becomes a Failed. */
+/**
+ * One guard, as a task of its answer. A throw, or a failing task, becomes a Failed.
+ * @param injector
+ * @param matched
+ * @param guard
+         * @param injector The injector whose context the guard runs in.
+         * @param matched The navigation being guarded.
+         * @param guard The guard to call.
+         * @returns A task of the guard's answer. A throw, or a failing task, stops with Failed.
+ */
 function callGuard(
   injector: Injector,
   matched: MatchedRequest,
@@ -63,7 +84,7 @@ function callGuard(
       error(failed(matched, cause));
       return;
     }
-    if (typeof produced === "object") {
+    if (typeof produced !== "boolean" && !(produced instanceof Destination)) {
       return run(produced, {
         ok,
         error: (cause) => error(failed(matched, cause)),
@@ -73,7 +94,16 @@ function callGuard(
   });
 }
 
-/** Turns an answer into the navigation's next step: allowed, rejected, or redirected. */
+/**
+ * Turns an answer into the navigation's next step: allowed, rejected, or redirected.
+ * @param matched
+ * @param route
+ * @param verdict
+     * @param matched The navigation being decided.
+     * @param route The path of the route whose guard answered.
+     * @param verdict The guard's answer.
+     * @returns The next step: the request when allowed, or a rejection or redirect stop.
+ */
 function decide(
   matched: MatchedRequest,
   route: string,

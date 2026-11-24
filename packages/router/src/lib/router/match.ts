@@ -12,23 +12,38 @@ export type RouteParams = Readonly<Record<string, string>>;
 
 /** One level of a match: a route of the tree, the params it read, and the segments it consumed. */
 export interface LevelMatch {
+  /** The route of the level. */
   readonly route: Route;
+  /** The params the level read from its segments. */
   readonly params: RouteParams;
+  /** The URL segments the level consumed. */
   readonly segments: readonly string[];
 }
 
 /** The leaf route that matches the URL, with the params read along the whole path. */
 export interface RouteMatch {
+  /** The leaf route the URL matches. */
   readonly route: Route;
+  /** The params read along the whole path. */
   readonly params: RouteParams;
 }
 
-/** The levels from the root down to the leaf that match `url`, or undefined when none does. */
+/**
+ * The levels from the root down to the leaf that match `url`, or undefined when none does.
+ * @param root
+ * @param url
+ * @returns The levels, root first, or undefined when no route matches.
+ */
 export function matchChain(root: Route, url: string): readonly LevelMatch[] | undefined {
   return levelsFrom(root, UrlBuilder.from(url).segments);
 }
 
-/** The leaf that matches `url`, with the params of every level, or undefined when none does. */
+/**
+ * The leaf that matches `url`, with the params of every level, or undefined when none does.
+ * @param root
+ * @param url
+ * @returns The leaf route and its params, or undefined when no route matches.
+ */
 export function matchRoute(root: Route, url: string): RouteMatch | undefined {
   const chain = matchChain(root, url);
   if (chain === undefined) {
@@ -40,7 +55,12 @@ export function matchRoute(root: Route, url: string): RouteMatch | undefined {
   };
 }
 
-/** The levels of `route` and its descendants that match `segments`, or undefined when none do. */
+/**
+ * The levels of `route` and its descendants that match `segments`, or undefined when none do.
+ * @param route
+ * @param segments
+ * @returns The levels that match, or undefined when none do.
+ */
 function levelsFrom(route: Route, segments: readonly string[]): readonly LevelMatch[] | undefined {
   if (route.path === "**") {
     return [{ route, params: {}, segments }];
@@ -67,7 +87,12 @@ function levelsFrom(route: Route, segments: readonly string[]): readonly LevelMa
   return undefined;
 }
 
-/** The params of `pattern` for the leading segments, and how many segments it takes. */
+/**
+ * The params of `pattern` for the leading segments, and how many segments it takes.
+ * @param pattern
+ * @param segments
+  * @returns The params of the pattern, or undefined when it does not match.
+ */
 function consume(
   pattern: string,
   segments: readonly string[],
