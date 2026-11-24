@@ -3,8 +3,8 @@
 export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./lib/monad/monad.ts";
 export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./lib/monad/monad.ts";
 export { Right, Left, mapLeft, attempt, toError, valueOrThrow } from "./lib/monad/either.ts";
-export { Either } from "./lib/monad/either.ts";
-export type { EitherCases } from "./lib/monad/either.ts";
+export type { Either, EitherCases } from "./lib/monad/either.ts";
+export { createEither } from "./lib/monad/either.ts";
 export { Continue, Halt, OUTCOME } from "./lib/monad/outcome.ts";
 export type { Outcome } from "./lib/monad/outcome.ts";
 export {
@@ -20,8 +20,8 @@ export {
   isSome,
   isNone,
 } from "./lib/monad/maybe.ts";
-export { Maybe } from "./lib/monad/maybe.ts";
-export type { MaybeCases } from "./lib/monad/maybe.ts";
+export type { Maybe, MaybeCases } from "./lib/monad/maybe.ts";
+export { createMaybe } from "./lib/monad/maybe.ts";
 export { map, flatMap, sequence, MAP, CHAIN } from "./lib/functor/functor.ts";
 export type {
   Functor,
@@ -48,7 +48,7 @@ export type {
 export { pipe, flow, partial } from "./lib/function.ts";
 export { Emitter } from "./lib/stream/emitter.ts";
 export {
-  Task,
+  type Task,
   type TaskComputation,
   type TaskHandlers,
   TimeoutError,
@@ -58,6 +58,7 @@ export {
   fromOutcome,
   fromPromise,
   succeed,
+  createTask,
   timeout,
   toPromise,
 } from "./lib/stream/task.ts";

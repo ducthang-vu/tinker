@@ -173,19 +173,12 @@ export function toPromise<T, E>(task: Task<T, E>): Promise<T> {
 }
 
 /**
- * The Task factories. `Task.from` builds a task from any value that implements the outcome
- * protocol. Its type is the same name, so `Task` is both the type and this namespace.
+ * A task from any outcome: a Continue succeeds with its value, and a Halt fails with its reason.
+ *
+ * @param outcome Any value that implements the outcome protocol.
+ * @returns A task that succeeds with the value, or fails with the reason.
  */
-export const Task = {
-  /**
-   * A task with the outcome's form: a Continue succeeds with its value, and a Halt fails with its
-   * reason.
-   *
-   * @param outcome Any value that implements the outcome protocol.
-   * @returns A task that succeeds with the value, or fails with the reason.
-   */
-  from<T, E>(outcome: Outcome<T, E>): Task<T, E> {
-    const form = outcome[OUTCOME]();
-    return form instanceof Continue ? succeed(form.value) : fail(form.reason);
-  },
-} as const;
+export function createTask<T, E>(outcome: Outcome<T, E>): Task<T, E> {
+  const form = outcome[OUTCOME]();
+  return form instanceof Continue ? succeed(form.value) : fail(form.reason);
+}

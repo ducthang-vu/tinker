@@ -9,7 +9,7 @@
  *
  * @developerRemarks In principle one would read every monad with `match`, as the rest of the
  * library does. The protocol exists for a practical reason: it lets a converter such as
- * `Either.from` take any value that can answer continue or halt, including one a user defines,
+ * `createEither` take any value that can answer continue or halt, including one a user defines,
  * without the library knowing its type. Use `match` when the value is one of the library's own
  * monads.
  */

@@ -903,7 +903,7 @@
           "name": "Either",
           "kind": "type",
           "source": "packages/functional/src/lib/monad/either.ts:103",
-          "description": "Either: a Right holding a T, or a Left holding an E.\nThe Either factories. `Either.from` builds an Either from any value that implements the outcome\nprotocol. Its type is the same name, so `Either` is both the type and this namespace.",
+          "description": "Either: a Right holding a T, or a Left holding an E.",
           "params": [],
           "examples": [],
           "see": [],
@@ -1354,7 +1354,7 @@
               "type": "boolean"
             },
             {
-              "name": "__@TOKEN_TYPE@404",
+              "name": "__@TOKEN_TYPE@403",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:59",
               "description": "Type-only (`declare`): no such property exists at runtime.",
@@ -1516,7 +1516,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@798",
+              "name": "__@INPUT_TYPE@797",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1553,7 +1553,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:61",
               "description": "",
@@ -1564,7 +1564,7 @@
               "type": "Case<\"Left\", readonly [E]>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:78",
               "description": "Whether `other` is a Left holding an equal error.",
@@ -1579,11 +1579,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Left whose error is equal to this one's.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:97",
               "description": "The protocol form: a Left halts with the error it holds.",
@@ -1593,7 +1593,7 @@
               "throws": [],
               "returns": "A Halt holding this Left's error.",
               "signatures": [
-                "__@OUTCOME@219(): Halt<E>"
+                "__@OUTCOME@216(): Halt<E>"
               ]
             },
             {
@@ -1633,7 +1633,7 @@
           "name": "Maybe",
           "kind": "type",
           "source": "packages/functional/src/lib/monad/maybe.ts:81",
-          "description": "Maybe: a Some holding a T, or a None.\nThe Maybe factories. `Maybe.from` builds a Maybe from any value that implements the outcome\nprotocol. Its type is the same name, so `Maybe` is both the type and this namespace.",
+          "description": "Maybe: a Some holding a T, or a None.",
           "params": [],
           "examples": [],
           "see": [],
@@ -1690,7 +1690,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@798",
+              "name": "__@INPUT_TYPE@797",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1855,7 +1855,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:53",
               "description": "",
@@ -1866,7 +1866,7 @@
               "type": "Case<\"None\", readonly []>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:66",
               "description": "Whether `other` is a None.",
@@ -1881,7 +1881,7 @@
               "throws": [],
               "returns": "`true` when `other` is a None.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
@@ -2540,7 +2540,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:18",
               "description": "",
@@ -2551,7 +2551,7 @@
               "type": "Case<\"Right\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:35",
               "description": "Whether `other` is a Right holding an equal value.",
@@ -2566,11 +2566,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Right whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:54",
               "description": "The protocol form: a Right continues with the value it holds.",
@@ -2580,7 +2580,7 @@
               "throws": [],
               "returns": "A Continue holding this Right's value.",
               "signatures": [
-                "__@OUTCOME@219(): Continue<T>"
+                "__@OUTCOME@216(): Continue<T>"
               ]
             },
             {
@@ -2777,7 +2777,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:19",
               "description": "",
@@ -2788,7 +2788,7 @@
               "type": "Case<\"Some\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:36",
               "description": "Whether `other` is a Some holding an equal value.",
@@ -2803,7 +2803,7 @@
               "throws": [],
               "returns": "`true` when `other` is a Some whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
@@ -2843,7 +2843,7 @@
           "name": "Task",
           "kind": "type",
           "source": "packages/functional/src/lib/stream/task.ts:26",
-          "description": "A task: a stream with no items, ending with its outcome.\nThe Task factories. `Task.from` builds a task from any value that implements the outcome\nprotocol. Its type is the same name, so `Task` is both the type and this namespace.",
+          "description": "A task: a stream with no items, ending with its outcome.",
           "params": [],
           "examples": [],
           "see": [],
@@ -3129,7 +3129,7 @@
               "type": "boolean | undefined"
             },
             {
-              "name": "__@TOKEN_TYPE@404",
+              "name": "__@TOKEN_TYPE@403",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:33",
               "description": "Type-only marker, never set at runtime. It makes `T` part of the type\n(so `Token<string>` and `Token<number>` differ), and it is required, so\nneither a plain `{ name }` object nor a class can pass for a token.",
@@ -4041,7 +4041,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@955",
+              "name": "__@CHAIN@958",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:61",
               "description": "",
@@ -4050,7 +4050,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@955<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@958<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4086,7 +4086,7 @@
               "type": "T"
             },
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/outcome.ts:37",
               "description": "The value itself: a Continue is already in the protocol's form.",
@@ -4096,7 +4096,7 @@
               "throws": [],
               "returns": "This Continue.",
               "signatures": [
-                "__@OUTCOME@219(): Continue<T>"
+                "__@OUTCOME@216(): Continue<T>"
               ]
             },
             {
@@ -4136,7 +4136,7 @@
           "name": "Either",
           "kind": "type",
           "source": "packages/functional/src/lib/monad/either.ts:103",
-          "description": "Either: a Right holding a T, or a Left holding an E.\nThe Either factories. `Either.from` builds an Either from any value that implements the outcome\nprotocol. Its type is the same name, so `Either` is both the type and this namespace.",
+          "description": "Either: a Right holding a T, or a Left holding an E.",
           "params": [],
           "examples": [],
           "see": [],
@@ -4314,7 +4314,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/monad.ts:108",
               "description": "",
@@ -4323,7 +4323,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             }
           ]
@@ -4350,7 +4350,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@953",
+              "name": "__@MAP@956",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
@@ -4359,7 +4359,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@953<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@956<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -4395,7 +4395,7 @@
               "type": "E"
             },
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/outcome.ts:66",
               "description": "The value itself: a Halt is already in the protocol's form.",
@@ -4405,7 +4405,7 @@
               "throws": [],
               "returns": "This Halt.",
               "signatures": [
-                "__@OUTCOME@219(): Halt<E>"
+                "__@OUTCOME@216(): Halt<E>"
               ]
             },
             {
@@ -4444,7 +4444,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:61",
               "description": "",
@@ -4455,7 +4455,7 @@
               "type": "Case<\"Left\", readonly [E]>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:78",
               "description": "Whether `other` is a Left holding an equal error.",
@@ -4470,11 +4470,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Left whose error is equal to this one's.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:97",
               "description": "The protocol form: a Left halts with the error it holds.",
@@ -4484,7 +4484,7 @@
               "throws": [],
               "returns": "A Halt holding this Left's error.",
               "signatures": [
-                "__@OUTCOME@219(): Halt<E>"
+                "__@OUTCOME@216(): Halt<E>"
               ]
             },
             {
@@ -4564,7 +4564,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/monad.ts:23",
               "description": "",
@@ -4580,7 +4580,7 @@
           "name": "Maybe",
           "kind": "type",
           "source": "packages/functional/src/lib/monad/maybe.ts:81",
-          "description": "Maybe: a Some holding a T, or a None.\nThe Maybe factories. `Maybe.from` builds a Maybe from any value that implements the outcome\nprotocol. Its type is the same name, so `Maybe` is both the type and this namespace.",
+          "description": "Maybe: a Some holding a T, or a None.",
           "params": [],
           "examples": [],
           "see": [],
@@ -4657,7 +4657,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:53",
               "description": "",
@@ -4668,7 +4668,7 @@
               "type": "Case<\"None\", readonly []>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:66",
               "description": "Whether `other` is a None.",
@@ -4683,7 +4683,7 @@
               "throws": [],
               "returns": "`true` when `other` is a None.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
@@ -4725,7 +4725,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/outcome.ts:20",
               "description": "",
@@ -4734,7 +4734,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@OUTCOME@219(): Continue<T> | Halt<E>"
+                "__@OUTCOME@216(): Continue<T> | Halt<E>"
               ]
             }
           ]
@@ -4753,7 +4753,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:18",
               "description": "",
@@ -4764,7 +4764,7 @@
               "type": "Case<\"Right\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:35",
               "description": "Whether `other` is a Right holding an equal value.",
@@ -4779,11 +4779,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Right whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@219",
+              "name": "__@OUTCOME@216",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:54",
               "description": "The protocol form: a Right continues with the value it holds.",
@@ -4793,7 +4793,7 @@
               "throws": [],
               "returns": "A Continue holding this Right's value.",
               "signatures": [
-                "__@OUTCOME@219(): Continue<T>"
+                "__@OUTCOME@216(): Continue<T>"
               ]
             },
             {
@@ -4832,7 +4832,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@205",
+              "name": "__@MATCHABLE@202",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:19",
               "description": "",
@@ -4843,7 +4843,7 @@
               "type": "Case<\"Some\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@201",
+              "name": "__@EQUALS@198",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:36",
               "description": "Whether `other` is a Some holding an equal value.",
@@ -4858,7 +4858,7 @@
               "throws": [],
               "returns": "`true` when `other` is a Some whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@201(other: unknown): boolean"
+                "__@EQUALS@198(other: unknown): boolean"
               ]
             },
             {
@@ -4899,7 +4899,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@953",
+              "name": "__@MAP@956",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:214",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -4914,11 +4914,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@953<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@956<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@955",
+              "name": "__@CHAIN@958",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:234",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -4933,7 +4933,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@955<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@958<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -5190,7 +5190,7 @@
           "name": "Task",
           "kind": "type",
           "source": "packages/functional/src/lib/stream/task.ts:26",
-          "description": "A task: a stream with no items, ending with its outcome.\nThe Task factories. `Task.from` builds a task from any value that implements the outcome\nprotocol. Its type is the same name, so `Task` is both the type and this namespace.",
+          "description": "A task: a stream with no items, ending with its outcome.",
           "params": [],
           "examples": [],
           "see": [],
@@ -5296,6 +5296,63 @@
           "deprecated": "Internal functions return an Either themselves, so nothing needs to wrap a throw.\nUse the function's own Either instead of catching what it throws.",
           "signatures": [
             "attempt<T, E>(fn: () => T, isExpected: (error: unknown) => error is E): Either<T, E>"
+          ]
+        },
+        {
+          "name": "createEither",
+          "kind": "function",
+          "source": "packages/functional/src/lib/monad/either.ts:193",
+          "description": "An Either from any outcome: a Continue becomes a Right holding its value, and a Halt becomes a\nLeft holding its reason.",
+          "params": [
+            {
+              "name": "outcome",
+              "text": "Any value that implements the outcome protocol."
+            }
+          ],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "returns": "A Right holding the value, or a Left holding the reason.",
+          "signatures": [
+            "createEither<T, E>(outcome: Outcome<T, E>): Either<T, E>"
+          ]
+        },
+        {
+          "name": "createMaybe",
+          "kind": "function",
+          "source": "packages/functional/src/lib/monad/maybe.ts:209",
+          "description": "A Maybe from any outcome: a Continue becomes Some holding its value, and a Halt becomes None.\nThe reason of a Halt is lost, because None holds no value.",
+          "params": [
+            {
+              "name": "outcome",
+              "text": "Any value that implements the outcome protocol."
+            }
+          ],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "returns": "Some holding the value, or None.",
+          "signatures": [
+            "createMaybe<T, E>(outcome: Outcome<T, E>): Maybe<T>"
+          ]
+        },
+        {
+          "name": "createTask",
+          "kind": "function",
+          "source": "packages/functional/src/lib/stream/task.ts:181",
+          "description": "A task from any outcome: a Continue succeeds with its value, and a Halt fails with its reason.",
+          "params": [
+            {
+              "name": "outcome",
+              "text": "Any value that implements the outcome protocol."
+            }
+          ],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "returns": "A task that succeeds with the value, or fails with the reason.",
+          "signatures": [
+            "createTask<T, E>(outcome: Outcome<T, E>): Task<T, E>"
           ]
         },
         {

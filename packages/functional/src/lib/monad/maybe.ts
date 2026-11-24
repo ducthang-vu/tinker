@@ -200,19 +200,13 @@ export function orElse<T, U>(self: Maybe<T>, other: () => Maybe<U>): Maybe<T | U
 }
 
 /**
- * The Maybe factories. `Maybe.from` builds a Maybe from any value that implements the outcome
- * protocol. Its type is the same name, so `Maybe` is both the type and this namespace.
+ * A Maybe from any outcome: a Continue becomes Some holding its value, and a Halt becomes None.
+ * The reason of a Halt is lost, because None holds no value.
+ *
+ * @param outcome Any value that implements the outcome protocol.
+ * @returns Some holding the value, or None.
  */
-export const Maybe = {
-  /**
-   * A Maybe with the outcome's form: a Continue becomes Some holding its value, and a Halt becomes
-   * None. The reason of a Halt is lost, because None holds no value.
-   *
-   * @param outcome Any value that implements the outcome protocol.
-   * @returns Some holding the value, or None.
-   */
-  from<T, E>(outcome: Outcome<T, E>): Maybe<T> {
-    const form = outcome[OUTCOME]();
-    return form instanceof Continue ? Some.of(form.value) : None.of<T>();
-  },
-} as const;
+export function createMaybe<T, E>(outcome: Outcome<T, E>): Maybe<T> {
+  const form = outcome[OUTCOME]();
+  return form instanceof Continue ? Some.of(form.value) : None.of<T>();
+}
