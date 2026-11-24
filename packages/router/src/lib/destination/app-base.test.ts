@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { getOrThrow, isNone, isSome, type Maybe } from "@tinker/functional";
-import { UrlBuilder } from "./url-builder.ts";
+import { Path } from "./url-builder.ts";
 import { fromBrowserUrl, toBrowserUrl } from "./app-base.ts";
 
 const tree = [{ path: "/todos", children: [{ path: "/:id" }] }, { path: "/home" }] as const;
-const todo = UrlBuilder.for(tree)
+const todo = Path.rootOf(tree)
   .withSegment("todos")
   .withParam("id", "7")
   .withQuery("tab", "done")

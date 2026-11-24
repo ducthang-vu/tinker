@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { type Either, match } from "@tinker/functional";
-import { Destination, type Part, UrlBuilder } from "../destination/url-builder.ts";
+import { Destination, type Part } from "../destination/destination.ts";
+import { Path } from "../destination/url-builder.ts";
 import type { Route } from "../router/route.ts";
 import { createMatchStep, MAX_REDIRECTS } from "./match-step.ts";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
@@ -40,7 +41,7 @@ function stopOf(outcome: Either<MatchedRequest, Stop>): Stop | undefined {
 
 describe("the match step", () => {
   test("a destination of the tree matches each part to its route, with its param", () => {
-    const destination = UrlBuilder.for(declared)
+    const destination = Path.rootOf(declared)
       .withSegment("todos")
       .withParam("id", "7")
       .build();
@@ -52,7 +53,7 @@ describe("the match step", () => {
   });
 
   test("a destination the tree does not have is a no-route stop", () => {
-    const destination = UrlBuilder.for(declared)
+    const destination = Path.rootOf(declared)
       .withSegment("home")
       .build();
     const empty: Route = { path: "", component: class {}, children: [] };
@@ -61,7 +62,7 @@ describe("the match step", () => {
   });
 
   test("a navigation past the redirect cap fails at the match step", () => {
-    const destination = UrlBuilder.for(declared)
+    const destination = Path.rootOf(declared)
       .withSegment("home")
       .build();
     const redirected: NavigationRequest = {

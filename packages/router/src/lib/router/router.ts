@@ -2,7 +2,7 @@
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
 import { computed, type Injector, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
-import { Destination, UrlBuilder } from "../destination/url-builder.ts";
+import type { Destination } from "../destination/destination.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
@@ -89,7 +89,7 @@ export class Router {
    * when a guard or a redirect stops it, or a newer navigation replaces it before it commits. A
    * stopped navigation changes nothing.
    *
-   * @param destination Where to go, built by the URL builder or parsed from a string with `parse`.
+   * @param destination Where to go, built by the injected `UrlBuilder`.
    * @param options The state of the new history entry.
    * @returns A promise of whether the navigation committed.
    */
@@ -108,20 +108,6 @@ export class Router {
       this.waiting.set(id, resolve);
       this.requests.emit(request);
     });
-  }
-
-  /**
-   * The destination a URL string names in this router's route tree. Throws a ParseError when no
-   * route matches it, or when it is malformed. The one place a string becomes a destination.
-   *
-   * @param url The URL to parse: a path, with an optional query and fragment.
-   * @returns The destination the URL names.
-   * @throws ParseError when the URL matches no route or is malformed.
-   */
-  parse(url: string): Destination {
-    // The root consumes no segment, so the builder over it parses the same URLs as the router.
-    return UrlBuilder.for([this.root])
-      .parse(url);
   }
 
   /** Stops routing navigations when the injector is destroyed. */

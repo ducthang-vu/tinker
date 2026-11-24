@@ -4,7 +4,7 @@
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { Left, Right } from "@tinker/functional";
-import type { Destination } from "../destination/url-builder.ts";
+import type { Destination } from "../destination/destination.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { RedirectStep } from "./steps.ts";
 import { failed, Redirect, type Stop } from "./stop.ts";

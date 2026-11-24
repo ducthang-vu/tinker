@@ -5,7 +5,7 @@ import { Location } from "../location/location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
-import { ParseError, UrlBuilder } from "../destination/url-builder.ts";
+import { ParseError, Path, UrlBuilder } from "../destination/url-builder.ts";
 import type { Guard } from "../pipeline/guard-step.ts";
 import { MAX_REDIRECTS } from "../pipeline/match-step.ts";
 import { fromComputation, getOrThrow, isNone } from "@tinker/functional";
@@ -39,7 +39,7 @@ const TODOS: Route = { path: "todos", component: TodoShell, children: [LIST, DET
 const CHILDREN: readonly Route[] = [TODOS];
 const ROOT: Route = { path: "", component: Root, children: CHILDREN };
 
-/** A router over `root`, in the context of a fake platform that starts at `url`. */
+/** A router over `root`, and its injected builder, in a fake platform that starts at `url`. */
 function routerOver(root: Route, url: string) {
   const fake = fakePlatform(url);
   const { injector, destroy } = Injector.create({
@@ -47,10 +47,13 @@ function routerOver(root: Route, url: string) {
       provide(PLATFORM_LOCATION, { useValue: fake.platform }),
       provide(Location, { useClass: Location }),
       provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
+      provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
+      provide(UrlBuilder, { useClass: UrlBuilder }),
     ],
   });
   const router = runInInjectionContext(injector, () => inject(Router));
-  return { router, fake, destroy };
+  const urls = runInInjectionContext(injector, () => inject(UrlBuilder));
+  return { router, urls, fake, destroy };
 }
 
 /** A router over ROOT, in the context of a fake platform that starts at `url`. */
@@ -59,13 +62,13 @@ function routerAt(url: string) {
 }
 
 test("the URL is a signal of the current location", () => {
-  const { router } = routerAt("/todos");
+  const { router, urls } = routerAt("/todos");
   expect(router.url())
     .toBe("/todos");
 });
 
 test("the match is the route and params of the current URL", () => {
-  const { router } = routerAt("/todos/7");
+  const { router, urls } = routerAt("/todos/7");
   expect(router.match()?.route.component)
     .toBe(TodoDetail);
   expect(router.match()?.params)
@@ -73,8 +76,8 @@ test("the match is the route and params of the current URL", () => {
 });
 
 test("navigate changes the URL and the match", async () => {
-  const { router } = routerAt("/todos");
-  await router.navigate(router.parse("/todos/7"));
+  const { router, urls } = routerAt("/todos");
+  await router.navigate(urls.parse("/todos/7"));
   expect(router.url())
     .toBe("/todos/7");
   expect(router.match()?.params)
@@ -82,16 +85,17 @@ test("navigate changes the URL and the match", async () => {
 });
 
 test("navigate with a state gives the state to the history entry", async () => {
-  const { router, fake } = routerAt("/todos");
-  await router.navigate(router.parse("/todos/7"), { state: { scroll: 320 } });
+  const { router, urls, fake } = routerAt("/todos");
+  await router.navigate(urls.parse("/todos/7"), { state: { scroll: 320 } });
   expect(fake.state())
     .toEqual({ scroll: 320 });
 });
 
 test("a URL no route matches is rejected: it resolves false, and the URL does not change", async () => {
-  const { router, fake } = routerAt("/todos");
-  const elsewhere = UrlBuilder.for([{ path: "/nowhere" }] as const)
-    .parse("/nowhere");
+  const { router, urls, fake } = routerAt("/todos");
+  const elsewhere = Path.rootOf([{ path: "/nowhere", component: Root }])
+    .parse("/nowhere")
+    .build();
   const committed = await router.navigate(elsewhere, { state: { scroll: 1 } });
   expect(committed)
     .toBe(false);
@@ -102,8 +106,8 @@ test("a URL no route matches is rejected: it resolves false, and the URL does no
 });
 
 test("a navigation to a matched URL resolves true once it commits", async () => {
-  const { router } = routerAt("/todos");
-  expect(await router.navigate(router.parse("/todos/7")))
+  const { router, urls } = routerAt("/todos");
+  expect(await router.navigate(urls.parse("/todos/7")))
     .toBe(true);
 });
 
@@ -114,15 +118,15 @@ test("a ** route catches the URLs no other route matches", async () => {
     component: Root,
     children: [TODOS, { path: "**", component: NotFound }],
   };
-  const { router, destroy } = routerOver(tree, "/todos");
-  await router.navigate(router.parse("/nowhere"));
+  const { router, urls, destroy } = routerOver(tree, "/todos");
+  await router.navigate(urls.parse("/nowhere"));
   expect(router.match()?.route.component)
     .toBe(NotFound);
   destroy();
 });
 
 test("activated starts with the root, then one entry per matched level", () => {
-  const { router, destroy } = routerAt("/todos/7");
+  const { router, urls, destroy } = routerAt("/todos/7");
   const [first, second, third] = router.activated();
   expect(first?.route)
     .toBe(ROOT);
@@ -140,16 +144,16 @@ test("activated starts with the root, then one entry per matched level", () => {
 });
 
 test("the root activated route is the same instance across navigations", async () => {
-  const { router, destroy } = routerAt("/todos");
+  const { router, urls, destroy } = routerAt("/todos");
   const before = router.activated()[0];
-  await router.navigate(router.parse("/todos/7"));
+  await router.navigate(urls.parse("/todos/7"));
   expect(router.activated()[0])
     .toBe(before);
   destroy();
 });
 
 test("with no match, the activated routes are the root alone", () => {
-  const { router, destroy } = routerAt("/nowhere");
+  const { router, urls, destroy } = routerAt("/nowhere");
   expect(router.activated())
     .toHaveLength(1);
   expect(router.activated()[0]?.route)
@@ -158,20 +162,20 @@ test("with no match, the activated routes are the root alone", () => {
 });
 
 test("a level keeps its instance when only the query changes", async () => {
-  const { router, destroy } = routerAt("/todos/7");
+  const { router, urls, destroy } = routerAt("/todos/7");
   const before = router.activated()[2];
-  await router.navigate(router.parse("/todos/7?tab=done"));
+  await router.navigate(urls.parse("/todos/7?tab=done"));
   expect(router.activated()[2])
     .toBe(before);
   destroy();
 });
 
 test("a level is made again when its params change, and the levels above it stay", async () => {
-  const { router, destroy } = routerAt("/todos/7");
+  const { router, urls, destroy } = routerAt("/todos/7");
   const root = router.activated()[0];
   const shell = router.activated()[1];
   const before = router.activated()[2];
-  await router.navigate(router.parse("/todos/8"));
+  await router.navigate(urls.parse("/todos/8"));
   expect(router.activated()[2])
     .not.toBe(before);
   expect(router.activated()[1])
@@ -183,9 +187,9 @@ test("a level is made again when its params change, and the levels above it stay
 
 test("a ** level is made again when its segments change", async () => {
   const notFound = { path: "**", component: class {} };
-  const { router, destroy } = routerOver({ path: "", component: Root, children: [notFound] }, "/anything/a");
+  const { router, urls, destroy } = routerOver({ path: "", component: Root, children: [notFound] }, "/anything/a");
   const before = router.activated()[1];
-  await router.navigate(router.parse("/anything/b"));
+  await router.navigate(urls.parse("/anything/b"));
   expect(router.activated()[1])
     .not.toBe(before);
   destroy();
@@ -199,9 +203,9 @@ const ORGS: Route = { path: "orgs", children: [ORG] };
 const ORG_ROOT: Route = { path: "", component: Root, children: [ORGS] };
 
 test("a level under a changed parent is made again, though its own params are the same", async () => {
-  const { router, destroy } = routerOver(ORG_ROOT, "/orgs/acme/teams/x");
+  const { router, urls, destroy } = routerOver(ORG_ROOT, "/orgs/acme/teams/x");
   const before = router.activated()[4];
-  await router.navigate(router.parse("/orgs/beta/teams/x"));
+  await router.navigate(urls.parse("/orgs/beta/teams/x"));
   expect(router.activated()[4])
     .not.toBe(before);
   expect(router.activated()[4]?.route)
@@ -210,7 +214,7 @@ test("a level under a changed parent is made again, though its own params are th
 });
 
 test("the root has no parent, and each level's parent is the level above it", () => {
-  const { router, destroy } = routerAt("/todos/7");
+  const { router, urls, destroy } = routerAt("/todos/7");
   const [root, shell, leaf] = router.activated() as [
     ActivatedRoute,
     ActivatedRoute,
@@ -226,7 +230,7 @@ test("the root has no parent, and each level's parent is the level above it", ()
 });
 
 test("a deeper level's parent chain reaches the root", () => {
-  const { router, destroy } = routerOver(ORG_ROOT, "/orgs/acme/teams/x");
+  const { router, urls, destroy } = routerOver(ORG_ROOT, "/orgs/acme/teams/x");
   const levels = router.activated();
   expect(levels)
     .toHaveLength(5);
@@ -240,13 +244,13 @@ test("a deeper level's parent chain reaches the root", () => {
 });
 
 test("a kept level keeps its parent, and a made level gets the kept one as its parent", async () => {
-  const { router, destroy } = routerAt("/todos/7");
+  const { router, urls, destroy } = routerAt("/todos/7");
   const shell = router.activated()[1];
   const leafBefore = router.activated()[2];
-  await router.navigate(router.parse("/todos/7?tab=done"));
+  await router.navigate(urls.parse("/todos/7?tab=done"));
   expect(getOrThrow(router.activated()[2]!.parent, () => new Error("no parent")))
     .toBe(shell);
-  await router.navigate(router.parse("/todos/8"));
+  await router.navigate(urls.parse("/todos/8"));
   expect(getOrThrow(router.activated()[2]!.parent, () => new Error("no parent")))
     .toBe(shell);
   expect(router.activated()[2])
@@ -255,8 +259,8 @@ test("a kept level keeps its parent, and a made level gets the kept one as its p
 });
 
 test("parse throws a ParseError for a URL no route matches", () => {
-  const { router } = routerAt("/todos");
-  expect(() => router.parse("/nowhere"))
+  const { router, urls } = routerAt("/todos");
+  expect(() => urls.parse("/nowhere"))
     .toThrow(ParseError);
 });
 
@@ -271,8 +275,8 @@ function routerWithGuard(guards: readonly Guard[], url = "/todos") {
 
 test("a guard that says no stops the navigation, and the URL does not change", async () => {
   const deny: Guard = () => false;
-  const { router, destroy } = routerWithGuard([deny]);
-  expect(await router.navigate(router.parse("/todos/7")))
+  const { router, urls, destroy } = routerWithGuard([deny]);
+  expect(await router.navigate(urls.parse("/todos/7")))
     .toBe(false);
   expect(router.url())
     .toBe("/todos");
@@ -280,10 +284,9 @@ test("a guard that says no stops the navigation, and the URL does not change", a
 });
 
 test("a guard that redirects sends the navigation to its target instead", async () => {
-  const toList: Guard = () => UrlBuilder.for(CHILDREN)
-    .parse("/todos");
-  const { router, destroy } = routerWithGuard([toList]);
-  expect(await router.navigate(router.parse("/todos/7")))
+  const toList: Guard = () => urls.parse("/todos");
+  const { router, urls, destroy } = routerWithGuard([toList]);
+  expect(await router.navigate(urls.parse("/todos/7")))
     .toBe(true);
   expect(router.url())
     .toBe("/todos");
@@ -294,14 +297,12 @@ test("a route that redirects to itself stops after the redirect cap, and nothing
   const loop: Route = {
     path: "",
     component: Root,
-    children: [{ path: "todos", component: TodoList, redirect: () => UrlBuilder.for(CHILDREN)
-      .parse("/todos") }],
+    children: [{ path: "todos", component: TodoList, redirect: () => urls.parse("/todos") }],
   };
-  const { router, destroy } = routerOver(loop, "/");
+  const { router, urls, destroy } = routerOver(loop, "/");
   expect(MAX_REDIRECTS)
     .toBe(10);
-  expect(await router.navigate(UrlBuilder.for([{ path: "todos" }] as const)
-    .parse("/todos")))
+  expect(await router.navigate(urls.parse("/todos")))
     .toBe(false);
   expect(router.url())
     .toBe("/");
@@ -314,9 +315,9 @@ test("a navigation replaced by a newer one resolves false, and the newer one com
     release = ok;
     return () => {};
   });
-  const { router, destroy } = routerWithGuard([slow], "/todos");
-  const first = router.navigate(router.parse("/todos/7"));
-  const second = router.navigate(router.parse("/todos"));
+  const { router, urls, destroy } = routerWithGuard([slow], "/todos");
+  const first = router.navigate(urls.parse("/todos/7"));
+  const second = router.navigate(urls.parse("/todos"));
   expect(await second)
     .toBe(true);
   release?.(true);
