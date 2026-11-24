@@ -50,6 +50,7 @@ describe("the API page, rendered from the generated reference", () => {
       final: true,
       deprecated: "Use newApi instead.",
       signatures: [],
+      overloads: [],
       type: "",
       declaration: "",
       description: [],
@@ -81,6 +82,7 @@ describe("text around code spans", () => {
       static: false,
       final: false,
       signatures: [],
+      overloads: [],
       type: "",
       declaration: "",
       description: [{ isCode: false, text: "", parts: [

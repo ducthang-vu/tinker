@@ -265,3 +265,52 @@ test("an unknown option is an error", () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Unknown option --nope/);
 });
+
+test("each overload of a function has its own TSDoc, and the function's own doc is empty", () => {
+  const rootDir = project({
+    "tsconfig.json": TSCONFIG,
+    "packages/demo/package.json": JSON.stringify({
+      name: "@demo/lib",
+      exports: { ".": { development: "./src/index.ts" } },
+    }),
+    "packages/demo/src/index.ts": "export { pick } from \"./pick.ts\";\n",
+    "packages/demo/src/pick.ts": [
+      "/**",
+      " * Picks by a number or by a name.",
+      " * @param index - the position",
+      " * @returns the item at the position",
+      " * @example",
+      " * pick(0)",
+      " */",
+      "export function pick(index: number): string;",
+      "/**",
+      " * Picks by a name.",
+      " * @param name - the name",
+      " * @returns the item with the name",
+      " */",
+      "export function pick(name: string): string;",
+      "export function pick(value: number | string): string {",
+      "  return String(value);",
+      "}",
+      "",
+    ].join("\n"),
+  });
+  try {
+    const item = buildApiReference(rootDir).entries[0].exports
+      .find((exported) => exported.name === "pick");
+    assert.equal(item.description, "");
+    assert.deepEqual(item.params, []);
+    assert.equal(item.returns, undefined);
+    assert.equal(item.overloads.length, 2);
+    const [byIndex, byName] = item.overloads;
+    assert.deepEqual(byIndex.params, [{ name: "index", text: "the position" }]);
+    assert.equal(byIndex.returns, "the item at the position");
+    assert.deepEqual(byIndex.examples, ["pick(0)"]);
+    assert.deepEqual(byName.params, [{ name: "name", text: "the name" }]);
+    assert.equal(byName.returns, "the item with the name");
+    assert.deepEqual(byName.examples, []);
+    assert.match(byName.declaration, /^pick\(name: string\)/);
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
+});

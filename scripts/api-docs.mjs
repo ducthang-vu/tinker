@@ -72,9 +72,17 @@ function readCompilerOptions(rootDir) {
 
 /** The text and the tags of a symbol's TSDoc, with `@internal` reported apart. */
 function readDoc(symbol, checker) {
-  const doc = {
-    description: ts.displayPartsToString(symbol.getDocumentationComment(checker))
+  return docOf(
+    ts.displayPartsToString(symbol.getDocumentationComment(checker))
       .trim(),
+    symbol.getJsDocTags(checker),
+  );
+}
+
+/** The doc of a description and its tags: what `readDoc` reads from a symbol, or a signature. */
+function docOf(description, tags) {
+  const doc = {
+    description,
     params: [],
     examples: [],
     see: [],
@@ -82,7 +90,7 @@ function readDoc(symbol, checker) {
     internal: false,
     privateApi: false,
   };
-  for (const tag of symbol.getJsDocTags(checker)) {
+  for (const tag of tags) {
     const text = ts.displayPartsToString(tag.text ?? [])
       .trim();
     switch (tag.name) {
@@ -147,6 +155,41 @@ function sourceOf(declaration, rootDir) {
   return `${toRepoPath(rootDir, sourceFile.fileName)}:${line + 1}`;
 }
 
+/**
+ * The overloads of a function or method with more than one signature, each with its own TSDoc:
+ * the doc of a symbol would merge them. Undefined for one signature (its doc is the symbol's).
+ */
+function overloadsOf(type, name, checker, enclosing) {
+  const signatures = type.getCallSignatures();
+  if (signatures.length < 2) {
+    return undefined;
+  }
+  return signatures.map((signature) => {
+    const doc = docOf(
+      ts.displayPartsToString(signature.getDocumentationComment(checker))
+        .trim(),
+      signature.getJsDocTags(),
+    );
+    return {
+      declaration: `${name}${checker.signatureToString(signature, enclosing, FORMAT_FLAGS)}`,
+      ...toDocFields(doc),
+    };
+  });
+}
+
+/** The doc of a symbol with overloads: the overloads carry the docs, so the symbol's are empty. */
+function withoutOverloadDocs(doc) {
+  return {
+    ...doc,
+    description: "",
+    params: [],
+    examples: [],
+    see: [],
+    throws: [],
+    returns: undefined,
+  };
+}
+
 function callSignatures(type, name, checker, enclosing) {
   return type.getCallSignatures()
     .map((signature) => `${name}${checker.signatureToString(signature, enclosing, FORMAT_FLAGS)}`);
@@ -193,16 +236,20 @@ function describeMember(property, checker, rootDir, isStatic, inheritedFrom) {
   if (declaration === undefined || isHidden(declaration, doc)) return undefined;
   const type = checker.getTypeOfSymbol(property);
   const isMethod = (property.flags & ts.SymbolFlags.Method) !== 0;
+  const overloads = isMethod
+    ? overloadsOf(type, property.getName(), checker, declaration)
+    : undefined;
   const member = {
     name: property.getName(),
     kind: isMethod ? "method" : "property",
     source: sourceOf(declaration, rootDir),
-    ...toDocFields(doc),
+    ...toDocFields(overloads ? withoutOverloadDocs(doc) : doc),
   };
   if (isStatic) member.static = true;
   if (inheritedFrom !== undefined) member.inheritedFrom = inheritedFrom;
   if (isMethod) {
     member.signatures = callSignatures(type, member.name, checker, declaration);
+    if (overloads) member.overloads = overloads;
   } else {
     member.type = checker.typeToString(type, declaration, FORMAT_FLAGS);
   }
@@ -260,11 +307,14 @@ function describeExport(exported, checker, rootDir) {
   if (declaration === undefined || isHidden(declaration, doc)) return undefined;
 
   const kind = kindOf(symbol);
+  const overloads = kind === "function"
+    ? overloadsOf(checker.getTypeOfSymbol(symbol), exported.getName(), checker, declaration)
+    : undefined;
   const item = {
     name: exported.getName(),
     kind,
     source: sourceOf(declaration, rootDir),
-    ...toDocFields(doc),
+    ...toDocFields(overloads ? withoutOverloadDocs(doc) : doc),
   };
 
   if (kind === "class" || kind === "function") {
@@ -273,6 +323,7 @@ function describeExport(exported, checker, rootDir) {
       ? type.getConstructSignatures()
           .map((signature) => `new ${item.name}${checker.signatureToString(signature, declaration, FORMAT_FLAGS)}`)
       : callSignatures(type, item.name, checker, declaration);
+    if (overloads) item.overloads = overloads;
   }
   if (kind === "const" || kind === "variable") {
     item.type = checker.typeToString(checker.getTypeOfSymbol(symbol), declaration, FORMAT_FLAGS);

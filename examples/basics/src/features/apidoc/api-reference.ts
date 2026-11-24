@@ -27,9 +27,22 @@ export interface ApiDoc {
   /** Present for a member inherited from a base class: the name of that class. */
   readonly inheritedFrom?: string;
   readonly signatures?: readonly string[];
+  /** Present for a function or method with more than one signature: each has its own doc. */
+  readonly overloads?: readonly ApiOverload[];
   readonly type?: string;
   /** The source of a type alias, as written. */
   readonly declaration?: string;
+}
+
+/** One overload of a function or method: its signature, and its own TSDoc. */
+export interface ApiOverload {
+  readonly declaration: string;
+  readonly description: string;
+  readonly params: readonly ApiParam[];
+  readonly returns?: string;
+  readonly examples: readonly string[];
+  readonly see: readonly string[];
+  readonly throws: readonly string[];
 }
 
 export interface ApiExport extends ApiDoc {
