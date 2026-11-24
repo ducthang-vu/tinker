@@ -199,4 +199,26 @@ describe("readSource", () => {
     expect(declaration!.inputNames)
       .toEqual({ alone: "one", second: "two" });
   });
+
+  test("reads a ForwardRef.of(() => Name) import as the name, so a component can import itself", () => {
+    const [declaration] = read(
+      `@Component({ selector: "tk-node", imports: [ForwardRef.of(() => TreeNode), Leaf] }) class TreeNode {}`,
+    ).declarations;
+    expect(declaration?.imports)
+      .toEqual(["TreeNode", "Leaf"]);
+  });
+
+  test("a ForwardRef without a thunk gives no imports", () => {
+    const [declaration] = read(`@Component({ imports: [ForwardRef.of()] }) class C {}`).declarations;
+    expect(declaration?.imports)
+      .toBeUndefined();
+  });
+
+  test("a ForwardRef whose thunk is not a plain name still gives no imports", () => {
+    const [declaration] = read(
+      `@Component({ imports: [ForwardRef.of(() => make())] }) class C {}`,
+    ).declarations;
+    expect(declaration?.imports)
+      .toBeUndefined();
+  });
 });

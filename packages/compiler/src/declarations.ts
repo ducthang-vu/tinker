@@ -414,8 +414,27 @@ function identifiersOf(value: t.Expression | undefined): readonly string[] | und
     return undefined;
   }
   const names = value.elements.map((element) =>
-    t.isIdentifier(element) ? element.name : undefined);
+    t.isIdentifier(element) ? element.name : forwardRefName(element));
   return names.every((name) => name !== undefined) ? names as string[] : undefined;
+}
+
+/**
+ * The class a `ForwardRef.of(() => Name)` element refers to, which may be declared later in the
+ * file (a component that imports itself). Undefined for any other element.
+ */
+function forwardRefName(element: t.Expression | t.SpreadElement | null): string | undefined {
+  if (!t.isCallExpression(element)) {
+    return undefined;
+  }
+  const { callee, arguments: args } = element;
+  const isForwardRefOf = t.isMemberExpression(callee)
+    && t.isIdentifier(callee.object, { name: "ForwardRef" })
+    && t.isIdentifier(callee.property, { name: "of" });
+  const [thunk] = args;
+  if (!isForwardRefOf || thunk === undefined || !t.isArrowFunctionExpression(thunk)) {
+    return undefined;
+  }
+  return t.isIdentifier(thunk.body) ? thunk.body.name : undefined;
 }
 
 /**

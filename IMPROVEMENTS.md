@@ -200,16 +200,7 @@ Known deviations from the browser:
 The plugin compiles each component's literal template into the expression that
 rebuilds its tree, and checks that it compiles. Its limits:
 
-### 1. `imports` written as `ForwardRef.of(() => Class)` is not read
-
-**Problem.** A component can import itself (a tree), through `ForwardRef.of(() => Node)`, and the
-runtime resolves it. The plugin reads `imports` only when every entry is a plain identifier, so a
-`ForwardRef` is skipped: the check and the emitted template do not know the directive.
-
-**To do.** Read `ForwardRef.of(() => Name)` in `declarations.ts` as the identifier `Name`, and test a
-compiled tree that recurses.
-
-### 2. Values computed at run time are not compiled
+### 1. Values computed at run time are not compiled
 
 **Problem.** A template or selector that a `const` gives as a literal, or as a `+` of
 literals, template literals and other constants, is compiled, also across the files that
