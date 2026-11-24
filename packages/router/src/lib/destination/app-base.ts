@@ -5,7 +5,7 @@
 
 import { InjectionToken } from "@tinker/core";
 import { None, Some, type Maybe } from "@tinker/functional";
-import type { Destination } from "./url-builder.ts";
+import type { Destination } from "../destination/destination.ts";
 
 /** The base the app is served under, without a trailing slash. `""` when served at the root. */
 export const APP_BASE = new InjectionToken<string>("APP_BASE");

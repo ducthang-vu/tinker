@@ -5,6 +5,7 @@ import { provideRouter } from "../router/provide-router.ts";
 import { RouterLink } from "./router-link.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { Router } from "../router/router.ts";
+import { UrlBuilder } from "../destination/url-builder.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { provide } from "@tinker/core";
 
@@ -209,7 +210,7 @@ test("aria-current is page on the link to the current path, and absent elsewhere
     .getAttribute("aria-current"))
     .toBeNull();
   fixture.get(Router)
-    .navigate(fixture.get(Router)
+    .navigate(fixture.get(UrlBuilder)
       .parse("/todos/7"));
   fixture.detectChanges();
   expect(fixture.root.query("a.root")

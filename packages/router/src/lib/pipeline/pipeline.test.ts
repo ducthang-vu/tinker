@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { UrlBuilder } from "../destination/url-builder.ts";
+import { Destination, type Part } from "../destination/destination.ts";
+import { Path } from "../destination/url-builder.ts";
 import { createTask, Left, Right, run, fail, succeed, type Either, type Task } from "@tinker/functional";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import { createPipeline } from "./pipeline.ts";
 import type { PipelineSteps } from "./steps.ts";
 import { failed, guardRejected, noRoute, Redirect, type Stop } from "./stop.ts";
-import { Destination, type Part } from "../destination/url-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
 function destinationOf(path: string): Destination {
@@ -22,7 +22,7 @@ const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] 
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
-  return UrlBuilder.for(targets)
+  return Path.rootOf(targets)
     .withSegment(path)
     .build();
 }

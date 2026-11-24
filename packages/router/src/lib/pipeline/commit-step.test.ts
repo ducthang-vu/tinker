@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { run } from "@tinker/functional";
-import { UrlBuilder } from "../destination/url-builder.ts";
+import { Path } from "../destination/url-builder.ts";
 import { createCommitStep, type BrowserWriter } from "./commit-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { Stop } from "./stop.ts";
@@ -30,7 +30,7 @@ function fakeBrowser(url: string, refuse = false) {
 
 /** A matched request for the destination, as the match step would make it. */
 function matchedFor(arrival: "push" | "pop"): MatchedRequest {
-  const destination = UrlBuilder.for(declared)
+  const destination = Path.rootOf(declared)
     .withSegment("todos")
     .withParam("id", "7")
     .build();

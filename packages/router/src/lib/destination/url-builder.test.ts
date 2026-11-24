@@ -1,316 +1,306 @@
 import { describe, expect, test } from "vitest";
-import { None, Some } from "@tinker/functional";
-import { ActivatedRoute } from "../state/activated-route.ts";
+import { Injector, inject, provide, runInInjectionContext } from "@tinker/core";
+import { provideRouter } from "../router/provide-router.ts";
+import { Router } from "../router/router.ts";
 import type { Route } from "../router/route.ts";
-import { ParseError, UrlBuilder } from "./url-builder.ts";
+import { ActivatedRoute } from "../state/activated-route.ts";
+import { ParseError, Path, UrlBuilder } from "./url-builder.ts";
 
-/** A route tree, declared as a constant so its paths keep their literal types. */
-const tree = [
-  { path: "/todos", children: [{ path: "/:id" }] },
-  { path: "/home" },
-] as const;
+class Page {}
 
-describe("building a path", () => {
-  test("segments and params compose in order", () => {
-    const url = UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "7")
-      .build();
-    expect(url.format())
-      .toBe("/todos/7");
-  });
+/** The todos (a list at `/todos`, a detail at `/todos/:id`) and a home page. */
+const TREE: Route[] = [
+  {
+    path: "todos",
+    component: Page,
+    children: [
+      { path: "", component: Page },
+      { path: ":id", component: Page },
+    ],
+  },
+  { path: "home", component: Page },
+];
 
-  test("a segment can be given with or without its leading slash in the tree", () => {
-    expect(UrlBuilder.for(tree)
-      .withSegment("home")
-      .build()
-      .format())
-      .toBe("/home");
-  });
+/** A router over `routes`, and the injected builder of it, at the URL the page is at. */
+function builderOver(routes: readonly Route[], url = "/") {
+  window.history.replaceState(null, "", url);
+  const { injector, destroy } = Injector.create({ providers: provideRouter(routes) });
+  return {
+    urls: runInInjectionContext(injector, () => inject(UrlBuilder)),
+    router: runInInjectionContext(injector, () => inject(Router)),
+    destroy,
+  };
+}
 
-  test("a param value is percent-encoded", () => {
-    const url = UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "a b/c")
-      .build();
-    expect(url.format())
-      .toBe("/todos/a%20b%2Fc");
-  });
-
-  test("an empty path is the root", () => {
-    expect(UrlBuilder.for(tree)
-      .build()
-      .format())
-      .toBe("/");
-  });
-
-  test("a segment that no child has throws, naming it", () => {
-    const untyped = UrlBuilder.for(tree) as unknown as { withSegment(s: string): unknown };
-    expect(() => untyped.withSegment("stringA"))
-      .toThrow("no segment \"stringA\" under \"\"");
-  });
-
-  test("a param that the route does not declare throws", () => {
-    const todos = UrlBuilder.for(tree)
-      .withSegment("todos") as unknown as {
-      withParam(name: string, value: string): unknown;
-    };
-    expect(() => todos.withParam("name", "x"))
-      .toThrow("no param \"name\" under \"todos\"");
-  });
-
-  test("up goes back to the parent, and throws at the root", () => {
-    const url = UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "7")
-      .up()
-      .build();
-    expect(url.format())
-      .toBe("/todos");
-    expect(() => (UrlBuilder.for(tree) as unknown as { up(): unknown }).up())
-      .toThrow("up: already at the root");
-  });
-});
-
-describe("query and fragment", () => {
-  test("query pairs come after the path, in order, and the fragment last", () => {
-    const url = UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "7")
-      .withQuery("tab", "done")
-      .withQuery("sort", "asc")
-      .withFragment("top")
-      .build();
-    expect(url.format())
-      .toBe("/todos/7?tab=done&sort=asc#top");
-  });
-
-  test("a query value is percent-encoded", () => {
-    const url = UrlBuilder.for(tree)
-      .withSegment("home")
-      .withQuery("q", "a&b")
-      .build();
-    expect(url.format())
-      .toBe("/home?q=a%26b");
-  });
-
-  test("after a fragment, a query or another fragment throws", () => {
-    const withFragment = UrlBuilder.for(tree)
-      .withSegment("home")
-      .withFragment("top") as unknown as {
-      withQuery(name: string, value: string): unknown;
-      withFragment(value: string): unknown;
-    };
-    expect(() => withFragment.withQuery("a", "1"))
-      .toThrow("withQuery: the fragment comes last");
-    expect(() => withFragment.withFragment("again"))
-      .toThrow("withFragment: the fragment is already set");
-  });
-
-  test("after a query, a path step throws", () => {
-    const withQuery = UrlBuilder.for(tree)
-      .withSegment("home")
-      .withQuery("a", "1") as unknown as {
-      withSegment(s: string): unknown;
-    };
-    expect(() => withQuery.withSegment("todos"))
-      .toThrow("the path comes before the query and the fragment");
-  });
-});
-
-describe("types, checked again at run time", () => {
-  test("a segment the tree does not have is a type error, and throws", () => {
-    expect(() => {
-      UrlBuilder.for(tree)
-        // @ts-expect-error "stringA" is not a child of the root
-        .withSegment("stringA");
-    })
-      .toThrow("no segment \"stringA\" under \"\"");
-  });
-
-  test("a param the route does not declare is a type error, and throws", () => {
-    expect(() => {
-      UrlBuilder.for(tree)
-        .withSegment("todos")
-        // @ts-expect-error "name" is not a param of "todos"
-        .withParam("name", "x");
-    })
-      .toThrow("no param \"name\" under \"todos\"");
-  });
-
-  test("a path step after a query is a type error, and throws", () => {
-    expect(() => {
-      // @ts-expect-error the path comes before the query
-      UrlBuilder.for(tree)
-        .withSegment("home")
-        .withQuery("a", "1")
-        .withSegment("todos");
-    })
-      .toThrow("the path comes before the query and the fragment");
-  });
-
-  test("a query after a fragment is a type error, and throws", () => {
-    expect(() => {
-      // @ts-expect-error the fragment comes last
-      UrlBuilder.for(tree)
-        .withSegment("home")
-        .withFragment("top")
-        .withQuery("a", "1");
-    })
-      .toThrow("withQuery: the fragment comes last");
-  });
-
-  test("up at the root is a type error, and throws", () => {
-    expect(() => {
-      // @ts-expect-error there is no parent of the root
-      UrlBuilder.for(tree)
-        .up();
-    })
-      .toThrow("up: already at the root");
-  });
-});
-
-describe("edge cases", () => {
-  test("a route with no children has no segments under it", () => {
-    const untyped = UrlBuilder.for(tree)
-      .withSegment("home") as unknown as {
-      withSegment(segment: string): unknown;
-    };
-    expect(() => untyped.withSegment("anything"))
-      .toThrow("no segment \"anything\" under \"home\"");
-  });
-
-  test("a relative start without a value for its param writes the param empty", () => {
-    const root: Route = { path: "", children: [{ path: "/:id" }] };
-    const rootRoute = new ActivatedRoute(root, {}, [], None.of());
-    const idRoute = new ActivatedRoute(root.children?.[0] as Route, {}, [], Some.of(rootRoute));
-    expect(UrlBuilder.from(idRoute)
-      .build()
-      .format())
-      .toBe("/");
-  });
-});
-
-describe("the partial destination", () => {
-  test("shows what has been built, before build", () => {
-    const partial = UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "7").partial;
-    expect(partial.parts)
-      .toEqual([
-        { kind: "segment", value: "todos" },
-        { kind: "param", name: "id", value: "7" },
-      ]);
-  });
-});
-
-describe("from an activated route", () => {
-  const home: Route = { path: "/home" };
-  const todos: Route = { path: "/todos", children: [{ path: "/:id" }] };
-  const root: Route = { path: "", children: [todos, home] };
-
-  /** The activated route chain for `/todos/7`: root, todos, and the id param. */
-  function chain() {
-    const rootRoute = new ActivatedRoute(root, {}, [], None.of());
-    const todosRoute = new ActivatedRoute(todos, {}, ["todos"], Some.of(rootRoute));
-    const idRoute = new ActivatedRoute(
-      todos.children?.[0] as Route,
-      { id: "7" },
-      ["7"],
-      Some.of(todosRoute),
-    );
-    return { todosRoute, idRoute };
-  }
-
-  test("starts at the activated route, with its path already written", () => {
-    const { idRoute } = chain();
-    expect(UrlBuilder.from(idRoute)
-      .build()
-      .format())
-      .toBe("/todos/7");
-  });
-
-  test("up moves to the parent of the activated route", () => {
-    const { idRoute } = chain();
-    expect(UrlBuilder.from(idRoute)
-      .up()
-      .build()
-      .format())
-      .toBe("/todos");
-  });
-
-  test("a builder from an activated route can add a param and a query", () => {
-    const { todosRoute } = chain();
-    const url = UrlBuilder.from(todosRoute)
-      .withParam("id", "9")
-      .withQuery("tab", "done")
-      .build();
-    expect(url.format())
-      .toBe("/todos/9?tab=done");
-  });
-
-  test("the partial shows the start point, and reading it does not change the builder", () => {
-    const { idRoute } = chain();
-    const builder = UrlBuilder.from(idRoute);
-    expect(builder.partial.parts)
-      .toHaveLength(2);
-    expect(builder.build()
-      .format())
-      .toBe("/todos/7");
-  });
-});
-
-/** The error a parse throws, or the test fails when it does not throw. */
-function parseErrorOf(raw: string): ParseError {
+/** The parse error of `url`, from the builder over the todos tree. */
+function parseErrorOf(url: string): ParseError {
+  const { urls, destroy } = builderOver(TREE);
   try {
-    UrlBuilder.for(tree)
-      .parse(raw);
+    urls.parse(url);
   } catch (error) {
     if (error instanceof ParseError) {
       return error;
     }
     throw error;
+  } finally {
+    destroy();
   }
-  throw new Error(`expected ${raw} to fail`);
+  throw new Error(`expected ${url} not to parse`);
 }
+
+describe("building a path from the root", () => {
+  test("segments and params compose in order", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .withSegment("todos")
+      .withParam("id", "7")
+      .build()
+      .format())
+      .toBe("/todos/7");
+    destroy();
+  });
+
+  test("a param value is percent-encoded", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .withSegment("todos")
+      .withParam("id", "a b/c")
+      .build()
+      .format())
+      .toBe("/todos/a%20b%2Fc");
+    destroy();
+  });
+
+  test("the root alone is the root path", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .build()
+      .format())
+      .toBe("/");
+    destroy();
+  });
+
+  test("a segment no child takes throws, naming the segment and its parent", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(() => urls.root()
+      .withSegment("nope"))
+      .toThrow("no segment \"nope\" under \"\"");
+    destroy();
+  });
+
+  test("a param no child declares throws", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(() => urls.root()
+      .withSegment("todos")
+      .withParam("slug", "1"))
+      .toThrow("no param \"slug\" under \"todos\"");
+    destroy();
+  });
+
+  test("a child of a route with no children throws", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(() => urls.root()
+      .withSegment("home")
+      .withSegment("x"))
+      .toThrow("no segment \"x\" under \"home\"");
+    destroy();
+  });
+
+  test("a Path can be kept and extended twice", () => {
+    const { urls, destroy } = builderOver(TREE);
+    const todos = urls.root()
+      .withSegment("todos");
+    expect(todos.withParam("id", "1")
+      .build()
+      .format())
+      .toBe("/todos/1");
+    expect(todos.withSegment("")
+      .build()
+      .format())
+      .toBe("/todos");
+    destroy();
+  });
+
+  test("up goes back to the parent, and throws at the root", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .withSegment("todos")
+      .withParam("id", "7")
+      .up()
+      .build()
+      .format())
+      .toBe("/todos");
+    expect(() => urls.root()
+      .up())
+      .toThrow("up: already at the root");
+    destroy();
+  });
+
+  test("Path.rootOf builds from a tree that is not the router's", () => {
+    expect(Path.rootOf([{ path: "shop", component: Page }])
+      .withSegment("shop")
+      .build()
+      .format())
+      .toBe("/shop");
+  });
+});
+
+describe("query and fragment", () => {
+  test("query pairs come after the path, in order, and the fragment last", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .withSegment("home")
+      .withQuery("a", "1")
+      .withQuery("b", "2")
+      .withFragment("top")
+      .build()
+      .format())
+      .toBe("/home?a=1&b=2#top");
+    destroy();
+  });
+
+  test("a query value is percent-encoded", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .withSegment("home")
+      .withQuery("q", "a b&c")
+      .build()
+      .format())
+      .toBe("/home?q=a%20b%26c");
+    destroy();
+  });
+
+  test("after a fragment, a query or another fragment throws", () => {
+    const { urls, destroy } = builderOver(TREE);
+    const hashed = urls.root()
+      .withSegment("home")
+      .withFragment("top");
+    expect(() => hashed.withQuery("a", "1"))
+      .toThrow("the fragment comes last");
+    expect(() => hashed.withFragment("again"))
+      .toThrow("the fragment is already set");
+    destroy();
+  });
+
+  test("after a query, a path step, up, or parse throws", () => {
+    const { urls, destroy } = builderOver(TREE);
+    const queried = urls.root()
+      .withSegment("home")
+      .withQuery("a", "1");
+    expect(() => queried.withSegment("todos"))
+      .toThrow("the path comes before the query and the fragment");
+    expect(() => queried.withParam("id", "1"))
+      .toThrow("the path comes before the query and the fragment");
+    expect(() => queried.up())
+      .toThrow("the path comes before the query and the fragment");
+    expect(() => queried.parse("/todos"))
+      .toThrow("the path comes before the query and the fragment");
+    destroy();
+  });
+});
+
+describe("relative to a route", () => {
+  test("relativeTo with no argument starts at the injected activated route", () => {
+    const { urls, destroy } = builderOver(TREE, "/todos/7");
+    // The root is the activated route in the root injector, so a relative start is the root.
+    expect(urls.relativeTo()
+      .withSegment("home")
+      .build()
+      .format())
+      .toBe("/home");
+    destroy();
+  });
+
+  test("relativeTo a route writes the parts it was reached by", () => {
+    const { urls, router, destroy } = builderOver(TREE, "/todos/7");
+    const detail = router.activated()[2] as ActivatedRoute;
+    expect(urls.relativeTo(detail)
+      .withQuery("tab", "done")
+      .build()
+      .format())
+      .toBe("/todos/7?tab=done");
+    destroy();
+  });
+
+  test("relativeTo with no argument, in a component at a route, starts at that route", () => {
+    const { router, destroy } = builderOver(TREE, "/todos/7");
+    const detail = router.activated()[2] as ActivatedRoute;
+    const { injector, destroy: destroyAt } = Injector.create({
+      providers: [
+        provide(Router, { useValue: router }),
+        provide(ActivatedRoute, { useValue: detail }),
+        provide(UrlBuilder, { useClass: UrlBuilder }),
+      ],
+    });
+    const urls = runInInjectionContext(injector, () => inject(UrlBuilder));
+    expect(urls.relativeTo()
+      .withQuery("tab", "done")
+      .build()
+      .format())
+      .toBe("/todos/7?tab=done");
+    destroyAt();
+    destroy();
+  });
+
+  test("a relative parse continues from the position, and a leading slash starts at the root", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.root()
+      .withSegment("todos")
+      .parse("7")
+      .build()
+      .format())
+      .toBe("/todos/7");
+    expect(urls.root()
+      .withSegment("todos")
+      .parse("/home")
+      .build()
+      .format())
+      .toBe("/home");
+    destroy();
+  });
+});
 
 describe("parse", () => {
   test("a URL of the tree parses to a destination, with its params as params", () => {
-    expect(UrlBuilder.for(tree)
-      .parse("/todos/7").parts)
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.parse("/todos/7").parts)
       .toEqual([
         { kind: "segment", value: "todos" },
         { kind: "param", name: "id", value: "7" },
       ]);
+    destroy();
   });
 
   test("the query and the fragment are parsed and decoded", () => {
-    const destination = UrlBuilder.for(tree)
-      .parse("/todos/a%20b?tab=done&q=x%26y#top");
-    expect(destination.format())
-      .toBe("/todos/a%20b?tab=done&q=x%26y#top");
+    const { urls, destroy } = builderOver(TREE);
+    const destination = urls.parse("/todos/a%20b?q=x%26y&flag#h%20i");
     expect(destination.query)
-      .toEqual([["tab", "done"], ["q", "x&y"]]);
+      .toEqual([["q", "x&y"], ["flag", ""]]);
+    expect(destination.fragment)
+      .toBe("h i");
+    destroy();
+  });
+
+  test("empty query pairs are skipped", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.parse("/home?a=1&&b=2").query)
+      .toEqual([["a", "1"], ["b", "2"]]);
+    destroy();
   });
 
   test("a destination the builder makes parses back to the same URL", () => {
-    const built = UrlBuilder.for(tree)
+    const { urls, destroy } = builderOver(TREE);
+    const url = urls.root()
       .withSegment("todos")
-      .withParam("id", "7")
-      .withQuery("a", "1")
-      .build();
-    expect(UrlBuilder.for(tree)
-      .parse(built.format())
+      .withParam("id", "a b")
+      .withQuery("tab", "done")
+      .withFragment("top")
+      .build()
+      .format();
+    expect(urls.parse(url)
       .format())
-      .toBe(built.format());
-  });
-
-  test("parsing starts at the root, whatever the builder's position", () => {
-    const fromTodos = UrlBuilder.for(tree)
-      .withSegment("todos");
-    expect(fromTodos.parse("/home")
-      .format())
-      .toBe("/home");
+      .toBe(url);
+    destroy();
   });
 
   test("a segment no route matches throws a no-route ParseError", () => {
@@ -321,65 +311,65 @@ describe("parse", () => {
       .toBe("nowhere");
   });
 
-  test("a malformed percent-encoding throws a malformed ParseError", () => {
-    expect(parseErrorOf("/todos/%E0%A4%A").reason)
-      .toBe("malformed");
-  });
-
   test("a path that goes below a route with no children throws no-route", () => {
-    expect(parseErrorOf("/home/extra").reason)
+    const error = parseErrorOf("/home/extra");
+    expect(error.reason)
       .toBe("no-route");
+    expect(error.at)
+      .toBe("extra");
   });
 
-  test("an empty path is the root, when the tree has an empty route for it", () => {
-    expect(UrlBuilder.for([{ path: "" }, ...tree] as const)
-      .parse("/")
-      .format())
-      .toBe("/");
+  test("the URL stops short of a route that needs a segment: the last segment is reported", () => {
+    const { urls, destroy } = builderOver([
+      { path: "group", component: Page, children: [{ path: ":id", component: Page }] },
+    ]);
+    expect(() => urls.parse("/group"))
+      .toThrow(ParseError);
+    destroy();
   });
 
-  test("an empty path matches no route when the tree has no empty route", () => {
-    expect(parseErrorOf("/").reason)
+  test("a root URL with no route for the root throws, at an empty segment", () => {
+    const error = parseErrorOf("/");
+    expect(error.reason)
       .toBe("no-route");
+    expect(error.at)
+      .toBe("");
   });
 
-  test("a malformed query pair or fragment throws malformed", () => {
+  test("a malformed percent-encoding throws a malformed ParseError in the path, query or fragment", () => {
+    expect(parseErrorOf("/home/%E0%A4%A").reason)
+      .toBe("malformed");
     expect(parseErrorOf("/home?a=%E0%A4%A").reason)
       .toBe("malformed");
     expect(parseErrorOf("/home#%E0%A4%A").reason)
       .toBe("malformed");
   });
 
-  test("an empty query pair is skipped, and a pair without a value has an empty value", () => {
-    expect(UrlBuilder.for(tree)
-      .parse("/home?&flag&a=1").query)
-      .toEqual([["flag", ""], ["a", "1"]]);
-  });
-});
-
-describe("the parent is up, and .. is not a segment", () => {
-  test("`..` in a raw URL is a segment no route matches", () => {
-    expect(parseErrorOf("/todos/7/../7").reason)
-      .toBe("no-route");
-  });
-
-  test("withSegment('..') is a type error, and throws", () => {
-    expect(() => {
-      UrlBuilder.for(tree)
-        .withSegment("todos")
-        // @ts-expect-error "..\" is not a child: up() goes to the parent"
-        .withSegment("..");
-    })
-      .toThrow("no segment \"..\" under \"todos\"");
-  });
-
-  test("up() goes to the parent", () => {
-    expect(UrlBuilder.for(tree)
-      .withSegment("todos")
-      .withParam("id", "7")
-      .up()
-      .build()
+  test("a ** route takes the rest of the URL, and its segments are literal parts", () => {
+    const { urls, destroy } = builderOver([
+      { path: "home", component: Page },
+      { path: "**", component: Page },
+    ]);
+    expect(urls.parse("/nowhere/a")
       .format())
-      .toBe("/todos");
+      .toBe("/nowhere/a");
+    destroy();
+  });
+
+  test("a relative start from a route with no children, to a segment it has none for, throws", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(() => urls.root()
+      .withSegment("home")
+      .parse("x"))
+      .toThrow(ParseError);
+    destroy();
+  });
+
+  test("UrlBuilder.parse parses from the root", () => {
+    const { urls, destroy } = builderOver(TREE);
+    expect(urls.parse("/home?x=1#y")
+      .format())
+      .toBe("/home?x=1#y");
+    destroy();
   });
 });

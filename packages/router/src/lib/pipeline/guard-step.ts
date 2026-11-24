@@ -5,7 +5,7 @@
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker/functional";
-import { Destination } from "../destination/url-builder.ts";
+import { Destination } from "../destination/destination.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { GuardStep } from "./steps.ts";
 import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";

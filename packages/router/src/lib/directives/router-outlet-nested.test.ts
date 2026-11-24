@@ -4,6 +4,7 @@ import { TestBed } from "@tinker/testing";
 import { provideRouter } from "../router/provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { Router } from "../router/router.ts";
+import { UrlBuilder } from "../destination/url-builder.ts";
 
 @Component({ selector: "tk-child", template: "<p>Child</p>" })
 class Child {}
@@ -34,7 +35,7 @@ test("a routed component with an outlet shows the next level inside it", () => {
   expect(fixture.root.text())
     .toBe("ParentChild");
   fixture.get(Router)
-    .navigate(fixture.get(Router)
+    .navigate(fixture.get(UrlBuilder)
       .parse("/parent/child?tab=done"));
   fixture.detectChanges();
   expect(fixture.root.text())
