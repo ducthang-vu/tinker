@@ -214,3 +214,28 @@ test("splits packages/core into a map per top-level module, each file in its mos
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a JSON import is an external reference, whether or not the file exists", () => {
+  const rootDir = mkdtempSync(path.join(os.tmpdir(), "tinker-repo-map-json-"));
+  try {
+    mkdirSync(path.join(rootDir, "src"), { recursive: true });
+    writeFileSync(
+      path.join(rootDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "ESNext", moduleResolution: "Bundler", resolveJsonModule: true },
+        include: ["src"],
+      }),
+    );
+    writeFileSync(
+      path.join(rootDir, "src", "index.ts"),
+      "import data from \"./data.json\";\nexport const value: unknown = data;\n",
+    );
+    const absent = renderRepoMapMarkdown(buildRepoMap(rootDir));
+    writeFileSync(path.join(rootDir, "src", "data.json"), "{}");
+    const present = renderRepoMapMarkdown(buildRepoMap(rootDir));
+    assert.equal(present, absent);
+    assert.doesNotMatch(present, /data\.json <-|^src\/data\.json$/m);
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
+});

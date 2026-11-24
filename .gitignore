@@ -9,3 +9,4 @@ playwright-report/
 
 # The sample library's compiled sources, before its build
 /examples/library/build/
+examples/basics/src/features/apidoc/api-reference.json
