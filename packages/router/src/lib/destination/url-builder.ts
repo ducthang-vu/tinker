@@ -1,0 +1,340 @@
+// The typed URL builder. A UrlBuilder walks the route tree as it is given: each step moves to a
+// child route, and the types only offer the children and params that exist there. The path comes
+// first, then the query, then the fragment; the types enforce that order, and the run-time checks
+// repeat it. A Destination is the complete value a builder returns: plain data, that only this
+// module can make.
+
+import { match } from "@tinker/functional";
+import type { ActivatedRoute } from "../state/activated-route.ts";
+
+/** A route as the builder sees it: a path (one segment, literal or `:param`) and its children. */
+export interface RouteNode {
+  readonly path: string;
+  readonly children?: readonly RouteNode[];
+}
+
+/** One step of the path: a literal segment, or a param with the value it was given. */
+export type Part
+  = | { readonly kind: "segment"; readonly value: string }
+    | { readonly kind: "param"; readonly name: string; readonly value: string };
+
+/** The phases of a builder, in the order a URL is written. */
+export type Phase = "path" | "query" | "fragment";
+
+/** A destination still being built: what has been written so far, with no completeness check. */
+export interface PartialDestination {
+  readonly parts: readonly Part[];
+  readonly query: readonly (readonly [string, string])[];
+  readonly fragment: string | undefined;
+}
+
+/** A complete, app-relative destination. Only `UrlBuilder.build` makes one. */
+export class Destination {
+  private constructor(
+    private readonly token: typeof BUILT,
+    readonly parts: readonly Part[],
+    readonly query: readonly (readonly [string, string])[],
+    readonly fragment: string | undefined,
+  ) {}
+
+  /**
+   * The destination as an app-relative URL: the path, the query, and the fragment.
+   *
+   * @returns The URL, for the browser boundary or for display.
+   */
+  format(): string {
+    const path = `/${this.parts.map((part) => encodeURIComponent(part.value))
+      .join("/")}`;
+    const pairs = this.query.map(
+      ([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+    );
+    const query = pairs.length === 0 ? "" : `?${pairs.join("&")}`;
+    const fragment = this.fragment === undefined ? "" : `#${encodeURIComponent(this.fragment)}`;
+    return `${path}${query}${fragment}`;
+  }
+
+  /**
+   * Builds a destination from parts the builder has checked.
+   *
+   * @param parts The path, in order.
+   * @param query The query pairs, in order.
+   * @param fragment The fragment, if any.
+   * @returns The destination.
+   */
+  static make(
+    parts: readonly Part[],
+    query: readonly (readonly [string, string])[],
+    fragment: string | undefined,
+  ): Destination {
+    return new Destination(BUILT, parts, query, fragment);
+  }
+}
+
+/** Only the builder holds this symbol, so only the builder can create a Destination. */
+const BUILT: unique symbol = Symbol("built");
+
+/** A route tree's root: the path is empty and its children are the top-level routes. */
+type RootOf<Routes> = { readonly path: ""; readonly children: Routes };
+
+/** The children of a route node, as a union. */
+type Children<Node> = Node extends { readonly children: infer C extends readonly unknown[] }
+  ? C[number]
+  : never;
+
+/** The path of a route node. */
+type PathOf<Node> = Node extends { readonly path: infer P extends string } ? P : never;
+
+/** A path without its leading slash. */
+type Trim<P extends string> = P extends `/${infer R}` ? Trim<R> : P;
+
+/** The segments a literal child may be: a child's path without its leading slash. */
+type ChildPaths<Node> = Loose<Node> extends true
+  ? string
+  : Trim<Exclude<PathOf<Children<Node>>, `${string}:${string}`>>;
+
+/** Whether a node's children are only known at run time: then every name is allowed. */
+type Loose<Node> = string extends PathOf<Node> ? true : false;
+
+/** The param names declared by the children of a node, with or without a leading slash. */
+type ParamNames<Node> = Loose<Node> extends true
+  ? string
+  : Children<Node> extends infer C
+    ? C extends { readonly path: `:${infer Name}` | `/:${infer Name}` }
+      ? Name
+      : never
+    : never;
+
+/** The child a literal segment leads to. */
+type ChildOf<Node, Segment extends string> = Loose<Node> extends true
+  ? RouteNode
+  : Extract<Children<Node>, { readonly path: Segment | `/${Segment}` }>;
+
+/** The child a param name leads to. */
+type ParamChildOf<Node, Name extends string> = Loose<Node> extends true
+  ? RouteNode
+  : Extract<Children<Node>, { readonly path: `:${Name}` | `/:${Name}` }>;
+
+/** The last node of a stack of nodes: the route the builder is at. */
+type Last<Stack extends readonly unknown[]> = Stack extends readonly [...unknown[], infer L]
+  ? L
+  : Stack[number];
+
+/** The stack without its last node: one level up. Never at the root. */
+type Pop<Stack extends readonly RouteNode[]> = Stack extends readonly [RouteNode]
+  ? never
+  : Stack extends readonly [...infer Rest extends readonly RouteNode[], RouteNode]
+    ? Rest
+    : Stack;
+
+/** The path of a route node segment, without leading or trailing slashes. */
+function segmentOf(path: string): string {
+  return path.replace(/^\/+|\/+$/g, "");
+}
+
+/** The route nodes from the root down to `route`, and the parts they make, root first. */
+function ancestryOf(route: ActivatedRoute): readonly ActivatedRoute[] {
+  const above = match(route.parent, {
+    Some: (parent) => ancestryOf(parent),
+    None: () => [],
+  });
+  return [...above, route];
+}
+
+/**
+ * The URL builder. Created with `UrlBuilder.for(routes)` for the whole tree, or `UrlBuilder.from`
+ * for a relative start. Each step returns a new builder, so a builder can be kept and reused.
+ */
+export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
+  /** Type only: the route stack and the phase, so the types can tell builders apart. */
+  declare readonly stack: Stack;
+  declare readonly phase: Ph;
+
+  private constructor(
+    private readonly nodes: readonly RouteNode[],
+    private readonly parts: readonly Part[],
+    private readonly query: readonly (readonly [string, string])[],
+    private readonly fragment: string | undefined,
+  ) {}
+
+  /**
+   * A builder at the root of `routes`.
+   *
+   * @param routes The top-level routes, as declared (use `as const` to keep their paths literal).
+   * @returns A builder at the root, in the path phase.
+   */
+  static for<Routes extends readonly RouteNode[]>(
+    routes: Routes,
+  ): UrlBuilder<[RootOf<Routes>], "path"> {
+    return UrlBuilder.make<[RootOf<Routes>], "path">(
+      [{ path: "", children: routes }],
+      [],
+      [],
+      undefined,
+    );
+  }
+
+  /**
+   * A builder that starts at an activated route, for a destination relative to it.
+   *
+   * @param route The route to start at. Use the injected `ActivatedRoute` for the current one.
+   * @returns A builder at that route, with its path already written.
+   */
+  static from(route: ActivatedRoute): UrlBuilder<readonly RouteNode[], "path"> {
+    const chain = ancestryOf(route);
+    const nodes: RouteNode[] = chain.map((level) => level.route);
+    const parts: Part[] = chain.slice(1)
+      .map((level) => {
+        const name = segmentOf(level.route.path);
+        return name.startsWith(":")
+          ? { kind: "param", name: name.slice(1), value: level.params[name.slice(1)] ?? "" }
+          : { kind: "segment", value: name };
+      });
+    return UrlBuilder.make<readonly RouteNode[], "path">(nodes, parts, [], undefined);
+  }
+
+  /** What has been written so far. Inspectable, but not navigable until `build`. */
+  get partial(): PartialDestination {
+    return { parts: this.parts, query: this.query, fragment: this.fragment };
+  }
+
+  /**
+   * Moves to a child with a literal path. Throws when no such child exists.
+   *
+   * @param segment The child's path, without its leading slash.
+   * @returns A builder at that child.
+   */
+  withSegment<S extends ChildPaths<Last<Stack>>>(
+    this: UrlBuilder<Stack, "path">,
+    segment: S,
+  ): UrlBuilder<[...Stack, ChildOf<Last<Stack>, S>], "path"> {
+    const child = this.childNamed(segment, false);
+    return UrlBuilder.make<[...Stack, ChildOf<Last<Stack>, S>], "path">(
+      [...this.nodes, child],
+      [...this.parts, { kind: "segment", value: segment }],
+      this.query,
+      this.fragment,
+    );
+  }
+
+  /**
+   * Moves to a child with a param, and gives the param its value. Throws when no such param exists.
+   *
+   * @param name The param's name, as declared with a colon in the path.
+   * @param value The value of the param, in the URL.
+   * @returns A builder at that child.
+   */
+  withParam<N extends ParamNames<Last<Stack>>>(
+    this: UrlBuilder<Stack, "path">,
+    name: N,
+    value: string,
+  ): UrlBuilder<[...Stack, ParamChildOf<Last<Stack>, N>], "path"> {
+    const child = this.childNamed(name, true);
+    return UrlBuilder.make<[...Stack, ParamChildOf<Last<Stack>, N>], "path">(
+      [...this.nodes, child],
+      [...this.parts, { kind: "param", name, value }],
+      this.query,
+      this.fragment,
+    );
+  }
+
+  /**
+   * Moves back to the parent route. Throws at the root.
+   *
+   * @returns A builder at the parent.
+   */
+  up(
+    this: UrlBuilder<Stack, "path"> & (Stack extends readonly [RouteNode] ? never : unknown),
+  ): UrlBuilder<Pop<Stack>, "path"> {
+    this.assertPathPhase();
+    if (this.nodes.length === 1) {
+      throw new Error("up: already at the root");
+    }
+    return UrlBuilder.make<Pop<Stack>, "path">(
+      this.nodes.slice(0, -1),
+      this.parts.slice(0, -1),
+      this.query,
+      this.fragment,
+    );
+  }
+
+  /**
+   * Adds a query pair. Allowed after the path and before the fragment, and any number of times.
+   *
+   * @param name The query name.
+   * @param value The query value. It is percent-encoded.
+   * @returns A builder in the query phase.
+   */
+  withQuery(
+    this: UrlBuilder<Stack, "path" | "query">,
+    name: string,
+    value: string,
+  ): UrlBuilder<Stack, "query"> {
+    if (this.fragment !== undefined) {
+      throw new Error("withQuery: the fragment comes last");
+    }
+    return UrlBuilder.make<Stack, "query">(
+      this.nodes,
+      this.parts,
+      [...this.query, [name, value]],
+      this.fragment,
+    );
+  }
+
+  /**
+   * Sets the fragment. It comes last, so nothing can follow it.
+   *
+   * @param value The fragment, without its `#`. It is percent-encoded.
+   * @returns A builder in the fragment phase.
+   */
+  withFragment(
+    this: UrlBuilder<Stack, "path" | "query">,
+    value: string,
+  ): UrlBuilder<Stack, "fragment"> {
+    if (this.fragment !== undefined) {
+      throw new Error("withFragment: the fragment is already set");
+    }
+    return UrlBuilder.make<Stack, "fragment">(this.nodes, this.parts, this.query, value);
+  }
+
+  /**
+   * The complete destination.
+   *
+   * @returns The destination, with the path, query and fragment as built.
+   */
+  build(): Destination {
+    return Destination.make(this.parts, this.query, this.fragment);
+  }
+
+  /**
+   * A builder with the given stack, in the given phase. The types carry the stack; the nodes are
+   * the same routes, in the same order.
+   */
+  private static make<S extends readonly RouteNode[], P extends Phase>(
+    nodes: readonly RouteNode[],
+    parts: readonly Part[],
+    query: readonly (readonly [string, string])[],
+    fragment: string | undefined,
+  ): UrlBuilder<S, P> {
+    return new UrlBuilder<S, P>(nodes, parts, query, fragment);
+  }
+
+  /** The child of the current route with the given name, or throws. */
+  private childNamed(name: string, isParam: boolean): RouteNode {
+    this.assertPathPhase();
+    const current = this.nodes[this.nodes.length - 1] as RouteNode;
+    const wanted = isParam ? `:${name}` : name;
+    const child = (current.children ?? []).find((node) => segmentOf(node.path) === wanted);
+    if (child === undefined) {
+      const kind = isParam ? "param" : "segment";
+      throw new Error(`no ${kind} "${name}" under "${segmentOf(current.path)}"`);
+    }
+    return child;
+  }
+
+  /** Throws when the path has already been left for the query or the fragment. */
+  private assertPathPhase(): void {
+    if (this.query.length > 0 || this.fragment !== undefined) {
+      throw new Error("the path comes before the query and the fragment");
+    }
+  }
+}
