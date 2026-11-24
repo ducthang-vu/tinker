@@ -4,6 +4,7 @@
 
 import type { Class } from "@tinker/core";
 import type { Guard } from "../pipeline/guard-step.ts";
+import type { Destination } from "../destination/url-builder.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
 export interface Route {
@@ -28,7 +29,7 @@ export interface Route {
    * asked before any guard runs, and it runs in the injection context of the router, so it can
    * `inject`.
    */
-  readonly redirect?: (request: MatchedRequest) => string | undefined;
+  readonly redirect?: (request: MatchedRequest) => Destination | undefined;
   /**
    * Guards that decide whether the navigation may go on, run after the redirects. Each returns
    * `true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for

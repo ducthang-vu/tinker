@@ -1,9 +1,19 @@
 import { describe, expect, test } from "vitest";
+import { UrlBuilder } from "../destination/url-builder.ts";
 import { createTask, Left, Right, run, fail, succeed, type Either, type Task } from "@tinker/functional";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import { createPipeline } from "./pipeline.ts";
 import type { PipelineSteps } from "./steps.ts";
 import { failed, guardRejected, noRoute, Redirect, type Stop } from "./stop.ts";
+
+const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
+
+/** A destination for one of the targets above, built by the URL builder. */
+function to(path: "login" | "home" | "elsewhere") {
+  return UrlBuilder.for(targets)
+    .withSegment(path)
+    .build();
+}
 
 const ref = { id: 1, url: "/todos/7" };
 
@@ -106,7 +116,7 @@ describe("stops", () => {
   test("a redirect stops at redirect: guards and commit do not run", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      redirect: () => Left.of<Stop, MatchedRequest>(Redirect.of(ref, "/login")),
+      redirect: () => Left.of<Stop, MatchedRequest>(Redirect.of(ref, to("login"))),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)

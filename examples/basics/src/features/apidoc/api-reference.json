@@ -7449,7 +7449,7 @@
         {
           "name": "Route",
           "kind": "interface",
-          "source": "packages/router/src/lib/router/route.ts:9",
+          "source": "packages/router/src/lib/router/route.ts:10",
           "description": "",
           "params": [],
           "examples": [],
@@ -7459,7 +7459,7 @@
             {
               "name": "path",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:15",
+              "source": "packages/router/src/lib/router/route.ts:16",
               "description": "The path the route consumes, e.g. `\"/todos\"`. A segment that starts with `:` is a param, so\n`\"/todos/:id\"` matches `\"/todos/7\"` with `id` set to `\"7\"`. The path `\"**\"` matches any URL,\nfor a page shown when nothing else matches; declare it last among the children.",
               "params": [],
               "examples": [],
@@ -7470,7 +7470,7 @@
             {
               "name": "component",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:17",
+              "source": "packages/router/src/lib/router/route.ts:18",
               "description": "The component shown when the route matches. Every route needs one.",
               "params": [],
               "examples": [],
@@ -7481,7 +7481,7 @@
             {
               "name": "data",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:19",
+              "source": "packages/router/src/lib/router/route.ts:20",
               "description": "Static data of the route, read from the `ActivatedRoute` of the component it shows.",
               "params": [],
               "examples": [],
@@ -7492,7 +7492,7 @@
             {
               "name": "children",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:24",
+              "source": "packages/router/src/lib/router/route.ts:25",
               "description": "The routes under this one, matched against the segments its path leaves over, in order; the\nfirst that matches wins. A route without children must match the whole URL.",
               "params": [],
               "examples": [],
@@ -7503,18 +7503,18 @@
             {
               "name": "redirect",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:31",
+              "source": "packages/router/src/lib/router/route.ts:32",
               "description": "Sends a navigation that matches this route to another URL. It is given the matched request,\nand returns the URL to go to instead, or `undefined` to leave the navigation alone. It is\nasked before any guard runs, and it runs in the injection context of the router, so it can\n`inject`.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "type": "((request: MatchedRequest) => string | undefined) | undefined"
+              "type": "((request: MatchedRequest) => Destination | undefined) | undefined"
             },
             {
               "name": "canActivate",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:37",
+              "source": "packages/router/src/lib/router/route.ts:38",
               "description": "Guards that decide whether the navigation may go on, run after the redirects. Each returns\n`true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for\nwork that takes time. They run in the injection context of the router, root first.",
               "params": [],
               "examples": [],

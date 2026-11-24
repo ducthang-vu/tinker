@@ -1,10 +1,20 @@
 import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
+import { type Destination, UrlBuilder } from "../destination/url-builder.ts";
 import { type Either, match } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";
 import { createRedirectStep } from "./redirect-step.ts";
 import { Redirect, type Stop } from "./stop.ts";
+
+const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
+
+/** A destination for one of the targets above, built by the URL builder. */
+function to(path: "login" | "home" | "elsewhere") {
+  return UrlBuilder.for(targets)
+    .withSegment(path)
+    .build();
+}
 
 /** The stop of an outcome, or `undefined` when the navigation went on. */
 function stopOf(outcome: Either<MatchedRequest, Stop>): Stop | undefined {
@@ -31,7 +41,7 @@ const page = { path: "/todos", component: class {} };
 describe("the redirect step", () => {
   test("a route that returns a URL stops the navigation with a Redirect to it", () => {
     const step = createRedirectStep(Injector.create().injector);
-    const routes = [{ ...page, redirect: () => "/login" }];
+    const routes = [{ ...page, redirect: () => to("login") }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
       .toBeInstanceOf(Redirect);
@@ -52,14 +62,14 @@ describe("the redirect step", () => {
       component: class {},
       redirect: () => {
         asked.push("root");
-        return "/home";
+        return to("home");
       },
     };
     const child = {
       ...page,
       redirect: () => {
         asked.push("child");
-        return "/elsewhere";
+        return to("elsewhere");
       },
     };
     const matched = matchedAt("/todos", [root, child]);
@@ -67,19 +77,19 @@ describe("the redirect step", () => {
     expect(asked)
       .toEqual(["root"]);
     expect(stopOf(outcome))
-      .toEqual(Redirect.of(matched, "/home"));
+      .toEqual(Redirect.of(matched, to("home")));
   });
 
   test("a redirect runs in the injection context of the router", () => {
-    const TARGET = new InjectionToken<string>("target");
+    const TARGET = new InjectionToken<Destination>("target");
     const { injector } = Injector.create({
-      providers: [provide(TARGET, { useValue: "/login" })],
+      providers: [provide(TARGET, { useValue: to("login") })],
     });
     const step = createRedirectStep(injector);
     const routes = [{ ...page, redirect: () => inject(TARGET) }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
-      .toEqual(Redirect.of(matchedAt("/todos", routes), "/login"));
+      .toEqual(Redirect.of(matchedAt("/todos", routes), to("login")));
   });
 
   test("a redirect that throws stops the navigation with a Failed", () => {

@@ -1,6 +1,12 @@
 import { expect, test } from "vitest";
 import type { MatchedRequest } from "../pipeline/request.ts";
 import { componentOf, type Route } from "./route.ts";
+import { UrlBuilder } from "../destination/url-builder.ts";
+
+const target = UrlBuilder.for([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
+  .withSegment("todos")
+  .withParam("id", "1")
+  .build();
 
 class Page {}
 
@@ -18,7 +24,7 @@ test("a route's redirect returns the URL to go to, or undefined to leave the nav
   const route: Route = {
     path: "/todos",
     component: class {},
-    redirect: (request) => (request.url === "/todos" ? "/todos/1" : undefined),
+    redirect: (request) => (request.url === "/todos" ? target : undefined),
   };
   const matched: MatchedRequest = {
     id: 1,
@@ -29,7 +35,7 @@ test("a route's redirect returns the URL to go to, or undefined to leave the nav
     chain: [],
   };
   expect(route.redirect?.(matched))
-    .toBe("/todos/1");
+    .toBe(target);
   expect(route.redirect?.({ ...matched, url: "/todos/2" }))
     .toBeUndefined();
 });
