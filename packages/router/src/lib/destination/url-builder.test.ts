@@ -331,11 +331,16 @@ describe("parse", () => {
       .toBe("no-route");
   });
 
-  test("an empty path is the root", () => {
-    expect(UrlBuilder.for(tree)
+  test("an empty path is the root, when the tree has an empty route for it", () => {
+    expect(UrlBuilder.for([{ path: "" }, ...tree] as const)
       .parse("/")
       .format())
       .toBe("/");
+  });
+
+  test("an empty path matches no route when the tree has no empty route", () => {
+    expect(parseErrorOf("/").reason)
+      .toBe("no-route");
   });
 
   test("a malformed query pair or fragment throws malformed", () => {

@@ -7252,7 +7252,7 @@
         {
           "name": "Destination",
           "kind": "class",
-          "source": "packages/router/src/lib/destination/url-builder.ts:49",
+          "source": "packages/router/src/lib/destination/url-builder.ts:50",
           "description": "A complete, app-relative destination. Only this module makes one.",
           "params": [],
           "examples": [],
@@ -7265,7 +7265,7 @@
             {
               "name": "parts",
               "kind": "property",
-              "source": "packages/router/src/lib/destination/url-builder.ts:59",
+              "source": "packages/router/src/lib/destination/url-builder.ts:60",
               "description": "The parts of the path.",
               "params": [
                 {
@@ -7282,7 +7282,7 @@
             {
               "name": "query",
               "kind": "property",
-              "source": "packages/router/src/lib/destination/url-builder.ts:60",
+              "source": "packages/router/src/lib/destination/url-builder.ts:61",
               "description": "The query pairs.",
               "params": [
                 {
@@ -7299,7 +7299,7 @@
             {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/lib/destination/url-builder.ts:61",
+              "source": "packages/router/src/lib/destination/url-builder.ts:62",
               "description": "The fragment, if any.",
               "params": [
                 {
@@ -7316,7 +7316,7 @@
             {
               "name": "format",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:69",
+              "source": "packages/router/src/lib/destination/url-builder.ts:70",
               "description": "The destination as an app-relative URL: the path, the query, and the fragment.",
               "params": [],
               "examples": [],
@@ -7330,7 +7330,7 @@
             {
               "name": "make",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:88",
+              "source": "packages/router/src/lib/destination/url-builder.ts:89",
               "description": "Makes a destination from parts that have been checked against the tree.",
               "params": [
                 {
@@ -7602,8 +7602,8 @@
             {
               "name": "path",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:17",
-              "description": "The path the route consumes, e.g. `\"/todos\"`. A segment that starts with `:` is a param, so\n`\"/todos/:id\"` matches `\"/todos/7\"` with `id` set to `\"7\"`. The path `\"**\"` matches any URL,\nfor a page shown when nothing else matches; declare it last among the children.",
+              "source": "packages/router/src/lib/router/route.ts:19",
+              "description": "The one segment the route consumes, e.g. `\"todos\"`. A segment that starts with `:` is a param,\nso `\":id\"` matches `\"7\"` with `id` set to `\"7\"`. A longer URL is nested: `\"todos\"` with a\nchild `\":id\"` matches `\"/todos/7\"`. The path `\"\"` consumes no segment, for the page of its\nparent. The path `\"**\"` matches the rest of any URL, for a page shown when nothing else\nmatches; declare it last among the children.",
               "params": [],
               "examples": [],
               "see": [],
@@ -7613,7 +7613,7 @@
             {
               "name": "component",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:19",
+              "source": "packages/router/src/lib/router/route.ts:21",
               "description": "The component shown when the route matches. Every route needs one.",
               "params": [],
               "examples": [],
@@ -7624,7 +7624,7 @@
             {
               "name": "data",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:21",
+              "source": "packages/router/src/lib/router/route.ts:23",
               "description": "Static data of the route, read from the `ActivatedRoute` of the component it shows.",
               "params": [],
               "examples": [],
@@ -7635,7 +7635,7 @@
             {
               "name": "children",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:26",
+              "source": "packages/router/src/lib/router/route.ts:28",
               "description": "The routes under this one, matched against the segments its path leaves over, in order; the\nfirst that matches wins. A route without children must match the whole URL.",
               "params": [],
               "examples": [],
@@ -7646,7 +7646,7 @@
             {
               "name": "redirect",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:33",
+              "source": "packages/router/src/lib/router/route.ts:35",
               "description": "Sends a navigation that matches this route to another URL. It is given the matched request,\nand returns the URL to go to instead, or `undefined` to leave the navigation alone. It is\nasked before any guard runs, and it runs in the injection context of the router, so it can\n`inject`.",
               "params": [],
               "examples": [],
@@ -7657,7 +7657,7 @@
             {
               "name": "canActivate",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:39",
+              "source": "packages/router/src/lib/router/route.ts:41",
               "description": "Guards that decide whether the navigation may go on, run after the redirects. Each returns\n`true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for\nwork that takes time. They run in the injection context of the router, root first.",
               "params": [],
               "examples": [],
@@ -7670,7 +7670,7 @@
         {
           "name": "RouteMatch",
           "kind": "interface",
-          "source": "packages/router/src/lib/router/match.ts:24",
+          "source": "packages/router/src/lib/router/match.ts:25",
           "description": "The leaf route that matches the URL, with the params read along the whole path.",
           "params": [],
           "examples": [],
@@ -7680,7 +7680,7 @@
             {
               "name": "route",
               "kind": "property",
-              "source": "packages/router/src/lib/router/match.ts:26",
+              "source": "packages/router/src/lib/router/match.ts:27",
               "description": "The leaf route the URL matches.",
               "params": [],
               "examples": [],
@@ -7691,7 +7691,7 @@
             {
               "name": "params",
               "kind": "property",
-              "source": "packages/router/src/lib/router/match.ts:28",
+              "source": "packages/router/src/lib/router/match.ts:29",
               "description": "The params read along the whole path.",
               "params": [],
               "examples": [],
@@ -7704,7 +7704,7 @@
         {
           "name": "RouteParams",
           "kind": "type",
-          "source": "packages/router/src/lib/router/match.ts:11",
+          "source": "packages/router/src/lib/router/match.ts:12",
           "description": "The params a path read, by name.",
           "params": [],
           "examples": [],
@@ -7816,7 +7816,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:126",
+              "source": "packages/router/src/lib/router/router.ts:128",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],

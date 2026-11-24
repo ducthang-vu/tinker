@@ -41,9 +41,18 @@ class Root {}
 })
 class App {}
 
+@Component({ selector: "tk-todos", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
+class TodosShell {}
+
 const ROUTES = [
-  { path: "/todos", component: TodoList },
-  { path: "/todos/:id", component: Root },
+  {
+    path: "/todos",
+    component: TodosShell,
+    children: [
+      { path: "", component: TodoList },
+      { path: ":id", component: Root },
+    ],
+  },
 ];
 
 /** Clicks the anchor with the mouse init given; tells whether the default was stopped. */
@@ -200,7 +209,8 @@ test("aria-current is page on the link to the current path, and absent elsewhere
     .getAttribute("aria-current"))
     .toBeNull();
   fixture.get(Router)
-    .navigate(fixture.get(Router).parse("/todos/7"));
+    .navigate(fixture.get(Router)
+      .parse("/todos/7"));
   fixture.detectChanges();
   expect(fixture.root.query("a.root")
     .getAttribute("aria-current"))
