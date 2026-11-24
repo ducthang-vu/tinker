@@ -28,6 +28,7 @@ export interface FunctorUnderTest<M, A> {
   readonly equal?: (a: M, b: M) => boolean;
   /** Two transforms for the map laws. */
   readonly f: (value: A) => A;
+  /** The function applied to the value. */
   readonly g: (value: A) => A;
 }
 
@@ -47,6 +48,7 @@ export interface ChainUnderTest<M, A> {
   readonly equal?: (a: M, b: M) => boolean;
   /** Two steps for the flatMap laws. */
   readonly step: (value: A) => M;
+  /** The next step of the monad, from the value. */
   readonly nextStep: (value: A) => M;
 }
 

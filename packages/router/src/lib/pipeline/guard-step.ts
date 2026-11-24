@@ -34,7 +34,18 @@ export function createGuardStep(injector: Injector): GuardStep {
     );
 }
 
-/** The guards of one route, in order. */
+/**
+ * The guards of one route, in order.
+ * @param injector
+ * @param matched
+ * @param route
+ * @param guards
+ * @param injector The injector whose context the guards run in.
+ * @param matched The navigation being guarded.
+ * @param route The path of the route whose guards these are.
+ * @param guards The route's guards, in order.
+ * @returns The request when every guard allows, or the first stop.
+ */
 function guardsOf(
   injector: Injector,
   matched: MatchedRequest,
@@ -50,7 +61,16 @@ function guardsOf(
   );
 }
 
-/** One guard, as a task of its answer. A throw, or a failing task, becomes a Failed. */
+/**
+ * One guard, as a task of its answer. A throw, or a failing task, becomes a Failed.
+ * @param injector
+ * @param matched
+ * @param guard
+         * @param injector The injector whose context the guard runs in.
+         * @param matched The navigation being guarded.
+         * @param guard The guard to call.
+         * @returns A task of the guard's answer. A throw, or a failing task, stops with Failed.
+ */
 function callGuard(
   injector: Injector,
   matched: MatchedRequest,
@@ -74,7 +94,16 @@ function callGuard(
   });
 }
 
-/** Turns an answer into the navigation's next step: allowed, rejected, or redirected. */
+/**
+ * Turns an answer into the navigation's next step: allowed, rejected, or redirected.
+ * @param matched
+ * @param route
+ * @param verdict
+     * @param matched The navigation being decided.
+     * @param route The path of the route whose guard answered.
+     * @param verdict The guard's answer.
+     * @returns The next step: the request when allowed, or a rejection or redirect stop.
+ */
 function decide(
   matched: MatchedRequest,
   route: string,

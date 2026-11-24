@@ -31,8 +31,12 @@ export type CommitStep = (matched: MatchedRequest) => Task<MatchedRequest, Stop>
 
 /** The four steps the pipeline is built from. */
 export interface PipelineSteps {
+  /** The step that matches the request's destination against the tree. */
   readonly match: MatchStep;
+  /** The step that asks the matched routes whether to redirect. */
   readonly redirect: RedirectStep;
+  /** The step that runs the matched routes' guards. */
   readonly guards: GuardStep;
+  /** The step that commits the navigation: the browser, then the routes. */
   readonly commit: CommitStep;
 }

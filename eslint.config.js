@@ -8,11 +8,12 @@
 import comments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import stylistic from "@stylistic/eslint-plugin";
 import jsdoc from "eslint-plugin-jsdoc";
+import publicDocs from "./scripts/eslint-rules/public-docs.js";
 import tseslint from "typescript-eslint";
 
 // The packages that must document each function and method (`@param` and `@returns` in TSDoc).
 // A package joins this list when all its functions and methods are documented.
-const DOCUMENTED_PACKAGES = ["packages/functional/src"];
+const DOCUMENTED_PACKAGES = ["packages/functional/src", "packages/router/src"];
 
 export default [
   { ignores: ["**/dist/", "coverage/", "**/node_modules/"] },
@@ -37,7 +38,7 @@ export default [
   {
     files: DOCUMENTED_PACKAGES.map((dir) => `${dir}/**/*.ts`),
     ignores: ["**/*.test.ts"],
-    plugins: { jsdoc },
+    plugins: { jsdoc, tinker: { rules: { "public-docs": publicDocs } } },
     rules: {
       "jsdoc/require-jsdoc": ["error", {
         require: { FunctionDeclaration: true, MethodDefinition: true },
@@ -46,6 +47,7 @@ export default [
       "jsdoc/require-param": "error",
       "jsdoc/require-returns": "error",
       "jsdoc/require-throws": "error",
+      "tinker/public-docs": "error",
     },
   },
   // The resource module documents each exported function with an `@example`, which the

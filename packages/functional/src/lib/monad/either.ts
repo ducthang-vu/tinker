@@ -15,6 +15,7 @@ import { Continue, Halt, OUTCOME, type Outcome } from "./outcome.ts";
 
 /** A Right: a success, holding a T. */
 export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Outcome<T, never> {
+  /** The case this Right is, for `match`: its name and its value. */
   readonly [MATCHABLE]: Case<"Right", readonly [T]>;
 
   /**
@@ -58,6 +59,7 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Ou
 
 /** A Left: a failure, holding whatever the caller chose to put there. */
 export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outcome<never, E> {
+  /** The case this Left is, for `match`: its name and its error. */
   readonly [MATCHABLE]: Case<"Left", readonly [E]>;
 
   /**
@@ -104,7 +106,9 @@ export type Either<T, E> = Right<T> | Left<E>;
 
 /** The two handlers of a match, named after the cases. */
 export type EitherCases<T, E, R> = {
+  /** The handler `match` calls for a Right. */
   readonly Right: (value: T) => R;
+  /** The handler `match` calls for a Left. */
   readonly Left: (error: E) => R;
 };
 

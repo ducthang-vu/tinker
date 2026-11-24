@@ -7,6 +7,7 @@
 
 import { InjectionToken } from "@tinker/core";
 
+/** The browser's location and history, behind an interface so tests can replace it. */
 export interface PlatformLocation {
   /** The current path, query and hash, e.g. `"/todos/7?tab=done#top"`. */
   url(): string;

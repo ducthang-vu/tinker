@@ -16,6 +16,7 @@ import {
 
 /** A Some: a value is present. */
 export class Some<T> implements Matchable<"Some", readonly [T]>, Equatable {
+  /** The case this Some is, for `match`: its name and its value. */
   readonly [MATCHABLE]: Case<"Some", readonly [T]>;
 
   /**
@@ -50,6 +51,7 @@ export class Some<T> implements Matchable<"Some", readonly [T]>, Equatable {
 
 /** A None: no value. */
 export class None implements Matchable<"None", readonly []>, Equatable {
+  /** The case this None is, for `match`: its name, with no value. */
   readonly [MATCHABLE]: Case<"None", readonly []>;
 
   /** Creates the case. Use `None.of` instead. */
@@ -82,7 +84,9 @@ export type Maybe<T> = Some<T> | None;
 
 /** The two handlers of a match, named after the cases. */
 export type MaybeCases<T, R> = {
+  /** The handler `match` calls for a Some. */
   readonly Some: (value: T) => R;
+  /** The handler `match` calls for a None. */
   readonly None: () => R;
 };
 

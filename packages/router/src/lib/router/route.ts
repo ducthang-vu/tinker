@@ -7,6 +7,7 @@ import type { Guard } from "../pipeline/guard-step.ts";
 import type { Destination } from "../destination/url-builder.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
+/** A route: a path and the component it shows, with its children, guards and redirect. */
 export interface Route {
   /**
    * The path the route consumes, e.g. `"/todos"`. A segment that starts with `:` is a param, so
@@ -38,7 +39,13 @@ export interface Route {
   readonly canActivate?: readonly Guard[];
 }
 
-/** The component a route shows. Throws for a route with none: every route shows one. */
+/**
+ * The component a route shows. Throws for a route with none: every route shows one.
+ * @param route
+ * @param route The route.
+ * @returns The component the route shows.
+ * @throws Error when the route has no component.
+ */
 export function componentOf(route: Route): Class<object> {
   if (route.component === undefined) {
     throw new Error(`The route "${route.path}" needs a component: every route shows one`);

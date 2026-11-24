@@ -9,7 +9,14 @@ export const ChildActivatedRoute = new InjectionToken<ReadonlySignal<Maybe<Activ
   "ChildActivatedRoute",
 );
 
-/** The route after `route` in `list`: Some, or None when it is not there, or is the last. */
+/**
+ * The route after `route` in `list`: Some, or None when it is not there, or is the last.
+ * @param list
+ * @param route
+ * @param list The activated routes, root first.
+ * @param route The route to find the next of.
+ * @returns The route after `route`, or None when there is none.
+ */
 export function nextAfter(
   list: readonly ActivatedRoute[],
   route: ActivatedRoute,

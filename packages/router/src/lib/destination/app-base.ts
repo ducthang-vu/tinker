@@ -10,7 +10,12 @@ import type { Destination } from "./url-builder.ts";
 /** The base the app is served under, without a trailing slash. `""` when served at the root. */
 export const APP_BASE = new InjectionToken<string>("APP_BASE");
 
-/** The base without its trailing slash, so `/app/` and `/app` are the same base. */
+/**
+ * The base without its trailing slash, so `/app/` and `/app` are the same base.
+ * @param base
+ * @param base The base to normalize.
+ * @returns The base without a trailing slash.
+ */
 function normalized(base: string): string {
   return base.replace(/\/+$/, "");
 }

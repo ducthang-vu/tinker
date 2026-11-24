@@ -9,27 +9,51 @@ import type { ActivatedRoute } from "../state/activated-route.ts";
 
 /** A route as the builder sees it: a path (one segment, literal or `:param`) and its children. */
 export interface RouteNode {
+  /** The path of the route: one segment, literal or `:param`, with or without a leading slash. */
   readonly path: string;
+  /** The child routes, matched under this one. */
   readonly children?: readonly RouteNode[];
 }
 
 /** One step of the path: a literal segment, or a param with the value it was given. */
 export type Part
-  = | { readonly kind: "segment"; readonly value: string }
-    | { readonly kind: "param"; readonly name: string; readonly value: string };
+  = | {
+    /** A literal segment of the path. */
+    readonly kind: "segment";
+    /** The segment, as it is in the URL. */
+    readonly value: string;
+  }
+  | {
+    /** A param of the path. */
+    readonly kind: "param";
+    /** The param's name, as declared with a colon. */
+    readonly name: string;
+    /** The value the param takes in the URL. */
+    readonly value: string;
+  };
 
 /** The phases of a builder, in the order a URL is written. */
 export type Phase = "path" | "query" | "fragment";
 
 /** What has been written so far, with no completeness check. */
 export interface PartialDestination {
+  /** The parts of the path, in order. */
   readonly parts: readonly Part[];
+  /** The query pairs, in order. */
   readonly query: readonly (readonly [string, string])[];
+  /** The fragment, without its `#`, or undefined when there is none. */
   readonly fragment: string | undefined;
 }
 
 /** A complete, app-relative destination. Only this module makes one. */
 export class Destination {
+  /**
+   * Only this module makes one: the token keeps other code from building a Destination.
+   * @param token The token only the builder holds.
+   * @param parts The parts of the path.
+   * @param query The query pairs.
+   * @param fragment The fragment, if any.
+   */
   private constructor(
     private readonly token: typeof BUILT,
     readonly parts: readonly Part[],
@@ -126,12 +150,20 @@ type Pop<Stack extends readonly RouteNode[]> = Stack extends readonly [RouteNode
     ? Rest
     : Stack;
 
-/** The path of a route node segment, without leading or trailing slashes. */
+/**
+ * The path of a route node segment, without leading or trailing slashes.
+ * @param path The path of the route node.
+ * @returns The path without its leading and trailing slashes.
+ */
 function segmentOf(path: string): string {
   return path.replace(/^\/+|\/+$/g, "");
 }
 
-/** The route nodes from the root down to `route`, root first. */
+/**
+ * The route nodes from the root down to `route`, root first.
+ * @param route The activated route to start from.
+ * @returns The route nodes, root first, ending with the route.
+ */
 function ancestryOf(route: ActivatedRoute): readonly ActivatedRoute[] {
   const above = match(route.parent, {
     Some: (parent) => ancestryOf(parent),
@@ -142,6 +174,12 @@ function ancestryOf(route: ActivatedRoute): readonly ActivatedRoute[] {
 
 /** A URL that could not be parsed into a destination of the tree. */
 export class ParseError extends Error {
+  /**
+   * A parse error: its reason, the raw input, and the part that failed.
+   * @param reason Why the URL is not one of the tree's.
+   * @param input The raw URL.
+   * @param at The part that failed.
+   */
   constructor(
     readonly reason: "no-route" | "malformed",
     /** The raw input. */
@@ -154,7 +192,13 @@ export class ParseError extends Error {
   }
 }
 
-/** Decodes one part of a URL, or throws a malformed ParseError for the whole input. */
+/**
+ * Decodes one part of a URL, or throws a malformed ParseError for the whole input.
+ * @param input The raw URL being parsed.
+ * @param raw The part to decode.
+ * @returns The decoded part.
+ * @throws ParseError with reason malformed, when the part is not valid percent-encoding.
+ */
 function decodeOrThrow(input: string, raw: string): string {
   try {
     return decodeURIComponent(raw);
@@ -163,7 +207,12 @@ function decodeOrThrow(input: string, raw: string): string {
   }
 }
 
-/** Splits at the first `separator`: the part before it, and the part after it, if there is one. */
+/**
+ * Splits at the first `separator`: the part before it, and the part after it, if there is one.
+ * @param text The text to split.
+ * @param separator The character to split at.
+ * @returns The part before the separator, and the part after it, or undefined when there is none.
+ */
 function splitOnce(text: string, separator: string): [string, string | undefined] {
   const at = text.indexOf(separator);
   return at === -1 ? [text, undefined] : [text.slice(0, at), text.slice(at + 1)];
@@ -176,8 +225,20 @@ function splitOnce(text: string, separator: string): [string, string | undefined
 export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
   /** Type only: the route stack and the phase, so the types can tell builders apart. */
   declare readonly stack: Stack;
+  /** The phase the builder is in, for the types. Type only. */
   declare readonly phase: Ph;
 
+  /**
+   * Only the builder's own steps make one, each with its checked stack and parts.
+ * @param nodes The route nodes, root first.
+ * @param parts The parts of the path.
+ * @param query The query pairs.
+ * @param fragment The fragment, if any.
+    * @param nodes The route nodes, root first.
+    * @param parts The parts of the path.
+    * @param query The query pairs.
+    * @param fragment The fragment, if any.
+   */
   private constructor(
     private readonly nodes: readonly RouteNode[],
     private readonly parts: readonly Part[],
@@ -221,7 +282,10 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     return UrlBuilder.make<readonly RouteNode[], "path">(nodes, parts, [], undefined);
   }
 
-  /** What has been written so far. Inspectable, but not a destination until `build`. */
+  /**
+   * What has been written so far. Inspectable, but not a destination until `build`.
+   * @returns The parts, query and fragment written so far.
+   */
   get partial(): PartialDestination {
     return { parts: this.parts, query: this.query, fragment: this.fragment };
   }
@@ -286,6 +350,7 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
    * @param name The query name.
    * @param value The query value. It is percent-encoded.
    * @returns A builder in the query phase.
+   * @throws Error when the fragment is already set, since the query comes before it.
    */
   withQuery(
     this: UrlBuilder<Stack, "path" | "query">,
@@ -308,6 +373,7 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
    *
    * @param value The fragment, without its `#`. It is percent-encoded.
    * @returns A builder in the fragment phase.
+   * @throws Error when the fragment is already set.
    */
   withFragment(
     this: UrlBuilder<Stack, "path" | "query">,
@@ -377,6 +443,11 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
   /**
    * A builder with the given stack, in the given phase. The types carry the stack; the nodes are
    * the same routes, in the same order.
+   * @param nodes The route nodes, root first.
+   * @param parts The parts of the path.
+   * @param query The query pairs.
+   * @param fragment The fragment, if any.
+   * @returns A builder with that stack and phase.
    */
   private static make<S extends readonly RouteNode[], P extends Phase>(
     nodes: readonly RouteNode[],
@@ -387,7 +458,11 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     return new UrlBuilder<S, P>(nodes, parts, query, fragment);
   }
 
-  /** One level up: the node and the part of the current route are dropped. Throws at the root. */
+  /**
+   * One level up: the node and the part of the current route are dropped. Throws at the root.
+   * @returns A builder at the parent.
+   * @throws Error at the root, which has no parent.
+   */
   private goUp<S extends readonly RouteNode[]>(): UrlBuilder<S, "path"> {
     if (this.nodes.length === 1) {
       throw new Error("up: already at the root");
@@ -400,7 +475,13 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     );
   }
 
-  /** The child of the current route with the given name, or throws. */
+  /**
+   * The child of the current route with the given name, or throws.
+   * @param name The child's path, or the param's name.
+   * @param isParam Whether the name is a param.
+   * @returns The child route.
+   * @throws Error when no such child exists under the current route.
+   */
   private childNamed(name: string, isParam: boolean): RouteNode {
     const current = this.nodes[this.nodes.length - 1] as RouteNode;
     const wanted = isParam ? `:${name}` : name;
@@ -412,7 +493,10 @@ export class UrlBuilder<Stack extends readonly RouteNode[], Ph extends Phase> {
     return child;
   }
 
-  /** Throws when the path has already been left for the query or the fragment. */
+  /**
+   * Throws when the path has already been left for the query or the fragment.
+   * @throws Error when the path has already been left for the query or the fragment.
+   */
   private assertPathPhase(): void {
     if (this.query.length > 0 || this.fragment !== undefined) {
       throw new Error("the path comes before the query and the fragment");

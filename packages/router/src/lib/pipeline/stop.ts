@@ -7,6 +7,12 @@ import type { NavigationRef, Rejected } from "./navigation-outcome.ts";
 
 /** A route or a guard sends the navigation to `target` instead. Internal: not a final result. */
 export class Redirect {
+  /** Only `of` makes one. */
+  /**
+   *
+   * @param navigation
+   * @param target
+   */
   private constructor(
     readonly navigation: NavigationRef,
     readonly target: Destination,

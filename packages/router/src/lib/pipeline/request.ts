@@ -24,5 +24,6 @@ export interface NavigationRequest {
 
 /** A request whose URL matched a route: the levels it matched, root first. */
 export interface MatchedRequest extends NavigationRequest {
+  /** The levels the destination matches, root first. */
   readonly chain: readonly LevelMatch[];
 }

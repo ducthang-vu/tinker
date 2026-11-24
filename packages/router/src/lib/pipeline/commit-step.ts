@@ -22,6 +22,7 @@ export interface BrowserWriter {
 
 /** What the commit step needs: the browser, the app's base, and how to activate the routes. */
 export interface CommitOptions {
+  /** The browser the commit writes to. */
   readonly browser: BrowserWriter;
   /** The base the app is served under, added to the destination's URL. */
   readonly base: string;

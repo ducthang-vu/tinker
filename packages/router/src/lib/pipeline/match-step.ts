@@ -14,7 +14,12 @@ import { failed, noRoute, type Stop } from "./stop.ts";
 /** The most redirects one navigation may follow. A navigation past it fails at the match step. */
 export const MAX_REDIRECTS = 10;
 
-/** A path without its leading slash, as a route is compared with a part. */
+/**
+ * A path without its leading slash, as a route is compared with a part.
+ * @param path
+ * @param path The path of the route node.
+ * @returns The path without its leading and trailing slashes.
+ */
 function segmentOf(path: string): string {
   return path.replace(/^\/+|\/+$/g, "");
 }

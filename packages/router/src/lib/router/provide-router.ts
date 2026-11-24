@@ -13,6 +13,9 @@ import { type Route, componentOf } from "./route.ts";
 /**
  * The providers for a router over `routes`, the top-level routes of the app, using the browser's
  * location. Every route shows a component, and the top-level ones are checked too.
+ * @param routes
+ * @param routes The top-level routes of the app.
+ * @returns The providers of the router.
  */
 export function provideRouter(routes: readonly Route[]): readonly Provider[] {
   checkComponents(routes);
@@ -36,7 +39,11 @@ export function provideRouter(routes: readonly Route[]): readonly Provider[] {
   ];
 }
 
-/** Every route must name the component it shows, the top-level ones and their children alike. */
+/**
+ * Every route must name the component it shows, the top-level ones and their children alike.
+ * @param routes
+ * @param routes The routes to check.
+ */
 function checkComponents(routes: readonly Route[]): void {
   for (const route of routes) {
     componentOf(route);
