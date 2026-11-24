@@ -11,9 +11,10 @@ import {
   type Equatable,
   type Matchable,
 } from "./monad.ts";
+import { Continue, Halt, OUTCOME, type Outcome } from "./outcome.ts";
 
 /** A Right: a success, holding a T. */
-export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable {
+export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Outcome<T, never> {
   readonly [MATCHABLE]: Case<"Right", readonly [T]>;
 
   /**
@@ -44,10 +45,19 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable {
   static of<T, E = never>(value: T): Either<T, E> {
     return new Right<T>(value);
   }
+
+  /**
+   * The protocol form: a Right continues with the value it holds.
+   *
+   * @returns A Continue holding this Right's value.
+   */
+  [OUTCOME](): Continue<T> {
+    return Continue.of(this[MATCHABLE].args[0]);
+  }
 }
 
 /** A Left: a failure, holding whatever the caller chose to put there. */
-export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable {
+export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outcome<never, E> {
   readonly [MATCHABLE]: Case<"Left", readonly [E]>;
 
   /**
@@ -77,6 +87,15 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable {
    */
   static of<E, T = never>(error: E): Either<T, E> {
     return new Left<E>(error);
+  }
+
+  /**
+   * The protocol form: a Left halts with the error it holds.
+   *
+   * @returns A Halt holding this Left's error.
+   */
+  [OUTCOME](): Halt<E> {
+    return Halt.of(this[MATCHABLE].args[0]);
   }
 }
 
@@ -162,4 +181,16 @@ export function valueOrThrow<T, E>(either: Either<T, E>): T {
     },
     Right: (value) => value,
   });
+}
+
+/**
+ * An Either from any outcome: a Continue becomes a Right holding its value, and a Halt becomes a
+ * Left holding its reason.
+ *
+ * @param outcome Any value that implements the outcome protocol.
+ * @returns A Right holding the value, or a Left holding the reason.
+ */
+export function createEither<T, E>(outcome: Outcome<T, E>): Either<T, E> {
+  const form = outcome[OUTCOME]();
+  return form instanceof Continue ? Right.of<T, E>(form.value) : Left.of<E, T>(form.reason);
 }

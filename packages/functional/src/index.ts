@@ -4,6 +4,9 @@ export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./lib/monad/
 export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./lib/monad/monad.ts";
 export { Right, Left, mapLeft, attempt, toError, valueOrThrow } from "./lib/monad/either.ts";
 export type { Either, EitherCases } from "./lib/monad/either.ts";
+export { createEither } from "./lib/monad/either.ts";
+export { Continue, Halt, OUTCOME } from "./lib/monad/outcome.ts";
+export type { Outcome } from "./lib/monad/outcome.ts";
 export {
   Some,
   None,
@@ -18,6 +21,7 @@ export {
   isNone,
 } from "./lib/monad/maybe.ts";
 export type { Maybe, MaybeCases } from "./lib/monad/maybe.ts";
+export { createMaybe } from "./lib/monad/maybe.ts";
 export { map, flatMap, sequence, MAP, CHAIN } from "./lib/functor/functor.ts";
 export type {
   Functor,
@@ -54,6 +58,7 @@ export {
   fromOutcome,
   fromPromise,
   succeed,
+  createTask,
   timeout,
   toPromise,
 } from "./lib/stream/task.ts";

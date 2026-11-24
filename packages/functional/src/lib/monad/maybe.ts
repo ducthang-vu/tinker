@@ -3,6 +3,7 @@
 //   match(maybe, { Some: (value) => ..., None: () => ... })
 
 import { Right, Left, type Either } from "./either.ts";
+import { Continue, OUTCOME, type Outcome } from "./outcome.ts";
 import {
   EQUALS,
   equalCases,
@@ -196,4 +197,16 @@ export function getOrElse<T, U>(self: Maybe<T>, fallback: U): T | U {
  */
 export function orElse<T, U>(self: Maybe<T>, other: () => Maybe<U>): Maybe<T | U> {
   return match<T, Maybe<T | U>>(self, { Some: () => self, None: () => other() });
+}
+
+/**
+ * A Maybe from any outcome: a Continue becomes Some holding its value, and a Halt becomes None.
+ * The reason of a Halt is lost, because None holds no value.
+ *
+ * @param outcome Any value that implements the outcome protocol.
+ * @returns Some holding the value, or None.
+ */
+export function createMaybe<T, E>(outcome: Outcome<T, E>): Maybe<T> {
+  const form = outcome[OUTCOME]();
+  return form instanceof Continue ? Some.of(form.value) : None.of<T>();
 }

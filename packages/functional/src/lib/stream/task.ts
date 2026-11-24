@@ -19,6 +19,7 @@
 // Timers are tasks too: `delay(ms)`, and `timeout(task, ms)`.
 
 import { type Either, Left, Right, toError } from "../monad/either.ts";
+import { Continue, OUTCOME, type Outcome } from "../monad/outcome.ts";
 import { type Cancel, run, Stream } from "./stream.ts";
 
 /** A task: a stream with no items, ending with its outcome. */
@@ -169,4 +170,15 @@ export function toPromise<T, E>(task: Task<T, E>): Promise<T> {
   return new Promise((resolve, reject) => {
     run(task, { ok: resolve, error: reject });
   });
+}
+
+/**
+ * A task from any outcome: a Continue succeeds with its value, and a Halt fails with its reason.
+ *
+ * @param outcome Any value that implements the outcome protocol.
+ * @returns A task that succeeds with the value, or fails with the reason.
+ */
+export function createTask<T, E>(outcome: Outcome<T, E>): Task<T, E> {
+  const form = outcome[OUTCOME]();
+  return form instanceof Continue ? succeed(form.value) : fail(form.reason);
 }
