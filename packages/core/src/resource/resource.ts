@@ -56,10 +56,50 @@ function asError(value: unknown): Error {
 /** Runs a watch's work at once: the resource's re-runs are synchronous, as its writes are. */
 const immediately = { schedule: (task: Runnable) => task.run() };
 
+/** The argument of a loader in the trigger form: the trigger request, and the signal. */
+export interface LoaderArgs<P> {
+  /** What the trigger returned. Never undefined: an undefined request skips the load. */
+  readonly params: P;
+  /** Aborted when this run is superseded, so the loader can stop its work. Optional to use. */
+  readonly abortSignal: AbortSignal;
+}
+
+/**
+ * A resource with a trigger and a loader. The trigger reads the signals and returns the request
+ * as `params`, or `undefined` to skip the load before anything runs. The loader gets the request
+ * and reads no signals: a change to what the trigger reads starts a new load.
+ */
+export function resource<T, E = Error, P = unknown>(
+  trigger: () => { readonly params: P } | undefined,
+  loader: (args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>,
+  options: ResourceOptions<T>,
+): Resource<T, E>;
+/** A resource whose loader reads the signals it needs: a change to any starts a new load. */
 export function resource<T, E = Error>(
   loader: Loader<T, E>,
   options: ResourceOptions<T>,
+): Resource<T, E>;
+export function resource<T, E = Error, P = unknown>(
+  first: Loader<T, E> | (() => { readonly params: P } | undefined),
+  second: ResourceOptions<T> | ((args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>),
+  third?: ResourceOptions<T>,
 ): Resource<T, E> {
+  if (third === undefined) {
+    return fromLoader(first as Loader<T, E>, second as ResourceOptions<T>);
+  }
+  const trigger = first as () => { readonly params: P } | undefined;
+  const loader = second as (args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>;
+  return fromLoader((abortSignal) => {
+    // Read by the watch that runs the loader, so a change to what it reads starts a new load.
+    const request = trigger();
+    return request === undefined
+      ? undefined
+      : untracked(() => loader({ params: request.params, abortSignal }));
+  }, third);
+}
+
+/** The resource of a loader, which reads the signals it needs. */
+function fromLoader<T, E>(loader: Loader<T, E>, options: ResourceOptions<T>): Resource<T, E> {
   const state = signal<ResourceState>(options.lazy ? "idle" : "loading");
   const value = signal<T>(options.default);
   const error = signal<E | undefined>(undefined);

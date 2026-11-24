@@ -3707,13 +3707,14 @@
         {
           "name": "resource",
           "kind": "function",
-          "source": "packages/core/src/resource/resource.ts:59",
-          "description": "",
+          "source": "packages/core/src/resource/resource.ts:72",
+          "description": "A resource with a trigger and a loader. The trigger reads the signals and returns the request\nas `params`, or `undefined` to skip the load before anything runs. The loader gets the request\nand reads no signals: a change to what the trigger reads starts a new load.\nA resource whose loader reads the signals it needs: a change to any starts a new load.",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
           "signatures": [
+            "resource<T, E = Error, P = unknown>(trigger: () => { readonly params: P; } | undefined, loader: (args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>, options: ResourceOptions<T>): Resource<T, E>",
             "resource<T, E = Error>(loader: Loader<T, E>, options: ResourceOptions<T>): Resource<T, E>"
           ]
         },
