@@ -43,6 +43,16 @@ interface Active<T> {
  * @param source The stream of values.
  * @param f Makes the task for a value.
  * @returns A stream of one item per value: its outcome, or Superseded.
+ * @example
+ * ```ts
+ * import { run, Stream, succeed, switchMap } from "@tinker/functional";
+ *
+ * const queries = Stream.fromIterable(["a", "ab"]);
+ * const results = switchMap(queries, (query) => succeed(`results for ${query}`));
+ * run(results, { next: (item) => console.log(item) });
+ * // Each task settles before the next value arrives, so nothing is superseded here.
+ * // With a task that waits, a newer value cancels the older task and reports it as Superseded.
+ * ```
  */
 export function switchMap<T, R, E, U, F>(
   source: Stream<T, R, E>,
