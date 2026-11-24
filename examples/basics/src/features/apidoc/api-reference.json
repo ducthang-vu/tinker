@@ -902,7 +902,7 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:84",
+          "source": "packages/functional/src/lib/monad/either.ts:103",
           "description": "Either: a Right holding a T, or a Left holding an E.",
           "params": [],
           "examples": [],
@@ -1354,7 +1354,7 @@
               "type": "boolean"
             },
             {
-              "name": "__@TOKEN_TYPE@382",
+              "name": "__@TOKEN_TYPE@400",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:59",
               "description": "Type-only (`declare`): no such property exists at runtime.",
@@ -1516,7 +1516,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@776",
+              "name": "__@INPUT_TYPE@794",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1542,7 +1542,7 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:50",
+          "source": "packages/functional/src/lib/monad/either.ts:60",
           "description": "A Left: a failure, holding whatever the caller chose to put there.",
           "params": [],
           "examples": [],
@@ -1555,7 +1555,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:51",
+              "source": "packages/functional/src/lib/monad/either.ts:61",
               "description": "",
               "params": [],
               "examples": [],
@@ -1566,7 +1566,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:68",
+              "source": "packages/functional/src/lib/monad/either.ts:78",
               "description": "Whether `other` is a Left holding an equal error.",
               "params": [
                 {
@@ -1583,9 +1583,23 @@
               ]
             },
             {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/either.ts:97",
+              "description": "The protocol form: a Left halts with the error it holds.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Halt holding this Left's error.",
+              "signatures": [
+                "__@OUTCOME@216(): Halt<E>"
+              ]
+            },
+            {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:78",
+              "source": "packages/functional/src/lib/monad/either.ts:88",
               "description": "A failure.",
               "params": [
                 {
@@ -1676,7 +1690,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@776",
+              "name": "__@INPUT_TYPE@794",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -2515,7 +2529,7 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:16",
+          "source": "packages/functional/src/lib/monad/either.ts:17",
           "description": "A Right: a success, holding a T.",
           "params": [],
           "examples": [],
@@ -2528,7 +2542,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:17",
+              "source": "packages/functional/src/lib/monad/either.ts:18",
               "description": "",
               "params": [],
               "examples": [],
@@ -2539,7 +2553,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:34",
+              "source": "packages/functional/src/lib/monad/either.ts:35",
               "description": "Whether `other` is a Right holding an equal value.",
               "params": [
                 {
@@ -2556,9 +2570,23 @@
               ]
             },
             {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/either.ts:54",
+              "description": "The protocol form: a Right continues with the value it holds.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Continue holding this Right's value.",
+              "signatures": [
+                "__@OUTCOME@216(): Continue<T>"
+              ]
+            },
+            {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:44",
+              "source": "packages/functional/src/lib/monad/either.ts:45",
               "description": "A success.",
               "params": [
                 {
@@ -3101,7 +3129,7 @@
               "type": "boolean | undefined"
             },
             {
-              "name": "__@TOKEN_TYPE@382",
+              "name": "__@TOKEN_TYPE@400",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:33",
               "description": "Type-only marker, never set at runtime. It makes `T` part of the type\n(so `Token<string>` and `Token<number>` differ), and it is required, so\nneither a plain `{ name }` object nor a class can pass for a token.",
@@ -4013,7 +4041,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@929",
+              "name": "__@CHAIN@951",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:61",
               "description": "",
@@ -4022,7 +4050,73 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@929<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@951<U>(f: (value: T) => Chain<U>): Chain<U>"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Continue",
+          "kind": "class",
+          "source": "packages/functional/src/lib/monad/outcome.ts:16",
+          "description": "The continue half: the chain goes on, and the next step receives `value`.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new Continue<T>(value: T): Continue<T>"
+          ],
+          "members": [
+            {
+              "name": "value",
+              "kind": "property",
+              "source": "packages/functional/src/lib/monad/outcome.ts:22",
+              "description": "The value the next step receives.",
+              "params": [
+                {
+                  "name": "value",
+                  "text": "The value the next step receives."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "T"
+            },
+            {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/outcome.ts:29",
+              "description": "The value itself: a Continue is already in the protocol's form.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "This Continue.",
+              "signatures": [
+                "__@OUTCOME@216(): Continue<T>"
+              ]
+            },
+            {
+              "name": "of",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/outcome.ts:39",
+              "description": "A continue with `value`.",
+              "params": [
+                {
+                  "name": "value",
+                  "text": "The value the next step receives."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Continue holding `value`.",
+              "static": true,
+              "signatures": [
+                "of<T>(value: T): Continue<T>"
               ]
             }
           ]
@@ -4041,7 +4135,7 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:84",
+          "source": "packages/functional/src/lib/monad/either.ts:103",
           "description": "Either: a Right holding a T, or a Left holding an E.",
           "params": [],
           "examples": [],
@@ -4052,7 +4146,7 @@
         {
           "name": "EitherCases",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:87",
+          "source": "packages/functional/src/lib/monad/either.ts:106",
           "description": "The two handlers of a match, named after the cases.",
           "params": [],
           "examples": [],
@@ -4256,7 +4350,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@927",
+              "name": "__@MAP@949",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:24",
               "description": "",
@@ -4265,7 +4359,73 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@927<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@949<U>(f: (value: T) => U): Functor<U>"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Halt",
+          "kind": "class",
+          "source": "packages/functional/src/lib/monad/outcome.ts:45",
+          "description": "The halt half: the chain stops, with `reason` as the reason. Not necessarily a failure.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new Halt<E>(reason: E): Halt<E>"
+          ],
+          "members": [
+            {
+              "name": "reason",
+              "kind": "property",
+              "source": "packages/functional/src/lib/monad/outcome.ts:51",
+              "description": "Why the chain stopped.",
+              "params": [
+                {
+                  "name": "reason",
+                  "text": "Why the chain stopped."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "E"
+            },
+            {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/outcome.ts:58",
+              "description": "The value itself: a Halt is already in the protocol's form.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "This Halt.",
+              "signatures": [
+                "__@OUTCOME@216(): Halt<E>"
+              ]
+            },
+            {
+              "name": "of",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/outcome.ts:68",
+              "description": "A halt with `reason`.",
+              "params": [
+                {
+                  "name": "reason",
+                  "text": "Why the chain stopped."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Halt holding `reason`.",
+              "static": true,
+              "signatures": [
+                "of<E>(reason: E): Halt<E>"
               ]
             }
           ]
@@ -4273,7 +4433,7 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:50",
+          "source": "packages/functional/src/lib/monad/either.ts:60",
           "description": "A Left: a failure, holding whatever the caller chose to put there.",
           "params": [],
           "examples": [],
@@ -4286,7 +4446,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:51",
+              "source": "packages/functional/src/lib/monad/either.ts:61",
               "description": "",
               "params": [],
               "examples": [],
@@ -4297,7 +4457,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:68",
+              "source": "packages/functional/src/lib/monad/either.ts:78",
               "description": "Whether `other` is a Left holding an equal error.",
               "params": [
                 {
@@ -4314,9 +4474,23 @@
               ]
             },
             {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/either.ts:97",
+              "description": "The protocol form: a Left halts with the error it holds.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Halt holding this Left's error.",
+              "signatures": [
+                "__@OUTCOME@216(): Halt<E>"
+              ]
+            },
+            {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:78",
+              "source": "packages/functional/src/lib/monad/either.ts:88",
               "description": "A failure.",
               "params": [
                 {
@@ -4530,9 +4704,45 @@
           ]
         },
         {
+          "name": "OUTCOME",
+          "kind": "const",
+          "source": "packages/functional/src/lib/monad/outcome.ts:8",
+          "description": "The symbol under which a value says whether it continues or halts.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "type": "typeof OUTCOME"
+        },
+        {
+          "name": "Outcome",
+          "kind": "interface",
+          "source": "packages/functional/src/lib/monad/outcome.ts:11",
+          "description": "A value that says whether its chain continues with a value, or halts with a reason.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/outcome.ts:12",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "__@OUTCOME@216(): Continue<T> | Halt<E>"
+              ]
+            }
+          ]
+        },
+        {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:16",
+          "source": "packages/functional/src/lib/monad/either.ts:17",
           "description": "A Right: a success, holding a T.",
           "params": [],
           "examples": [],
@@ -4545,7 +4755,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:17",
+              "source": "packages/functional/src/lib/monad/either.ts:18",
               "description": "",
               "params": [],
               "examples": [],
@@ -4556,7 +4766,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:34",
+              "source": "packages/functional/src/lib/monad/either.ts:35",
               "description": "Whether `other` is a Right holding an equal value.",
               "params": [
                 {
@@ -4573,9 +4783,23 @@
               ]
             },
             {
+              "name": "__@OUTCOME@216",
+              "kind": "method",
+              "source": "packages/functional/src/lib/monad/either.ts:54",
+              "description": "The protocol form: a Right continues with the value it holds.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Continue holding this Right's value.",
+              "signatures": [
+                "__@OUTCOME@216(): Continue<T>"
+              ]
+            },
+            {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:44",
+              "source": "packages/functional/src/lib/monad/either.ts:45",
               "description": "A success.",
               "params": [
                 {
@@ -4675,7 +4899,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@927",
+              "name": "__@MAP@949",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:214",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -4690,11 +4914,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@927<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@949<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@929",
+              "name": "__@CHAIN@951",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:234",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -4709,7 +4933,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@929<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@951<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -5053,7 +5277,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:126",
+          "source": "packages/functional/src/lib/monad/either.ts:145",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [
             {
@@ -5534,7 +5758,7 @@
         {
           "name": "mapLeft",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:99",
+          "source": "packages/functional/src/lib/monad/either.ts:118",
           "description": "`mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`.",
           "params": [
             {
@@ -5794,7 +6018,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:146",
+          "source": "packages/functional/src/lib/monad/either.ts:165",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [
             {
@@ -5857,7 +6081,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:158",
+          "source": "packages/functional/src/lib/monad/either.ts:177",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {

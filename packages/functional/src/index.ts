@@ -4,6 +4,8 @@ export { MATCHABLE, match, use, EQUALS, isEqual, equalCases } from "./lib/monad/
 export type { Case, Matchable, Equatable, EitherEffects, MaybeEffects } from "./lib/monad/monad.ts";
 export { Right, Left, mapLeft, attempt, toError, valueOrThrow } from "./lib/monad/either.ts";
 export type { Either, EitherCases } from "./lib/monad/either.ts";
+export { Continue, Halt, OUTCOME } from "./lib/monad/outcome.ts";
+export type { Outcome } from "./lib/monad/outcome.ts";
 export {
   Some,
   None,
