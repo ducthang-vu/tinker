@@ -24,7 +24,8 @@ export interface Route {
   /**
    * Sends a navigation that matches this route to another URL. It is given the matched request,
    * and returns the URL to go to instead, or `undefined` to leave the navigation alone. It is
-   * asked before any guard runs.
+   * asked before any guard runs, and it runs in the injection context of the router, so it can
+   * `inject`.
    */
   readonly redirect?: (request: MatchedRequest) => string | undefined;
 }
