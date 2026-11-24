@@ -19,6 +19,7 @@
 // Timers are tasks too: `delay(ms)`, and `timeout(task, ms)`.
 
 import { type Either, Left, Right, toError } from "../monad/either.ts";
+import { Continue, OUTCOME, type Outcome } from "../monad/outcome.ts";
 import { type Cancel, run, Stream } from "./stream.ts";
 
 /** A task: a stream with no items, ending with its outcome. */
@@ -170,3 +171,21 @@ export function toPromise<T, E>(task: Task<T, E>): Promise<T> {
     run(task, { ok: resolve, error: reject });
   });
 }
+
+/**
+ * The Task factories. `Task.from` builds a task from any value that implements the outcome
+ * protocol. Its type is the same name, so `Task` is both the type and this namespace.
+ */
+export const Task = {
+  /**
+   * A task with the outcome's form: a Continue succeeds with its value, and a Halt fails with its
+   * reason.
+   *
+   * @param outcome Any value that implements the outcome protocol.
+   * @returns A task that succeeds with the value, or fails with the reason.
+   */
+  from<T, E>(outcome: Outcome<T, E>): Task<T, E> {
+    const form = outcome[OUTCOME]();
+    return form instanceof Continue ? succeed(form.value) : fail(form.reason);
+  },
+} as const;

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { Left, Right } from "./either.ts";
+import { Either, Left, Right } from "./either.ts";
+import { Maybe } from "./maybe.ts";
 import { Continue, Halt, OUTCOME, type Outcome } from "./outcome.ts";
+import { Task } from "../stream/task.ts";
+import { toPromise } from "../stream/task.ts";
+import { isNone, isSome } from "./maybe.ts";
 
 describe("Continue and Halt factories", () => {
   test("Continue.of keeps its value", () => {
@@ -61,5 +65,37 @@ describe("Right and Left implement the protocol", () => {
       .toBe("nope");
     expect(readReason(Right.of("ok")))
       .toBeUndefined();
+  });
+});
+
+describe("the from factories", () => {
+  test("Either.from a Continue is a Right holding the value", () => {
+    expect(Either.from(Continue.of(2)))
+      .toEqual(Right.of(2));
+  });
+
+  test("Either.from a Halt is a Left holding the reason", () => {
+    expect(Either.from(Halt.of("no")))
+      .toEqual(Left.of("no"));
+  });
+
+  test("Maybe.from a Continue is Some holding the value", () => {
+    expect(isSome(Maybe.from(Continue.of(2))))
+      .toBe(true);
+  });
+
+  test("Maybe.from a Halt is None: the reason is lost", () => {
+    expect(isNone(Maybe.from(Halt.of("no"))))
+      .toBe(true);
+  });
+
+  test("Task.from a Continue succeeds with the value", async () => {
+    await expect(toPromise(Task.from(Continue.of(5))))
+      .resolves.toBe(5);
+  });
+
+  test("Task.from a Halt fails with the reason", async () => {
+    await expect(toPromise(Task.from(Halt.of(new Error("halted")))))
+      .rejects.toThrow("halted");
   });
 });

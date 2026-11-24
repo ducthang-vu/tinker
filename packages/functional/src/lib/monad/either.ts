@@ -182,3 +182,21 @@ export function valueOrThrow<T, E>(either: Either<T, E>): T {
     Right: (value) => value,
   });
 }
+
+/**
+ * The Either factories. `Either.from` builds an Either from any value that implements the outcome
+ * protocol. Its type is the same name, so `Either` is both the type and this namespace.
+ */
+export const Either = {
+  /**
+   * An Either with the outcome's form: a Continue becomes a Right holding its value, and a Halt
+   * becomes a Left holding its reason.
+   *
+   * @param outcome Any value that implements the outcome protocol.
+   * @returns A Right holding the value, or a Left holding the reason.
+   */
+  from<T, E>(outcome: Outcome<T, E>): Either<T, E> {
+    const form = outcome[OUTCOME]();
+    return form instanceof Continue ? Right.of<T, E>(form.value) : Left.of<E, T>(form.reason);
+  },
+} as const;
