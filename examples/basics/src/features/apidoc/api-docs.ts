@@ -70,6 +70,15 @@ import { toSections, type ViewDoc } from "./api-view.ts";
     </h3>
     @if (doc().deprecated) { <p class="deprecated">Deprecated: {{ doc().deprecated }}</p> }
     @map doc().signatures; let signature { <pre>{{ signature }}</pre> }
+    @map doc().overloads; let overload {
+      <div class="overload">
+        <pre>{{ overload.declaration }}</pre>
+        @map overload.description; let block { <p>{{ block.text }}</p> }
+        @map overload.params; let param { <p class="param"><code>{{ param.name }}</code> {{ param.text }}</p> }
+        @if (overload.returns) { <p><strong>Returns:</strong> {{ overload.returns }}</p> }
+        @map overload.examples; let example { <pre>{{ example.text }}</pre> }
+      </div>
+    }
     @if (doc().type) { <pre>{{ doc().type }}</pre> }
     @if (doc().declaration) { <pre>{{ doc().declaration }}</pre> }
     @map doc().description; let block {

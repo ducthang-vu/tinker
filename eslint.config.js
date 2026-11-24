@@ -48,6 +48,22 @@ export default [
       "jsdoc/require-throws": "error",
     },
   },
+  // The resource module documents each exported function with an `@example`, which the
+  // overloads carry: the examples are what a reader copies. Tests are exempt.
+  {
+    files: ["packages/core/src/resource/*.ts"],
+    ignores: ["**/*.test.ts"],
+    plugins: { jsdoc },
+    rules: {
+      "jsdoc/require-jsdoc": ["error", {
+        require: { FunctionDeclaration: false },
+        contexts: ["ExportNamedDeclaration > FunctionDeclaration"],
+      }],
+      "jsdoc/require-example": ["error", {
+        contexts: ["ExportNamedDeclaration > TSDeclareFunction", "ExportNamedDeclaration > FunctionDeclaration"],
+      }],
+    },
+  },
   // Disable comments must name their rules and give a reason (after `--`).
   comments.recommended,
   {

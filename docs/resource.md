@@ -32,6 +32,42 @@ user.reload();       // run the loader again
 `httpResource` is a resource whose loader is a request, in `@tinker/http`: see
 [`http.md`](http.md).
 
+## Two forms
+
+A resource has two forms, and both take an options object with `default` and, optionally, `lazy`.
+
+**With a loader only.** The loader reads the signals it needs. A change to any of them starts a new
+load. It gets an `AbortSignal` as its argument, and it returns `undefined` to skip the load:
+
+```ts
+const id = signal(1);
+
+const user = resource((abortSignal) => {
+  if (id() === 0) {
+    return undefined;                                   // skip: nothing runs, the value is kept
+  }
+  return fetch(`/users/${id()}`, { signal: abortSignal }).then((r) => r.json());
+}, { default: emptyUser });
+```
+
+**With a trigger and a loader.** The trigger reads the signals and returns the request as `params`,
+or `undefined` to skip the load. The loader gets `{ params, abortSignal }`, typed without
+`undefined`, and reads no signals of its own. A change to what the trigger reads starts a new load:
+
+```ts
+const id = signal(1);
+
+const user = resource(
+  () => (id() === 0 ? undefined : { params: { id: id() } }),   // what a load depends on
+  ({ params, abortSignal }) =>
+    fetch(`/users/${params.id}`, { signal: abortSignal }).then((r) => r.json()),
+  { default: emptyUser },
+);
+```
+
+The trigger form makes the dependencies explicit. The loader form lets the loader decide, from the
+signals it reads, whether to load.
+
 ## Mutations
 
 A `mutation` is a write to the server: a call that changes data, not one that reads it.

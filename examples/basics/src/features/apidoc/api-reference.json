@@ -3588,7 +3588,7 @@
           "name": "input",
           "kind": "function",
           "source": "packages/core/src/view/internal/authoring/input.ts:135",
-          "description": "Declare a required input, as a field initializer: `readonly text = input<string>()`.\nMake it `private` unless other code should set it: inputs are set by the template.\nIts value comes from the template binding of the same name; reading it\nbefore that throws InputNotBoundError.\nDeclare an optional input: `private readonly position = input(\"top\")`. It holds\n`defaultValue` until the template binding of the same name sets it.\nDeclare an input with options: `readonly size = input({ adapter: numberAdapter })`\n(required), or `readonly label = input(\"\", { name: \"title\" })` (optional, and set by\n`title=\"…\"` in templates). A plain attribute's string goes through the adapter.\nDeclare an optional input with options: `input(0, { adapter: numberAdapter })`.",
+          "description": "",
           "params": [],
           "examples": [],
           "see": [],
@@ -3598,13 +3598,47 @@
             "input<T>(defaultValue: T): InputSignal<T>",
             "input<T>(options: InputOptions<T>): InputSignal<T>",
             "input<T>(defaultValue: T, options: InputOptions<T>): InputSignal<T>"
+          ],
+          "overloads": [
+            {
+              "declaration": "input<T>(): InputSignal<T>",
+              "description": "Declare a required input, as a field initializer: `readonly text = input<string>()`.\nMake it `private` unless other code should set it: inputs are set by the template.\nIts value comes from the template binding of the same name; reading it\nbefore that throws InputNotBoundError.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "input<T>(defaultValue: T): InputSignal<T>",
+              "description": "Declare an optional input: `private readonly position = input(\"top\")`. It holds\n`defaultValue` until the template binding of the same name sets it.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "input<T>(options: InputOptions<T>): InputSignal<T>",
+              "description": "Declare an input with options: `readonly size = input({ adapter: numberAdapter })`\n(required), or `readonly label = input(\"\", { name: \"title\" })` (optional, and set by\n`title=\"…\"` in templates). A plain attribute's string goes through the adapter.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "input<T>(defaultValue: T, options: InputOptions<T>): InputSignal<T>",
+              "description": "Declare an optional input with options: `input(0, { adapter: numberAdapter })`.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
           "name": "model",
           "kind": "function",
           "source": "packages/core/src/view/internal/authoring/model.ts:42",
-          "description": "Declare a required model, as a field initializer: reading it before it is bound throws.\nDeclare an optional model, which holds `defaultValue` until the template binds it.",
+          "description": "",
           "params": [],
           "examples": [],
           "see": [],
@@ -3612,17 +3646,47 @@
           "signatures": [
             "model<T>(): ModelSignal<T>",
             "model<T>(defaultValue: T): ModelSignal<T>"
+          ],
+          "overloads": [
+            {
+              "declaration": "model<T>(): ModelSignal<T>",
+              "description": "Declare a required model, as a field initializer: reading it before it is bound throws.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "model<T>(defaultValue: T): ModelSignal<T>",
+              "description": "Declare an optional model, which holds `defaultValue` until the template binds it.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
           "name": "mutation",
           "kind": "function",
-          "source": "packages/core/src/resource/mutation.ts:43",
-          "description": "",
-          "params": [],
-          "examples": [],
+          "source": "packages/core/src/resource/mutation.ts:64",
+          "description": "A mutation: a write to the server, started by `mutate`. While it runs, `pending` counts the calls\nin flight. On success the result is kept, and the resource it affects is updated from it, or\nreloaded when there is no `onSuccess`.",
+          "params": [
+            {
+              "name": "mutator",
+              "text": "Sends the write for one input, and returns a promise or a task of the result."
+            },
+            {
+              "name": "options",
+              "text": "The resource the write affects, and how its value is updated from the result."
+            }
+          ],
+          "examples": [
+            "```ts\nconst save = mutation(\n  (user: User) => fetch(`/users/${user.id}`, { method: \"PUT\", body: JSON.stringify(user) })\n    .then((r) => r.json() as Promise<User>),\n  {\n    resource: users,\n    onSuccess: (current, saved) => current.map((u) => (u.id === saved.id ? saved : u)),\n  },\n);\nsave.mutate({ id: 1, name: \"Ada\" });\n```"
+          ],
           "see": [],
           "throws": [],
+          "returns": "The mutation: `mutate`, `pending`, `result`, `error`, and `outcome`.",
           "signatures": [
             "mutation<I, T, E = Error, U = unknown>(mutator: (input: I) => PromiseLike<T> | Task<T, E>, options?: MutationOptions<T, U>): Mutation<I, T, E>"
           ]
@@ -3655,7 +3719,7 @@
           "name": "provide",
           "kind": "function",
           "source": "packages/core/src/di/providers.ts:67",
-          "description": "A provider contributing one value to a multi token (see\n`InjectionToken.multi`): the recipe gives one `T`, and `inject()` gives\nthe list of all contributions.\nA provider whose recipe is checked against its token. A plain `Provider[]`\nlist cannot do that (each entry would need its own type), so a mismatch\nlike `{ provide: API_URL, useValue: 42 }` would compile; with\n`provide(API_URL, { useValue: 42 })` it does not.\n\nThe value type `T` comes from the token only (`NoInfer` on the recipe), so\na mismatch is reported instead of being \"explained\" by widening `T`. Not\nfor multi tokens: their providers contribute one value each (overload above).",
+          "description": "",
           "params": [],
           "examples": [],
           "see": [],
@@ -3663,6 +3727,24 @@
           "signatures": [
             "provide<T>(token: MultiToken<T>, recipe: ProviderRecipe<NoInfer<T>>): Provider<readonly T[]>",
             "provide<T>(token: ProviderToken<T> & NotMulti, recipe: ProviderRecipe<NoInfer<T>>): Provider<T>"
+          ],
+          "overloads": [
+            {
+              "declaration": "provide<T>(token: MultiToken<T>, recipe: ProviderRecipe<NoInfer<T>>): Provider<readonly T[]>",
+              "description": "A provider contributing one value to a multi token (see\n`InjectionToken.multi`): the recipe gives one `T`, and `inject()` gives\nthe list of all contributions.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "provide<T>(token: ProviderToken<T> & NotMulti, recipe: ProviderRecipe<NoInfer<T>>): Provider<T>",
+              "description": "A provider whose recipe is checked against its token. A plain `Provider[]`\nlist cannot do that (each entry would need its own type), so a mismatch\nlike `{ provide: API_URL, useValue: 42 }` would compile; with\n`provide(API_URL, { useValue: 42 })` it does not.\n\nThe value type `T` comes from the token only (`NoInfer` on the recipe), so\na mismatch is reported instead of being \"explained\" by widening `T`. Not\nfor multi tokens: their providers contribute one value each (overload above).",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
@@ -3680,7 +3762,7 @@
           "name": "queryAll",
           "kind": "function",
           "source": "packages/core/src/view/internal/authoring/query.ts:131",
-          "description": "Every match of `type`, in document order: child components and directives, including\nthose in `@if` branches and `@map` rows. It is a signal, so it follows the template as\nit changes. To pick from the list, use its array methods.",
+          "description": "",
           "params": [],
           "examples": [],
           "see": [],
@@ -3689,6 +3771,32 @@
             "queryAll<T extends object>(type: Class<T>): ReadonlySignal<readonly T[]>",
             "queryAll<T extends object>(type: Class<T>, options: ElementQueryOptions): ReadonlySignal<readonly ElementRef[]>",
             "queryAll<T extends object>(type: Class<T>, options?: QueryOptions): ReadonlySignal<readonly T[]>"
+          ],
+          "overloads": [
+            {
+              "declaration": "queryAll<T extends object>(type: Class<T>): ReadonlySignal<readonly T[]>",
+              "description": "Every match of `type`, in document order: child components and directives, including\nthose in `@if` branches and `@map` rows. It is a signal, so it follows the template as\nit changes. To pick from the list, use its array methods.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "queryAll<T extends object>(type: Class<T>, options: ElementQueryOptions): ReadonlySignal<readonly ElementRef[]>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "queryAll<T extends object>(type: Class<T>, options?: QueryOptions): ReadonlySignal<readonly T[]>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
@@ -3707,14 +3815,61 @@
         {
           "name": "resource",
           "kind": "function",
-          "source": "packages/core/src/resource/resource.ts:59",
+          "source": "packages/core/src/resource/resource.ts:86",
           "description": "",
           "params": [],
           "examples": [],
           "see": [],
           "throws": [],
           "signatures": [
+            "resource<T, E = Error, P = unknown>(trigger: () => { readonly params: P; } | undefined, loader: (args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>, options: ResourceOptions<T>): Resource<T, E>",
             "resource<T, E = Error>(loader: Loader<T, E>, options: ResourceOptions<T>): Resource<T, E>"
+          ],
+          "overloads": [
+            {
+              "declaration": "resource<T, E = Error, P = unknown>(trigger: () => { readonly params: P; } | undefined, loader: (args: LoaderArgs<P>) => PromiseLike<T> | Task<T, E>, options: ResourceOptions<T>): Resource<T, E>",
+              "description": "A resource with a trigger and a loader. The trigger reads the signals and returns the request\nas `params`, or `undefined` to skip the load before anything runs. The loader gets the request\nand reads no signals: a change to what the trigger reads starts a new load.",
+              "params": [
+                {
+                  "name": "trigger",
+                  "text": "Reads the signals, and returns the request as `params`, or `undefined` to skip."
+                },
+                {
+                  "name": "loader",
+                  "text": "Runs with `{ params, abortSignal }`, and returns a promise or a task of the value."
+                },
+                {
+                  "name": "options",
+                  "text": "The value before the first success, and whether it waits for `reload()`."
+                }
+              ],
+              "examples": [
+                "```ts\nconst user = resource(\n  () => (id() === 0 ? undefined : { params: { id: id() } }),\n  ({ params, abortSignal }) =>\n    fetch(`/users/${params.id}`, { signal: abortSignal }).then((r) => r.json()),\n  { default: emptyUser },\n);\n```"
+              ],
+              "see": [],
+              "throws": [],
+              "returns": "The resource: its state, its value and error, and `set` and `reload`."
+            },
+            {
+              "declaration": "resource<T, E = Error>(loader: Loader<T, E>, options: ResourceOptions<T>): Resource<T, E>",
+              "description": "A resource whose loader reads the signals it needs: a change to any of them starts a new load.\nThe loader returns `undefined` to skip the load: nothing runs, and the value is kept.",
+              "params": [
+                {
+                  "name": "loader",
+                  "text": "Runs when a signal it reads changes, and returns a promise or a task of the value."
+                },
+                {
+                  "name": "options",
+                  "text": "The value before the first success, and whether it waits for `reload()`."
+                }
+              ],
+              "examples": [
+                "```ts\nconst user = resource(\n  (abortSignal) => fetch(`/users/${id()}`, { signal: abortSignal }).then((r) => r.json()),\n  { default: emptyUser },\n);\n```"
+              ],
+              "see": [],
+              "throws": [],
+              "returns": "The resource: its state, its value and error, and `set` and `reload`."
+            }
           ]
         },
         {
@@ -5443,23 +5598,11 @@
           "name": "flatMap",
           "kind": "function",
           "source": "packages/functional/src/lib/functor/functor.ts:172",
-          "description": "Chain a box through `f`: `f` takes the value inside the box and returns a box, and that box is\nthe result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or\ndata-last `flatMap(f)`, which returns a function of the box.",
-          "params": [
-            {
-              "name": "self",
-              "text": "The box to chain through."
-            },
-            {
-              "name": "f",
-              "text": "The function that takes the value inside the box and returns the next box."
-            }
-          ],
-          "examples": [
-            "```ts\nimport { flatMap, None, Some } from \"@tinker/functional\";\n\nconst positive = (n: number) => (n > 0 ? Some.of(n) : None.of<number>());\nflatMap(Some.of(-1), positive); // None\n```"
-          ],
+          "description": "",
+          "params": [],
+          "examples": [],
           "see": [],
           "throws": [],
-          "returns": "The box `f` returned, or the box itself for a case with no value; for the data-last\nform, a function of the box.",
           "signatures": [
             "flatMap<T, E, U, F>(self: Either<T, E>, f: (value: T) => Either<U, F>): Either<U, E | F>",
             "flatMap<T, U>(self: Maybe<T>, f: (value: T) => Maybe<U>): Maybe<U>",
@@ -5472,28 +5615,164 @@
             "flatMap<T, U>(f: (value: T) => readonly U[]): (self: readonly T[]) => U[]",
             "flatMap<T, U>(f: (value: T) => Chain<U>): (self: Chain<T>) => Chain<U>",
             "flatMap<T, U>(self: Matchable, f: (value: T) => Matchable): Matchable"
+          ],
+          "overloads": [
+            {
+              "declaration": "flatMap<T, E, U, F>(self: Either<T, E>, f: (value: T) => Either<U, F>): Either<U, E | F>",
+              "description": "Chain a box through `f`: `f` takes the value inside the box and returns a box, and that box is\nthe result. A case with no value is returned unchanged. Data-first `flatMap(box, f)`, or\ndata-last `flatMap(f)`, which returns a function of the box.",
+              "params": [
+                {
+                  "name": "self",
+                  "text": "The box to chain through."
+                },
+                {
+                  "name": "f",
+                  "text": "The function that takes the value inside the box and returns the next box."
+                }
+              ],
+              "examples": [
+                "```ts\nimport { flatMap, None, Some } from \"@tinker/functional\";\n\nconst positive = (n: number) => (n > 0 ? Some.of(n) : None.of<number>());\nflatMap(Some.of(-1), positive); // None\n```"
+              ],
+              "see": [],
+              "throws": [],
+              "returns": "The box `f` returned, or the box itself for a case with no value; for the data-last\nform, a function of the box."
+            },
+            {
+              "declaration": "flatMap<T, U>(self: Maybe<T>, f: (value: T) => Maybe<U>): Maybe<U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U, F>(f: (value: T) => Either<U, F>): <E>(self: Either<T, E>) => Either<U, E | F>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U>(f: (value: T) => Maybe<U>): MaybeFlatMapFn<T, U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, X, E, Y, R2, F>(self: Stream<X, T, E>, f: (result: T) => Stream<Y, R2, F>): Stream<X | Y, R2, E | F | Error>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U>(self: readonly T[], f: (value: T) => readonly U[]): U[]",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U>(self: Chain<T>, f: (value: T) => Chain<U>): Chain<U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, Y, R2, F>(f: (result: T) => Stream<Y, R2, F>): <X, E>(self: Stream<X, T, E>) => Stream<X | Y, R2, E | F | Error>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U>(f: (value: T) => readonly U[]): (self: readonly T[]) => U[]",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U>(f: (value: T) => Chain<U>): (self: Chain<T>) => Chain<U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flatMap<T, U>(self: Matchable, f: (value: T) => Matchable): Matchable",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
           "name": "flow",
           "kind": "function",
           "source": "packages/functional/src/lib/function.ts:42",
-          "description": "A function that applies `f1`, then `f2`, and so on: `flow(f, g)(x)` is `g(f(x))`.\n\nThe overloads take up to four functions after `f1`, each receiving the result of the one before.",
-          "params": [
-            {
-              "name": "f1",
-              "text": "The first function, which takes the arguments of the result."
-            }
-          ],
+          "description": "",
+          "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "returns": "A function that applies the functions to its arguments, left to right.",
           "signatures": [
             "flow<A extends unknown[], B>(f1: (...args: A) => B): (...args: A) => B",
             "flow<A extends unknown[], B, C>(f1: (...args: A) => B, f2: (b: B) => C): (...args: A) => C",
             "flow<A extends unknown[], B, C, D>(f1: (...args: A) => B, f2: (b: B) => C, f3: (c: C) => D): (...args: A) => D",
             "flow<A extends unknown[], B, C, D, E>(f1: (...args: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E): (...args: A) => E"
+          ],
+          "overloads": [
+            {
+              "declaration": "flow<A extends unknown[], B>(f1: (...args: A) => B): (...args: A) => B",
+              "description": "A function that applies `f1`, then `f2`, and so on: `flow(f, g)(x)` is `g(f(x))`.\n\nThe overloads take up to four functions after `f1`, each receiving the result of the one before.",
+              "params": [
+                {
+                  "name": "f1",
+                  "text": "The first function, which takes the arguments of the result."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A function that applies the functions to its arguments, left to right."
+            },
+            {
+              "declaration": "flow<A extends unknown[], B, C>(f1: (...args: A) => B, f2: (b: B) => C): (...args: A) => C",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flow<A extends unknown[], B, C, D>(f1: (...args: A) => B, f2: (b: B) => C, f3: (c: C) => D): (...args: A) => D",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "flow<A extends unknown[], B, C, D, E>(f1: (...args: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E): (...args: A) => E",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
@@ -5737,24 +6016,11 @@
           "name": "map",
           "kind": "function",
           "source": "packages/functional/src/lib/functor/functor.ts:100",
-          "description": "Map the value of a box: `f` is applied to a value inside the box, and a box of the same case\nholds the result. A case with no value is returned unchanged. A value that implements the MAP\nprotocol maps itself; a matchable box without it uses its case's registered `map`. Data-first\n`map(box, f)`, or data-last `map(f)`, which returns a function of the box.",
-          "params": [
-            {
-              "name": "self",
-              "text": "The box to map: an Either, a Maybe, an array, a stream, or another functor."
-            },
-            {
-              "name": "f",
-              "text": "The function applied to the value inside the box."
-            }
-          ],
-          "examples": [
-            "```ts\nimport { map, Some } from \"@tinker/functional\";\n\nmap(Some.of(2), (n: number) => n * 10); // Some(20)\n```",
-            "```ts\nimport { map, Right } from \"@tinker/functional\";\n\nconst addOne = map((n: number) => n + 1);\naddOne(Right.of<number, string>(2)); // Right(3)\n```"
-          ],
+          "description": "",
+          "params": [],
+          "examples": [],
           "see": [],
           "throws": [],
-          "returns": "A box of the same case holding the result, or, for the data-last form, a function of\nthe box.",
           "signatures": [
             "map<T, E, U>(self: Either<T, E>, f: (value: T) => U): Either<U, E>",
             "map<T, X, E, U>(self: Stream<X, T, E>, f: (result: T) => U): Stream<X, U, E | Error>",
@@ -5763,90 +6029,219 @@
             "map<T, U>(self: readonly T[], f: (value: T) => U): U[]",
             "map<T, U>(self: Functor<T>, f: (value: T) => U): Functor<U>",
             "map<T, U>(self: Matchable, f: (value: T) => U): Matchable"
+          ],
+          "overloads": [
+            {
+              "declaration": "map<T, E, U>(self: Either<T, E>, f: (value: T) => U): Either<U, E>",
+              "description": "Map the value of a box: `f` is applied to a value inside the box, and a box of the same case\nholds the result. A case with no value is returned unchanged. A value that implements the MAP\nprotocol maps itself; a matchable box without it uses its case's registered `map`. Data-first\n`map(box, f)`, or data-last `map(f)`, which returns a function of the box.",
+              "params": [
+                {
+                  "name": "self",
+                  "text": "The box to map: an Either, a Maybe, an array, a stream, or another functor."
+                },
+                {
+                  "name": "f",
+                  "text": "The function applied to the value inside the box."
+                }
+              ],
+              "examples": [
+                "```ts\nimport { map, Some } from \"@tinker/functional\";\n\nmap(Some.of(2), (n: number) => n * 10); // Some(20)\n```",
+                "```ts\nimport { map, Right } from \"@tinker/functional\";\n\nconst addOne = map((n: number) => n + 1);\naddOne(Right.of<number, string>(2)); // Right(3)\n```"
+              ],
+              "see": [],
+              "throws": [],
+              "returns": "A box of the same case holding the result, or, for the data-last form, a function of\nthe box."
+            },
+            {
+              "declaration": "map<T, X, E, U>(self: Stream<X, T, E>, f: (result: T) => U): Stream<X, U, E | Error>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "map<T, U>(self: Maybe<T>, f: (value: T) => U): Maybe<U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "map<T, U>(f: (value: T) => U): MapFn<T, U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "map<T, U>(self: readonly T[], f: (value: T) => U): U[]",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "map<T, U>(self: Functor<T>, f: (value: T) => U): Functor<U>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "map<T, U>(self: Matchable, f: (value: T) => U): Matchable",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
           "name": "mapErrors",
           "kind": "function",
           "source": "packages/functional/src/lib/stream/stream.ts:315",
-          "description": "Transform the errors, of the items and of the end. Successes pass through.",
-          "params": [
-            {
-              "name": "stream",
-              "text": "The stream whose errors to transform."
-            },
-            {
-              "name": "f",
-              "text": "The function applied to each error."
-            },
-            {
-              "name": "f",
-              "text": "The function applied to each error."
-            }
-          ],
+          "description": "",
+          "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "returns": "A function that takes a stream and transforms its errors with `f`.",
           "signatures": [
             "mapErrors<T, R, E, F>(stream: Stream<T, R, E>, f: (error: E) => F): Stream<T, R, F>",
             "mapErrors<E, F>(f: (error: E) => F): <T, R>(stream: Stream<T, R, E>) => Stream<T, R, F>"
+          ],
+          "overloads": [
+            {
+              "declaration": "mapErrors<T, R, E, F>(stream: Stream<T, R, E>, f: (error: E) => F): Stream<T, R, F>",
+              "description": "Transform the errors, of the items and of the end. Successes pass through.",
+              "params": [
+                {
+                  "name": "stream",
+                  "text": "The stream whose errors to transform."
+                },
+                {
+                  "name": "f",
+                  "text": "The function applied to each error."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A stream with the same values, and the errors transformed by `f`."
+            },
+            {
+              "declaration": "mapErrors<E, F>(f: (error: E) => F): <T, R>(stream: Stream<T, R, E>) => Stream<T, R, F>",
+              "description": "Transform the errors, of the items and of the end. Successes pass through.",
+              "params": [
+                {
+                  "name": "f",
+                  "text": "The function applied to each error."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A function that takes a stream and transforms its errors with `f`."
+            }
           ]
         },
         {
           "name": "mapLeft",
           "kind": "function",
           "source": "packages/functional/src/lib/monad/either.ts:118",
-          "description": "`mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`.",
-          "params": [
-            {
-              "name": "self",
-              "text": "The Either to map."
-            },
-            {
-              "name": "f",
-              "text": "The function applied to a Left's error."
-            }
-          ],
+          "description": "",
+          "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "returns": "A Right unchanged, or a Left of `f`'s result.",
           "signatures": [
             "mapLeft<T, E, F>(self: Either<T, E>, f: (error: E) => F): Either<T, F>",
             "mapLeft<E, F>(f: (error: E) => F): <T>(self: Either<T, E>) => Either<T, F>"
+          ],
+          "overloads": [
+            {
+              "declaration": "mapLeft<T, E, F>(self: Either<T, E>, f: (error: E) => F): Either<T, F>",
+              "description": "`mapLeft`: data-first `mapLeft(e, f)`, or data-last `mapLeft(f)` for `pipe`.",
+              "params": [
+                {
+                  "name": "self",
+                  "text": "The Either to map."
+                },
+                {
+                  "name": "f",
+                  "text": "The function applied to a Left's error."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "A Right unchanged, or a Left of `f`'s result."
+            },
+            {
+              "declaration": "mapLeft<E, F>(f: (error: E) => F): <T>(self: Either<T, E>) => Either<T, F>",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
           "name": "match",
           "kind": "function",
           "source": "packages/functional/src/lib/monad/monad.ts:33",
-          "description": "Get out of an Either, handling each case by its constructor name.\nGet out of a Maybe, handling each case by its constructor name.",
-          "params": [
-            {
-              "name": "self",
-              "text": "The Either to read."
-            },
-            {
-              "name": "cases",
-              "text": "The handler for each case, called with the case's value."
-            },
-            {
-              "name": "self",
-              "text": "The Maybe to read."
-            },
-            {
-              "name": "cases",
-              "text": "The handler for each case, called with the case's value."
-            }
-          ],
+          "description": "",
+          "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "returns": "What the handler of the case returns.",
           "signatures": [
             "match<T, E, R>(self: Either<T, E>, cases: EitherCases<T, E, R>): R",
             "match<T, R>(self: Maybe<T>, cases: MaybeCases<T, R>): R"
+          ],
+          "overloads": [
+            {
+              "declaration": "match<T, E, R>(self: Either<T, E>, cases: EitherCases<T, E, R>): R",
+              "description": "Get out of an Either, handling each case by its constructor name.",
+              "params": [
+                {
+                  "name": "self",
+                  "text": "The Either to read."
+                },
+                {
+                  "name": "cases",
+                  "text": "The handler for each case, called with the case's value."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "What the handler of the case returns."
+            },
+            {
+              "declaration": "match<T, R>(self: Maybe<T>, cases: MaybeCases<T, R>): R",
+              "description": "Get out of a Maybe, handling each case by its constructor name.",
+              "params": [
+                {
+                  "name": "self",
+                  "text": "The Maybe to read."
+                },
+                {
+                  "name": "cases",
+                  "text": "The handler for each case, called with the case's value."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "What the handler of the case returns."
+            }
           ]
         },
         {
@@ -5899,21 +6294,11 @@
           "name": "pipe",
           "kind": "function",
           "source": "packages/functional/src/lib/function.ts:11",
-          "description": "`value` passed through each function in turn, left to right.",
-          "params": [
-            {
-              "name": "value",
-              "text": "The value to start from."
-            },
-            {
-              "name": "fns",
-              "text": "The functions to apply, in order: each receives the result of the one before."
-            }
-          ],
+          "description": "",
+          "params": [],
           "examples": [],
           "see": [],
           "throws": [],
-          "returns": "The result of the last function, or `value` itself when there are no functions.",
           "signatures": [
             "pipe<A>(value: A): A",
             "pipe<A, B>(value: A, f1: (a: A) => B): B",
@@ -5921,6 +6306,66 @@
             "pipe<A, B, C, D>(value: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D): D",
             "pipe<A, B, C, D, E>(value: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E): E",
             "pipe<A, B, C, D, E, F>(value: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E, f5: (e: E) => F): F"
+          ],
+          "overloads": [
+            {
+              "declaration": "pipe<A>(value: A): A",
+              "description": "`value` passed through each function in turn, left to right.",
+              "params": [
+                {
+                  "name": "value",
+                  "text": "The value to start from."
+                },
+                {
+                  "name": "fns",
+                  "text": "The functions to apply, in order: each receives the result of the one before."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "The result of the last function, or `value` itself when there are no functions."
+            },
+            {
+              "declaration": "pipe<A, B>(value: A, f1: (a: A) => B): B",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "pipe<A, B, C>(value: A, f1: (a: A) => B, f2: (b: B) => C): C",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "pipe<A, B, C, D>(value: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D): D",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "pipe<A, B, C, D, E>(value: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E): E",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "pipe<A, B, C, D, E, F>(value: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E, f5: (e: E) => F): F",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
@@ -6095,25 +6540,43 @@
           "name": "use",
           "kind": "function",
           "source": "packages/functional/src/lib/monad/monad.ts:88",
-          "description": "Run the handler of the box's case, for its effect. An effect is the edge of a program: pure code\nreads a box with `match` instead, and uses `use` only where something has to happen (a value\nsent to a subscriber, an error reported).",
-          "params": [
-            {
-              "name": "self",
-              "text": "The box whose case decides which handler runs."
-            },
-            {
-              "name": "cases",
-              "text": "The effect handler for each case."
-            }
-          ],
-          "examples": [
-            "```ts\nuse(Left.of(\"offline\"), { Right: (value) => show(value), Left: (error) => report(error) });\n```"
-          ],
+          "description": "",
+          "params": [],
+          "examples": [],
           "see": [],
           "throws": [],
           "signatures": [
             "use<T, E>(self: Either<T, E>, cases: EitherEffects<T, E>): void",
             "use<T>(self: Maybe<T>, cases: MaybeEffects<T>): void"
+          ],
+          "overloads": [
+            {
+              "declaration": "use<T, E>(self: Either<T, E>, cases: EitherEffects<T, E>): void",
+              "description": "Run the handler of the box's case, for its effect. An effect is the edge of a program: pure code\nreads a box with `match` instead, and uses `use` only where something has to happen (a value\nsent to a subscriber, an error reported).",
+              "params": [
+                {
+                  "name": "self",
+                  "text": "The box whose case decides which handler runs."
+                },
+                {
+                  "name": "cases",
+                  "text": "The effect handler for each case."
+                }
+              ],
+              "examples": [
+                "```ts\nuse(Left.of(\"offline\"), { Right: (value) => show(value), Left: (error) => report(error) });\n```"
+              ],
+              "see": [],
+              "throws": []
+            },
+            {
+              "declaration": "use<T>(self: Maybe<T>, cases: MaybeEffects<T>): void",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": []
+            }
           ]
         },
         {
