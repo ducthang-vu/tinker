@@ -1,11 +1,22 @@
 import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
-import { type Destination, UrlBuilder } from "../destination/url-builder.ts";
 import { type Either, match } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";
 import { createRedirectStep } from "./redirect-step.ts";
 import { Redirect, type Stop } from "./stop.ts";
+import { Destination, type Part, UrlBuilder } from "../destination/url-builder.ts";
+
+/** A destination of literal segments for a path such as "/todos/7". */
+function destinationOf(path: string): Destination {
+  return Destination.make(
+    path.split("/")
+      .filter((segment) => segment !== "")
+      .map((value): Part => ({ kind: "segment", value })),
+    [],
+    undefined,
+  );
+}
 
 const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
 
@@ -28,7 +39,7 @@ function stopOf(outcome: Either<MatchedRequest, Stop>): Stop | undefined {
 function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
   return {
     id: 1,
-    url,
+    destination: destinationOf(url),
     state: null,
     arrival: "push",
     redirectFrom: [],

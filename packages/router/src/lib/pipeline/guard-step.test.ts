@@ -6,6 +6,18 @@ import type { Route } from "../router/route.ts";
 import { createGuardStep, type Guard, type GuardResult } from "./guard-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import { Redirect, type Stop } from "./stop.ts";
+import { Destination, type Part } from "../destination/url-builder.ts";
+
+/** A destination of literal segments for a path such as "/todos/7". */
+function destinationOf(path: string): Destination {
+  return Destination.make(
+    path.split("/")
+      .filter((segment) => segment !== "")
+      .map((value): Part => ({ kind: "segment", value })),
+    [],
+    undefined,
+  );
+}
 
 const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
 
@@ -20,7 +32,7 @@ function to(path: "login" | "home" | "elsewhere") {
 function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
   return {
     id: 1,
-    url,
+    destination: destinationOf(url),
     state: null,
     arrival: "push",
     redirectFrom: [],
@@ -140,7 +152,7 @@ describe("the guard step", () => {
     const seen: string[] = [];
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [(request) => {
-      seen.push(request.url);
+      seen.push(request.destination.format());
       return true;
     }] }];
     stopOf(step(matchedAt("/todos", routes)));

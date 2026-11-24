@@ -5,6 +5,18 @@ import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import { createPipeline } from "./pipeline.ts";
 import type { PipelineSteps } from "./steps.ts";
 import { failed, guardRejected, noRoute, Redirect, type Stop } from "./stop.ts";
+import { Destination, type Part } from "../destination/url-builder.ts";
+
+/** A destination of literal segments for a path such as "/todos/7". */
+function destinationOf(path: string): Destination {
+  return Destination.make(
+    path.split("/")
+      .filter((segment) => segment !== "")
+      .map((value): Part => ({ kind: "segment", value })),
+    [],
+    undefined,
+  );
+}
 
 const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
 
@@ -15,11 +27,11 @@ function to(path: "login" | "home" | "elsewhere") {
     .build();
 }
 
-const ref = { id: 1, url: "/todos/7" };
+const ref = { id: 1, destination: destinationOf("/todos/7") };
 
 const request: NavigationRequest = {
   id: 1,
-  url: "/todos/7",
+  destination: destinationOf("/todos/7"),
   state: null,
   arrival: "push",
   redirectFrom: [],
@@ -71,7 +83,7 @@ describe("the pipeline's order", () => {
     const outcome = outcomeOf(createPipeline(fakeSteps(log))(request));
     expect(log)
       .toEqual(["match", "redirect", "guards", "commit"]);
-    expect(outcome.ok?.url)
+    expect(outcome.ok?.destination.format())
       .toBe("/todos/7");
   });
 
@@ -88,7 +100,7 @@ describe("the pipeline's order", () => {
   test("each step receives the result of the step before it", () => {
     const seen: number[] = [];
     const steps = fakeSteps([], {
-      match: (r) => Right.of<MatchedRequest, Stop>({ ...r, chain: [], redirectFrom: ["/home"] }),
+      match: (r) => Right.of<MatchedRequest, Stop>({ ...r, chain: [], redirectFrom: [destinationOf("/home")] }),
       guards: (m) => {
         seen.push(m.redirectFrom.length);
         return succeed(m);
@@ -152,7 +164,7 @@ describe("stops", () => {
     const steps = fakeSteps(log, {
       match: () => Left.of<Stop, MatchedRequest>(failed(ref, new Error("too many redirects"))),
     });
-    const outcome = outcomeOf(createPipeline(steps)({ ...request, redirectFrom: Array.from({ length: 11 }, () => "/x") }));
+    const outcome = outcomeOf(createPipeline(steps)({ ...request, redirectFrom: Array.from({ length: 11 }, () => destinationOf("/x")) }));
     expect(log)
       .toEqual([]);
     expect(outcome.error)
@@ -167,7 +179,7 @@ describe("types", () => {
       chain: [],
     });
     const lifted: Task<MatchedRequest, Stop> = createTask(direct);
-    expect(outcomeOf(lifted).ok?.url)
+    expect(outcomeOf(lifted).ok?.destination.format())
       .toBe("/todos/7");
   });
 });
