@@ -8159,7 +8159,7 @@
             {
               "name": "root",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:244",
+              "source": "packages/router/src/lib/destination/url-builder.ts:243",
               "description": "A position at the root of the router's routes.",
               "params": [],
               "examples": [],
@@ -8173,12 +8173,12 @@
             {
               "name": "relativeTo",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:255",
-              "description": "A position at a route, with the parts it was reached by: the current route by default, which is\nthe route the component is shown in.",
+              "source": "packages/router/src/lib/destination/url-builder.ts:254",
+              "description": "A position at an activated route, with the parts it was reached by. The component passes its\nown route, which it injects as `ActivatedRoute`.",
               "params": [
                 {
                   "name": "route",
-                  "text": "The route to start at. The component's own route by default."
+                  "text": "The activated route to start at."
                 }
               ],
               "examples": [],
@@ -8186,13 +8186,13 @@
               "throws": [],
               "returns": "A position at that route.",
               "signatures": [
-                "relativeTo(route?: ActivatedRoute): Path"
+                "relativeTo(route: ActivatedRoute): Path"
               ]
             },
             {
               "name": "parse",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/url-builder.ts:270",
+              "source": "packages/router/src/lib/destination/url-builder.ts:269",
               "description": "Parses a URL from the root of the router's routes.",
               "params": [
                 {

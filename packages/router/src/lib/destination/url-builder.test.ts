@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Injector, inject, provide, runInInjectionContext } from "@tinker/core";
+import { Injector, inject, runInInjectionContext } from "@tinker/core";
 import { provideRouter } from "../router/provide-router.ts";
 import { Router } from "../router/router.ts";
 import type { Route } from "../router/route.ts";
@@ -200,17 +200,6 @@ describe("query and fragment", () => {
 });
 
 describe("relative to a route", () => {
-  test("relativeTo with no argument starts at the injected activated route", () => {
-    const { urls, destroy } = builderOver(TREE, "/todos/7");
-    // The root is the activated route in the root injector, so a relative start is the root.
-    expect(urls.relativeTo()
-      .withSegment("home")
-      .build()
-      .format())
-      .toBe("/home");
-    destroy();
-  });
-
   test("relativeTo a route writes the parts it was reached by", () => {
     const { urls, router, destroy } = builderOver(TREE, "/todos/7");
     const detail = router.activated()[2] as ActivatedRoute;
@@ -219,26 +208,6 @@ describe("relative to a route", () => {
       .build()
       .format())
       .toBe("/todos/7?tab=done");
-    destroy();
-  });
-
-  test("relativeTo with no argument, in a component at a route, starts at that route", () => {
-    const { router, destroy } = builderOver(TREE, "/todos/7");
-    const detail = router.activated()[2] as ActivatedRoute;
-    const { injector, destroy: destroyAt } = Injector.create({
-      providers: [
-        provide(Router, { useValue: router }),
-        provide(ActivatedRoute, { useValue: detail }),
-        provide(UrlBuilder, { useClass: UrlBuilder }),
-      ],
-    });
-    const urls = runInInjectionContext(injector, () => inject(UrlBuilder));
-    expect(urls.relativeTo()
-      .withQuery("tab", "done")
-      .build()
-      .format())
-      .toBe("/todos/7?tab=done");
-    destroyAt();
     destroy();
   });
 
