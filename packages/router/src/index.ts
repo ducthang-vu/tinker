@@ -1,8 +1,9 @@
 // The public API of the router: the route table, the router, and the location it reads and writes.
 
 export type { Route } from "./lib/router/route.ts";
-export { NoRouteError, Router } from "./lib/router/router.ts";
+export { Router } from "./lib/router/router.ts";
 export type { NavigateOptions } from "./lib/router/router.ts";
+export type { Destination } from "./lib/destination/url-builder.ts";
 export { ActivatedRoute } from "./lib/state/activated-route.ts";
 export { RouterOutlet } from "./lib/directives/router-outlet.ts";
 export { RouterLink } from "./lib/directives/router-link.ts";
