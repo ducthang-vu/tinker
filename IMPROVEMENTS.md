@@ -49,22 +49,6 @@ On top of the split, one author-facing API with two methods, both on the view's 
 Both are a second way to write a view, so they need tests showing that the watch's own runs and
 the manual ones agree on the DOM, and that a manual run with no change writes nothing.
 
-## Components
-
-### 1. Recursive components cannot be written, and are banned
-
-**Problem.** `imports` is evaluated when the decorator runs, before the
-class exists: a component cannot import itself, nor two components each
-other. And `ComponentFactory` bans a component containing itself (it would
-never stop creating). So a tree (a node component rendering its children
-as nodes) cannot be built.
-
-**To do.** Accept forward references in `imports` (`ForwardRef.of(() =>
-TreeNode)`, which `packages/core/src/utils` already has), and allow recursion once
-templates can stop it: with `@if` and `@map`, a node renders children only
-while there are some. Keep the ban for a component that always contains
-itself.
-
 ## The engine's entry points (`packages/core/src/view/internal/engine.ts`, `packages/core/src/view/internal/factories/component-factory.ts`)
 
 ### 1. The component factory still takes the parent's host bindings and projected content

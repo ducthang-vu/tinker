@@ -237,7 +237,7 @@
         {
           "name": "Component",
           "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/decorators.ts:110",
+          "source": "packages/core/src/view/internal/authoring/decorators.ts:112",
           "description": "Class decorator: marks the class as a component (and therefore a directive).",
           "params": [],
           "examples": [],
@@ -250,7 +250,7 @@
         {
           "name": "ComponentMetadata",
           "kind": "interface",
-          "source": "packages/core/src/view/internal/authoring/decorators.ts:44",
+          "source": "packages/core/src/view/internal/authoring/decorators.ts:45",
           "description": "What a component declares about itself.",
           "params": [],
           "examples": [],
@@ -260,7 +260,7 @@
             {
               "name": "template",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:49",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:50",
               "description": "The component's template: its source, parsed and compiled on first use. Or the\ncompiled tree a build step wrote (see",
               "params": [],
               "examples": [],
@@ -271,7 +271,7 @@
             {
               "name": "styles",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:58",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:59",
               "description": "The component's CSS. Its selectors match only the elements of its own template\n(and its host, with `:host`): styles of one component do not leak to others.\n\nThe escape hatch: `:deep(selector)` styles the elements of a child component's\ntemplate from here, as in `.card :deep(.title)`. Use it sparingly: the child can\nrename or restructure its classes, and the rule breaks without a compile error.",
               "params": [],
               "examples": [],
@@ -282,7 +282,7 @@
             {
               "name": "providers",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:64",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:65",
               "description": "Services for this component and what it contains: provided in the\ncomponent's own injector, so each instance of the component gets its\nown, destroyed with it.",
               "params": [],
               "examples": [],
@@ -293,18 +293,18 @@
             {
               "name": "imports",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:69",
-              "description": "The directives the template may use: an element gets each one whose\nselector it matches. Only these: nothing is matched globally.",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:71",
+              "description": "The directives the template may use: an element gets each one whose\nselector it matches. Only these: nothing is matched globally. A class that is not declared\nyet, such as the component itself, is a `ForwardRef.of(() => Class)`.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "type": "readonly Class<object>[] | undefined"
+              "type": "readonly MaybeForwardRef<Class<object>>[] | undefined"
             },
             {
               "name": "hostDirectives",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:75",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:77",
               "description": "Directives applied to the component's own host element, whatever its\nselector says: created before the component, in its injector, so the\ncomponent can inject them (composition, instead of inheritance).",
               "params": [],
               "examples": [],
@@ -315,7 +315,7 @@
             {
               "name": "selector",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:23",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:24",
               "description": "Where the directive applies, e.g. `\"[highlight]\"`.",
               "params": [],
               "examples": [],
@@ -327,7 +327,7 @@
             {
               "name": "exportAs",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:28",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:29",
               "description": "The name a template uses to get this instance: `#name=\"exportAs\"` on the\nelement it is on. Without it, the directive can only be read by its type.",
               "params": [],
               "examples": [],
@@ -339,7 +339,7 @@
             {
               "name": "host",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:33",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:34",
               "description": "Bindings on the host element. For now only event listeners, calling a\nmethod with or without the event: `{ \"(click)\": \"toggle($event)\" }`.",
               "params": [],
               "examples": [],
@@ -498,7 +498,7 @@
         {
           "name": "Directive",
           "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/decorators.ts:83",
+          "source": "packages/core/src/view/internal/authoring/decorators.ts:85",
           "description": "Class decorator: marks the class as a directive.",
           "params": [],
           "examples": [],
@@ -511,7 +511,7 @@
         {
           "name": "DirectiveMetadata",
           "kind": "interface",
-          "source": "packages/core/src/view/internal/authoring/decorators.ts:21",
+          "source": "packages/core/src/view/internal/authoring/decorators.ts:22",
           "description": "What a directive declares about itself.",
           "params": [],
           "examples": [],
@@ -521,7 +521,7 @@
             {
               "name": "selector",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:23",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:24",
               "description": "Where the directive applies, e.g. `\"[highlight]\"`.",
               "params": [],
               "examples": [],
@@ -532,7 +532,7 @@
             {
               "name": "exportAs",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:28",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:29",
               "description": "The name a template uses to get this instance: `#name=\"exportAs\"` on the\nelement it is on. Without it, the directive can only be read by its type.",
               "params": [],
               "examples": [],
@@ -543,7 +543,7 @@
             {
               "name": "host",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:33",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:34",
               "description": "Bindings on the host element. For now only event listeners, calling a\nmethod with or without the event: `{ \"(click)\": \"toggle($event)\" }`.",
               "params": [],
               "examples": [],
@@ -554,7 +554,7 @@
             {
               "name": "providers",
               "kind": "property",
-              "source": "packages/core/src/view/internal/authoring/decorators.ts:40",
+              "source": "packages/core/src/view/internal/authoring/decorators.ts:41",
               "description": "Services for this directive and the directives around it: provided in\nthe injector of each element it is on, so each element gets its own,\ndestroyed with it. The directives on that element and on its\ndescendants can inject them.",
               "params": [],
               "examples": [],
@@ -1516,7 +1516,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@797",
+              "name": "__@INPUT_TYPE@803",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1690,7 +1690,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@797",
+              "name": "__@INPUT_TYPE@803",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -4196,7 +4196,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@959",
+              "name": "__@CHAIN@965",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:63",
               "description": "The chain of `f`: the flatMap of a chain, under the CHAIN symbol.",
@@ -4205,7 +4205,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@959<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@965<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4505,7 +4505,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@957",
+              "name": "__@MAP@963",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:25",
               "description": "The value mapped with `f`: the map of a functor, under the MAP symbol.",
@@ -4514,7 +4514,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@957<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@963<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -5054,7 +5054,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@957",
+              "name": "__@MAP@963",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:216",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -5069,11 +5069,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@957<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@963<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@959",
+              "name": "__@CHAIN@965",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:236",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -5088,7 +5088,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@959<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@965<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {

@@ -13,6 +13,7 @@
 
 import type { Provider } from "../../../di/index.ts";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";
+import type { MaybeForwardRef } from "../../../utils/forward-ref.ts";
 import type { AbstractClass, Class } from "../../../utils/types.ts";
 import type { CompiledNode } from "../template/compile.ts";
 import { match, use, type Maybe } from "@tinker/functional";
@@ -64,9 +65,10 @@ export interface ComponentMetadata extends DirectiveMetadata {
   readonly providers?: readonly Provider[];
   /**
    * The directives the template may use: an element gets each one whose
-   * selector it matches. Only these: nothing is matched globally.
+   * selector it matches. Only these: nothing is matched globally. A class that is not declared
+   * yet, such as the component itself, is a `ForwardRef.of(() => Class)`.
    */
-  readonly imports?: readonly Class<object>[];
+  readonly imports?: readonly MaybeForwardRef<Class<object>>[];
   /**
    * Directives applied to the component's own host element, whatever its
    * selector says: created before the component, in its injector, so the
