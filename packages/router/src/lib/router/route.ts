@@ -3,6 +3,7 @@
 // matches a URL against the tree, from a root that is never shown.
 
 import type { Class } from "@tinker/core";
+import type { Guard } from "../pipeline/guard-step.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
 export interface Route {
@@ -28,6 +29,12 @@ export interface Route {
    * `inject`.
    */
   readonly redirect?: (request: MatchedRequest) => string | undefined;
+  /**
+   * Guards that decide whether the navigation may go on, run after the redirects. Each returns
+   * `true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for
+   * work that takes time. They run in the injection context of the router, root first.
+   */
+  readonly canActivate?: readonly Guard[];
 }
 
 /** The component a route shows. Throws for a route with none: every route shows one. */
