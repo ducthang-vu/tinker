@@ -137,14 +137,12 @@ export class AppPathBuilder {
     this.assertPathPhase();
     const target = route ?? this.activated;
     // The first activated route is the root, which has no level of its own.
-    const levels = target === undefined
-      ? []
-      : ancestryOf(target)
-          .slice(1)
-          .map((level) => ({
-            route: level.route,
-            segments: segmentsFor(level.route, level.segments),
-          }));
+    const levels = ancestryOf(target)
+      .slice(1)
+      .map((level) => ({
+        route: level.route,
+        segments: segmentsFor(level.route, level.segments),
+      }));
     return this.next(levels, {}, undefined);
   }
 

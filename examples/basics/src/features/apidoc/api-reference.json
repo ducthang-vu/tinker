@@ -7415,7 +7415,7 @@
             {
               "name": "withQuery",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:159",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:157",
               "description": "Adds query pairs. Allowed after the path and before the fragment, and any number of times; a\npair with the same name as an earlier one replaces it.",
               "params": [
                 {
@@ -7436,7 +7436,7 @@
             {
               "name": "withFragment",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:174",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:172",
               "description": "Sets the fragment. It comes last, so nothing can follow it but `build`.",
               "params": [
                 {
@@ -7457,7 +7457,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:188",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:186",
               "description": "The app path the chain has written: the segments, the query, and the fragment. It throws when\nno route takes the whole path, so a path that stops short of a route cannot be built.",
               "params": [],
               "examples": [],
