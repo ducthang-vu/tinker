@@ -4,7 +4,7 @@
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { Left, Right } from "@tinker/functional";
-import type { Destination } from "../destination/destination.ts";
+import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { RedirectStep } from "./steps.ts";
 import { failed, Redirect, type Stop } from "./stop.ts";
@@ -18,7 +18,7 @@ import { failed, Redirect, type Stop } from "./stop.ts";
 export function createRedirectStep(injector: Injector): RedirectStep {
   return (matched) => {
     try {
-      const target = matched.chain.reduce<Destination | undefined>(
+      const target = matched.chain.reduce<AppPath | undefined>(
         (found, level) =>
           found ?? runInInjectionContext(injector, () => level.route.redirect?.(matched)),
         undefined,

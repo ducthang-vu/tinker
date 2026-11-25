@@ -2,7 +2,7 @@
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
 import { computed, type Injector, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
-import type { Destination } from "../destination/destination.ts";
+import type { AppPath } from "../destination/app-path.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
@@ -37,6 +37,8 @@ export class Router {
   readonly activated: ReadonlySignal<readonly ActivatedRoute[]>;
   /** The activated route of the root: the first of the list, which never changes. */
   readonly rootRoute: ActivatedRoute;
+  /** The route tree, read by the path builder on each step. */
+  readonly routes: ReadonlySignal<Route>;
   private readonly root: Route;
   private readonly location: Location;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
@@ -59,6 +61,7 @@ export class Router {
     this.root = root;
     this.location = location;
     this.url = location.url;
+    this.routes = signal<Route>(root);
     this.rootRoute = new ActivatedRoute(root, {}, [], None.of());
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
@@ -89,11 +92,11 @@ export class Router {
    * when a guard or a redirect stops it, or a newer navigation replaces it before it commits. A
    * stopped navigation changes nothing.
    *
-   * @param destination Where to go, built by the injected `UrlBuilder`.
+   * @param destination Where to go, built by the injected `AppPathBuilder`.
    * @param options The state of the new history entry.
    * @returns A promise of whether the navigation committed.
    */
-  navigate(destination: Destination, options: NavigateOptions = {}): Promise<boolean> {
+  navigate(destination: AppPath, options: NavigateOptions = {}): Promise<boolean> {
     const id = this.nextId;
     this.nextId += 1;
     this.latestId = id;

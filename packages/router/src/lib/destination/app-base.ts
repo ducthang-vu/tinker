@@ -5,7 +5,7 @@
 
 import { InjectionToken } from "@tinker/core";
 import { None, Some, type Maybe } from "@tinker/functional";
-import type { Destination } from "../destination/destination.ts";
+import type { AppPath } from "../destination/app-path.ts";
 
 /** The base the app is served under, without a trailing slash. `""` when served at the root. */
 export const APP_BASE = new InjectionToken<string>("APP_BASE");
@@ -27,7 +27,7 @@ function normalized(base: string): string {
  * @param base The base the app is served under.
  * @returns The URL the browser uses, with the base.
  */
-export function toBrowserUrl(destination: Destination, base: string): string {
+export function toBrowserUrl(destination: AppPath, base: string): string {
   return `${normalized(base)}${destination.format()}`;
 }
 

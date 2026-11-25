@@ -4,7 +4,7 @@
 // been redirected too often fails here, before any route is looked at.
 
 import { Left, Right } from "@tinker/functional";
-import type { Part } from "../destination/destination.ts";
+import type { Segment } from "../destination/app-path.ts";
 import { type LevelMatch, levelsOf } from "../router/match.ts";
 import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";
@@ -22,7 +22,10 @@ export const MAX_REDIRECTS = 10;
  * @param parts The parts of the destination, in order.
  * @returns The matched levels, or undefined.
  */
-export function matchParts(root: Route, parts: readonly Part[]): readonly LevelMatch[] | undefined {
+export function matchParts(
+  root: Route,
+  parts: readonly Segment[],
+): readonly LevelMatch[] | undefined {
   return levelsOf(root, parts.map((part) => part.value));
 }
 
@@ -39,7 +42,7 @@ export function createMatchStep(root: Route): MatchStep {
         failed(request, new Error(`more than ${MAX_REDIRECTS} redirects`)),
       );
     }
-    const chain = matchParts(root, request.destination.parts);
+    const chain = matchParts(root, request.destination.segments);
     if (chain === undefined) {
       return Left.of<Stop, MatchedRequest>(noRoute(request));
     }

@@ -5,16 +5,16 @@ import type { Route } from "../router/route.ts";
 import type { MatchedRequest } from "./request.ts";
 import { createRedirectStep } from "./redirect-step.ts";
 import { Redirect, type Stop } from "./stop.ts";
-import { Destination, type Part } from "../destination/destination.ts";
-import { Path } from "../destination/url-builder.ts";
+import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
+import { AppPathBuilder } from "../destination/app-path-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
-function destinationOf(path: string): Destination {
-  return Destination.make(
+function destinationOf(path: string): AppPath {
+  return makeAppPath(
     path.split("/")
       .filter((segment) => segment !== "")
-      .map((value): Part => ({ kind: "segment", value })),
-    [],
+      .map((value): Segment => ({ kind: "segment", value })),
+    {},
     undefined,
   );
 }
@@ -23,8 +23,8 @@ const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] 
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
-  return Path.rootOf(targets)
-    .withSegment(path)
+  return AppPathBuilder.rootOf(targets)
+    .to(path)
     .build();
 }
 
@@ -93,7 +93,7 @@ describe("the redirect step", () => {
   });
 
   test("a redirect runs in the injection context of the router", () => {
-    const TARGET = new InjectionToken<Destination>("target");
+    const TARGET = new InjectionToken<AppPath>("target");
     const { injector } = Injector.create({
       providers: [provide(TARGET, { useValue: to("login") })],
     });

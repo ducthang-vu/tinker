@@ -5,13 +5,13 @@
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker/functional";
-import { Destination } from "../destination/destination.ts";
+import { type AppPath, isAppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { GuardStep } from "./steps.ts";
 import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";
 
 /** A guard's answer: allow (true), reject (false), or redirect to a URL. */
-export type GuardResult = boolean | Destination;
+export type GuardResult = boolean | AppPath;
 
 /** A guard of a route. It may return its answer, or a Task of it for work that takes time. */
 export type Guard = (
@@ -84,7 +84,7 @@ function callGuard(
       error(failed(matched, cause));
       return;
     }
-    if (typeof produced !== "boolean" && !(produced instanceof Destination)) {
+    if (typeof produced !== "boolean" && !isAppPath(produced)) {
       return run(produced, {
         ok,
         error: (cause) => error(failed(matched, cause)),

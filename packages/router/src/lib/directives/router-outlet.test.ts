@@ -6,7 +6,7 @@ import { provideRouter } from "../router/provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import { Router } from "../router/router.ts";
-import { UrlBuilder } from "../destination/url-builder.ts";
+import { APP_PATH_BUILDER } from "../destination/app-path-builder.ts";
 import { getOrThrow } from "@tinker/functional";
 
 /** How many instances of each routed component were made, to tell a replacement from a keep. */
@@ -74,8 +74,9 @@ test("the outlet shows the component of the URL it starts at", () => {
 
 test("navigating to another route shows its component, which reads its own params", () => {
   const fixture = appAt("/todos");
-  fixture.root.instance.router.navigate(fixture.get(UrlBuilder)
-    .parse("/todos/7"));
+  fixture.root.instance.router.navigate(fixture.get(APP_PATH_BUILDER)
+    .parse("/todos/7")
+    .build());
   fixture.detectChanges();
   expect(fixture.root.text())
     .toBe("Todo 7");
@@ -84,8 +85,9 @@ test("navigating to another route shows its component, which reads its own param
 
 test("a change of params replaces the component", () => {
   const fixture = appAt("/todos/7");
-  fixture.root.instance.router.navigate(fixture.get(UrlBuilder)
-    .parse("/todos/8"));
+  fixture.root.instance.router.navigate(fixture.get(APP_PATH_BUILDER)
+    .parse("/todos/8")
+    .build());
   fixture.detectChanges();
   expect(made.detail)
     .toBe(2);
@@ -94,8 +96,9 @@ test("a change of params replaces the component", () => {
 
 test("a change of the query alone keeps the component", () => {
   const fixture = appAt("/todos/7");
-  fixture.root.instance.router.navigate(fixture.get(UrlBuilder)
-    .parse("/todos/7?tab=done"));
+  fixture.root.instance.router.navigate(fixture.get(APP_PATH_BUILDER)
+    .parse("/todos/7?tab=done")
+    .build());
   fixture.detectChanges();
   expect(made.detail)
     .toBe(1);

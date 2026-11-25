@@ -5,7 +5,7 @@ import { Location } from "../location/location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
-import { ParseError, Path, UrlBuilder } from "../destination/url-builder.ts";
+import { ParseError, APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
 import type { Guard } from "../pipeline/guard-step.ts";
 import { MAX_REDIRECTS } from "../pipeline/match-step.ts";
 import { fromComputation, getOrThrow, isNone } from "@tinker/functional";
@@ -48,11 +48,11 @@ function routerOver(root: Route, url: string) {
       provide(Location, { useClass: Location }),
       provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
       provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
-      provide(UrlBuilder, { useClass: UrlBuilder }),
+      provide(APP_PATH_BUILDER, { useFactory: () => AppPathBuilder.in(inject(Router).routes) }),
     ],
   });
   const router = runInInjectionContext(injector, () => inject(Router));
-  const urls = runInInjectionContext(injector, () => inject(UrlBuilder));
+  const urls = runInInjectionContext(injector, () => inject(APP_PATH_BUILDER));
   return { router, urls, fake, destroy };
 }
 
@@ -77,7 +77,8 @@ test("the match is the route and params of the current URL", () => {
 
 test("navigate changes the URL and the match", async () => {
   const { router, urls } = routerAt("/todos");
-  await router.navigate(urls.parse("/todos/7"));
+  await router.navigate(urls.parse("/todos/7")
+    .build());
   expect(router.url())
     .toBe("/todos/7");
   expect(router.match()?.params)
@@ -86,14 +87,15 @@ test("navigate changes the URL and the match", async () => {
 
 test("navigate with a state gives the state to the history entry", async () => {
   const { router, urls, fake } = routerAt("/todos");
-  await router.navigate(urls.parse("/todos/7"), { state: { scroll: 320 } });
+  await router.navigate(urls.parse("/todos/7")
+    .build(), { state: { scroll: 320 } });
   expect(fake.state())
     .toEqual({ scroll: 320 });
 });
 
 test("a URL no route matches is rejected: it resolves false, and the URL does not change", async () => {
   const { router, urls, fake } = routerAt("/todos");
-  const elsewhere = Path.rootOf([{ path: "/nowhere", component: Root }])
+  const elsewhere = AppPathBuilder.rootOf([{ path: "/nowhere", component: Root }])
     .parse("/nowhere")
     .build();
   const committed = await router.navigate(elsewhere, { state: { scroll: 1 } });
@@ -107,7 +109,8 @@ test("a URL no route matches is rejected: it resolves false, and the URL does no
 
 test("a navigation to a matched URL resolves true once it commits", async () => {
   const { router, urls } = routerAt("/todos");
-  expect(await router.navigate(urls.parse("/todos/7")))
+  expect(await router.navigate(urls.parse("/todos/7")
+    .build()))
     .toBe(true);
 });
 
@@ -119,7 +122,8 @@ test("a ** route catches the URLs no other route matches", async () => {
     children: [TODOS, { path: "**", component: NotFound }],
   };
   const { router, urls, destroy } = routerOver(tree, "/todos");
-  await router.navigate(urls.parse("/nowhere"));
+  await router.navigate(urls.parse("/nowhere")
+    .build());
   expect(router.match()?.route.component)
     .toBe(NotFound);
   destroy();
@@ -146,7 +150,8 @@ test("activated starts with the root, then one entry per matched level", () => {
 test("the root activated route is the same instance across navigations", async () => {
   const { router, urls, destroy } = routerAt("/todos");
   const before = router.activated()[0];
-  await router.navigate(urls.parse("/todos/7"));
+  await router.navigate(urls.parse("/todos/7")
+    .build());
   expect(router.activated()[0])
     .toBe(before);
   destroy();
@@ -164,7 +169,8 @@ test("with no match, the activated routes are the root alone", () => {
 test("a level keeps its instance when only the query changes", async () => {
   const { router, urls, destroy } = routerAt("/todos/7");
   const before = router.activated()[2];
-  await router.navigate(urls.parse("/todos/7?tab=done"));
+  await router.navigate(urls.parse("/todos/7?tab=done")
+    .build());
   expect(router.activated()[2])
     .toBe(before);
   destroy();
@@ -175,7 +181,8 @@ test("a level is made again when its params change, and the levels above it stay
   const root = router.activated()[0];
   const shell = router.activated()[1];
   const before = router.activated()[2];
-  await router.navigate(urls.parse("/todos/8"));
+  await router.navigate(urls.parse("/todos/8")
+    .build());
   expect(router.activated()[2])
     .not.toBe(before);
   expect(router.activated()[1])
@@ -189,7 +196,8 @@ test("a ** level is made again when its segments change", async () => {
   const notFound = { path: "**", component: class {} };
   const { router, urls, destroy } = routerOver({ path: "", component: Root, children: [notFound] }, "/anything/a");
   const before = router.activated()[1];
-  await router.navigate(urls.parse("/anything/b"));
+  await router.navigate(urls.parse("/anything/b")
+    .build());
   expect(router.activated()[1])
     .not.toBe(before);
   destroy();
@@ -205,7 +213,8 @@ const ORG_ROOT: Route = { path: "", component: Root, children: [ORGS] };
 test("a level under a changed parent is made again, though its own params are the same", async () => {
   const { router, urls, destroy } = routerOver(ORG_ROOT, "/orgs/acme/teams/x");
   const before = router.activated()[4];
-  await router.navigate(urls.parse("/orgs/beta/teams/x"));
+  await router.navigate(urls.parse("/orgs/beta/teams/x")
+    .build());
   expect(router.activated()[4])
     .not.toBe(before);
   expect(router.activated()[4]?.route)
@@ -247,10 +256,12 @@ test("a kept level keeps its parent, and a made level gets the kept one as its p
   const { router, urls, destroy } = routerAt("/todos/7");
   const shell = router.activated()[1];
   const leafBefore = router.activated()[2];
-  await router.navigate(urls.parse("/todos/7?tab=done"));
+  await router.navigate(urls.parse("/todos/7?tab=done")
+    .build());
   expect(getOrThrow(router.activated()[2]!.parent, () => new Error("no parent")))
     .toBe(shell);
-  await router.navigate(urls.parse("/todos/8"));
+  await router.navigate(urls.parse("/todos/8")
+    .build());
   expect(getOrThrow(router.activated()[2]!.parent, () => new Error("no parent")))
     .toBe(shell);
   expect(router.activated()[2])
@@ -260,7 +271,8 @@ test("a kept level keeps its parent, and a made level gets the kept one as its p
 
 test("parse throws a ParseError for a URL no route matches", () => {
   const { router, urls } = routerAt("/todos");
-  expect(() => urls.parse("/nowhere"))
+  expect(() => urls.parse("/nowhere")
+    .build())
     .toThrow(ParseError);
 });
 
@@ -276,7 +288,8 @@ function routerWithGuard(guards: readonly Guard[], url = "/todos") {
 test("a guard that says no stops the navigation, and the URL does not change", async () => {
   const deny: Guard = () => false;
   const { router, urls, destroy } = routerWithGuard([deny]);
-  expect(await router.navigate(urls.parse("/todos/7")))
+  expect(await router.navigate(urls.parse("/todos/7")
+    .build()))
     .toBe(false);
   expect(router.url())
     .toBe("/todos");
@@ -284,9 +297,11 @@ test("a guard that says no stops the navigation, and the URL does not change", a
 });
 
 test("a guard that redirects sends the navigation to its target instead", async () => {
-  const toList: Guard = () => urls.parse("/todos");
+  const toList: Guard = () => urls.parse("/todos")
+    .build();
   const { router, urls, destroy } = routerWithGuard([toList]);
-  expect(await router.navigate(urls.parse("/todos/7")))
+  expect(await router.navigate(urls.parse("/todos/7")
+    .build()))
     .toBe(true);
   expect(router.url())
     .toBe("/todos");
@@ -297,12 +312,14 @@ test("a route that redirects to itself stops after the redirect cap, and nothing
   const loop: Route = {
     path: "",
     component: Root,
-    children: [{ path: "todos", component: TodoList, redirect: () => urls.parse("/todos") }],
+    children: [{ path: "todos", component: TodoList, redirect: () => urls.parse("/todos")
+      .build() }],
   };
   const { router, urls, destroy } = routerOver(loop, "/");
   expect(MAX_REDIRECTS)
     .toBe(10);
-  expect(await router.navigate(urls.parse("/todos")))
+  expect(await router.navigate(urls.parse("/todos")
+    .build()))
     .toBe(false);
   expect(router.url())
     .toBe("/");
@@ -316,8 +333,10 @@ test("a navigation replaced by a newer one resolves false, and the newer one com
     return () => {};
   });
   const { router, urls, destroy } = routerWithGuard([slow], "/todos");
-  const first = router.navigate(urls.parse("/todos/7"));
-  const second = router.navigate(urls.parse("/todos"));
+  const first = router.navigate(urls.parse("/todos/7")
+    .build());
+  const second = router.navigate(urls.parse("/todos")
+    .build());
   expect(await second)
     .toBe(true);
   release?.(true);

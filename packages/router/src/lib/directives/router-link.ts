@@ -7,7 +7,7 @@
 import { computed, Directive, input, inject } from "@tinker/core";
 import { Router } from "../router/router.ts";
 import { PLATFORM_LOCATION } from "../location/platform-location.ts";
-import { UrlBuilder } from "../destination/url-builder.ts";
+import { APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 
 /**
@@ -43,9 +43,11 @@ export class RouterLink {
   readonly state = input<unknown>(undefined);
   private readonly router = inject(Router);
   private readonly platform = inject(PLATFORM_LOCATION);
-  private readonly urls = inject(UrlBuilder);
+  private readonly urls = inject(APP_PATH_BUILDER);
   /** The activated route of the component this link sits in: the base of a relative URL. */
   private readonly own = inject(ActivatedRoute);
+  /** The builder of this link: a relative URL starts at the route the link sits in. */
+  private readonly builder = AppPathBuilder.in(this.router.routes, this.own);
 
   /** Where a click goes: the destination of the link, with its query params and fragment. */
   private readonly destination = computed(() => {
@@ -54,11 +56,11 @@ export class RouterLink {
       return undefined;
     }
     const url = typeof to === "string" ? to : to.join("/");
-    const withQuery = Object.entries(this.queryParams() ?? {})
-      .reduce((path, [name, value]) => path.withQuery(name, value), this.urls.relativeTo(this.own)
-        .parse(url));
+    const path = this.builder.relativeTo()
+      .parse(url)
+      .withQuery(this.queryParams() ?? {});
     const fragment = this.fragment();
-    return (fragment === undefined ? withQuery : withQuery.withFragment(fragment)).build();
+    return (fragment === undefined ? path : path.withFragment(fragment)).build();
   });
 
   /** The URL a click navigates to, as the browser's app path: the href of the link. */
