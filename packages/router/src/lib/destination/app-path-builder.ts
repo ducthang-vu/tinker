@@ -1,10 +1,8 @@
-// The app path builder: the one place an AppPath is made. It starts at the root of the route tree,
-// and every step returns a new builder, so a builder can be kept and extended. Each step reads the
-// routes signal and checks the segments against it, so a segment no route takes throws on that
-// line,
-// for static and dynamic routes alike. `relativeTo()` with no argument starts at the activated
-// route
-// the builder was provided in. `build()` ends the chain with an AppPath.
+// The app path builder: the one place an AppPath is made. It starts at the root of the route
+// tree, and every step returns a new builder, so a builder can be kept and extended. Each step
+// checks its segments against the routes, so a segment no route takes throws on that line, for
+// static and dynamic routes alike. `relativeTo()` with no argument starts at the route the builder
+// was provided in. `build()` ends the chain with an AppPath.
 
 import { inject, Injectable, Injector, runInInjectionContext } from "@tinker/core";
 import { match } from "@tinker/functional";
@@ -127,7 +125,9 @@ export class AppPathBuilder {
 
   /**
    * Starts at an activated route, with the segments it was reached by. With no argument, it is the
-   * activated route the builder was provided in; with none there either, the root.
+   * activated route the builder was provided in. A builder injected at the root has the root route
+   * as that route, so its `relativeTo()` starts at the root: provide the builder in a component to
+   * start at the component's route.
    *
    * @param route The activated route to start at, if not the builder's own.
    * @returns A builder at that route.

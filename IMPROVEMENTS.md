@@ -212,19 +212,6 @@ needs no code for it, and a test provides a different `PLATFORM_LOCATION` to ove
 
 **To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
 point at the host root.
-
-## Navigation: the app path (`packages/router/src/lib/destination/`, `pipeline/`)
-
-### 1. The base prefix is not applied at the browser boundary yet
-
-**Problem.** The commit step is given an empty base, so `Location` still uses the `<base>` element
-read by `browserPlatformLocation`. `APP_BASE` and `toBrowserUrl` are written and tested but not
-wired in.
-
-**To do.** Make `Location` take browser URLs with the base and convert them with `toBrowserUrl` and
-`fromBrowserUrl`, provide `APP_BASE` from the build, and pass it to the commit step.
-
-
 ## Functional helpers (`packages/functional/src/lib/function.ts`)
 
 ### 1. `memoise` cannot check that its function is pure
