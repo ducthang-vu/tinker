@@ -902,8 +902,8 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:139",
-          "description": "Either: a Right holding a T (a success), or a Left holding an E (a failure). A pipeline of\n`map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.",
+          "source": "packages/functional/src/lib/monad/either.ts:140",
+          "description": "Either: a Right holding a T (a success), or a Left holding an E (the other case). A pipeline of\n`map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.",
           "params": [],
           "examples": [
             "```ts\nimport { Left, map, match, Right, type Either } from \"@tinker/functional\";\n\nconst parse = (text: string): Either<number, string> =>\n  /^\\d+$/.test(text) ? Right.of(Number(text)) : Left.of(\"not a number\");\n\nconst label = map(parse(\"7\"), (n) => `user ${n}`); // Right(\"user 7\"): the step ran\nconst same = map(parse(\"x\"), (n) => `user ${n}`); // Left(\"not a number\"): skipped\nmatch(label, { Right: (text) => text, Left: (error) => error }); // \"user 7\"\n```"
@@ -1544,8 +1544,8 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:80",
-          "description": "A Left: a failure, holding the error the caller chose. The steps after it are skipped, and it\nreaches the end of the pipeline unchanged.",
+          "source": "packages/functional/src/lib/monad/either.ts:81",
+          "description": "A Left: the other case, holding what the caller chose to put there. The steps after it are\nskipped, and it reaches the end of the pipeline unchanged.",
           "params": [],
           "examples": [],
           "see": [],
@@ -1557,7 +1557,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:82",
+              "source": "packages/functional/src/lib/monad/either.ts:83",
               "description": "The case this Left is, for `match`: its name and its error.",
               "params": [],
               "examples": [],
@@ -1568,7 +1568,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:99",
+              "source": "packages/functional/src/lib/monad/either.ts:100",
               "description": "Whether `other` is a Left holding an equal error.",
               "params": [
                 {
@@ -1587,7 +1587,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:118",
+              "source": "packages/functional/src/lib/monad/either.ts:119",
               "description": "The protocol form: a Left halts with the error it holds.",
               "params": [],
               "examples": [],
@@ -1601,8 +1601,8 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:109",
-              "description": "A failure.",
+              "source": "packages/functional/src/lib/monad/either.ts:110",
+              "description": "A Left: the other case, holding what the caller chose.",
               "params": [
                 {
                   "name": "error",
@@ -2533,7 +2533,7 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:33",
+          "source": "packages/functional/src/lib/monad/either.ts:34",
           "description": "A Right: a success, holding a T. The steps after it (`map`, `flatMap`) run on this value.",
           "params": [],
           "examples": [],
@@ -2546,7 +2546,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:35",
+              "source": "packages/functional/src/lib/monad/either.ts:36",
               "description": "The case this Right is, for `match`: its name and its value.",
               "params": [],
               "examples": [],
@@ -2557,7 +2557,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:52",
+              "source": "packages/functional/src/lib/monad/either.ts:53",
               "description": "Whether `other` is a Right holding an equal value.",
               "params": [
                 {
@@ -2576,7 +2576,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:71",
+              "source": "packages/functional/src/lib/monad/either.ts:72",
               "description": "The protocol form: a Right continues with the value it holds.",
               "params": [],
               "examples": [],
@@ -2590,7 +2590,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:62",
+              "source": "packages/functional/src/lib/monad/either.ts:63",
               "description": "A success.",
               "params": [
                 {
@@ -4294,8 +4294,8 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:139",
-          "description": "Either: a Right holding a T (a success), or a Left holding an E (a failure). A pipeline of\n`map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.",
+          "source": "packages/functional/src/lib/monad/either.ts:140",
+          "description": "Either: a Right holding a T (a success), or a Left holding an E (the other case). A pipeline of\n`map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.",
           "params": [],
           "examples": [
             "```ts\nimport { Left, map, match, Right, type Either } from \"@tinker/functional\";\n\nconst parse = (text: string): Either<number, string> =>\n  /^\\d+$/.test(text) ? Right.of(Number(text)) : Left.of(\"not a number\");\n\nconst label = map(parse(\"7\"), (n) => `user ${n}`); // Right(\"user 7\"): the step ran\nconst same = map(parse(\"x\"), (n) => `user ${n}`); // Left(\"not a number\"): skipped\nmatch(label, { Right: (text) => text, Left: (error) => error }); // \"user 7\"\n```"
@@ -4307,7 +4307,7 @@
         {
           "name": "EitherCases",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:142",
+          "source": "packages/functional/src/lib/monad/either.ts:143",
           "description": "The two handlers of a match, named after the cases.",
           "params": [],
           "examples": [],
@@ -4594,8 +4594,8 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:80",
-          "description": "A Left: a failure, holding the error the caller chose. The steps after it are skipped, and it\nreaches the end of the pipeline unchanged.",
+          "source": "packages/functional/src/lib/monad/either.ts:81",
+          "description": "A Left: the other case, holding what the caller chose to put there. The steps after it are\nskipped, and it reaches the end of the pipeline unchanged.",
           "params": [],
           "examples": [],
           "see": [],
@@ -4607,7 +4607,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:82",
+              "source": "packages/functional/src/lib/monad/either.ts:83",
               "description": "The case this Left is, for `match`: its name and its error.",
               "params": [],
               "examples": [],
@@ -4618,7 +4618,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:99",
+              "source": "packages/functional/src/lib/monad/either.ts:100",
               "description": "Whether `other` is a Left holding an equal error.",
               "params": [
                 {
@@ -4637,7 +4637,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:118",
+              "source": "packages/functional/src/lib/monad/either.ts:119",
               "description": "The protocol form: a Left halts with the error it holds.",
               "params": [],
               "examples": [],
@@ -4651,8 +4651,8 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:109",
-              "description": "A failure.",
+              "source": "packages/functional/src/lib/monad/either.ts:110",
+              "description": "A Left: the other case, holding what the caller chose.",
               "params": [
                 {
                   "name": "error",
@@ -4905,7 +4905,7 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:33",
+          "source": "packages/functional/src/lib/monad/either.ts:34",
           "description": "A Right: a success, holding a T. The steps after it (`map`, `flatMap`) run on this value.",
           "params": [],
           "examples": [],
@@ -4918,7 +4918,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:35",
+              "source": "packages/functional/src/lib/monad/either.ts:36",
               "description": "The case this Right is, for `match`: its name and its value.",
               "params": [],
               "examples": [],
@@ -4929,7 +4929,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:52",
+              "source": "packages/functional/src/lib/monad/either.ts:53",
               "description": "Whether `other` is a Right holding an equal value.",
               "params": [
                 {
@@ -4948,7 +4948,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:71",
+              "source": "packages/functional/src/lib/monad/either.ts:72",
               "description": "The protocol form: a Right continues with the value it holds.",
               "params": [],
               "examples": [],
@@ -4962,7 +4962,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:62",
+              "source": "packages/functional/src/lib/monad/either.ts:63",
               "description": "A success.",
               "params": [
                 {
@@ -5504,7 +5504,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:183",
+          "source": "packages/functional/src/lib/monad/either.ts:184",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [
             {
@@ -5528,7 +5528,7 @@
         {
           "name": "createEither",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:231",
+          "source": "packages/functional/src/lib/monad/either.ts:232",
           "description": "An Either from any outcome: a Continue becomes a Right holding its value, and a Halt becomes a\nLeft holding its reason.",
           "params": [
             {
@@ -6225,7 +6225,7 @@
         {
           "name": "mapLeft",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:156",
+          "source": "packages/functional/src/lib/monad/either.ts:157",
           "description": "",
           "params": [],
           "examples": [],
@@ -6246,7 +6246,7 @@
                 },
                 {
                   "name": "f",
-                  "text": "The function applied to a Left's error."
+                  "text": "The function applied to what a Left holds."
                 }
               ],
               "examples": [],
@@ -6598,7 +6598,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:203",
+          "source": "packages/functional/src/lib/monad/either.ts:204",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [
             {
@@ -6679,7 +6679,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:215",
+          "source": "packages/functional/src/lib/monad/either.ts:216",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {

@@ -1,7 +1,7 @@
-// Either<T, E>: a Right holding a T, or a Left holding an E. A Right is the success, and a Left is
-// the other case, holding what the caller chose to put there: an error, a reason, or anything else.
-// The names follow Haskell's convention. Each case is a class with a private constructor: build a case with `Right.of(value)` or
-// `Left.of(error)`, and read a value only with `match`.
+// Either<T, E>: a Right holding a T, or a Left holding an E. A Right is the success, and a Left
+// is the other case, holding what the caller chose to put there: an error, a reason, or anything
+// else. The names follow Haskell's convention. Each case is a class with a private constructor:
+// build a case with `Right.of(value)` or `Left.of(error)`, and read a value only with `match`.
 //
 // A pipeline of steps keeps a success going and sets the Left aside. `map` and `flatMap` run
 // their step only on a Right, so the next step gets the value of a success and nothing else:
@@ -14,7 +14,8 @@
 //   const same = map(bad, (n) => `user ${n}`);        // Left("not a number"): the step was skipped
 //
 // A Left skips every step after it and reaches the end unchanged. `mapLeft` changes what a Left
-// holds, and `match` is where the pipeline ends: it reads the value of a Right and what a Left holds.
+// holds, and `match` is where the pipeline ends: it reads the value of a Right and what a Left
+// holds.
 
 import {
   EQUALS,
@@ -74,8 +75,8 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Ou
 }
 
 /**
- * A Left: the other case, holding what the caller chose to put there. The steps after it are skipped, and it
- * reaches the end of the pipeline unchanged.
+ * A Left: the other case, holding what the caller chose to put there. The steps after it are
+ * skipped, and it reaches the end of the pipeline unchanged.
  */
 export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outcome<never, E> {
   /** The case this Left is, for `match`: its name and its error. */
