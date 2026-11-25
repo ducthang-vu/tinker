@@ -44,7 +44,7 @@ export class Router {
   private readonly list = signal<readonly ActivatedRoute[]>([]);
   private readonly requests = Emitter.create<NavigationRequest>();
   /** The promises of the navigations not yet settled, by request id. */
-  private readonly waiting = new Map<number, (committed: boolean) => void>();
+  private readonly waiting = new Map<number, (outcome: NavigationOutcome) => void>();
   private readonly pipeline: (request: NavigationRequest) => Task<MatchedRequest, Stop>;
   private readonly stopRouting: Cancel;
   private nextId = 1;
@@ -88,15 +88,17 @@ export class Router {
 
   /**
    * Go to `destination` as a new history entry, with `options.state`. The navigation runs through
-   * the guards and redirects of the matched routes. It resolves `true` when it commits, and `false`
-   * when a guard or a redirect stops it, or a newer navigation replaces it before it commits. A
-   * stopped navigation changes nothing.
+   * the guards and redirects of the matched routes. It resolves with its outcome: `done` when it
+   * commits; `cancelled` when a newer navigation replaces it first; and `rejected`, with the
+   * reason: `no-route` when no route takes the path, `guard` when a guard said no (naming the
+   * route), or `failed` when a step threw (with the cause). A rejected or cancelled navigation
+   * changes nothing.
    *
    * @param destination Where to go, built by the injected `AppPathBuilder`.
    * @param options The state of the new history entry.
-   * @returns A promise of whether the navigation committed.
+   * @returns A promise of the outcome of the navigation.
    */
-  navigate(destination: AppPath, options: NavigateOptions = {}): Promise<boolean> {
+  navigate(destination: AppPath, options: NavigateOptions = {}): Promise<NavigationOutcome> {
     const id = this.nextId;
     this.nextId += 1;
     this.latestId = id;
@@ -107,7 +109,7 @@ export class Router {
       arrival: "push",
       redirectFrom: [],
     };
-    return new Promise<boolean>((resolve) => {
+    return new Promise<NavigationOutcome>((resolve) => {
       this.waiting.set(id, resolve);
       this.requests.emit(request);
     });
@@ -141,7 +143,7 @@ export class Router {
         : reason,
     });
     // Every navigation has a waiting promise, so the lookup always finds one.
-    map(fromNullable(this.waiting.get(item.value.id)), (resolve) => resolve(outcome.kind === "done"));
+    map(fromNullable(this.waiting.get(item.value.id)), (resolve) => resolve(outcome));
     this.waiting.delete(item.value.id);
   }
 }
