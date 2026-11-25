@@ -40,6 +40,24 @@ step through it.
   `Stream`, `Task`, `Emitter`, `ChangeDetection`, the parser and the renderer.
   Keep the branching there where it is reused.
 
+## The agreed public API
+
+The public API is a contract the team has agreed: its classes, functions, names,
+signatures and behaviour. Every change, and every pull request, must follow it.
+An AI agent must not change that API on its own.
+
+- Keep every agreed public name and signature as it is. Do not rename, remove,
+  re-type or re-order parameters of an agreed export, and do not change its
+  behaviour in a way the agreed API does not describe.
+- Adding a new public class, function or option is a change to the API. Ask the
+  user before adding one, and do not decide its shape yourself.
+- If the code you are asked to write would differ from the agreed API, do not
+  make the change to fit. Report the difference and wait for the user to decide
+  whether the API or the code changes.
+- Reading the API, checking the code against it, and listing where they differ
+  are fine without asking. The tests that pin exported values (see
+  [CONVENTIONS.md](CONVENTIONS.md)) are part of the agreed API.
+
 ## Working in this repository
 
 - Run the checks before reporting a change as done: `npm test`,
