@@ -8,6 +8,7 @@
 
 import { InjectionToken, inject, provide, signal, type Provider, type ReadonlySignal } from "@tinker/core";
 import { match } from "@tinker/functional";
+import { levelsOf } from "../router/match.ts";
 import { Router } from "../router/router.ts";
 import type { Route } from "../router/route.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
@@ -199,12 +200,20 @@ export class AppPathBuilder {
   }
 
   /**
-   * The app path the chain has written: the segments, the query, and the fragment.
+   * The app path the chain has written: the segments, the query, and the fragment. It throws when
+   * no route takes the whole path, so a path that stops short of a route cannot be built.
    *
    * @returns The AppPath, which is plain data.
+   * @throws ParseError when no route takes the whole path.
    */
   build(): AppPath {
-    return makeAppPath(this.levels.flatMap((level) => level.segments), this.query, this.fragment);
+    const segments = this.levels.flatMap((level) => level.segments);
+    const values = segments.map((segment) => segment.value);
+    if (levelsOf(this.context.routes(), values) === undefined) {
+      const path = makeAppPath(segments, this.query, this.fragment);
+      throw new ParseError("no-route", path.format(), values[values.length - 1] ?? "");
+    }
+    return makeAppPath(segments, this.query, this.fragment);
   }
 
   /**

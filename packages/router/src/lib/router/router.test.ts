@@ -93,25 +93,25 @@ test("navigate with a state gives the state to the history entry", async () => {
     .toEqual({ scroll: 320 });
 });
 
-test("a URL no route matches is rejected: it resolves false, and the URL does not change", async () => {
-  const { router, urls, fake } = routerAt("/todos");
-  const elsewhere = AppPathBuilder.rootOf([{ path: "/nowhere", component: Root }])
-    .parse("/nowhere")
+test("a URL no route matches is rejected with the no-route reason, and the URL does not change", async () => {
+  const { router, fake } = routerAt("/todos");
+  const elsewhere = AppPathBuilder.rootOf([{ path: "nowhere", component: Root }])
+    .to("nowhere")
     .build();
-  const committed = await router.navigate(elsewhere, { state: { scroll: 1 } });
-  expect(committed)
-    .toBe(false);
+  const outcome = await router.navigate(elsewhere, { state: { scroll: 1 } });
+  expect(outcome)
+    .toMatchObject({ kind: "rejected", reason: "no-route" });
   expect(router.url())
     .toBe("/todos");
   expect(fake.state())
     .toBeNull();
 });
 
-test("a navigation to a matched URL resolves true once it commits", async () => {
+test("a navigation to a matched URL resolves done once it commits", async () => {
   const { router, urls } = routerAt("/todos");
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
-    .toBe(true);
+    .toMatchObject({ kind: "done" });
 });
 
 test("a ** route catches the URLs no other route matches", async () => {
@@ -285,48 +285,51 @@ function routerWithGuard(guards: readonly Guard[], url = "/todos") {
   return routerOver({ path: "", component: Root, children: [guarded] }, url);
 }
 
-test("a guard that says no stops the navigation, and the URL does not change", async () => {
+test("a guard that says no stops the navigation, naming the route whose guard said it", async () => {
   const deny: Guard = () => false;
   const { router, urls, destroy } = routerWithGuard([deny]);
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
-    .toBe(false);
+    .toMatchObject({ kind: "rejected", reason: "guard", route: ":id" });
   expect(router.url())
     .toBe("/todos");
   destroy();
 });
 
-test("a guard that redirects sends the navigation to its target instead", async () => {
-  const toList: Guard = () => urls.parse("/todos")
+test("a guard that redirects sends the navigation to its target instead, which is done", async () => {
+  const toList: Guard = () => AppPathBuilder.rootOf(CHILDREN)
+    .to("todos")
     .build();
   const { router, urls, destroy } = routerWithGuard([toList]);
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
-    .toBe(true);
+    .toMatchObject({ kind: "done" });
   expect(router.url())
     .toBe("/todos");
   destroy();
 });
 
-test("a route that redirects to itself stops after the redirect cap, and nothing changes", async () => {
+test("a route that redirects to itself is rejected as failed, with the redirect cap as the cause", async () => {
   const loop: Route = {
     path: "",
     component: Root,
-    children: [{ path: "todos", component: TodoList, redirect: () => urls.parse("/todos")
+    children: [{ path: "todos", component: TodoList, redirect: () => AppPathBuilder.rootOf(CHILDREN)
+      .to("todos")
       .build() }],
   };
   const { router, urls, destroy } = routerOver(loop, "/");
   expect(MAX_REDIRECTS)
     .toBe(10);
-  expect(await router.navigate(urls.parse("/todos")
-    .build()))
-    .toBe(false);
+  const outcome = await router.navigate(urls.parse("/todos")
+    .build());
+  expect(outcome)
+    .toMatchObject({ kind: "rejected", reason: "failed" });
   expect(router.url())
     .toBe("/");
   destroy();
 });
 
-test("a navigation replaced by a newer one resolves false, and the newer one commits", async () => {
+test("a navigation replaced by a newer one is cancelled, and the newer one is done", async () => {
   let release: ((value: boolean) => void) | undefined;
   const slow: Guard = () => fromComputation<boolean, unknown>((ok) => {
     release = ok;
@@ -338,10 +341,10 @@ test("a navigation replaced by a newer one resolves false, and the newer one com
   const second = router.navigate(urls.parse("/todos")
     .build());
   expect(await second)
-    .toBe(true);
+    .toMatchObject({ kind: "done" });
   release?.(true);
   expect(await first)
-    .toBe(false);
+    .toMatchObject({ kind: "cancelled" });
   expect(router.url())
     .toBe("/todos");
   destroy();

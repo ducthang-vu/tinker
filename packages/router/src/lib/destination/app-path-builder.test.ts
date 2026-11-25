@@ -64,10 +64,21 @@ describe("steps that add segments", () => {
 
   test("an empty single string adds nothing", () => {
     expect(AppPathBuilder.rootOf(TREE)
+      .to("todos")
       .to("")
+      .to("7")
       .build()
       .format())
-      .toBe("/");
+      .toBe("/todos/7");
+  });
+
+  test("the root alone is built only when a route takes the root", () => {
+    const error = errorOf(() => AppPathBuilder.rootOf(TREE)
+      .build());
+    expect(error.reason)
+      .toBe("no-route");
+    expect(error.at)
+      .toBe("");
   });
 
   test("a segment that no route takes throws a no-route ParseError, naming it", () => {
@@ -93,12 +104,25 @@ describe("steps that add segments", () => {
       .toThrow(ParseError);
   });
 
-  test("a path can stop short of a leaf: the matcher decides that when the URL is used", () => {
+  test("a path that stops short of a route cannot be built: build throws, naming the segment", () => {
+    const group: Route[] = [
+      { path: "group", component: Page, children: [{ path: ":id", component: Page }] },
+    ];
+    const error = errorOf(() => AppPathBuilder.rootOf(group)
+      .to("group")
+      .build());
+    expect(error.reason)
+      .toBe("no-route");
+    expect(error.at)
+      .toBe("group");
+  });
+
+  test("the same steps with a segment that reaches a route build", () => {
     expect(AppPathBuilder.rootOf(TREE)
-      .to("todos")
+      .to("todos", "7")
       .build()
       .format())
-      .toBe("/todos");
+      .toBe("/todos/7");
   });
 
   test("a builder can be kept and extended in more than one direction", () => {
