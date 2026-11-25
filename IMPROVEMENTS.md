@@ -222,13 +222,7 @@ point at the host root.
 
 ## Template functions (`packages/core/src/view/internal/authoring/template-function.ts`, `template/evaluate.ts`)
 
-### 1. A template function cannot be passed as a value
-
-**Problem.** `@TemplateFunction` functions are called by name, `format(price())`, but the name read on its own (`filter(todos(), isOpen)`) gives nothing: only a call is resolved. Passing a function to another function needs an arrow function or a member.
-
-**To do.** Decide whether a bare name should read the function, so a template can pass it on. This needs the same scope rule as an arrow function, so it is left open.
-
-### 2. A member with the same name silently hides the template function
+### 1. A member with the same name silently hides the template function
 
 **Problem.** If the component has a member named like an imported template function, the member is called and the import is ignored, with no warning.
 

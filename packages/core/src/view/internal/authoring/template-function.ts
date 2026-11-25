@@ -12,8 +12,9 @@
 // A component lists its template functions in `imports`, as it lists directives. Each one is
 // created once per component, in the component's injector, so its inject() calls and onDestroy()
 // work as they do for any injectable: the decorator makes the class injectable. The name is what
-// the template calls, so it must be an identifier. A bare call such as `format(x)` reads the
-// function when the component has no member of that name: a member wins.
+// the template calls, so it must be an identifier. A bare name, such as `format` in `format(x)` or
+// `filter(isOpen)`, reads the function when the component has no member of that name: a member
+// wins. Read on its own, the function is a value that can be passed as an argument.
 
 import { Injectable } from "../../../di/index.ts";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";

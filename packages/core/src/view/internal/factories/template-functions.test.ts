@@ -83,6 +83,27 @@ describe("template functions in templates", () => {
       .toBe("member 2");
   });
 
+  test("an imported template function can be passed as an argument", async () => {
+    @TemplateFunction("isOpen")
+    class IsOpen implements TemplateFunctionContract<[{ done: boolean }], boolean> {
+      call(todo: { done: boolean }): boolean {
+        return !todo.done;
+      }
+    }
+    @Component({
+      selector: "tk-open",
+      template: "<p>{{ todos().filter(isOpen).length }}</p>",
+      imports: [IsOpen],
+    })
+    class Open {
+      readonly todos = signal([{ done: false }, { done: true }, { done: false }]);
+    }
+    const view = valueOrThrow(renderComponent(Engine.create(), Open));
+    await tick();
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("2");
+  });
+
   test("two imports with the same name are an error", () => {
     @TemplateFunction("same")
     class First implements TemplateFunctionContract<[], number> {

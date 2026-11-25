@@ -25,6 +25,12 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       if (declared) {
         return declared();
       }
+      const imported = importedFunction(expression, scope);
+      if (imported) {
+        // Read on its own, an imported function is a value: it can be passed on, and it is
+        // called with the arguments it is given.
+        return (...args: unknown[]) => imported.call(...args);
+      }
       if (expression.receiver.kind === "component" && scope.checks !== undefined
         && !(expression.name in scope.component)) {
         scope.checks.warn(`The template reads "${expression.name}", which ${scope.component.constructor.name} does not have`);
