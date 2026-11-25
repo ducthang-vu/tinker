@@ -1,13 +1,14 @@
 // The providers of the router: the browser's location, the Location that reads it, and the
 // Router over the route tree. An app calls provideRouter once, when it bootstraps.
 
-import { computed, inject, type Maybe, provide, type Provider } from "@tinker/core";
+import { computed, inject, Injector, type Maybe, provide, type Provider } from "@tinker/core";
 import { Location } from "../location/location.ts";
 import { isEqual } from "@tinker/functional";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import { ChildActivatedRoute, nextAfter } from "../state/child-activated-route.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
+import { APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { type Route, componentOf } from "./route.ts";
 
 /**
@@ -24,7 +25,8 @@ export function provideRouter(routes: readonly Route[]): readonly Provider[] {
   return [
     provide(PLATFORM_LOCATION, { useValue: browserPlatformLocation }),
     provide(Location, { useClass: Location }),
-    provide(Router, { useFactory: () => new Router(root, inject(Location)) }),
+    provide(APP_PATH_BUILDER, { useFactory: () => AppPathBuilder.in(inject(Router).routes) }),
+    provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
     provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
     provide(ChildActivatedRoute, {
       useFactory: () => {

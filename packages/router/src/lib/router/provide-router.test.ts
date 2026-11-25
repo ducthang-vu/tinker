@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { inject, Injector, runInInjectionContext } from "@tinker/core";
 import { ChildActivatedRoute } from "../state/child-activated-route.ts";
+import { APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { provideRouter } from "./provide-router.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
@@ -12,7 +13,9 @@ const ROUTES: Route[] = [{ path: "/todos", component: TodoList }];
 test("provideRouter gives a router over the browser's address bar", () => {
   const { injector, destroy } = Injector.create({ providers: provideRouter(ROUTES) });
   const router = runInInjectionContext(injector, () => inject(Router));
-  router.navigate("/todos?tab=open");
+  const urls = runInInjectionContext(injector, () => inject(APP_PATH_BUILDER));
+  router.navigate(urls.parse("/todos?tab=open")
+    .build());
   expect(router.url())
     .toBe("/todos?tab=open");
   expect(window.location.pathname)

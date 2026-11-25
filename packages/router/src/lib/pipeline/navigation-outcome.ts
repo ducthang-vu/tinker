@@ -1,7 +1,7 @@
 // The final results of a navigation. Done is the right path. Cancelled and Rejected are the left
 // side: each carries the navigation it belongs to, and what went wrong.
 
-import type { Destination } from "../destination/url-builder.ts";
+import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "./request.ts";
 
 /** The navigation as the router knows it: enough to say which one an outcome is about. */
@@ -9,7 +9,7 @@ export interface NavigationRef {
   /** The id of the navigation. */
   readonly id: number;
   /** The destination the navigation goes to. */
-  readonly destination: Destination;
+  readonly destination: AppPath;
 }
 
 /** The navigation committed. Its object is the one that came out of the guards, unchanged. */

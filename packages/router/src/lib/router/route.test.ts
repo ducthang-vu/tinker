@@ -1,23 +1,23 @@
 import { expect, test } from "vitest";
 import type { MatchedRequest } from "../pipeline/request.ts";
 import { componentOf, type Route } from "./route.ts";
-import { UrlBuilder } from "../destination/url-builder.ts";
-import { Destination, type Part } from "../destination/url-builder.ts";
+import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
+import { AppPathBuilder } from "../destination/app-path-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
-function destinationOf(path: string): Destination {
-  return Destination.make(
+function destinationOf(path: string): AppPath {
+  return makeAppPath(
     path.split("/")
       .filter((segment) => segment !== "")
-      .map((value): Part => ({ kind: "segment", value })),
-    [],
+      .map((value): Segment => ({ kind: "segment", value })),
+    {},
     undefined,
   );
 }
 
-const target = UrlBuilder.for([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
-  .withSegment("todos")
-  .withParam("id", "1")
+const target = AppPathBuilder.rootOf([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
+  .to("todos")
+  .to("1")
   .build();
 
 class Page {}

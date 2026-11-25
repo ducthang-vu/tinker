@@ -1,36 +1,31 @@
 // The router: the current URL, the matched route and params, the list of activated routes, and
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
-import { computed, type Either, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
+import { computed, type Injector, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
+import type { AppPath } from "../destination/app-path.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
-import { UrlBuilder } from "./url-builder.ts";
-import { Some, None, fromNullable, match, type Maybe, Left, Right } from "@tinker/functional";
+import { None, fromNullable, map, match, type Maybe, Emitter, run, switchMap, Superseded, type Switched, type Cancel, type Task } from "@tinker/functional";
+import { createPipeline } from "../pipeline/pipeline.ts";
+import { createMatchStep } from "../pipeline/match-step.ts";
+import { createRedirectStep } from "../pipeline/redirect-step.ts";
+import { createGuardStep } from "../pipeline/guard-step.ts";
+import { createCommitStep } from "../pipeline/commit-step.ts";
+import { follow } from "../pipeline/follow.ts";
+import type { MatchedRequest, NavigationRequest } from "../pipeline/request.ts";
+import type { NavigationOutcome, NavigationRef, Rejected } from "../pipeline/navigation-outcome.ts";
+import type { Stop } from "../pipeline/stop.ts";
 
 /** The options of `navigate`. */
 export interface NavigateOptions {
   /** The state of the new history entry, `null` when none is given. */
   readonly state?: unknown;
-  /** The activated route that a relative URL is resolved against. */
-  readonly relativeTo?: ActivatedRoute;
 }
 
 /** Runs a watch at once: the activated routes follow the URL as soon as it changes. */
 const immediately = { schedule: (task: Runnable) => task.run() };
-
-/** A navigation to a URL that no route matches. The URL does not change. */
-export class NoRouteError extends Error {
-  /**
-   *
-   * @param url
-   */
-  constructor(readonly url: string) {
-    super(`Cannot match any route: ${url}`);
-    this.name = "NoRouteError";
-  }
-}
 
 /** The router: the current URL, the matched route, the activated routes, and navigate. */
 export class Router {
@@ -40,57 +35,114 @@ export class Router {
   readonly match: ReadonlySignal<RouteMatch | undefined>;
   /** The activated routes for the current URL, root first. The first one never changes. */
   readonly activated: ReadonlySignal<readonly ActivatedRoute[]>;
-  private readonly root: Route;
-  private readonly location: Location;
   /** The activated route of the root: the first of the list, which never changes. */
   readonly rootRoute: ActivatedRoute;
+  /** The route tree, read by the path builder on each step. */
+  readonly routes: ReadonlySignal<Route>;
+  private readonly root: Route;
+  private readonly location: Location;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
+  private readonly requests = Emitter.create<NavigationRequest>();
+  /** The promises of the navigations not yet settled, by request id. */
+  private readonly waiting = new Map<number, (committed: boolean) => void>();
+  private readonly pipeline: (request: NavigationRequest) => Task<MatchedRequest, Stop>;
+  private readonly stopRouting: Cancel;
+  private nextId = 1;
+  private latestId = 0;
 
   /**
+   * The router over a route tree, reading and writing the URL through `location`.
    *
-   * @param root
-   * @param location
+   * @param root The root of the route tree, which is never shown.
+   * @param location The router's view of the browser location.
+   * @param injector The injector whose context the routes' guards and redirects run in.
    */
-  constructor(root: Route, location: Location) {
+  constructor(root: Route, location: Location, injector: Injector) {
     this.root = root;
     this.location = location;
     this.url = location.url;
+    this.routes = signal<Route>(root);
     this.rootRoute = new ActivatedRoute(root, {}, [], None.of());
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
+    this.pipeline = createPipeline({
+      match: createMatchStep(root),
+      redirect: createRedirectStep(injector),
+      guards: createGuardStep(injector),
+      commit: createCommitStep({
+        browser: location,
+        base: "",
+        activate: (matched) => this.activate(matched.chain),
+      }),
+    });
     watch(() => {
       const chain = matchChain(root, location.url());
-      untracked(() => this.list.set(activatedFor(this.rootRoute, this.list(), chain)));
+      untracked(() => this.activate(chain));
     }, immediately);
+    // One navigation at a time: a newer request supersedes the one still running.
+    this.stopRouting = run(
+      switchMap(this.requests.stream, (request) => follow(this.pipeline, request)),
+      { next: (item) => this.settle(item) },
+    );
   }
 
   /**
-   * Go to `url` as a new history entry, with `options.state`. `url` is a URL, or the segments of
-   * one: `["todos", "7"]` is `"todos/7"`, and the query and hash then go in the last segment. A
-   * relative URL is resolved against the path of `options.relativeTo` (the root when none is
-   * given); see `UrlBuilder.resolve`. The resolved URL is what must match: a URL no route
-   * matches is rejected with a `NoRouteError`, and nothing changes. Declare a `**` route to catch
-   * those URLs.
-   * @param url
-   * @param options
-   * @returns A promise of the outcome: the committed navigation, or the error that stopped it.
+   * Go to `destination` as a new history entry, with `options.state`. The navigation runs through
+   * the guards and redirects of the matched routes. It resolves `true` when it commits, and `false`
+   * when a guard or a redirect stops it, or a newer navigation replaces it before it commits. A
+   * stopped navigation changes nothing.
+   *
+   * @param destination Where to go, built by the injected `AppPathBuilder`.
+   * @param options The state of the new history entry.
+   * @returns A promise of whether the navigation committed.
    */
-  navigate(
-    url: string | readonly string[],
-    options: NavigateOptions = {},
-  ): Either<void, NoRouteError> {
-    const base = match(fromNullable(options.relativeTo), {
-      Some: (route) => route.path,
-      None: () => [],
+  navigate(destination: AppPath, options: NavigateOptions = {}): Promise<boolean> {
+    const id = this.nextId;
+    this.nextId += 1;
+    this.latestId = id;
+    const request: NavigationRequest = {
+      id,
+      destination,
+      state: options.state ?? null,
+      arrival: "push",
+      redirectFrom: [],
+    };
+    return new Promise<boolean>((resolve) => {
+      this.waiting.set(id, resolve);
+      this.requests.emit(request);
     });
-    const target = UrlBuilder.from(url)
-      .resolve(base)
-      .build();
-    if (matchRoute(this.root, target) === undefined) {
-      return Left.of(new NoRouteError(target));
-    }
-    this.location.go(target, options.state ?? null);
-    return Right.of(undefined);
+  }
+
+  /** Stops routing navigations when the injector is destroyed. */
+  onDestroy(): void {
+    this.stopRouting();
+  }
+
+  /**
+   * Updates the activated routes to `chain`, keeping the instances that are still the same.
+   *
+   * @param chain The levels the current URL matches, root first.
+   */
+  private activate(chain: readonly LevelMatch[] | undefined): void {
+    this.list.set(activatedFor(this.rootRoute, this.list(), chain));
+  }
+
+  /**
+   * Resolves the promise of a navigation that has settled.
+   *
+   * @param item The settled navigation: its request and its outcome.
+   */
+  private settle(item: Switched<NavigationRequest, MatchedRequest, Rejected>): void {
+    const navigation: NavigationRef = { id: item.value.id, destination: item.value.destination };
+    const outcome = match<MatchedRequest, Rejected | Superseded, NavigationOutcome>(item.outcome, {
+      Right: (committed) => ({ kind: "done", navigation: committed }),
+      Left: (reason) => reason instanceof Superseded
+        ? { kind: "cancelled", navigation, by: this.latestId }
+        : reason,
+    });
+    // Every navigation has a waiting promise, so the lookup always finds one.
+    map(fromNullable(this.waiting.get(item.value.id)), (resolve) => resolve(outcome.kind === "done"));
+    this.waiting.delete(item.value.id);
   }
 }
 

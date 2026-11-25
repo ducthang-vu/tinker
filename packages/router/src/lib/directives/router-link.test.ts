@@ -5,6 +5,7 @@ import { provideRouter } from "../router/provide-router.ts";
 import { RouterLink } from "./router-link.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { Router } from "../router/router.ts";
+import { APP_PATH_BUILDER } from "../destination/app-path-builder.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { provide } from "@tinker/core";
 
@@ -41,9 +42,18 @@ class Root {}
 })
 class App {}
 
+@Component({ selector: "tk-todos", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
+class TodosShell {}
+
 const ROUTES = [
-  { path: "/todos", component: TodoList },
-  { path: "/todos/:id", component: Root },
+  {
+    path: "/todos",
+    component: TodosShell,
+    children: [
+      { path: "", component: TodoList },
+      { path: ":id", component: Root },
+    ],
+  },
 ];
 
 /** Clicks the anchor with the mouse init given; tells whether the default was stopped. */
@@ -200,7 +210,9 @@ test("aria-current is page on the link to the current path, and absent elsewhere
     .getAttribute("aria-current"))
     .toBeNull();
   fixture.get(Router)
-    .navigate("/todos/7");
+    .navigate(fixture.get(APP_PATH_BUILDER)
+      .parse("/todos/7")
+      .build());
   fixture.detectChanges();
   expect(fixture.root.query("a.root")
     .getAttribute("aria-current"))

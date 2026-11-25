@@ -4,15 +4,17 @@
 
 import type { Class } from "@tinker/core";
 import type { Guard } from "../pipeline/guard-step.ts";
-import type { Destination } from "../destination/url-builder.ts";
+import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
 /** A route: a path and the component it shows, with its children, guards and redirect. */
 export interface Route {
   /**
-   * The path the route consumes, e.g. `"/todos"`. A segment that starts with `:` is a param, so
-   * `"/todos/:id"` matches `"/todos/7"` with `id` set to `"7"`. The path `"**"` matches any URL,
-   * for a page shown when nothing else matches; declare it last among the children.
+   * The one segment the route consumes, e.g. `"todos"`. A segment that starts with `:` is a param,
+   * so `":id"` matches `"7"` with `id` set to `"7"`. A longer URL is nested: `"todos"` with a
+   * child `":id"` matches `"/todos/7"`. The path `""` consumes no segment, for the page of its
+   * parent. The path `"**"` matches the rest of any URL, for a page shown when nothing else
+   * matches; declare it last among the children.
    */
   readonly path: string;
   /** The component shown when the route matches. Every route needs one. */
@@ -30,7 +32,7 @@ export interface Route {
    * asked before any guard runs, and it runs in the injection context of the router, so it can
    * `inject`.
    */
-  readonly redirect?: (request: MatchedRequest) => Destination | undefined;
+  readonly redirect?: (request: MatchedRequest) => AppPath | undefined;
   /**
    * Guards that decide whether the navigation may go on, run after the redirects. Each returns
    * `true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { type Either, match } from "@tinker/functional";
-import { Destination, type Part, UrlBuilder } from "../destination/url-builder.ts";
+import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
+import { AppPathBuilder } from "../destination/app-path-builder.ts";
 import type { Route } from "../router/route.ts";
 import { createMatchStep, MAX_REDIRECTS } from "./match-step.ts";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
@@ -18,7 +19,7 @@ const root: Route = {
 };
 
 /** A request for a destination, with no redirects. */
-function requestFor(destination: Destination): NavigationRequest {
+function requestFor(destination: AppPath): NavigationRequest {
   return { id: 1, destination, state: null, arrival: "push", redirectFrom: [] };
 }
 
@@ -40,9 +41,9 @@ function stopOf(outcome: Either<MatchedRequest, Stop>): Stop | undefined {
 
 describe("the match step", () => {
   test("a destination of the tree matches each part to its route, with its param", () => {
-    const destination = UrlBuilder.for(declared)
-      .withSegment("todos")
-      .withParam("id", "7")
+    const destination = AppPathBuilder.rootOf(declared)
+      .to("todos")
+      .to("7")
       .build();
     const matched = matchedOf(createMatchStep(root)(requestFor(destination)));
     expect(matched?.chain.map((level) => level.route.path))
@@ -52,8 +53,8 @@ describe("the match step", () => {
   });
 
   test("a destination the tree does not have is a no-route stop", () => {
-    const destination = UrlBuilder.for(declared)
-      .withSegment("home")
+    const destination = AppPathBuilder.rootOf(declared)
+      .to("home")
       .build();
     const empty: Route = { path: "", component: class {}, children: [] };
     expect(stopOf(createMatchStep(empty)(requestFor(destination))))
@@ -61,8 +62,8 @@ describe("the match step", () => {
   });
 
   test("a navigation past the redirect cap fails at the match step", () => {
-    const destination = UrlBuilder.for(declared)
-      .withSegment("home")
+    const destination = AppPathBuilder.rootOf(declared)
+      .to("home")
       .build();
     const redirected: NavigationRequest = {
       ...requestFor(destination),
@@ -73,11 +74,11 @@ describe("the match step", () => {
   });
 
   test("a part below a route with no children is a no-route stop", () => {
-    const below: Part[] = [
+    const below: Segment[] = [
       { kind: "segment", value: "home" },
       { kind: "segment", value: "x" },
     ];
-    expect(stopOf(createMatchStep(root)(requestFor(Destination.make(below, [], undefined)))))
+    expect(stopOf(createMatchStep(root)(requestFor(makeAppPath(below, {}, undefined)))))
       .toMatchObject({ kind: "rejected", reason: "no-route" });
   });
 });

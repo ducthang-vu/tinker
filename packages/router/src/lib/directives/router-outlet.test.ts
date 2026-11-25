@@ -6,6 +6,7 @@ import { provideRouter } from "../router/provide-router.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import { Router } from "../router/router.ts";
+import { APP_PATH_BUILDER } from "../destination/app-path-builder.ts";
 import { getOrThrow } from "@tinker/functional";
 
 /** How many instances of each routed component were made, to tell a replacement from a keep. */
@@ -34,9 +35,18 @@ class App {
   readonly router = inject(Router);
 }
 
+@Component({ selector: "tk-todos", template: "<router-outlet></router-outlet>", imports: [RouterOutlet] })
+class TodosShell {}
+
 const ROUTES = [
-  { path: "/todos", component: TodoList },
-  { path: "/todos/:id", component: TodoDetail },
+  {
+    path: "/todos",
+    component: TodosShell,
+    children: [
+      { path: "", component: TodoList },
+      { path: ":id", component: TodoDetail },
+    ],
+  },
 ];
 
 /** An app with the router over ROOT, starting at `url`. */
@@ -64,7 +74,9 @@ test("the outlet shows the component of the URL it starts at", () => {
 
 test("navigating to another route shows its component, which reads its own params", () => {
   const fixture = appAt("/todos");
-  fixture.root.instance.router.navigate("/todos/7");
+  fixture.root.instance.router.navigate(fixture.get(APP_PATH_BUILDER)
+    .parse("/todos/7")
+    .build());
   fixture.detectChanges();
   expect(fixture.root.text())
     .toBe("Todo 7");
@@ -73,7 +85,9 @@ test("navigating to another route shows its component, which reads its own param
 
 test("a change of params replaces the component", () => {
   const fixture = appAt("/todos/7");
-  fixture.root.instance.router.navigate("/todos/8");
+  fixture.root.instance.router.navigate(fixture.get(APP_PATH_BUILDER)
+    .parse("/todos/8")
+    .build());
   fixture.detectChanges();
   expect(made.detail)
     .toBe(2);
@@ -82,7 +96,9 @@ test("a change of params replaces the component", () => {
 
 test("a change of the query alone keeps the component", () => {
   const fixture = appAt("/todos/7");
-  fixture.root.instance.router.navigate("/todos/7?tab=done");
+  fixture.root.instance.router.navigate(fixture.get(APP_PATH_BUILDER)
+    .parse("/todos/7?tab=done")
+    .build());
   fixture.detectChanges();
   expect(made.detail)
     .toBe(1);

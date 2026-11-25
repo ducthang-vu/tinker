@@ -1,20 +1,20 @@
 import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
-import { UrlBuilder } from "../destination/url-builder.ts";
+import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
+import { AppPathBuilder } from "../destination/app-path-builder.ts";
 import { fail, fromComputation, run, type Task } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import { createGuardStep, type Guard, type GuardResult } from "./guard-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import { Redirect, type Stop } from "./stop.ts";
-import { Destination, type Part } from "../destination/url-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
-function destinationOf(path: string): Destination {
-  return Destination.make(
+function destinationOf(path: string): AppPath {
+  return makeAppPath(
     path.split("/")
       .filter((segment) => segment !== "")
-      .map((value): Part => ({ kind: "segment", value })),
-    [],
+      .map((value): Segment => ({ kind: "segment", value })),
+    {},
     undefined,
   );
 }
@@ -23,8 +23,8 @@ const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] 
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
-  return UrlBuilder.for(targets)
-    .withSegment(path)
+  return AppPathBuilder.rootOf(targets)
+    .to(path)
     .build();
 }
 
