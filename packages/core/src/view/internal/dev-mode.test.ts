@@ -1,8 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
-import { provide } from "../../di/index.ts";
+import { inject, provide } from "../../di/index.ts";
 import { signal } from "../../signals/index.ts";
 import { Component } from "./authoring/decorators.ts";
+import { Sanitizer } from "./runtime/sanitization.ts";
 import { Engine } from "./engine.ts";
+import { renderComponent, tick } from "./test-support.ts";
 import { DEV_MODE } from "./tokens.ts";
 import { valueOrThrow } from "@tinker/functional";
 
@@ -49,6 +51,51 @@ describe("dev-mode checks in templates", () => {
     engine.flush();
     expect(warn)
       .not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe("trusted values in development mode", () => {
+  @Component({
+    selector: "tk-links",
+    template: `<a [attr.href]="link"></a><i [style.color]="css"></i><b [attr.title]="plain"></b>`,
+  })
+  class Links {
+    readonly link = inject(Sanitizer)
+      .trustUrl("javascript:go()");
+
+    readonly css = inject(Sanitizer)
+      .trustStyle("red");
+
+    readonly plain = "ok";
+  }
+
+  test("in development mode, an attribute or a style set to a trusted value is warned about", async () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
+    const view = valueOrThrow(renderComponent(engine, Links));
+    await tick();
+    expect(warn)
+      .toHaveBeenCalledWith("attribute href on <a> holds a trusted value: its checks are bypassed");
+    expect(warn)
+      .toHaveBeenCalledWith("style color on <i> holds a trusted value: its checks are bypassed");
+    expect(warn)
+      .not.toHaveBeenCalledWith(expect.stringContaining("title"));
+    expect(view.host.nativeElement.querySelector("a")!.getAttribute("href"))
+      .toBe("javascript:go()");
+    warn.mockRestore();
+  });
+
+  test("outside development mode, a trusted value is set and nothing is warned about", async () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const view = valueOrThrow(renderComponent(Engine.create(), Links));
+    await tick();
+    expect(warn)
+      .not.toHaveBeenCalled();
+    expect(view.host.nativeElement.querySelector("a")!.getAttribute("href"))
+      .toBe("javascript:go()");
     warn.mockRestore();
   });
 });
