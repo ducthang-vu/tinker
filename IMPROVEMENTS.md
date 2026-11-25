@@ -229,18 +229,6 @@ So for this app the trees are worth their size, and the example app now uses the
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
 
-## Template patterns: regex (`packages/core/src/view/internal/template/`)
-
-### 1. A regex is not checked for catastrophic backtracking
-
-**Problem.** A pattern such as `/^(a+)+$/` can take exponential time on a string that
-almost matches. A `@case` is tried on every change detection cycle, so a slow regex
-delays the whole view. Nothing limits its cost.
-
-**To do.** Decide whether to refuse nested quantifiers at parse time, or to document the
-risk and leave the author to write a linear regex.
-
-
 ## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
 
 ### 1. The public index and `@privateAPI`

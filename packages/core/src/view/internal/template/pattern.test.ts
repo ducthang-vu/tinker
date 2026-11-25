@@ -295,3 +295,24 @@ describe("parsePattern: duplicate names", () => {
       .toBe(true);
   });
 });
+
+describe("parsePattern: nested quantifiers in a regex", () => {
+  const refusal = (text: string) => match(parsePattern(text), {
+    Left: (error) => error.message,
+    Right: () => undefined,
+  });
+
+  test("a regex that repeats a group which already repeats is refused, with the fix", () => {
+    for (const text of ["/^(a+)+$/", "/(a{2,})*/", "/((a)+)+/", "/(?:ab+)+/", "/((a)+b)+/"]) {
+      expect(refusal(text))
+        .toMatch(/repeats a group that already repeats/);
+    }
+  });
+
+  test("a regex that repeats each part once, optional groups, escapes and classes is accepted", () => {
+    for (const text of ["/^(a+)?$/", "/^\\d+$/", "/(a)+/", "/^[+*]+$/", "/^\\(a+\\)+$/", "/^(ab|cd)+$/", "/^((a)b)+$/"]) {
+      expect(refusal(text))
+        .toBeUndefined();
+    }
+  });
+});

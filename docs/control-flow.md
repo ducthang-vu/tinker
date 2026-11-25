@@ -127,6 +127,13 @@ A regex starts only where a pattern can begin: after the start of the pattern, a
 an opening bracket, a comma, a colon or `not`. So a `/` in a `when` guard is still
 division (`@case x when a / b > 1`).
 
+A regex runs on every change detection while its case is tested, and the browser's regex
+engine has no time limit. So a regex that repeats a group which already repeats, such as
+`/^(a+)+$/`, is refused when the template is parsed: it can take exponential time on input
+that almost matches. Write it so that each part repeats once (`/^a+$/`). The check is a
+heuristic: a group that repeats something safe, such as `/^(a{2})+$/`, is refused too, and
+the fix is the same. Other regexes are not checked.
+
 An alias does not bind names inside `@map`'s `let` yet, and a `@case` without a
 subject takes only `_`, so `_ as x` is refused there. See `IMPROVEMENTS.md`.
 
