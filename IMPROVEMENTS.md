@@ -233,11 +233,3 @@ wired in.
 **To do.** Make `Location` take browser URLs with the base and convert them with `toBrowserUrl` and
 `fromBrowserUrl`, provide `APP_BASE` from the build, and pass it to the commit step.
 
-### 2. Back and forward moves skip the pipeline
-
-**Problem.** A back or forward move (`popstate`) updates the activated routes directly, so its
-guards and redirects never run.
-
-**To do.** Route a `pop` request through the same pipeline with `arrival: "pop"`, so the guards
-and redirects run before the routes change.
-

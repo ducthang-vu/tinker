@@ -1,8 +1,6 @@
-// The commit step: the last step of the pipeline. It changes the browser only when the URL needs
-// it, and then updates the activated routes. A push adds a history entry. A pop changes the
-// browser only when the browser is not already at the destination, which is the case after a
-// redirect moved it. The routes are updated for both, so a committed navigation always has its
-// routes in place.
+// The commit step: the last step of the pipeline. A push adds a history entry. A pop replaces the
+// current entry with the destination, since the browser has already moved. Then the activated
+// routes are updated, so a committed navigation always has its routes in place.
 
 import { fromComputation, type Task } from "@tinker/functional";
 import { toBrowserUrl } from "../destination/app-base.ts";
@@ -12,8 +10,6 @@ import { failed, type Stop } from "./stop.ts";
 
 /** The browser, as the commit step writes to it: the URL, and the two ways to change it. */
 export interface BrowserWriter {
-  /** The URL the browser is at now, with the base. */
-  url(): string;
   /** Add a history entry for `url`, with `state`. */
   go(url: string, state: unknown): void;
   /** Replace the current entry with `url`, with `state`. */
@@ -43,7 +39,9 @@ export function createCommitStep(options: CommitOptions): CommitStep {
         const target = toBrowserUrl(matched.destination, options.base);
         if (matched.arrival === "push") {
           options.browser.go(target, matched.state);
-        } else if (options.browser.url() !== target) {
+        } else {
+          // The browser has already moved on a back or forward move, so the entry is replaced with
+          // the destination, whether or not it differs from the last committed URL.
           options.browser.replace(target, matched.state);
         }
         options.activate(matched);
