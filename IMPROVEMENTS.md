@@ -224,3 +224,11 @@ wired in.
 **To do.** Make `Location` take browser URLs with the base and convert them with `toBrowserUrl` and
 `fromBrowserUrl`, provide `APP_BASE` from the build, and pass it to the commit step.
 
+
+## Functional helpers (`packages/functional/src/lib/function.ts`)
+
+### 1. `memoise` cannot check that its function is pure
+
+**Problem.** `memoise` returns the last result for the same arguments, but nothing checks that the function reads only its arguments. A function that reads the clock, the locale or a signal gives a stale result, and the compiler cannot warn about it.
+
+**To do.** Decide whether purity can be enforced (for example, in dev mode, by running the function untracked and warning on a signal read), or whether the doc comment is the only guard. Also decide whether `memoise` should keep more than the last call.

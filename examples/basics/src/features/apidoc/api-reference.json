@@ -5810,7 +5810,7 @@
         {
           "name": "flow",
           "kind": "function",
-          "source": "packages/functional/src/lib/function.ts:42",
+          "source": "packages/functional/src/lib/function.ts:43",
           "description": "",
           "params": [],
           "examples": [],
@@ -6333,6 +6333,27 @@
           ]
         },
         {
+          "name": "memoise",
+          "kind": "function",
+          "source": "packages/functional/src/lib/function.ts:103",
+          "description": "A function that returns what `fn` returned last time, without calling `fn`, when it is called\nagain with the same arguments. Only the last call is kept: an earlier call's arguments are\nforgotten, so alternating between two sets of arguments calls `fn` every time. With no\narguments, `fn` is called once.\n\nArguments match when each one is `Object.is` the one before. An object matches only itself, so an\nequal object that is a new one calls `fn` again.\n\nUse it only for a pure `fn`, whose result depends on its arguments alone. `memoise` does not\ncheck this: a function that reads the clock, the locale or other state gives a stale result.\nThe last arguments and result stay in memory until the next call.",
+          "params": [
+            {
+              "name": "fn",
+              "text": "The pure function to memoise."
+            }
+          ],
+          "examples": [
+            "const area = memoise((width: number, height: number) => width * height);\narea(2, 3); // calls the function, and gives 6\narea(2, 3); // gives 6 without calling the function"
+          ],
+          "see": [],
+          "throws": [],
+          "returns": "A function that takes the same arguments and gives the same result as `fn`, calling\n`fn` only when the arguments differ from those of the last call. If `fn` throws, nothing is\nkept, and the next call calls `fn` again.",
+          "signatures": [
+            "memoise<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R"
+          ]
+        },
+        {
           "name": "orElse",
           "kind": "function",
           "source": "packages/functional/src/lib/monad/maybe.ts:251",
@@ -6358,7 +6379,7 @@
         {
           "name": "partial",
           "kind": "function",
-          "source": "packages/functional/src/lib/function.ts:72",
+          "source": "packages/functional/src/lib/function.ts:73",
           "description": "The function with its first arguments fixed to `given`, taking the rest.",
           "params": [
             {
@@ -6381,7 +6402,7 @@
         {
           "name": "pipe",
           "kind": "function",
-          "source": "packages/functional/src/lib/function.ts:11",
+          "source": "packages/functional/src/lib/function.ts:12",
           "description": "",
           "params": [],
           "examples": [],
@@ -7308,7 +7329,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6816",
+              "name": "__@APP_PATH_BRAND@6823",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",

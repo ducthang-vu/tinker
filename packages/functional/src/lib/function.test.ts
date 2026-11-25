@@ -6,7 +6,7 @@ import { implementMap } from "./functor/registry.ts";
 import { MATCHABLE, type Matchable } from "./monad/monad.ts";
 import { Stream, run } from "./stream/stream.ts";
 import { flatMap, map } from "./functor/functor.ts";
-import { flow, partial, pipe } from "./function.ts";
+import { flow, memoise, partial, pipe } from "./function.ts";
 
 describe("pipe", () => {
   test("returns the value itself with no functions", () => {
@@ -144,5 +144,95 @@ describe("data-last map annotations", () => {
     const right = pipe(Some.of("ab"), map((text: string) => text.length));
     expect(right)
       .toEqual(Some.of(2));
+  });
+});
+
+describe("memoise", () => {
+  test("calls the function once for the same arguments, and gives the same result", () => {
+    let calls = 0;
+    const double = memoise((n: number) => (calls++, n * 2));
+    expect(double(3))
+      .toBe(6);
+    expect(double(3))
+      .toBe(6);
+    expect(calls)
+      .toBe(1);
+  });
+
+  test("calls the function again when an argument differs", () => {
+    let calls = 0;
+    const double = memoise((n: number) => (calls++, n * 2));
+    expect(double(3))
+      .toBe(6);
+    expect(double(4))
+      .toBe(8);
+    expect(calls)
+      .toBe(2);
+  });
+
+  test("keeps only the last call: an earlier argument is calculated again", () => {
+    let calls = 0;
+    const double = memoise((n: number) => (calls++, n * 2));
+    double(1);
+    double(2);
+    double(1);
+    expect(calls)
+      .toBe(3);
+  });
+
+  test("compares arguments by identity: an equal object that is a new one is calculated again", () => {
+    let calls = 0;
+    const size = memoise((items: readonly number[]) => (calls++, items.length));
+    expect(size([1, 2]))
+      .toBe(2);
+    expect(size([1, 2]))
+      .toBe(2);
+    expect(calls)
+      .toBe(2);
+  });
+
+  test("treats NaN as equal to NaN, as Object.is does", () => {
+    let calls = 0;
+    const show = memoise((n: number) => (calls++, String(n)));
+    show(Number.NaN);
+    show(Number.NaN);
+    expect(calls)
+      .toBe(1);
+  });
+
+  test("compares every argument, and a call with fewer arguments is a different call", () => {
+    let calls = 0;
+    const add = memoise((a: number, b?: number) => (calls++, a + (b ?? 10)));
+    expect(add(1, 2))
+      .toBe(3);
+    expect(add(1, 2))
+      .toBe(3);
+    expect(add(1))
+      .toBe(11);
+    expect(calls)
+      .toBe(2);
+  });
+
+  test("with no arguments, the function is called once", () => {
+    let calls = 0;
+    const once = memoise(() => (calls++, "value"));
+    once();
+    expect(once())
+      .toBe("value");
+    expect(calls)
+      .toBe(1);
+  });
+
+  test("if the function throws, nothing is kept: the next call calls it again", () => {
+    let fail = true;
+    const read = memoise((n: number) => {
+      if (fail) throw new Error("not yet");
+      return n;
+    });
+    expect(() => read(1))
+      .toThrow("not yet");
+    fail = false;
+    expect(read(1))
+      .toBe(1);
   });
 });

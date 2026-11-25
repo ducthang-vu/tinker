@@ -45,7 +45,7 @@ export type {
   StreamObserver,
   StreamSink,
 } from "./lib/stream/stream.ts";
-export { pipe, flow, partial } from "./lib/function.ts";
+export { pipe, flow, partial, memoise } from "./lib/function.ts";
 export { Emitter } from "./lib/stream/emitter.ts";
 export {
   type Task,
