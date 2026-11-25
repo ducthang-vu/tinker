@@ -19,7 +19,8 @@ import {
 } from "../pipeline/guard-step.ts";
 import { succeed } from "@tinker/functional";
 import { MAX_REDIRECTS } from "../pipeline/match-step.ts";
-import { fromComputation, getOrThrow, isNone } from "@tinker/functional";
+import { fromComputation, getOrThrow, isNone, run } from "@tinker/functional";
+import type { NavigationEvent } from "./navigation-event.ts";
 
 /** A platform location that starts at `url`, and records the entries the router adds. */
 function fakePlatform(url: string) {
@@ -478,5 +479,21 @@ test("a deactivate guard that stops keeps the user on the route they leave", asy
     .toMatchObject({ kind: "rejected", reason: "guard", guard: { payload: { reason: "unsaved changes" } } });
   expect(router.url())
     .toBe("/todos/7");
+  destroy();
+});
+
+test("the router publishes STARTED, then one final event for the outcome, for each navigation", async () => {
+  const { router, urls, destroy } = routerAt("/todos");
+  const seen: NavigationEvent[] = [];
+  const stop = run(router.events, { next: (event) => {
+    seen.push(event);
+  } });
+  const outcome = await router.navigate(urls.parse("/todos/7")
+    .build());
+  expect(seen.map((event) => event.type))
+    .toEqual(["STARTED", "DONE"]);
+  expect(seen[1])
+    .toEqual({ type: "DONE", payload: outcome });
+  stop();
   destroy();
 });
