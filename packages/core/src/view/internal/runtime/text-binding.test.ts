@@ -44,6 +44,34 @@ describe("TextBinding", () => {
     expect(setText.mock.calls.map(([, text]) => text))
       .toEqual(["x", ""]);
   });
+
+  test("text() gives the text without writing it, and show writes only a change", () => {
+    const value = signal("x");
+    const { binding, node, setText } = bind("[{{ value() }}]", { value });
+    expect(binding.text())
+      .toBe("[x]");
+    expect(setText)
+      .not.toHaveBeenCalled();
+    binding.show(binding.text());
+    binding.show("[x]");
+    expect(node.data)
+      .toBe("[x]");
+    expect(setText)
+      .toHaveBeenCalledTimes(1);
+  });
+
+  test("show reads no signals, so calling it adds no dependency", () => {
+    const value = signal("x");
+    const { binding } = bind("{{ value() }}", { value });
+    let reads = 0;
+    const watched = signal(0);
+    const { binding: other } = bind("{{ n() }}", { n: () => (reads += 1, watched()) });
+    other.show("written");
+    expect(reads)
+      .toBe(0);
+    expect(binding.text())
+      .toBe("x");
+  });
 });
 
 describe("BindingFactory", () => {
