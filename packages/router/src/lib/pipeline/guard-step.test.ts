@@ -2,9 +2,18 @@ import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
 import { builderOver } from "../destination/test-builder.ts";
-import { fail, fromComputation, run, type Task } from "@tinker/functional";
+import { fail, fromComputation, run, succeed, type Task } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
-import { createGuardStep, type Guard, type GuardResult } from "./guard-step.ts";
+import {
+  AllowCommand,
+  createGuardStep,
+  type Guard,
+  RedirectCommand,
+  RedirectPayload,
+  type RouteGuardCommand,
+  StopCommand,
+  StopPayload,
+} from "./guard-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import { Redirect, type Stop } from "./stop.ts";
 
@@ -35,7 +44,7 @@ function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
     destination: destinationOf(url),
     state: null,
     arrival: "push",
-    redirectFrom: [],
+    redirectFrom: [], trace: [],
     chain: routes.map((route) => ({ route, params: {}, segments: [] })),
   };
 }
@@ -56,10 +65,17 @@ function stopOf(task: Task<MatchedRequest, Stop>): Stop | undefined {
 
 const page = { path: "/todos", component: class {} };
 
+/** The guard that always allows. */
+const allow = (): Task<RouteGuardCommand, never> => succeed(new AllowCommand());
+
+/** A guard that stops, with a reason. */
+const stop = (reason?: string): Task<RouteGuardCommand, never> =>
+  succeed(new StopCommand(new StopPayload(reason)));
+
 describe("the guard step", () => {
   test("when every guard allows, the step succeeds with the request", () => {
     const step = createGuardStep(Injector.create().injector);
-    const routes: Route[] = [{ ...page, canActivate: [() => true] }];
+    const routes: Route[] = [{ ...page, canActivate: [allow] }];
     const matched = matchedAt("/todos", routes);
     expect(stopOf(step(matched)))
       .toBeUndefined();
@@ -74,26 +90,37 @@ describe("the guard step", () => {
   test("guards run root first, each route's in order, and the first that does not allow stops", () => {
     const log: string[] = [];
     const step = createGuardStep(Injector.create().injector);
-    const logged = (name: string, answer: GuardResult): Guard => () => {
+    const logged = (name: string, command: () => Task<RouteGuardCommand, never>): Guard => () => {
       log.push(name);
-      return answer;
+      return command();
     };
     const routes: Route[] = [
-      { path: "", component: class {}, canActivate: [logged("root", true)] },
-      { ...page, canActivate: [logged("child-1", true), logged("child-2", false), logged("child-3", true)] },
+      { path: "", component: class {}, canActivate: [logged("root", allow)] },
+      { ...page, canActivate: [logged("child-1", allow), logged("child-2", stop), logged("child-3", allow)] },
     ];
-    const stop = stopOf(step(matchedAt("/todos", routes)));
+    const rejected = stopOf(step(matchedAt("/todos", routes)));
     expect(log)
       .toEqual(["root", "child-1", "child-2"]);
-    expect(stop)
+    expect(rejected)
       .toMatchObject({ kind: "rejected", reason: "guard" });
   });
 
-  test("a guard that returns a URL stops with a Redirect to it", () => {
+  test("a STOP carries its reason to the rejection, as the guard command", () => {
     const step = createGuardStep(Injector.create().injector);
-    const routes: Route[] = [{ ...page, canActivate: [() => to("login")] }];
+    const routes: Route[] = [{ ...page, canActivate: [() => stop("not signed in")] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toEqual(Redirect.of(matchedAt("/todos", routes), to("login")));
+      .toMatchObject({ kind: "rejected", reason: "guard", guard: { payload: { reason: "not signed in" } } });
+  });
+
+  test("a REDIRECT stops with a Redirect to its path", () => {
+    const step = createGuardStep(Injector.create().injector);
+    const routes: Route[] = [{
+      ...page,
+      canActivate: [() => succeed(new RedirectCommand(new RedirectPayload(to("login"), "log in first")))],
+    }];
+    const redirect = stopOf(step(matchedAt("/todos", routes)));
+    expect((redirect as Redirect).target)
+      .toEqual(to("login"));
   });
 
   test("a guard that throws stops with a Failed, keeping the throw", () => {
@@ -102,16 +129,16 @@ describe("the guard step", () => {
     const routes: Route[] = [{ ...page, canActivate: [() => {
       throw thrown;
     }] }];
-    const stop = stopOf(step(matchedAt("/todos", routes)));
-    expect(stop)
+    const rejected = stopOf(step(matchedAt("/todos", routes)));
+    expect(rejected)
       .toMatchObject({ kind: "rejected", reason: "failed" });
-    expect((stop as { cause: unknown }).cause)
+    expect((rejected as { cause: unknown }).cause)
       .toBe(thrown);
   });
 
-  test("a guard that returns a task is waited for, and its answer decides", () => {
-    let answer: (result: GuardResult) => void = () => {};
-    const waiting = fromComputation<GuardResult, unknown>((ok) => {
+  test("a guard that returns a task is waited for, and its command decides", () => {
+    let answer: (command: RouteGuardCommand) => void = () => {};
+    const waiting = fromComputation<RouteGuardCommand, unknown>((ok) => {
       answer = ok;
     });
     const step = createGuardStep(Injector.create().injector);
@@ -127,7 +154,7 @@ describe("the guard step", () => {
     });
     expect(seen)
       .toEqual([]);
-    answer(false);
+    answer(new StopCommand(new StopPayload()));
     expect(seen[0])
       .toMatchObject({ kind: "rejected", reason: "guard" });
   });
@@ -143,7 +170,10 @@ describe("the guard step", () => {
     const SESSION = new InjectionToken<boolean>("session");
     const { injector } = Injector.create({ providers: [provide(SESSION, { useValue: false })] });
     const step = createGuardStep(injector);
-    const routes: Route[] = [{ ...page, canActivate: [() => inject(SESSION)] }];
+    const routes: Route[] = [{
+      ...page,
+      canActivate: [() => (inject(SESSION) ? allow() : stop())],
+    }];
     expect(stopOf(step(matchedAt("/todos", routes))))
       .toMatchObject({ kind: "rejected", reason: "guard" });
   });
@@ -153,21 +183,24 @@ describe("the guard step", () => {
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [(request) => {
       seen.push(request.destination.format());
-      return true;
+      return allow();
     }] }];
     stopOf(step(matchedAt("/todos", routes)));
     expect(seen)
       .toEqual(["/todos"]);
   });
 
-  test("succeed is the step's own value: the step returns the request on success", () => {
+  test("each guard's command is recorded in the trace of the request", () => {
     const step = createGuardStep(Injector.create().injector);
     const matched = matchedAt("/todos", [page]);
+    const routes: Route[] = [{ ...page, canActivate: [allow] }];
     const seen: MatchedRequest[] = [];
-    run(step(matched), { ok: (value) => {
+    run(step(matchedAt("/todos", routes)), { ok: (value) => {
       seen.push(value);
     } });
-    expect(seen)
-      .toEqual([matched]);
+    expect(seen[0]?.trace)
+      .toEqual([{ step: "guard", route: "/todos", command: "ALLOW" }]);
+    expect(matched.trace)
+      .toEqual([]);
   });
 });

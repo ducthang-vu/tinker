@@ -14,3 +14,12 @@ export { provideRouter } from "./lib/router/provide-router.ts";
 export { Location } from "./lib/location/location.ts";
 export { browserPlatformLocation, PLATFORM_LOCATION } from "./lib/location/platform-location.ts";
 export type { PlatformLocation } from "./lib/location/platform-location.ts";
+export {
+  AllowCommand,
+  type Guard,
+  RedirectCommand,
+  RedirectPayload,
+  type RouteGuardCommand,
+  StopCommand,
+  StopPayload,
+} from "./lib/pipeline/guard-step.ts";

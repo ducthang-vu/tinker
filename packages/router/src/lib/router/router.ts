@@ -116,6 +116,7 @@ export class Router {
       state: options.state ?? null,
       arrival: "push",
       redirectFrom: [],
+      trace: [],
     };
     return new Promise<NavigationOutcome>((resolve) => {
       this.waiting.set(id, resolve);
@@ -152,7 +153,7 @@ export class Router {
     this.latestId = id;
     try {
       const destination = parseAppPath(this.routes(), url);
-      this.requests.emit({ id, destination, state, arrival: "pop", redirectFrom: [] });
+      this.requests.emit({ id, destination, state, arrival: "pop", redirectFrom: [], trace: [] });
     } catch {
       this.restore();
     }
@@ -172,11 +173,15 @@ export class Router {
    * @param item The settled navigation: its request and its outcome.
    */
   private settle(item: Switched<NavigationRequest, MatchedRequest, Rejected>): void {
-    const navigation: NavigationRef = { id: item.value.id, destination: item.value.destination };
+    const navigation: NavigationRef = {
+      id: item.value.id,
+      destination: item.value.destination,
+      trace: item.value.trace,
+    };
     const outcome = match<MatchedRequest, Rejected | Superseded, NavigationOutcome>(item.outcome, {
-      Right: (committed) => ({ kind: "done", navigation: committed }),
+      Right: (committed) => ({ kind: "done", navigation: committed, meta: committed.trace }),
       Left: (reason) => reason instanceof Superseded
-        ? { kind: "cancelled", navigation, by: this.latestId }
+        ? { kind: "cancelled", navigation, by: this.latestId, meta: navigation.trace }
         : reason,
     });
     if (outcome.kind === "done") {

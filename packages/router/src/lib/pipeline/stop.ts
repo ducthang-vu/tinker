@@ -3,6 +3,7 @@
 // Rejected, which carries the navigation it belongs to.
 
 import type { AppPath } from "../destination/app-path.ts";
+import type { StopCommand } from "./guard-step.ts";
 import type { NavigationRef, Rejected } from "./navigation-outcome.ts";
 
 /** A route or a guard sends the navigation to `target` instead. Internal: not a final result. */
@@ -40,7 +41,7 @@ export type Stop = Redirect | Rejected;
  * @returns A no-route rejection.
  */
 export function noRoute(navigation: NavigationRef): Rejected {
-  return { kind: "rejected", reason: "no-route", navigation };
+  return { kind: "rejected", reason: "no-route", navigation, meta: navigation.trace };
 }
 
 /**
@@ -48,10 +49,15 @@ export function noRoute(navigation: NavigationRef): Rejected {
  *
  * @param navigation The navigation the guard rejected.
  * @param route The path of the route whose guard said no.
+ * @param guard The STOP command the guard returned.
  * @returns A guard rejection.
  */
-export function guardRejected(navigation: NavigationRef, route: string): Rejected {
-  return { kind: "rejected", reason: "guard", navigation, route };
+export function guardRejected(
+  navigation: NavigationRef,
+  route: string,
+  guard: StopCommand,
+): Rejected {
+  return { kind: "rejected", reason: "guard", navigation, route, guard, meta: navigation.trace };
 }
 
 /**
@@ -62,5 +68,5 @@ export function guardRejected(navigation: NavigationRef, route: string): Rejecte
  * @returns A failure rejection.
  */
 export function failed(navigation: NavigationRef, cause: unknown): Rejected {
-  return { kind: "rejected", reason: "failed", navigation, cause };
+  return { kind: "rejected", reason: "failed", navigation, cause, meta: navigation.trace };
 }

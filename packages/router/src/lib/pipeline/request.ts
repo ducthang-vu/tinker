@@ -20,6 +20,11 @@ export interface NavigationRequest {
    * redirect appends the URL it came from, so the chain of redirects is readable from the request.
    */
   readonly redirectFrom: readonly AppPath[];
+  /**
+   * What each step did to this navigation, in order: the guards' commands and the redirects. For
+   * debugging: the app does not act on it.
+   */
+  readonly trace: readonly unknown[];
 }
 
 /** A request whose URL matched a route: the levels it matched, root first. */

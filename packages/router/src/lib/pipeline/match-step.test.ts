@@ -20,7 +20,7 @@ const root: Route = {
 
 /** A request for a destination, with no redirects. */
 function requestFor(destination: AppPath): NavigationRequest {
-  return { id: 1, destination, state: null, arrival: "push", redirectFrom: [] };
+  return { id: 1, destination, state: null, arrival: "push", redirectFrom: [], trace: [] };
 }
 
 /** The matched request, or the stop, of a match step's outcome. */
