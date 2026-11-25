@@ -36,7 +36,7 @@
 // included) are cancelled with the component, since each component injector
 // provides its own RenderHooks. The returned Cancel stops one earlier.
 
-import { inject, Injectable } from "../../../di/index.ts";
+import { inject, Injectable, type OnDestroy } from "../../../di/index.ts";
 import { final } from "../../../utils/final.ts";
 import { RenderHookRegistry } from "../runtime/render-hook-registry.ts";
 import { run, type Cancel } from "@tinker/functional";
@@ -53,7 +53,7 @@ import { run, type Cancel } from "@tinker/functional";
  */
 @Injectable()
 @final
-export class RenderHooks {
+export class RenderHooks implements OnDestroy {
   private readonly registry = inject(RenderHookRegistry);
   /** How to cancel the hooks registered here and not cancelled yet. */
   private readonly registered = new Set<Cancel>();
