@@ -230,11 +230,3 @@ needs no code for it, and a test provides a different `PLATFORM_LOCATION` to ove
 
 **To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
 point at the host root.
-
-### 2. Deep links rely on a copy of index.html
-
-**Problem.** GitHub Pages serves a file for each path, so `/tinker/api` is not a file. The
-workflow copies `index.html` to `404.html`, and GitHub Pages serves that page for the URL, so the
-router reads the URL itself. Any other static host needs the same fallback.
-
-**To do.** Nothing in the app; document the fallback for any new host.
