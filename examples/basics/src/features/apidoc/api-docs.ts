@@ -1,10 +1,10 @@
-// The API page: each entry point is a section, with its exports, and each class or interface lists
-// its members. The data is api-reference.json, written from the TSDoc by scripts/api-docs.mjs.
-// `ApiDocs` renders the page; `DocBody` renders one documented thing (an export or a member).
+// The documented thing the API pages show: an export or a member, with its signatures,
+// description, params, returns and examples. The pages are api-layout.ts (the frame),
+// api-overview.ts, api-package.ts (a package's exports) and api-symbol.ts (one export).
+// The data is api-reference.json.
 
 import { Component, input } from "@tinker/core";
-import { apiReference } from "./api-reference.ts";
-import { toSections, type ViewDoc } from "./api-view.ts";
+import type { ViewDoc } from "./api-view.ts";
 
 /** One documented thing: its signatures or type, its description, params, returns and examples. */
 @Component({
@@ -114,88 +114,4 @@ import { toSections, type ViewDoc } from "./api-view.ts";
 })
 export class DocBody {
   readonly doc = input<ViewDoc>();
-}
-
-@Component({
-  selector: "tk-api-docs",
-  styles: `
-    tk-api-docs { display: block; }
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    nav a {
-      padding: 0.35rem 0.85rem;
-      font-size: 0.9rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      text-decoration: none;
-    }
-    nav a:hover { border-color: var(--accent); color: var(--accent); }
-    section { margin-top: 3rem; }
-    section > h2 {
-      font-size: 1.4rem;
-      letter-spacing: -0.01em;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-    article {
-      margin-top: 1rem;
-      padding: 1.25rem 1.4rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-    }
-    article > tk-doc-body + tk-doc-body { margin-top: 1.25rem; }
-    h4 {
-      margin: 1.5rem 0 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 650;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .no-items { color: var(--muted); margin-top: 1rem; }
-  `,
-  template: `
-    <header class="intro">
-      <p class="eyebrow">API reference</p>
-      <h1>Public API</h1>
-      <p class="lede">
-        Generated from the TSDoc of each package's public exports by
-        <code>npm run docs:api</code>. Items marked <code>@privateAPI</code> are left out.
-      </p>
-    </header>
-    <nav aria-label="Entry points">
-      @map sections; let section {
-        <a [attr.href]="section.href">{{ section.specifier }}</a>
-      }
-    </nav>
-    @map sections; let section {
-      <section [attr.id]="section.id">
-        <h2>{{ section.specifier }}</h2>
-        @if (section.hasItems) {
-          @map section.items; let item {
-            <article [attr.id]="item.id">
-              <tk-doc-body [doc]="item"></tk-doc-body>
-              @if (item.hasMembers) { <h4>Members</h4> }
-              @map item.members; let member {
-                <tk-doc-body [doc]="member"></tk-doc-body>
-              }
-            </article>
-          }
-        } @else {
-          <p class="no-items">No public exports.</p>
-        }
-      </section>
-    }
-  `,
-  imports: [DocBody],
-})
-export class ApiDocs {
-  readonly sections = toSections(apiReference);
 }

@@ -105,13 +105,37 @@ test("the header links to the API reference, a page of its own, and back", async
     .click();
   await expect(page)
     .toHaveURL(/\/api$/);
-  await expect(page.locator("tk-api-docs h1"))
-    .toHaveText("Public API");
+  await expect(page.locator("tk-api-overview h1"))
+    .toHaveText("API reference");
 
   await page.getByRole("link", { name: "Examples" })
     .click();
   await expect(page.locator("tk-counter h2"))
     .toHaveText("Counter");
+});
+
+test("the API pages: a package lists its exports, and an export has its own page", async ({ page }) => {
+  await page.getByRole("link", { name: "API reference" })
+    .click();
+  await page.locator("aside.sidebar a[href=\"/api/core\"]")
+    .click();
+  await expect(page)
+    .toHaveURL(/\/api\/core$/);
+  await expect(page.locator("tk-api-package-list h1"))
+    .toHaveText("@tinker/core");
+
+  await page.getByRole("link", { name: "bootstrap", exact: true })
+    .click();
+  await expect(page)
+    .toHaveURL(/\/api\/core\/bootstrap$/);
+  await expect(page.locator("tk-api-symbol tk-doc-body h3"))
+    .toContainText("bootstrap");
+
+  // The sidebar keeps working from an export's page, and the page follows the URL.
+  await page.locator("aside.sidebar a[href=\"/api/router\"]")
+    .click();
+  await expect(page.locator("tk-api-package-list h1"))
+    .toHaveText("@tinker/router");
 });
 
 test("the clock shows a time, and it is still running", async ({ page }) => {
