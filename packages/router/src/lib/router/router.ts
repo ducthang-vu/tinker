@@ -2,6 +2,8 @@
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
 import { computed, type Injector, type ReadonlySignal, signal } from "@tinker/core";
+import { type Stream } from "@tinker/functional";
+import { type NavigationEvent, finalEventOf } from "./navigation-event.ts";
 import type { AppPath } from "../destination/app-path.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
@@ -49,6 +51,9 @@ export class Router {
   private readonly location: Location;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
   private readonly requests = Emitter.create<NavigationRequest>();
+  private readonly eventSource = Emitter.create<NavigationEvent>();
+  /** The navigation events: STARTED when a navigation begins, then DONE, CANCELLED, or REJECTED. */
+  readonly events: Stream<NavigationEvent>;
   /** The promises of the navigations not yet settled, by request id. */
   private readonly waiting = new Map<number, (outcome: NavigationOutcome) => void>();
   private readonly pipeline: (request: NavigationRequest) => Task<MatchedRequest, Stop>;
@@ -71,6 +76,7 @@ export class Router {
     this.location = location;
     this.url = location.url;
     this.routes = signal<Route>(root);
+    this.events = this.eventSource.stream;
     this.rootRoute = new ActivatedRoute(root, {}, [], None.of());
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
@@ -88,7 +94,11 @@ export class Router {
     this.activate(matchChain(root, location.url()));
     // One navigation at a time: a newer request supersedes the one still running.
     this.stopRouting = run(
-      switchMap(this.requests.stream, (request) => follow(this.pipeline, this.started(request))),
+      switchMap(this.requests.stream, (request) => {
+        const started = this.started(request);
+        this.eventSource.emit({ type: "STARTED", payload: started });
+        return follow(this.pipeline, started);
+      }),
       { next: (item) => this.settle(item) },
     );
     // A back or forward move is a navigation too: it goes through the guards like any other.
@@ -213,6 +223,7 @@ export class Router {
       this.restore();
     }
     // Every navigation has a waiting promise, so the lookup always finds one.
+    this.eventSource.emit(finalEventOf(outcome));
     map(fromNullable(this.waiting.get(item.value.id)), (resolve) => resolve(outcome));
     this.waiting.delete(item.value.id);
   }
