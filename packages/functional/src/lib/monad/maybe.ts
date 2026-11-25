@@ -1,6 +1,18 @@
-// Maybe<T>: a Some holding a value, or a None holding nothing. Read a value only with `match`.
+// Maybe<T>: a Some holding a value, or a None holding nothing: the value may be absent, and the
+// type says so. Read a value only with `match`:
 //
 //   match(maybe, { Some: (value) => ..., None: () => ... })
+//
+// A pipeline of steps runs on a Some and skips a None, as it does for Either's Right and Left.
+// `map` and `flatMap` run their step only when a value is present:
+//
+//   const user = fromNullable(users.get(id));        // Some(user), or None when there is none
+//   const name = map(user, (u) => u.name);           // Some(name): the step ran
+//   const plan = flatMap(user, (u) => planOf(u));    // planOf returns a Maybe, so it joins
+//
+//   const none = map(None.of<User>(), (u) => u.name); // None: the step was skipped
+//
+// `toEither` turns a missing value into a failure, which says why it is missing.
 
 import { Right, Left, type Either } from "./either.ts";
 import { Continue, OUTCOME, type Outcome } from "./outcome.ts";
@@ -14,7 +26,7 @@ import {
   type Matchable,
 } from "./monad.ts";
 
-/** A Some: a value is present. */
+/** A Some: a value is present. The steps after it (`map`, `flatMap`) run on this value. */
 export class Some<T> implements Matchable<"Some", readonly [T]>, Equatable {
   /** The case this Some is, for `match`: its name and its value. */
   readonly [MATCHABLE]: Case<"Some", readonly [T]>;
@@ -49,7 +61,7 @@ export class Some<T> implements Matchable<"Some", readonly [T]>, Equatable {
   }
 }
 
-/** A None: no value. */
+/** A None: no value. The steps after it are skipped, and it reaches the end unchanged. */
 export class None implements Matchable<"None", readonly []>, Equatable {
   /** The case this None is, for `match`: its name, with no value. */
   readonly [MATCHABLE]: Case<"None", readonly []>;
@@ -79,7 +91,10 @@ export class None implements Matchable<"None", readonly []>, Equatable {
   }
 }
 
-/** Maybe: a Some holding a T, or a None. */
+/**
+ * Maybe: a Some holding a T (a value is present), or a None (there is none). A pipeline of `map`
+ * and `flatMap` steps runs on the Some, and passes a None on unchanged.
+ */
 export type Maybe<T> = Some<T> | None;
 
 /** The two handlers of a match, named after the cases. */
