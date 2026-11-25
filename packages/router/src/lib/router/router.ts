@@ -12,7 +12,7 @@ import { None, fromNullable, map, match, type Maybe, Emitter, run, switchMap, Su
 import { createPipeline } from "../pipeline/pipeline.ts";
 import { createMatchStep } from "../pipeline/match-step.ts";
 import { createRedirectStep } from "../pipeline/redirect-step.ts";
-import { createGuardStep } from "../pipeline/guard-step.ts";
+import { createDeactivateStep, createGuardStep } from "../pipeline/guard-step.ts";
 import { createCommitStep } from "../pipeline/commit-step.ts";
 import { follow } from "../pipeline/follow.ts";
 import type { MatchedRequest, NavigationRequest } from "../pipeline/request.ts";
@@ -77,6 +77,7 @@ export class Router {
     this.pipeline = createPipeline({
       match: createMatchStep(root),
       redirect: createRedirectStep(injector),
+      deactivate: createDeactivateStep(injector),
       guards: createGuardStep(injector),
       commit: createCommitStep({
         browser: location,
@@ -87,7 +88,7 @@ export class Router {
     this.activate(matchChain(root, location.url()));
     // One navigation at a time: a newer request supersedes the one still running.
     this.stopRouting = run(
-      switchMap(this.requests.stream, (request) => follow(this.pipeline, request)),
+      switchMap(this.requests.stream, (request) => follow(this.pipeline, this.started(request))),
       { next: (item) => this.settle(item) },
     );
     // A back or forward move is a navigation too: it goes through the guards like any other.
@@ -116,6 +117,7 @@ export class Router {
       state: options.state ?? null,
       arrival: "push",
       redirectFrom: [],
+      activatedRoutes: [],
       trace: [],
     };
     return new Promise<NavigationOutcome>((resolve) => {
@@ -140,6 +142,16 @@ export class Router {
   }
 
   /**
+   * The request as the pipeline starts it: the route it leaves is the last committed one.
+   *
+   * @param request The request, as `navigate` or a back move made it.
+   * @returns The request with its origin set.
+   */
+  private started(request: NavigationRequest): NavigationRequest {
+    return { ...request, activatedRoutes: this.list() };
+  }
+
+  /**
    * A back or forward move: the browser has already moved, so the move is a navigation with
    * arrival `pop`. A URL that no route takes is restored at once, since there is no navigation to
    * report it.
@@ -153,7 +165,15 @@ export class Router {
     this.latestId = id;
     try {
       const destination = parseAppPath(this.routes(), url);
-      this.requests.emit({ id, destination, state, arrival: "pop", redirectFrom: [], trace: [] });
+      this.requests.emit({
+        id,
+        destination,
+        state,
+        arrival: "pop",
+        redirectFrom: [],
+        activatedRoutes: [],
+        trace: [],
+      });
     } catch {
       this.restore();
     }

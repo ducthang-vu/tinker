@@ -35,7 +35,7 @@ const request: NavigationRequest = {
   destination: destinationOf("/todos/7"),
   state: null,
   arrival: "push",
-  redirectFrom: [], trace: [],
+  redirectFrom: [], activatedRoutes: [], trace: [],
 };
 
 /**
@@ -52,6 +52,7 @@ function fakeSteps(log: string[], overrides: Partial<PipelineSteps> = {}): Pipel
       log.push("redirect");
       return Right.of<MatchedRequest, Stop>(m);
     },
+    deactivate: (matched) => succeed(matched),
     guards: (m) => {
       log.push("guards");
       return succeed(m);

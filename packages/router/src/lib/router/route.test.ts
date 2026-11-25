@@ -43,7 +43,7 @@ test("a route's redirect returns the URL to go to, or undefined to leave the nav
     destination: destinationOf("/todos"),
     state: null,
     arrival: "push",
-    redirectFrom: [], trace: [],
+    redirectFrom: [], activatedRoutes: [], trace: [],
     chain: [],
   };
   expect(route.redirect?.(matched))
