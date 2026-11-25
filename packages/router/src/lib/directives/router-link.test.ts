@@ -22,6 +22,11 @@ import { provide } from "@tinker/core";
     "<a class=\"fragment\" routerlink=\"7\" fragment=\"top\">fragment</a>",
     "<a class=\"stateful\" routerlink=\"7\" [state]=\"stash\">state</a>",
     "<a class=\"segments\" [routerlink]=\"segments\">segments</a>",
+    "<a class=\"set\" routerlink=\"7?x=1\" [queryParams]=\"tab\">set</a>",
+    "<a class=\"merge\" routerlink=\"7?x=1\" [queryParams]=\"tab\" [preserveQueryParams]=\"'all'\">merge</a>",
+    "<a class=\"override\" routerlink=\"7?tab=open\" [queryParams]=\"tab\" [preserveQueryParams]=\"'all'\">override</a>",
+    "<a class=\"listed\" routerlink=\"7?x=1&sort=due\" [queryParams]=\"tab\" [preserveQueryParams]=\"keep\">listed</a>",
+    "<a class=\"hashed\" routerlink=\"7#top\">hashed</a>",
   ].join(""),
   imports: [RouterLink],
 })
@@ -30,6 +35,7 @@ class TodoList {
   readonly tab = { tab: "done" };
   readonly stash = { scroll: 320 };
   readonly segments = ["7"];
+  readonly keep = ["sort"];
 }
 
 @Component({ selector: "tk-root", template: "<p>Root</p>" })
@@ -250,5 +256,30 @@ test("without an href on the platform, the href attribute is the app's path", ()
     .build();
   expect(fixture.root.query("a.root").element.getAttribute("href"))
     .toBe("/todos");
+  fixture.destroy();
+});
+
+test("preserveQueryParams: none drops the URL's query, all keeps it, a list keeps only its keys, and queryParams override shared keys", () => {
+  const fixture = appAt("/todos");
+  expect(fixture.root.query("a.set")
+    .getAttribute("href"))
+    .toBe("/todos/7?tab=done");
+  expect(fixture.root.query("a.merge")
+    .getAttribute("href"))
+    .toBe("/todos/7?x=1&tab=done");
+  expect(fixture.root.query("a.override")
+    .getAttribute("href"))
+    .toBe("/todos/7?tab=done");
+  expect(fixture.root.query("a.listed")
+    .getAttribute("href"))
+    .toBe("/todos/7?sort=due&tab=done");
+  fixture.destroy();
+});
+
+test("a fragment in the link's URL is kept, when the link sets none", () => {
+  const fixture = appAt("/todos");
+  expect(fixture.root.query("a.hashed")
+    .getAttribute("href"))
+    .toBe("/todos/7#top");
   fixture.destroy();
 });

@@ -8051,7 +8051,7 @@
         {
           "name": "RouterLink",
           "kind": "class",
-          "source": "packages/router/src/lib/directives/router-link.ts:23",
+          "source": "packages/router/src/lib/directives/router-link.ts:53",
           "description": "",
           "params": [],
           "examples": [],
@@ -8064,10 +8064,12 @@
             {
               "name": "routerlink",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:36",
-              "description": "The URL: absolute, such as `\"/todos/7\"`, or relative, such as `\"7\"`, or its segments.",
+              "source": "packages/router/src/lib/directives/router-link.ts:86",
+              "description": "The URL the link goes to: absolute (`\"/todos/7\"`), relative to the component the link is in\n(`\"7\"`), or a list of segments (`[\"todos\", \"7\"]`, joined with `/`). A URL that no route takes\nmakes the link throw when it is rendered.",
               "params": [],
-              "examples": [],
+              "examples": [
+                "```html\n<a routerlink=\"/todos\">All todos</a>\n<a [routerlink]=\"['todos', id]\">Todo {{ id }}</a>\n```"
+              ],
               "see": [],
               "throws": [],
               "type": "InputSignal<string | readonly string[] | undefined>"
@@ -8075,10 +8077,12 @@
             {
               "name": "target",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:38",
-              "description": "The browser's target, set on the link. `_blank` opens it in a new tab: left to the browser.",
+              "source": "packages/router/src/lib/directives/router-link.ts:96",
+              "description": "The browser target of the link. `_self`, or no target, navigates in this tab. Any other target,\nsuch as `_blank`, is left to the browser, and the router does not navigate.",
               "params": [],
-              "examples": [],
+              "examples": [
+                "```html\n<a routerlink=\"/todos\" target=\"_blank\">Open in a new tab</a>\n```"
+              ],
               "see": [],
               "throws": [],
               "type": "InputSignal<string | undefined>"
@@ -8086,21 +8090,38 @@
             {
               "name": "queryParams",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:40",
-              "description": "Query params set on the destination; a param is added to the query of the URL.",
+              "source": "packages/router/src/lib/directives/router-link.ts:107",
+              "description": "Query pairs added to the link's URL. They override the URL's pairs with the same name, and\n`preserveQueryParams` decides which of the URL's other pairs are kept.",
               "params": [],
-              "examples": [],
+              "examples": [
+                "```html\n<a routerlink=\"/todos\" [queryParams]=\"{ sort: 'due' }\">By due date</a>\n<!-- href=\"/todos?sort=due\" -->\n```"
+              ],
               "see": [],
               "throws": [],
               "type": "InputSignal<Readonly<Record<string, string>> | undefined>"
             },
             {
+              "name": "preserveQueryParams",
+              "kind": "property",
+              "source": "packages/router/src/lib/directives/router-link.ts:121",
+              "description": "Which of the URL's own query pairs are kept, before `queryParams` are added. `\"none\"` (the\ndefault) keeps none of them. `\"all\"` keeps them all. A list keeps only the names it gives.",
+              "params": [],
+              "examples": [
+                "```html\n<a routerlink=\"/todos?x=1&sort=due\" [queryParams]=\"{ tab: 'done' }\">Done</a>\n<!-- href=\"/todos?tab=done\" -->\n<a routerlink=\"/todos?x=1&sort=due\" [queryParams]=\"{ tab: 'done' }\"\n   [preserveQueryParams]=\"['sort']\">Done, sorted</a>\n<!-- href=\"/todos?sort=due&tab=done\" -->\n```"
+              ],
+              "see": [],
+              "throws": [],
+              "type": "InputSignal<readonly string[] | \"none\" | \"all\">"
+            },
+            {
               "name": "fragment",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:42",
-              "description": "The fragment (hash) of the destination, without the `#`.",
+              "source": "packages/router/src/lib/directives/router-link.ts:132",
+              "description": "The fragment (the part after `#`) of the link's URL, without the `#`. When it is not set, the\nfragment in `routerlink` is used.",
               "params": [],
-              "examples": [],
+              "examples": [
+                "```html\n<a routerlink=\"/todos/7\" fragment=\"comments\">Comments</a>\n<!-- href=\"/todos/7#comments\" -->\n```"
+              ],
               "see": [],
               "throws": [],
               "type": "InputSignal<string | undefined>"
@@ -8108,10 +8129,12 @@
             {
               "name": "state",
               "kind": "property",
-              "source": "packages/router/src/lib/directives/router-link.ts:44",
-              "description": "The state of the history entry a click creates.",
+              "source": "packages/router/src/lib/directives/router-link.ts:141",
+              "description": "The history state a click creates for the navigation.",
               "params": [],
-              "examples": [],
+              "examples": [
+                "```html\n<a routerlink=\"/todos\" [state]=\"{ scroll: 320 }\">Back to the list</a>\n```"
+              ],
               "see": [],
               "throws": [],
               "type": "InputSignal<unknown>"
