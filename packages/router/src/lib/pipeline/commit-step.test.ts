@@ -51,13 +51,13 @@ function commit(step: ReturnType<typeof createCommitStep>, request: MatchedReque
 }
 
 describe("the commit step", () => {
-  test("a push adds the history entry, with the base, and activates the routes", () => {
-    const { browser, calls } = fakeBrowser("/app/home");
+  test("a push adds the history entry, and activates the routes", () => {
+    const { browser, calls } = fakeBrowser("/home");
     const activated: MatchedRequest[] = [];
-    const step = createCommitStep({ browser, base: "/app", activate: (m) => activated.push(m) });
+    const step = createCommitStep({ browser, activate: (m) => activated.push(m) });
     const outcome = commit(step, matchedFor("push"));
     expect(calls)
-      .toEqual(["go /app/todos/7"]);
+      .toEqual(["go /todos/7"]);
     expect(activated)
       .toHaveLength(1);
     expect(outcome?.ok)
@@ -65,27 +65,27 @@ describe("the commit step", () => {
   });
 
   test("a pop replaces the entry with the destination, even when the URL is the same, and activates", () => {
-    const { browser, calls } = fakeBrowser("/app/todos/7");
+    const { browser, calls } = fakeBrowser("/todos/7");
     const activated: MatchedRequest[] = [];
-    const step = createCommitStep({ browser, base: "/app", activate: (m) => activated.push(m) });
+    const step = createCommitStep({ browser, activate: (m) => activated.push(m) });
     commit(step, matchedFor("pop"));
     expect(calls)
-      .toEqual(["replace /app/todos/7"]);
+      .toEqual(["replace /todos/7"]);
     expect(activated)
       .toHaveLength(1);
   });
   test("a pop where a redirect moved the URL replaces the current entry", () => {
-    const { browser, calls } = fakeBrowser("/app/elsewhere");
-    const step = createCommitStep({ browser, base: "/app", activate: () => {} });
+    const { browser, calls } = fakeBrowser("/elsewhere");
+    const step = createCommitStep({ browser, activate: () => {} });
     commit(step, matchedFor("pop"));
     expect(calls)
-      .toEqual(["replace /app/todos/7"]);
+      .toEqual(["replace /todos/7"]);
   });
 
   test("a browser that refuses the change stops with Failed, and nothing is activated", () => {
-    const { browser } = fakeBrowser("/app/home", true);
+    const { browser } = fakeBrowser("/home", true);
     const activated: MatchedRequest[] = [];
-    const step = createCommitStep({ browser, base: "/app", activate: (m) => activated.push(m) });
+    const step = createCommitStep({ browser, activate: (m) => activated.push(m) });
     const outcome = commit(step, matchedFor("push"));
     expect(outcome?.error)
       .toMatchObject({ kind: "rejected", reason: "failed" });

@@ -7319,7 +7319,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6821",
+              "name": "__@APP_PATH_BRAND@6820",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
@@ -7574,9 +7574,28 @@
               "type": "ReadonlySignal<unknown>"
             },
             {
+              "name": "buildBrowserUrl",
+              "kind": "method",
+              "source": "packages/router/src/lib/location/location.ts:42",
+              "description": "The URL a browser needs for an app path: the app's folder is added when it is served under one.",
+              "params": [
+                {
+                  "name": "path",
+                  "text": "The app-relative path, such as `\"/todos/7\"`."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "returns": "The browser's URL for the path.",
+              "signatures": [
+                "buildBrowserUrl(path: string): string"
+              ]
+            },
+            {
               "name": "onPop",
               "kind": "method",
-              "source": "packages/router/src/lib/location/location.ts:43",
+              "source": "packages/router/src/lib/location/location.ts:53",
               "description": "Calls `listener` with the URL and state the browser moved to, when the user goes back or\nforward. The view does not change until the listener calls `go` or `replace`.",
               "params": [
                 {
@@ -7595,7 +7614,7 @@
             {
               "name": "go",
               "kind": "method",
-              "source": "packages/router/src/lib/location/location.ts:57",
+              "source": "packages/router/src/lib/location/location.ts:67",
               "description": "Go to `url` as a new entry, with `state`.",
               "params": [
                 {
@@ -7625,7 +7644,7 @@
             {
               "name": "replace",
               "kind": "method",
-              "source": "packages/router/src/lib/location/location.ts:69",
+              "source": "packages/router/src/lib/location/location.ts:79",
               "description": "Replace the current entry with `url`, with `state`.",
               "params": [
                 {
@@ -7655,7 +7674,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/location/location.ts:78",
+              "source": "packages/router/src/lib/location/location.ts:88",
               "description": "Stop listening to the browser, when the injector is destroyed.",
               "params": [],
               "examples": [],
@@ -8049,7 +8068,7 @@
             {
               "name": "navigate",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:110",
+              "source": "packages/router/src/lib/router/router.ts:109",
               "description": "Go to `destination` as a new history entry, with `options.state`. The navigation runs through\nthe guards and redirects of the matched routes. It resolves with its outcome: `done` when it\ncommits; `cancelled` when a newer navigation replaces it first; and `rejected`, with the\nreason: `no-route` when no route takes the path, `guard` when a guard said no (naming the\nroute), or `failed` when a step threw (with the cause). A rejected or cancelled navigation\nchanges nothing.",
               "params": [
                 {
@@ -8072,7 +8091,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:128",
+              "source": "packages/router/src/lib/router/router.ts:127",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],

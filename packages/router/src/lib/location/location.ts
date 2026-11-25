@@ -34,6 +34,16 @@ export class Location {
   }
 
   /**
+   * The URL a browser needs for an app path: the app's folder is added when it is served under one.
+   *
+   * @param path The app-relative path, such as `"/todos/7"`.
+   * @returns The browser's URL for the path.
+   */
+  buildBrowserUrl(path: string): string {
+    return this.platform.href?.(path) ?? path;
+  }
+
+  /**
    * Calls `listener` with the URL and state the browser moved to, when the user goes back or
    * forward. The view does not change until the listener calls `go` or `replace`.
    *

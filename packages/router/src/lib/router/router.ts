@@ -80,7 +80,6 @@ export class Router {
       guards: createGuardStep(injector),
       commit: createCommitStep({
         browser: location,
-        base: "",
         activate: (matched) => this.activate(matched.chain),
       }),
     });

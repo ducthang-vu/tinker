@@ -3,7 +3,6 @@
 // routes are updated, so a committed navigation always has its routes in place.
 
 import { fromComputation, type Task } from "@tinker/functional";
-import { toBrowserUrl } from "../destination/app-base.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { CommitStep } from "./steps.ts";
 import { failed, type Stop } from "./stop.ts";
@@ -16,12 +15,10 @@ export interface BrowserWriter {
   replace(url: string, state: unknown): void;
 }
 
-/** What the commit step needs: the browser, the app's base, and how to activate the routes. */
+/** What the commit step needs: the browser, and how to activate the routes. */
 export interface CommitOptions {
   /** The browser the commit writes to. */
   readonly browser: BrowserWriter;
-  /** The base the app is served under, added to the destination's URL. */
-  readonly base: string;
   /** Updates the activated routes to the matched levels. */
   readonly activate: (matched: MatchedRequest) => void;
 }
@@ -29,14 +26,14 @@ export interface CommitOptions {
 /**
  * The commit step for a router.
  *
- * @param options The browser, the base, and the activation.
+ * @param options The browser and the activation.
  * @returns A commit step: succeeds with the navigation once it is committed, or stops with Failed.
  */
 export function createCommitStep(options: CommitOptions): CommitStep {
   return (matched): Task<MatchedRequest, Stop> =>
     fromComputation<MatchedRequest, Stop>((ok, error) => {
       try {
-        const target = toBrowserUrl(matched.destination, options.base);
+        const target = matched.destination.format();
         if (matched.arrival === "push") {
           options.browser.go(target, matched.state);
         } else {

@@ -6,7 +6,7 @@
 
 import { computed, Directive, input, inject } from "@tinker/core";
 import { Router } from "../router/router.ts";
-import { PLATFORM_LOCATION } from "../location/platform-location.ts";
+import { Location } from "../location/location.ts";
 import { APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 
@@ -42,7 +42,7 @@ export class RouterLink {
   /** The state of the history entry a click creates. */
   readonly state = input<unknown>(undefined);
   private readonly router = inject(Router);
-  private readonly platform = inject(PLATFORM_LOCATION);
+  private readonly location = inject(Location);
   private readonly urls = inject(APP_PATH_BUILDER);
   /** The activated route of the component this link sits in: the base of a relative URL. */
   private readonly own = inject(ActivatedRoute);
@@ -70,7 +70,7 @@ export class RouterLink {
   /** The href attribute: the app's href, in the browser's form when the platform has one. */
   private readonly attributeHref = computed(() => {
     const href = this.href();
-    return href === undefined ? undefined : (this.platform.href?.(href) ?? href);
+    return href === undefined ? undefined : this.location.buildBrowserUrl(href);
   });
 
   /** `page` while the link's path is the current one, for assistive technology. */
