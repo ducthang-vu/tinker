@@ -7344,7 +7344,7 @@
         {
           "name": "AppPathBuilder",
           "kind": "class",
-          "source": "packages/router/src/lib/destination/app-path-builder.ts:36",
+          "source": "packages/router/src/lib/destination/app-path-builder.ts:34",
           "description": "",
           "params": [],
           "examples": [],
@@ -7357,7 +7357,7 @@
             {
               "name": "to",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:86",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:84",
               "description": "Adds segments below the current position. One string is split on `/`; several are taken as\nthey are. Throws when no route takes the segments.",
               "params": [
                 {
@@ -7378,7 +7378,7 @@
             {
               "name": "parse",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:103",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:101",
               "description": "Continues from this position with a raw URL. A URL that starts with `/` is read from the root;\nany other is read from this position. A relative URL is written at the last level that wrote a\nsegment, so a list page under its parent is reached from that parent. Each segment is matched\nas\nthe router matches. The query and the fragment of the URL are added to the ones written so far.",
               "params": [
                 {
@@ -7399,7 +7399,7 @@
             {
               "name": "up",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:120",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:118",
               "description": "Moves to the parent route. Throws at the root.",
               "params": [],
               "examples": [],
@@ -7416,7 +7416,7 @@
               "name": "relativeTo",
               "kind": "method",
               "source": "packages/router/src/lib/destination/app-path-builder.ts:136",
-              "description": "Starts at an activated route, with the segments it was reached by. With no argument, it is the\nactivated route the builder was provided in; with none there either, the root.",
+              "description": "Starts at an activated route, with the segments it was reached by. With no argument, it is the\nactivated route the builder was provided in. A builder injected at the root has the root route\nas that route, so its `relativeTo()` starts at the root: provide the builder in a component to\nstart at the component's route.",
               "params": [
                 {
                   "name": "route",
