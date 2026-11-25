@@ -5,7 +5,8 @@ import { Location } from "../location/location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
-import { ParseError, APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
+import { ParseError, AppPathBuilder } from "../destination/app-path-builder.ts";
+import { builderOver } from "../destination/test-builder.ts";
 import type { Guard } from "../pipeline/guard-step.ts";
 import { MAX_REDIRECTS } from "../pipeline/match-step.ts";
 import { fromComputation, getOrThrow, isNone } from "@tinker/functional";
@@ -48,11 +49,11 @@ function routerOver(root: Route, url: string) {
       provide(Location, { useClass: Location }),
       provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
       provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
-      provide(APP_PATH_BUILDER, { useFactory: () => AppPathBuilder.in(inject(Router).routes) }),
+      provide(AppPathBuilder, { useClass: AppPathBuilder }),
     ],
   });
   const router = runInInjectionContext(injector, () => inject(Router));
-  const urls = runInInjectionContext(injector, () => inject(APP_PATH_BUILDER));
+  const urls = runInInjectionContext(injector, () => inject(AppPathBuilder));
   return { router, urls, fake, destroy };
 }
 
@@ -95,7 +96,7 @@ test("navigate with a state gives the state to the history entry", async () => {
 
 test("a URL no route matches is rejected with the no-route reason, and the URL does not change", async () => {
   const { router, fake } = routerAt("/todos");
-  const elsewhere = AppPathBuilder.rootOf([{ path: "nowhere", component: Root }])
+  const elsewhere = builderOver([{ path: "nowhere", component: Root }])
     .to("nowhere")
     .build();
   const outcome = await router.navigate(elsewhere, { state: { scroll: 1 } });
@@ -297,7 +298,7 @@ test("a guard that says no stops the navigation, naming the route whose guard sa
 });
 
 test("a guard that redirects sends the navigation to its target instead, which is done", async () => {
-  const toList: Guard = () => AppPathBuilder.rootOf(CHILDREN)
+  const toList: Guard = () => builderOver(CHILDREN)
     .to("todos")
     .build();
   const { router, urls, destroy } = routerWithGuard([toList]);
@@ -313,7 +314,7 @@ test("a route that redirects to itself is rejected as failed, with the redirect 
   const loop: Route = {
     path: "",
     component: Root,
-    children: [{ path: "todos", component: TodoList, redirect: () => AppPathBuilder.rootOf(CHILDREN)
+    children: [{ path: "todos", component: TodoList, redirect: () => builderOver(CHILDREN)
       .to("todos")
       .build() }],
   };
@@ -374,11 +375,11 @@ function poppableRouter(root: Route, url: string) {
       provide(Location, { useClass: Location }),
       provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
       provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
-      provide(APP_PATH_BUILDER, { useFactory: () => AppPathBuilder.in(inject(Router).routes) }),
+      provide(AppPathBuilder, { useClass: AppPathBuilder }),
     ],
   });
   const router = runInInjectionContext(injector, () => inject(Router));
-  const urls = runInInjectionContext(injector, () => inject(APP_PATH_BUILDER));
+  const urls = runInInjectionContext(injector, () => inject(AppPathBuilder));
   /** The browser moves to `next`, as a back or forward move does, and the router hears of it. */
   const move = (next: string, state: unknown = null) => {
     current = { url: next, state };
@@ -418,7 +419,7 @@ test("a back move a guard rejects is restored: the browser returns to the last c
 });
 
 test("a back move a guard redirects goes to the redirect target, which replaces the entry", () => {
-  const toList: Guard = () => AppPathBuilder.rootOf(CHILDREN)
+  const toList: Guard = () => builderOver(CHILDREN)
     .to("todos")
     .build();
   const guarded: Route = {

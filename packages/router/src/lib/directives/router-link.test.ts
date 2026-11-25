@@ -5,7 +5,7 @@ import { provideRouter } from "../router/provide-router.ts";
 import { RouterLink } from "./router-link.ts";
 import { RouterOutlet } from "./router-outlet.ts";
 import { Router } from "../router/router.ts";
-import { APP_PATH_BUILDER } from "../destination/app-path-builder.ts";
+import { AppPathBuilder } from "../destination/app-path-builder.ts";
 import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform-location.ts";
 import { provide } from "@tinker/core";
 
@@ -210,7 +210,7 @@ test("aria-current is page on the link to the current path, and absent elsewhere
     .getAttribute("aria-current"))
     .toBeNull();
   fixture.get(Router)
-    .navigate(fixture.get(APP_PATH_BUILDER)
+    .navigate(fixture.get(AppPathBuilder)
       .parse("/todos/7")
       .build());
   fixture.detectChanges();

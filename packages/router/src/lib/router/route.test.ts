@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { MatchedRequest } from "../pipeline/request.ts";
 import { componentOf, type Route } from "./route.ts";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
-import { AppPathBuilder } from "../destination/app-path-builder.ts";
+import { builderOver } from "../destination/test-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
 function destinationOf(path: string): AppPath {
@@ -15,7 +15,7 @@ function destinationOf(path: string): AppPath {
   );
 }
 
-const target = AppPathBuilder.rootOf([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
+const target = builderOver([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
   .to("todos")
   .to("1")
   .build();

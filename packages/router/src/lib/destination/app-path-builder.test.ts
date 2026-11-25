@@ -4,7 +4,8 @@ import { provideRouter } from "../router/provide-router.ts";
 import { Router } from "../router/router.ts";
 import type { Route } from "../router/route.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
-import { AppPathBuilder, APP_PATH_BUILDER, ParseError, providePathBuilder } from "./app-path-builder.ts";
+import { AppPathBuilder, ParseError } from "./app-path-builder.ts";
+import { builderOver } from "./test-builder.ts";
 
 class Page {}
 
@@ -35,11 +36,11 @@ function errorOf(step: () => unknown): ParseError {
 }
 
 /** A router over `routes`, at `url`, and the builder it provides at the root. */
-function builderOver(routes: readonly Route[], url = "/") {
+function routerOver(routes: readonly Route[], url = "/") {
   window.history.replaceState(null, "", url);
   const { injector, destroy } = Injector.create({ providers: provideRouter(routes) });
   return {
-    urls: runInInjectionContext(injector, () => inject(APP_PATH_BUILDER)),
+    urls: runInInjectionContext(injector, () => inject(AppPathBuilder)),
     router: runInInjectionContext(injector, () => inject(Router)),
     destroy,
   };
@@ -47,7 +48,7 @@ function builderOver(routes: readonly Route[], url = "/") {
 
 describe("steps that add segments", () => {
   test("several arguments are segments, a param taking any value", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos", "7")
       .build()
       .format())
@@ -55,7 +56,7 @@ describe("steps that add segments", () => {
   });
 
   test("one string is split on slashes", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos/7")
       .build()
       .format())
@@ -63,7 +64,7 @@ describe("steps that add segments", () => {
   });
 
   test("an empty single string adds nothing", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos")
       .to("")
       .to("7")
@@ -73,7 +74,7 @@ describe("steps that add segments", () => {
   });
 
   test("the root alone is built only when a route takes the root", () => {
-    const error = errorOf(() => AppPathBuilder.rootOf(TREE)
+    const error = errorOf(() => builderOver(TREE)
       .build());
     expect(error.reason)
       .toBe("no-route");
@@ -82,7 +83,7 @@ describe("steps that add segments", () => {
   });
 
   test("a segment that no route takes throws a no-route ParseError, naming it", () => {
-    const error = errorOf(() => AppPathBuilder.rootOf(TREE)
+    const error = errorOf(() => builderOver(TREE)
       .to("nope"));
     expect(error.reason)
       .toBe("no-route");
@@ -91,7 +92,7 @@ describe("steps that add segments", () => {
   });
 
   test("a segment with a slash is encoded, so a param takes it as one value", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos", "a/b")
       .build()
       .format())
@@ -99,7 +100,7 @@ describe("steps that add segments", () => {
   });
 
   test("a segment below a route with no children throws", () => {
-    expect(() => AppPathBuilder.rootOf(TREE)
+    expect(() => builderOver(TREE)
       .to("home", "x"))
       .toThrow(ParseError);
   });
@@ -108,7 +109,7 @@ describe("steps that add segments", () => {
     const group: Route[] = [
       { path: "group", component: Page, children: [{ path: ":id", component: Page }] },
     ];
-    const error = errorOf(() => AppPathBuilder.rootOf(group)
+    const error = errorOf(() => builderOver(group)
       .to("group")
       .build());
     expect(error.reason)
@@ -118,7 +119,7 @@ describe("steps that add segments", () => {
   });
 
   test("the same steps with a segment that reaches a route build", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos", "7")
       .build()
       .format())
@@ -126,7 +127,7 @@ describe("steps that add segments", () => {
   });
 
   test("a builder can be kept and extended in more than one direction", () => {
-    const todos = AppPathBuilder.rootOf(TREE)
+    const todos = builderOver(TREE)
       .to("todos");
     expect(todos.to("7")
       .build()
@@ -139,7 +140,7 @@ describe("steps that add segments", () => {
   });
 
   test("a segment after an empty route is taken from the parent", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos", "")
       .parse("7")
       .build()
@@ -149,7 +150,7 @@ describe("steps that add segments", () => {
 
   test("a ** route takes the rest of the URL in one level", () => {
     const tree: Route[] = [{ path: "home", component: Page }, { path: "**", component: Page }];
-    expect(AppPathBuilder.rootOf(tree)
+    expect(builderOver(tree)
       .to("nowhere", "a", "b")
       .build()
       .format())
@@ -158,7 +159,7 @@ describe("steps that add segments", () => {
 
   test("a ** route catches a param-less segment after it", () => {
     const tree: Route[] = [{ path: "**", component: Page }];
-    expect(AppPathBuilder.rootOf(tree)
+    expect(builderOver(tree)
       .parse("/anything")
       .build()
       .format())
@@ -168,7 +169,7 @@ describe("steps that add segments", () => {
 
 describe("parse", () => {
   test("an absolute URL is read from the root, with its query and fragment", () => {
-    const destination = AppPathBuilder.rootOf(TREE)
+    const destination = builderOver(TREE)
       .parse("/todos/7?tab=done#top")
       .build();
     expect(destination.segments)
@@ -183,7 +184,7 @@ describe("parse", () => {
   });
 
   test("a relative URL continues from the position, and a leading slash starts at the root", () => {
-    const todos = AppPathBuilder.rootOf(TREE)
+    const todos = builderOver(TREE)
       .to("todos");
     expect(todos.parse("7")
       .build()
@@ -196,7 +197,7 @@ describe("parse", () => {
   });
 
   test("the segments are percent-decoded", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .parse("/todos/a%20b")
       .build().segments)
       .toEqual([
@@ -206,14 +207,14 @@ describe("parse", () => {
   });
 
   test("empty query pairs are skipped, and a pair without a value is empty", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .parse("/home?a=1&&flag")
       .build().query)
       .toEqual({ a: "1", flag: "" });
   });
 
   test("a URL that no route takes throws a no-route ParseError, naming the segment", () => {
-    const error = errorOf(() => AppPathBuilder.rootOf(TREE)
+    const error = errorOf(() => builderOver(TREE)
       .parse("/nowhere"));
     expect(error.reason)
       .toBe("no-route");
@@ -222,22 +223,22 @@ describe("parse", () => {
   });
 
   test("a segment below a route with no children throws no-route", () => {
-    expect(errorOf(() => AppPathBuilder.rootOf(TREE)
+    expect(errorOf(() => builderOver(TREE)
       .parse("/home/extra")).at)
       .toBe("extra");
   });
 
   test("a malformed percent-encoding throws a malformed ParseError in the path, query or fragment", () => {
-    expect(errorOf(() => AppPathBuilder.rootOf(TREE)
+    expect(errorOf(() => builderOver(TREE)
       .parse("/todos/%E0%A4%A")).reason)
       .toBe("malformed");
-    expect(errorOf(() => AppPathBuilder.rootOf(TREE)
+    expect(errorOf(() => builderOver(TREE)
       .parse("/home?a=%E0%A4%A")).reason)
       .toBe("malformed");
-    expect(errorOf(() => AppPathBuilder.rootOf(TREE)
+    expect(errorOf(() => builderOver(TREE)
       .parse("/home#%E0%A4%A")).reason)
       .toBe("malformed");
-    expect(errorOf(() => AppPathBuilder.rootOf(TREE)
+    expect(errorOf(() => builderOver(TREE)
       .parse("/home?%E0%A4%A=1")).reason)
       .toBe("malformed");
   });
@@ -245,7 +246,7 @@ describe("parse", () => {
 
 describe("up", () => {
   test("up goes back to the parent", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("todos", "7")
       .up()
       .build()
@@ -254,7 +255,7 @@ describe("up", () => {
   });
 
   test("up at the root throws", () => {
-    expect(() => AppPathBuilder.rootOf(TREE)
+    expect(() => builderOver(TREE)
       .up())
       .toThrow("up: already at the root");
   });
@@ -262,7 +263,7 @@ describe("up", () => {
 
 describe("query and fragment", () => {
   test("query pairs come after the path, and the fragment last", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("home")
       .withQuery({ a: "1" })
       .withQuery({ b: "2" })
@@ -273,7 +274,7 @@ describe("query and fragment", () => {
   });
 
   test("a later query with the same name replaces the earlier value", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("home")
       .withQuery({ a: "1" })
       .withQuery({ a: "2" })
@@ -283,7 +284,7 @@ describe("query and fragment", () => {
   });
 
   test("after a fragment, a query or another fragment throws", () => {
-    const hashed = AppPathBuilder.rootOf(TREE)
+    const hashed = builderOver(TREE)
       .to("home")
       .withFragment("top");
     expect(() => hashed.withQuery({ a: "1" }))
@@ -293,7 +294,7 @@ describe("query and fragment", () => {
   });
 
   test("after a fragment, only build is left", () => {
-    expect(() => AppPathBuilder.rootOf(TREE)
+    expect(() => builderOver(TREE)
       .to("home")
       .withFragment("top")
       .to("todos"))
@@ -301,7 +302,7 @@ describe("query and fragment", () => {
   });
 
   test("after a query, a path step throws", () => {
-    const queried = AppPathBuilder.rootOf(TREE)
+    const queried = builderOver(TREE)
       .to("home")
       .withQuery({ a: "1" });
     expect(() => queried.to("todos"))
@@ -315,7 +316,7 @@ describe("query and fragment", () => {
   });
 
   test("a parse can add a query and fragment after the path", () => {
-    expect(AppPathBuilder.rootOf(TREE)
+    expect(builderOver(TREE)
       .to("home")
       .parse("?a=1#x")
       .build()
@@ -326,7 +327,7 @@ describe("query and fragment", () => {
 
 describe("the injected builder", () => {
   test("the root builder starts at the root of the router's routes", () => {
-    const { urls, destroy } = builderOver(TREE);
+    const { urls, destroy } = routerOver(TREE);
     expect(urls.to("todos", "7")
       .build()
       .format())
@@ -335,7 +336,7 @@ describe("the injected builder", () => {
   });
 
   test("the root builder's relativeTo with no argument starts at the root", () => {
-    const { urls, destroy } = builderOver(TREE, "/todos/7");
+    const { urls, destroy } = routerOver(TREE, "/todos/7");
     expect(urls.relativeTo()
       .to("home")
       .build()
@@ -345,7 +346,7 @@ describe("the injected builder", () => {
   });
 
   test("relativeTo a route starts at it, with the parts it was reached by", () => {
-    const { urls, router, destroy } = builderOver(TREE, "/todos/7");
+    const { urls, router, destroy } = routerOver(TREE, "/todos/7");
     const detail = router.activated()[2];
     if (detail === undefined) {
       throw new Error("no detail level");
@@ -359,7 +360,7 @@ describe("the injected builder", () => {
   });
 
   test("a builder provided in a component: relativeTo with no argument is that component's route", () => {
-    const { router, destroy } = builderOver(TREE, "/todos/7");
+    const { router, destroy } = routerOver(TREE, "/todos/7");
     const detail = router.activated()[2];
     if (detail === undefined) {
       throw new Error("no detail level");
@@ -368,10 +369,10 @@ describe("the injected builder", () => {
       providers: [
         provide(Router, { useValue: router }),
         provide(ActivatedRoute, { useValue: detail }),
-        providePathBuilder(),
+        provide(AppPathBuilder, { useClass: AppPathBuilder }),
       ],
     });
-    const urls = runInInjectionContext(injector, () => inject(APP_PATH_BUILDER));
+    const urls = runInInjectionContext(injector, () => inject(AppPathBuilder));
     expect(urls.relativeTo()
       .withQuery({ tab: "done" })
       .build()
@@ -379,17 +380,5 @@ describe("the injected builder", () => {
       .toBe("/todos/7?tab=done");
     destroyAt();
     destroy();
-  });
-
-  test("the builder reads the routes signal on each step, so a change to the tree is seen", () => {
-    const routes = signal<Route>({ path: "", children: [{ path: "home", component: Page }] });
-    const urls = AppPathBuilder.in(routes);
-    expect(() => urls.to("shop"))
-      .toThrow(ParseError);
-    routes.set({ path: "", children: [{ path: "shop", component: Page }] });
-    expect(urls.to("shop")
-      .build()
-      .format())
-      .toBe("/shop");
   });
 });

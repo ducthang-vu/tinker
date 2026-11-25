@@ -7,7 +7,7 @@
 import { computed, Directive, input, inject } from "@tinker/core";
 import { Router } from "../router/router.ts";
 import { Location } from "../location/location.ts";
-import { APP_PATH_BUILDER, AppPathBuilder } from "../destination/app-path-builder.ts";
+import { AppPathBuilder } from "../destination/app-path-builder.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 
 /**
@@ -22,6 +22,7 @@ function pathOf(url: string): string {
 
 @Directive({
   selector: "a[routerlink]",
+  providers: [AppPathBuilder],
   host: {
     "(click.plain.primary)": "navigateTo($event)",
     "[attr.href]": "attributeHref()",
@@ -43,11 +44,10 @@ export class RouterLink {
   readonly state = input<unknown>(undefined);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
-  private readonly urls = inject(APP_PATH_BUILDER);
   /** The activated route of the component this link sits in: the base of a relative URL. */
   private readonly own = inject(ActivatedRoute);
   /** The builder of this link: a relative URL starts at the route the link sits in. */
-  private readonly builder = AppPathBuilder.in(this.router.routes, this.own);
+  private readonly builder = inject(AppPathBuilder);
 
   /** Where a click goes: the destination of the link, with its query params and fragment. */
   private readonly destination = computed(() => {

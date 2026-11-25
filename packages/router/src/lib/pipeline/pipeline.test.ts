@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
-import { AppPathBuilder } from "../destination/app-path-builder.ts";
+import { builderOver } from "../destination/test-builder.ts";
 import { createTask, Left, Right, run, fail, succeed, type Either, type Task } from "@tinker/functional";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import { createPipeline } from "./pipeline.ts";
@@ -22,7 +22,7 @@ const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] 
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
-  return AppPathBuilder.rootOf(targets)
+  return builderOver(targets)
     .to(path)
     .build();
 }
