@@ -29,7 +29,16 @@ import {
 import { Continue, Halt, OUTCOME, type Outcome } from "./outcome.ts";
 
 /**
- * A Right: a success, holding a T. The steps after it (`map`, `flatMap`) run on this value.
+ * The Right case of {@link Either}: the one `map` and `flatMap` continue on, holding the value a
+ * computation produced. Its counterpart is {@link Left}.
+ *
+ * @example
+ * ```ts
+ * import { Left, map, Right } from "@tinker/functional";
+ *
+ * map(Right.of<number, string>(7), (n) => n * 2); // Right(14): the step ran on the Right
+ * map(Left.of<number, string>("bad"), (n) => n * 2); // Left("bad"): the step was skipped
+ * ```
  */
 export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Outcome<T, never> {
   /** The case this Right is, for `match`: its name and its value. */
@@ -75,8 +84,17 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Ou
 }
 
 /**
- * A Left: the other case, holding what the caller chose to put there. The steps after it are
- * skipped, and it reaches the end of the pipeline unchanged.
+ * The Left case of {@link Either}: the one `map` and `flatMap` skip, holding the reason a
+ * computation did not produce a value. It reaches the end of the pipeline unchanged. Its
+ * counterpart is {@link Right}.
+ *
+ * @example
+ * ```ts
+ * import { Left, map, Right } from "@tinker/functional";
+ *
+ * map(Left.of<string, number>("bad"), (n) => n * 2); // Left("bad"): skipped, so it passes on
+ * map(Right.of<number, string>(7), (n) => n * 2); // Right(14): the Right is the one that runs
+ * ```
  */
 export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outcome<never, E> {
   /** The case this Left is, for `match`: its name and its error. */
@@ -122,8 +140,10 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outc
 }
 
 /**
- * Either: a Right holding a T (a success), or a Left holding an E (the other case). A pipeline of
- * `map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.
+ * Either: a {@link Right} or a {@link Left}, the two cases of a computation's result. `map` and
+ * `flatMap` continue on a Right and skip a Left, so a pipeline of steps runs on the value of a
+ * Right, and a Left reaches the end unchanged. Usually a Right is the value a computation
+ * produced, and a Left is the reason it did not produce one: an error, or a message to show.
  *
  * @example
  * ```ts
@@ -132,9 +152,9 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outc
  * const parse = (text: string): Either<number, string> =>
  *   /^\d+$/.test(text) ? Right.of(Number(text)) : Left.of("not a number");
  *
- * const label = map(parse("7"), (n) => `user ${n}`); // Right("user 7"): the step ran
- * const same = map(parse("x"), (n) => `user ${n}`); // Left("not a number"): skipped
- * match(label, { Right: (text) => text, Left: (error) => error }); // "user 7"
+ * map(parse("7"), (n) => n * 2); // Right(14): the step ran on the Right
+ * map(parse("x"), (n) => n * 2); // Left("not a number"): skipped, the reason passes on
+ * match(parse("7"), { Right: (n) => `ok ${n}`, Left: (reason) => reason }); // "ok 7"
  * ```
  */
 export type Either<T, E> = Right<T> | Left<E>;

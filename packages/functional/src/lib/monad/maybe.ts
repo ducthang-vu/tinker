@@ -26,7 +26,18 @@ import {
   type Matchable,
 } from "./monad.ts";
 
-/** A Some: a value is present. The steps after it (`map`, `flatMap`) run on this value. */
+/**
+ * The Some case of {@link Maybe}: the one `map` and `flatMap` continue on, holding a value that
+ * is present. Its counterpart is {@link None}.
+ *
+ * @example
+ * ```ts
+ * import { map, None, Some } from "@tinker/functional";
+ *
+ * map(Some.of(7), (n) => n * 2); // Some(14): the step ran on the Some
+ * map(None.of<number>(), (n) => n * 2); // None: the step was skipped
+ * ```
+ */
 export class Some<T> implements Matchable<"Some", readonly [T]>, Equatable {
   /** The case this Some is, for `match`: its name and its value. */
   readonly [MATCHABLE]: Case<"Some", readonly [T]>;
@@ -61,7 +72,18 @@ export class Some<T> implements Matchable<"Some", readonly [T]>, Equatable {
   }
 }
 
-/** A None: no value. The steps after it are skipped, and it reaches the end unchanged. */
+/**
+ * The None case of {@link Maybe}: the one `map` and `flatMap` skip, holding nothing: there is no
+ * value. It reaches the end of the pipeline unchanged. Its counterpart is {@link Some}.
+ *
+ * @example
+ * ```ts
+ * import { map, None, Some } from "@tinker/functional";
+ *
+ * map(None.of<number>(), (n) => n * 2); // None: skipped, so it reaches the end
+ * map(Some.of(7), (n) => n * 2); // Some(14): the Some is the one that runs
+ * ```
+ */
 export class None implements Matchable<"None", readonly []>, Equatable {
   /** The case this None is, for `match`: its name, with no value. */
   readonly [MATCHABLE]: Case<"None", readonly []>;
@@ -92,18 +114,19 @@ export class None implements Matchable<"None", readonly []>, Equatable {
 }
 
 /**
- * Maybe: a Some holding a T (a value is present), or a None (there is none). A pipeline of `map`
- * and `flatMap` steps runs on the Some, and passes a None on unchanged.
+ * Maybe: a {@link Some} or a {@link None}, the two cases of a value that may be absent. `map` and
+ * `flatMap` continue on a Some and skip a None, so a pipeline runs on the value when there is one,
+ * and a None reaches the end unchanged. Usually a Some is a value that was found, and a None is a
+ * lookup that found nothing.
  *
  * @example
  * ```ts
  * import { fromNullable, map, match, type Maybe } from "@tinker/functional";
  *
  * const user: Maybe<{ name: string }> = fromNullable({ name: "Ada" });
- * const name = map(user, (u) => u.name); // Some("Ada"): the step ran
- * match(name, { Some: (value) => value, None: () => "guest" }); // "Ada"
- *
- * const missing = map(fromNullable<{ name: string }>(null), (u) => u.name); // None: skipped
+ * map(user, (u) => u.name); // Some("Ada"): the step ran on the Some
+ * map(fromNullable<{ name: string }>(null), (u) => u.name); // None: skipped
+ * match(user, { Some: (u) => u.name, None: () => "guest" }); // "Ada"
  * ```
  */
 export type Maybe<T> = Some<T> | None;
