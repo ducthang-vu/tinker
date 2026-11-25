@@ -5810,7 +5810,7 @@
         {
           "name": "flow",
           "kind": "function",
-          "source": "packages/functional/src/lib/function.ts:42",
+          "source": "packages/functional/src/lib/function.ts:43",
           "description": "",
           "params": [],
           "examples": [],
@@ -6333,6 +6333,25 @@
           ]
         },
         {
+          "name": "memoise",
+          "kind": "function",
+          "source": "packages/functional/src/lib/function.ts:92",
+          "description": "A function that gives the result of `fn` again, without calling `fn`, while it is called with\nthe same arguments as last time. Each argument is compared with `Object.is`, and only the last\ncall is kept.\n\nMemoise only a pure `fn`, whose result depends on its arguments alone. A function that reads the\nclock, the locale or any other state gives a stale result: it is not checked.",
+          "params": [
+            {
+              "name": "fn",
+              "text": "The function to memoise."
+            }
+          ],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "returns": "A function that takes the same arguments and gives the same result as `fn`, calling `fn`\nonly when the arguments differ from those of the last call. If `fn` throws, nothing is kept.",
+          "signatures": [
+            "memoise<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R"
+          ]
+        },
+        {
           "name": "orElse",
           "kind": "function",
           "source": "packages/functional/src/lib/monad/maybe.ts:251",
@@ -6358,7 +6377,7 @@
         {
           "name": "partial",
           "kind": "function",
-          "source": "packages/functional/src/lib/function.ts:72",
+          "source": "packages/functional/src/lib/function.ts:73",
           "description": "The function with its first arguments fixed to `given`, taking the rest.",
           "params": [
             {
@@ -6381,7 +6400,7 @@
         {
           "name": "pipe",
           "kind": "function",
-          "source": "packages/functional/src/lib/function.ts:11",
+          "source": "packages/functional/src/lib/function.ts:12",
           "description": "",
           "params": [],
           "examples": [],
@@ -7308,7 +7327,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6816",
+              "name": "__@APP_PATH_BRAND@6823",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",

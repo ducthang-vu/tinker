@@ -1,5 +1,6 @@
 // pipe and flow: plain function composition, for steps written data-last (`map(f)`, `flatMap(f)`).
 // `pipe` applies the functions to a value, left to right. `flow` makes a function out of them.
+// `partial` fixes the first arguments of a function. `memoise` keeps the last result of a pure one.
 
 /**
  * `value` passed through each function in turn, left to right.
@@ -74,4 +75,40 @@ export function partial<A extends unknown[], B extends unknown[], R>(
   ...given: A
 ): (...rest: B) => R {
   return (...rest) => f(...[...given, ...rest] as [...A, ...B]);
+}
+
+/**
+ * A function that gives the result of `fn` again, without calling `fn`, while it is called with
+ * the same arguments as last time. Each argument is compared with `Object.is`, and only the last
+ * call is kept.
+ *
+ * Memoise only a pure `fn`, whose result depends on its arguments alone. A function that reads the
+ * clock, the locale or any other state gives a stale result: it is not checked.
+ *
+ * @param fn The function to memoise.
+ * @returns A function that takes the same arguments and gives the same result as `fn`, calling `fn`
+ *   only when the arguments differ from those of the last call. If `fn` throws, nothing is kept.
+ */
+export function memoise<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+  let last: { args: A; result: R } | undefined;
+  return (...args) => {
+    if (last !== undefined && sameArguments(last.args, args)) {
+      return last.result;
+    }
+    const result = fn(...args);
+    last = { args, result };
+    return result;
+  };
+}
+
+/**
+ * Whether two argument lists have the same length, and equal arguments in each position.
+ *
+ * @param before The arguments of the last call.
+ * @param after The arguments of this call.
+ * @returns Whether every argument matches by `Object.is`, and there are as many of each.
+ */
+function sameArguments(before: readonly unknown[], after: readonly unknown[]): boolean {
+  return before.length === after.length
+    && before.every((value, index) => Object.is(value, after[index]));
 }
