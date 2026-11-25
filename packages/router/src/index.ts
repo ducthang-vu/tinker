@@ -16,6 +16,7 @@ export { browserPlatformLocation, PLATFORM_LOCATION } from "./lib/location/platf
 export type { PlatformLocation } from "./lib/location/platform-location.ts";
 export {
   AllowCommand,
+  type DeactivateGuard,
   type Guard,
   RedirectCommand,
   RedirectPayload,

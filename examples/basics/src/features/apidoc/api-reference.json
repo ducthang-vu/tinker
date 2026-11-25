@@ -7274,7 +7274,7 @@
         {
           "name": "AllowCommand",
           "kind": "class",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:65",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:66",
           "description": "The ALLOW command: the guard lets the navigation through.",
           "params": [],
           "examples": [],
@@ -7287,7 +7287,7 @@
             {
               "name": "type",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:67",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:68",
               "description": "The command's type.",
               "params": [],
               "examples": [],
@@ -7355,7 +7355,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6835",
+              "name": "__@APP_PATH_BRAND@6842",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
@@ -7531,9 +7531,20 @@
           "type": "InjectionToken<ReadonlySignal<Maybe<ActivatedRoute>>>"
         },
         {
+          "name": "DeactivateGuard",
+          "kind": "type",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:81",
+          "description": "A deactivate guard: asked when the navigation leaves a route. It gets the navigation and the\nactivated route it leaves.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "declaration": "export type DeactivateGuard = (\n  request: NavigationRequest,\n  leaving: ActivatedRoute,\n) => Task<RouteGuardCommand, unknown>;"
+        },
+        {
           "name": "Guard",
           "kind": "type",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:74",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:75",
           "description": "A guard of a route. It returns a Task of its command: `succeed` for a sync guard.",
           "params": [],
           "examples": [],
@@ -7880,7 +7891,7 @@
         {
           "name": "RedirectCommand",
           "kind": "class",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:52",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:53",
           "description": "The REDIRECT command: the navigation goes to another URL instead.",
           "params": [],
           "examples": [],
@@ -7893,7 +7904,7 @@
             {
               "name": "type",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:54",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:55",
               "description": "The command's type.",
               "params": [],
               "examples": [],
@@ -7904,7 +7915,7 @@
             {
               "name": "payload",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:61",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:62",
               "description": "The URL to go to, and why.",
               "params": [
                 {
@@ -7923,7 +7934,7 @@
         {
           "name": "RedirectPayload",
           "kind": "class",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:38",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:39",
           "description": "The payload of a REDIRECT command: the URL to go to instead, and why.",
           "params": [],
           "examples": [],
@@ -7936,7 +7947,7 @@
             {
               "name": "path",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:46",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:47",
               "description": "The URL to go to instead.",
               "params": [
                 {
@@ -7953,7 +7964,7 @@
             {
               "name": "reason",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:47",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:48",
               "description": "Why the navigation is redirected, for the app to show or log.",
               "params": [
                 {
@@ -8035,10 +8046,21 @@
               "type": "((request: MatchedRequest) => AppPath | undefined) | undefined"
             },
             {
+              "name": "canDeactivate",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/route.ts:40",
+              "description": "Guards that run when the navigation leaves this route, before any activate guard. They run\nfrom the last route left to the first, in sequence, in the injection context of the router.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "readonly DeactivateGuard[] | undefined"
+            },
+            {
               "name": "canActivate",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:41",
-              "description": "Guards that decide whether the navigation may go on, run after the redirects. Each returns\n`true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for\nwork that takes time. They run in the injection context of the router, root first.",
+              "source": "packages/router/src/lib/router/route.ts:46",
+              "description": "Guards that decide whether the navigation may go on, run after the deactivate guards. Each\nreturns a Task of a command: ALLOW, STOP, or REDIRECT. They run root first, in sequence, in the\ninjection context of the router.",
               "params": [],
               "examples": [],
               "see": [],
@@ -8050,7 +8072,7 @@
         {
           "name": "RouteGuardCommand",
           "kind": "type",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:71",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:72",
           "description": "What a guard returns: a command the router carries out.",
           "params": [],
           "examples": [],
@@ -8174,7 +8196,7 @@
             {
               "name": "navigate",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:109",
+              "source": "packages/router/src/lib/router/router.ts:110",
               "description": "Go to `destination` as a new history entry, with `options.state`. The navigation runs through\nthe guards and redirects of the matched routes. It resolves with its outcome: `done` when it\ncommits; `cancelled` when a newer navigation replaces it first; and `rejected`, with the\nreason: `no-route` when no route takes the path, `guard` when a guard said no (naming the\nroute), or `failed` when a step threw (with the cause). A rejected or cancelled navigation\nchanges nothing.",
               "params": [
                 {
@@ -8197,7 +8219,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:128",
+              "source": "packages/router/src/lib/router/router.ts:130",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],
@@ -8319,7 +8341,7 @@
         {
           "name": "StopCommand",
           "kind": "class",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:25",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:26",
           "description": "The STOP command: the guard rejects the navigation, and the navigation changes nothing.",
           "params": [],
           "examples": [],
@@ -8332,7 +8354,7 @@
             {
               "name": "type",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:27",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:28",
               "description": "The command's type.",
               "params": [],
               "examples": [],
@@ -8343,7 +8365,7 @@
             {
               "name": "payload",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:34",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:35",
               "description": "Why the navigation is stopped.",
               "params": [
                 {
@@ -8362,7 +8384,7 @@
         {
           "name": "StopPayload",
           "kind": "class",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:15",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:16",
           "description": "The payload of a STOP command: why the guard stopped the navigation, if it gives a reason.",
           "params": [],
           "examples": [],
@@ -8375,7 +8397,7 @@
             {
               "name": "reason",
               "kind": "property",
-              "source": "packages/router/src/lib/pipeline/guard-step.ts:21",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:22",
               "description": "Why the navigation is stopped, for the app to show or log.",
               "params": [
                 {

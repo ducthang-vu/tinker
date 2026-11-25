@@ -3,7 +3,7 @@
 // matches a URL against the tree, from a root that is never shown.
 
 import type { Class } from "@tinker/core";
-import type { Guard } from "../pipeline/guard-step.ts";
+import type { DeactivateGuard, Guard } from "../pipeline/guard-step.ts";
 import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
@@ -34,9 +34,14 @@ export interface Route {
    */
   readonly redirect?: (request: MatchedRequest) => AppPath | undefined;
   /**
-   * Guards that decide whether the navigation may go on, run after the redirects. Each returns
-   * `true` to allow, `false` to reject, or a URL to redirect to, and may return a Task of that for
-   * work that takes time. They run in the injection context of the router, root first.
+   * Guards that run when the navigation leaves this route, before any activate guard. They run
+   * from the last route left to the first, in sequence, in the injection context of the router.
+   */
+  readonly canDeactivate?: readonly DeactivateGuard[];
+  /**
+   * Guards that decide whether the navigation may go on, run after the deactivate guards. Each
+   * returns a Task of a command: ALLOW, STOP, or REDIRECT. They run root first, in sequence, in the
+   * injection context of the router.
    */
   readonly canActivate?: readonly Guard[];
 }

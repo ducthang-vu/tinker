@@ -7,8 +7,9 @@
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker/functional";
 import type { AppPath } from "../destination/app-path.ts";
-import type { MatchedRequest } from "./request.ts";
-import type { GuardStep } from "./steps.ts";
+import type { ActivatedRoute } from "../state/activated-route.ts";
+import type { MatchedRequest, NavigationRequest } from "./request.ts";
+import type { DeactivateStep, GuardStep } from "./steps.ts";
 import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";
 
 /** The payload of a STOP command: why the guard stopped the navigation, if it gives a reason. */
@@ -74,6 +75,55 @@ export type RouteGuardCommand = AllowCommand | StopCommand | RedirectCommand;
 export type Guard = (request: MatchedRequest) => Task<RouteGuardCommand, unknown>;
 
 /**
+ * A deactivate guard: asked when the navigation leaves a route. It gets the navigation and the
+ * activated route it leaves.
+ */
+export type DeactivateGuard = (
+  request: NavigationRequest,
+  leaving: ActivatedRoute,
+) => Task<RouteGuardCommand, unknown>;
+
+/**
+ * The deactivate step for a router with `injector`: runs the deactivate guards of the routes the
+ * navigation leaves, from the last to the first, each route's in order.
+ *
+ * @param injector The injector whose context the guards run in.
+ * @returns A deactivate step: the request when every guard allows, or the first stop.
+ */
+export function createDeactivateStep(injector: Injector): DeactivateStep {
+  return (matched) =>
+    [...matched.activatedRoutes].reverse()
+      .reduce<Task<MatchedRequest, Stop>>(
+        (previous, activated) =>
+          flatMap(previous, (current) => deactivateOf(injector, current, activated)),
+        succeed(matched),
+      );
+}
+
+/**
+ * The deactivate guards of one activated route, in order.
+ *
+ * @param injector The injector whose context the guards run in.
+ * @param matched The navigation being guarded.
+ * @param leaving The activated route being left.
+ * @returns The request when every guard allows, or the first stop.
+ */
+function deactivateOf(
+  injector: Injector,
+  matched: MatchedRequest,
+  leaving: ActivatedRoute,
+): Task<MatchedRequest, Stop> {
+  const guards = leaving.route.canDeactivate ?? [];
+  return guards.reduce<Task<MatchedRequest, Stop>>(
+    (previous, guard) =>
+      flatMap(previous, (current) =>
+        flatMap(callGuard(injector, current, () => guard(current, leaving)), (command) =>
+          decide(current, leaving.route.path, command, "deactivate"))),
+    succeed(matched),
+  );
+}
+
+/**
  * The guard step for a router with `injector`.
  *
  * @param injector The injector whose context the guards run in.
@@ -107,8 +157,8 @@ function guardsOf(
   return guards.reduce<Task<MatchedRequest, Stop>>(
     (previous, guard) =>
       flatMap(previous, (current) =>
-        flatMap(callGuard(injector, current, guard), (command) =>
-          decide(current, route, command))),
+        flatMap(callGuard(injector, current, () => guard(current)), (command) =>
+          decide(current, route, command, "guard"))),
     succeed(matched),
   );
 }
@@ -118,18 +168,18 @@ function guardsOf(
  *
  * @param injector The injector whose context the guard runs in.
  * @param matched The navigation being guarded.
- * @param guard The guard to call.
+ * @param invoke Calls the guard, and returns its task.
  * @returns A task of the guard's command. A throw, or a failing task, stops with Failed.
  */
 function callGuard(
   injector: Injector,
   matched: MatchedRequest,
-  guard: Guard,
+  invoke: () => Task<RouteGuardCommand, unknown>,
 ): Task<RouteGuardCommand, Stop> {
   return fromComputation<RouteGuardCommand, Stop>((ok, error) => {
     let produced: Task<RouteGuardCommand, unknown>;
     try {
-      produced = runInInjectionContext(injector, () => guard(matched));
+      produced = runInInjectionContext(injector, invoke);
     } catch (cause) {
       error(failed(matched, cause));
       return;
@@ -158,14 +208,16 @@ function traced(matched: MatchedRequest, entry: unknown): MatchedRequest {
  * @param matched The navigation the guard was asked about.
  * @param route The path of the route whose guard returned the command.
  * @param command The command the guard returned.
+ * @param step
  * @returns The next step: the request when allowed, or a stop.
  */
 function decide(
   matched: MatchedRequest,
   route: string,
   command: RouteGuardCommand,
+  step: "guard" | "deactivate",
 ): Task<MatchedRequest, Stop> {
-  const entry = { step: "guard", route, command: command.type };
+  const entry = { step, route, command: command.type };
   switch (command.type) {
     case "ALLOW":
       return succeed(traced(matched, entry));

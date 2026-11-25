@@ -20,6 +20,10 @@ export type MatchStep = (request: NavigationRequest) => Either<MatchedRequest, S
 export type RedirectStep = (matched: MatchedRequest) => Either<MatchedRequest, Stop>;
 
 /** Runs the matched routes' guards. Allows the navigation by succeeding with it. */
+/** Runs the deactivate guards of the routes the navigation leaves, from the last to the first. */
+export type DeactivateStep = (matched: MatchedRequest) => Task<MatchedRequest, Stop>;
+
+/** Runs the activate guards of the matched routes, root first. */
 export type GuardStep = (matched: MatchedRequest) => Task<MatchedRequest, Stop>;
 
 /**
@@ -36,6 +40,8 @@ export interface PipelineSteps {
   /** The step that asks the matched routes whether to redirect. */
   readonly redirect: RedirectStep;
   /** The step that runs the matched routes' guards. */
+  readonly deactivate: DeactivateStep;
+  /** The step that runs the matched routes' activate guards. */
   readonly guards: GuardStep;
   /** The step that commits the navigation: the browser, then the routes. */
   readonly commit: CommitStep;

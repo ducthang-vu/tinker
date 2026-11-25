@@ -9,6 +9,7 @@ import { ParseError, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { builderOver } from "../destination/test-builder.ts";
 import {
   AllowCommand,
+  type DeactivateGuard,
   type Guard,
   RedirectCommand,
   RedirectPayload,
@@ -461,5 +462,21 @@ test("the outcome carries the trace of its navigation, for debugging", async () 
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
     .toMatchObject({ kind: "done", meta: [{ step: "guard", route: ":id", command: "ALLOW" }] });
+  destroy();
+});
+
+test("a deactivate guard that stops keeps the user on the route they leave", async () => {
+  const stay: DeactivateGuard = () => succeed(new StopCommand(new StopPayload("unsaved changes")));
+  const guarded: Route = {
+    path: "",
+    component: Root,
+    children: [{ ...TODOS, children: [LIST, { ...DETAIL, canDeactivate: [stay] }] }],
+  };
+  const { router, urls, destroy } = routerOver(guarded, "/todos/7");
+  expect(await router.navigate(urls.parse("/todos")
+    .build()))
+    .toMatchObject({ kind: "rejected", reason: "guard", guard: { payload: { reason: "unsaved changes" } } });
+  expect(router.url())
+    .toBe("/todos/7");
   destroy();
 });

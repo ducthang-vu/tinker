@@ -4,6 +4,7 @@
 
 import type { AppPath } from "../destination/app-path.ts";
 import type { LevelMatch } from "../router/match.ts";
+import type { ActivatedRoute } from "../state/activated-route.ts";
 
 /** A request to go to a URL. */
 export interface NavigationRequest {
@@ -20,6 +21,11 @@ export interface NavigationRequest {
    * redirect appends the URL it came from, so the chain of redirects is readable from the request.
    */
   readonly redirectFrom: readonly AppPath[];
+  /**
+   * The activated routes this navigation leaves, root first. Set when the navigation starts, from
+   * the committed chain. Deactivate guards read them, from the last to the first.
+   */
+  readonly activatedRoutes: readonly ActivatedRoute[];
   /**
    * What each step did to this navigation, in order: the guards' commands and the redirects. For
    * debugging: the app does not act on it.
