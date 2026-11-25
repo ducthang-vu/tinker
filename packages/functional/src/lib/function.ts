@@ -78,16 +78,27 @@ export function partial<A extends unknown[], B extends unknown[], R>(
 }
 
 /**
- * A function that gives the result of `fn` again, without calling `fn`, while it is called with
- * the same arguments as last time. Each argument is compared with `Object.is`, and only the last
- * call is kept.
+ * A function that returns what `fn` returned last time, without calling `fn`, when it is called
+ * again with the same arguments. Only the last call is kept: an earlier call's arguments are
+ * forgotten, so alternating between two sets of arguments calls `fn` every time. With no
+ * arguments, `fn` is called once.
  *
- * Memoise only a pure `fn`, whose result depends on its arguments alone. A function that reads the
- * clock, the locale or any other state gives a stale result: it is not checked.
+ * Arguments match when each one is `Object.is` the one before. An object matches only itself, so an
+ * equal object that is a new one calls `fn` again.
  *
- * @param fn The function to memoise.
- * @returns A function that takes the same arguments and gives the same result as `fn`, calling `fn`
- *   only when the arguments differ from those of the last call. If `fn` throws, nothing is kept.
+ * Use it only for a pure `fn`, whose result depends on its arguments alone. `memoise` does not
+ * check this: a function that reads the clock, the locale or other state gives a stale result.
+ * The last arguments and result stay in memory until the next call.
+ *
+ * @example
+ * const area = memoise((width: number, height: number) => width * height);
+ * area(2, 3); // calls the function, and gives 6
+ * area(2, 3); // gives 6 without calling the function
+ *
+ * @param fn The pure function to memoise.
+ * @returns A function that takes the same arguments and gives the same result as `fn`, calling
+ *   `fn` only when the arguments differ from those of the last call. If `fn` throws, nothing is
+ *   kept, and the next call calls `fn` again.
  */
 export function memoise<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
   let last: { args: A; result: R } | undefined;
