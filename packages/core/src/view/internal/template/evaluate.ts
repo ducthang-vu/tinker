@@ -8,6 +8,9 @@
 import type { BinaryOperator, Expression } from "./expression.ts";
 import type { ReadonlySignal } from "../../../signals/index.ts";
 import type { Scope } from "./scope.ts";
+import { templateFunctionOf } from "./template-functions.ts";
+import type { TemplateFunctionContract } from "../authoring/template-function.ts";
+import { match } from "@tinker/functional";
 
 /**
  * The value of `expression`: a bare name is a `@let` value if one is declared
@@ -49,6 +52,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
     case "call": {
       const { callee } = expression;
       const args = expression.args.map((arg) => evaluate(arg, scope));
+      const imported = importedFunction(callee, scope);
+      if (imported) {
+        return imported.call(...args);
+      }
       const declared = callee.kind === "property" ? letOf(callee, scope) : undefined;
       if (declared) {
         // A `@let` holding a function is called without a receiver.
@@ -74,6 +81,21 @@ function letOf(
   scope: Scope,
 ): ReadonlySignal<unknown> | undefined {
   return expression.receiver.kind === "component" ? scope.lets.get(expression.name) : undefined;
+}
+
+/**
+ * The template function a bare call such as `format(x)` names, when the component has no member
+ * of that name: a member wins over an imported function.
+ */
+function importedFunction(callee: Expression, scope: Scope): TemplateFunctionContract | undefined {
+  if (callee.kind !== "property" || callee.receiver.kind !== "component"
+    || callee.name in scope.component) {
+    return undefined;
+  }
+  return match(templateFunctionOf(scope.component, callee.name), {
+    Some: (fn) => fn,
+    None: () => undefined,
+  });
 }
 
 function callFunction(

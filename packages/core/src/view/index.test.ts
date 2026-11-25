@@ -23,6 +23,7 @@ test("the public API exports exactly these values", () => {
         "TrustedUrl",
         "TrustedHtml",
         "TrustedStyle",
+        "TemplateFunction",
         "TemplateSyntaxError",
         "TinkerTemplateParser",
         "ComponentRef",

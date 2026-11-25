@@ -9,6 +9,10 @@ export { bootstrap, type AppRef, type BootstrapOptions } from "./bootstrap.ts";
 export { Component, type ComponentMetadata, Directive, type DirectiveMetadata } from "./internal/authoring/decorators.ts";
 export { Effect, type EffectContext, Effects, type EffectFn } from "./internal/authoring/effects.ts";
 export { AfterEachRender, AfterNextRender, RenderHooks } from "./internal/authoring/render-hooks.ts";
+
+// Template functions: classes a template calls by name
+export { TemplateFunction } from "./internal/authoring/template-function.ts";
+export type { TemplateFunctionContract } from "./internal/authoring/template-function.ts";
 export { output, type Output, type OutputName, type OutputValue } from "./internal/authoring/output.ts";
 export { model, type ModelSignal } from "./internal/authoring/model.ts";
 export { queryAll, type QueryOptions } from "./internal/authoring/query.ts";
