@@ -3,7 +3,7 @@
 // forward move does not change the view: it is announced to `onPop` listeners, and the router
 // decides whether the entry is committed, or restored with `replace`.
 
-import { computed, inject, Injectable, type ReadonlySignal, signal } from "@tinker/core";
+import { computed, inject, Injectable, type OnDestroy, type ReadonlySignal, signal } from "@tinker/core";
 import { PLATFORM_LOCATION } from "./platform-location.ts";
 
 interface Entry {
@@ -13,7 +13,7 @@ interface Entry {
 
 @Injectable()
 /** The router's view of the browser location: its URL and state, as signals. */
-export class Location {
+export class Location implements OnDestroy {
   private readonly platform = inject(PLATFORM_LOCATION);
   private readonly entry = signal<Entry>(this.read());
   private readonly stopListening: () => void;

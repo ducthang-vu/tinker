@@ -1518,7 +1518,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@803",
+              "name": "__@INPUT_TYPE@808",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1696,7 +1696,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@803",
+              "name": "__@INPUT_TYPE@808",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1919,6 +1919,33 @@
           "see": [],
           "throws": [],
           "declaration": "export type OnCleanup = (cleanup: () => void) => void;"
+        },
+        {
+          "name": "OnDestroy",
+          "kind": "interface",
+          "source": "packages/core/src/di/internal/injector.ts:32",
+          "description": "A value that cleans up when the injector that created it is destroyed. Any class with an\n`onDestroy()` method is one: the injector calls it once, when it is destroyed, for each value it\ncreated. That covers services, components and directives alike, and nothing else needs to be\nregistered.",
+          "params": [],
+          "examples": [
+            "class Poller implements OnDestroy {\n  private readonly timer = setInterval(() => this.poll(), 1000);\n\n  onDestroy() {\n    clearInterval(this.timer);\n  }\n}"
+          ],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "onDestroy",
+              "kind": "method",
+              "source": "packages/core/src/di/internal/injector.ts:33",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "signatures": [
+                "onDestroy(): void"
+              ]
+            }
+          ]
         },
         {
           "name": "Outlet",
@@ -4208,7 +4235,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@965",
+              "name": "__@CHAIN@970",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:63",
               "description": "The chain of `f`: the flatMap of a chain, under the CHAIN symbol.",
@@ -4217,7 +4244,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@965<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@970<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4519,7 +4546,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@963",
+              "name": "__@MAP@968",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:25",
               "description": "The value mapped with `f`: the map of a functor, under the MAP symbol.",
@@ -4528,7 +4555,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@963<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@968<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -5078,7 +5105,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@963",
+              "name": "__@MAP@968",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:216",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -5093,11 +5120,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@963<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@968<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@965",
+              "name": "__@CHAIN@970",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:236",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -5112,7 +5139,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@965<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@970<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -7355,7 +7382,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6842",
+              "name": "__@APP_PATH_BRAND@6847",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",

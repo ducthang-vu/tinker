@@ -16,6 +16,9 @@ export type { InjectOptions, InjectResult } from "./internal/inject.ts";
 export { Injectable } from "./injectable.ts";
 export type { InjectableOptions } from "./injectable.ts";
 
+// Lifecycle
+export type { OnDestroy } from "./internal/injector.ts";
+
 // Providers
 export { provide } from "./providers.ts";
 export type {

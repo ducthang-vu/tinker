@@ -14,7 +14,21 @@ import {
 import { findRootProvider } from "./root-providers.ts";
 import { runAll } from "../../utils/run-all.ts";
 
-/** A value that wants to clean up when the injector that created it is destroyed. */
+/**
+ * A value that cleans up when the injector that created it is destroyed. Any class with an
+ * `onDestroy()` method is one: the injector calls it once, when it is destroyed, for each value it
+ * created. That covers services, components and directives alike, and nothing else needs to be
+ * registered.
+ *
+ * @example
+ * class Poller implements OnDestroy {
+ *   private readonly timer = setInterval(() => this.poll(), 1000);
+ *
+ *   onDestroy() {
+ *     clearInterval(this.timer);
+ *   }
+ * }
+ */
 export interface OnDestroy {
   onDestroy(): void;
 }

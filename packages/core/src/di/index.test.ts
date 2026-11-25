@@ -4,6 +4,7 @@ import type {
   ClassProvider,
   CreateInjectorOptions,
   InjectorRef,
+  OnDestroy,
   ExistingProvider,
   FactoryProvider,
   Provider,
@@ -48,4 +49,6 @@ test("exports the public types", () => {
     .toExtend<CreateInjectorOptions>();
   expectTypeOf(api.Injector.create())
     .toEqualTypeOf<InjectorRef>();
+  expectTypeOf({ onDestroy: () => undefined })
+    .toExtend<OnDestroy>();
 });

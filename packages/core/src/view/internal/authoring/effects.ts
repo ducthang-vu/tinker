@@ -38,7 +38,7 @@
 // included) are destroyed with the component, since each component injector
 // provides its own Effects. The returned handle stops one earlier.
 
-import { inject, Injectable } from "../../../di/index.ts";
+import { inject, Injectable, type OnDestroy } from "../../../di/index.ts";
 import { type OnCleanup, type Watch, watch } from "../../../signals/index.ts";
 import { runAll } from "../../../utils/run-all.ts";
 import { final } from "../../../utils/final.ts";
@@ -68,7 +68,7 @@ export type EffectFn = (context: EffectContext) => void;
  */
 @Injectable()
 @final
-export class Effects {
+export class Effects implements OnDestroy {
   private readonly changeDetection = inject(ChangeDetection);
   /** The effects created here and not destroyed yet. */
   private readonly running = new Set<Watch>();
