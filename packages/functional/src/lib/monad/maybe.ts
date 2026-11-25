@@ -94,6 +94,17 @@ export class None implements Matchable<"None", readonly []>, Equatable {
 /**
  * Maybe: a Some holding a T (a value is present), or a None (there is none). A pipeline of `map`
  * and `flatMap` steps runs on the Some, and passes a None on unchanged.
+ *
+ * @example
+ * ```ts
+ * import { fromNullable, map, match, type Maybe } from "@tinker/functional";
+ *
+ * const user: Maybe<{ name: string }> = fromNullable({ name: "Ada" });
+ * const name = map(user, (u) => u.name); // Some("Ada"): the step ran
+ * match(name, { Some: (value) => value, None: () => "guest" }); // "Ada"
+ *
+ * const missing = map(fromNullable<{ name: string }>(null), (u) => u.name); // None: skipped
+ * ```
  */
 export type Maybe<T> = Some<T> | None;
 

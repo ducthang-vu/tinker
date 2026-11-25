@@ -123,6 +123,18 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outc
 /**
  * Either: a Right holding a T (a success), or a Left holding an E (a failure). A pipeline of
  * `map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.
+ *
+ * @example
+ * ```ts
+ * import { Left, map, match, Right, type Either } from "@tinker/functional";
+ *
+ * const parse = (text: string): Either<number, string> =>
+ *   /^\d+$/.test(text) ? Right.of(Number(text)) : Left.of("not a number");
+ *
+ * const label = map(parse("7"), (n) => `user ${n}`); // Right("user 7"): the step ran
+ * const same = map(parse("x"), (n) => `user ${n}`); // Left("not a number"): skipped
+ * match(label, { Right: (text) => text, Left: (error) => error }); // "user 7"
+ * ```
  */
 export type Either<T, E> = Right<T> | Left<E>;
 
