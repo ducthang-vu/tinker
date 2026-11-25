@@ -2903,7 +2903,7 @@
         {
           "name": "TemplateFunction",
           "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/template-function.ts:42",
+          "source": "packages/core/src/view/internal/authoring/template-function.ts:46",
           "description": "Class decorator: makes the class a template function, which a template calls by `name`. It is\nalso injectable, so it is created through DI, once per component that imports it.",
           "params": [
             {
@@ -2924,7 +2924,7 @@
         {
           "name": "TemplateFunctionContract",
           "kind": "interface",
-          "source": "packages/core/src/view/internal/authoring/template-function.ts:25",
+          "source": "packages/core/src/view/internal/authoring/template-function.ts:29",
           "description": "What a template function is: a `call()` method, with the types of its arguments and result.",
           "params": [],
           "examples": [],
@@ -2934,7 +2934,7 @@
             {
               "name": "call",
               "kind": "method",
-              "source": "packages/core/src/view/internal/authoring/template-function.ts:26",
+              "source": "packages/core/src/view/internal/authoring/template-function.ts:30",
               "description": "",
               "params": [],
               "examples": [],

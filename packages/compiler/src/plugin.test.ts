@@ -696,3 +696,62 @@ describe("the dev constant", () => {
       .toBe("true");
   });
 });
+
+describe("template functions imported by a component", () => {
+  const files = { "./fns.ts": fixture("template-functions.ts") };
+
+  test("two imports with the same template name fail the build", async () => {
+    const { result } = transform(
+      `import { Format, OtherFormat } from "./fns.ts";
+       @Component({ template: "<p>{{ format(1) }}</p>", imports: [Format, OtherFormat] }) class Page {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .rejects
+      .toThrow("two imports are template functions named \"format\"");
+  });
+
+  test("a member with the name of an imported template function fails the build", async () => {
+    const { result } = transform(
+      `import { Shout } from "./fns.ts";
+       @Component({ template: "<p>{{ shout() }}</p>", imports: [Shout] }) class Page { shout = () => "x"; }`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .rejects
+      .toThrow("the member \"shout\" hides the template function Shout");
+  });
+
+  test("imports with different names compile", async () => {
+    const { result } = transform(
+      `import { Format } from "./fns.ts";
+       @Component({ template: "<p>{{ format(1) }}</p>", imports: [Format] }) class Page {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+  });
+
+  test("a template function whose name is not a literal cannot be read", async () => {
+    const code = `import { Dynamic } from "./fns.ts";
+       @Component({ template: "<p>{{ dynamic() }}</p>", imports: [Dynamic] }) class Page {}`;
+    await expect(transform(code, "/app/page.ts", files, { strict: true }).result)
+      .rejects
+      .toThrow("Dynamic has no literal name");
+  });
+
+  test("an import that cannot be read fails the build in strict mode, and is skipped otherwise", async () => {
+    const code = `import { Missing } from "./fns.ts";
+       @Component({ template: "<p>{{ missing(1) }}</p>", imports: [Missing] }) class Page {}`;
+    await expect(transform(code, "/app/page.ts", files, { strict: true }).result)
+      .rejects
+      .toThrow("cannot be checked");
+    await expect(transform(code, "/app/page.ts", files).result)
+      .resolves
+      .toBeNull();
+  });
+});

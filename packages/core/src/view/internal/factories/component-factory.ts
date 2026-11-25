@@ -66,7 +66,8 @@ import { registerTemplateFunctions } from "../template/template-functions.ts";
 import { isTemplateFunction, templateFunctionName, type TemplateFunctionContract } from "../authoring/template-function.ts";
 import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
-import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
+import { CLASS_REPLACEMENTS, DEV_MODE, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
+import { devChecks } from "../template/scope.ts";
 import { ElementScope } from "./element-scope.ts";
 import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
@@ -153,6 +154,8 @@ export class ComponentFactory {
   private readonly parser = inject(TEMPLATE_PARSER);
   private readonly replacements = inject(CLASS_REPLACEMENTS);
   private readonly renderer = inject(RENDERER);
+  private readonly devMode = inject(DEV_MODE);
+  private readonly checks = this.devMode ? devChecks() : undefined;
   private readonly contexts = inject(ElementContexts);
   private readonly directives = inject(DirectiveFactory);
   private readonly builders = inject(TemplateBuilderFactory);
@@ -445,6 +448,13 @@ export class ComponentFactory {
       }),
     );
     registerTemplateFunctions(instance, new Map(templateFunctions));
+    // The build stops a member that hides an imported template function when it can read the
+    // class. Here, in development mode, a member that got past the build is only a warning.
+    for (const [name] of templateFunctions) {
+      if (name in instance) {
+        this.checks?.warn(`${type.name} has a member named "${name}", which hides the template function imported as "${name}"`);
+      }
+    }
     // The builder creates the template's child components with this factory.
     const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
     const template = this.builders.create(instance, this, queries, undefined, true, node);

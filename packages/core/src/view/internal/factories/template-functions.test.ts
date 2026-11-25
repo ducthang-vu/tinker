@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { provide } from "../../../di/index.ts";
+import { DEV_MODE } from "../tokens.ts";
 import { inject, Injectable } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { Component } from "../authoring/decorators.ts";
@@ -102,6 +104,31 @@ describe("template functions in templates", () => {
     await tick();
     expect(view.host.nativeElement.querySelector("p")!.textContent)
       .toBe("2");
+  });
+
+  test("in development mode, a member that hides an imported template function is warned about", async () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    @TemplateFunction("double")
+    class Double implements TemplateFunctionContract<[number], number> {
+      call(n: number): number {
+        return n * 2;
+      }
+    }
+    @Component({ selector: "tk-hidden", template: "<p>{{ double(2) }}</p>", imports: [Double] })
+    class Hidden {
+      double(n: number): string {
+        return `member ${n}`;
+      }
+    }
+    const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
+    const view = valueOrThrow(renderComponent(engine, Hidden));
+    await tick();
+    expect(warn)
+      .toHaveBeenCalledWith("Hidden has a member named \"double\", which hides the template function imported as \"double\"");
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("member 2");
+    warn.mockRestore();
   });
 
   test("two imports with the same name are an error", () => {

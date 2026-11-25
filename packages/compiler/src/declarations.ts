@@ -28,10 +28,15 @@ export interface ValueRef {
   readonly end: number;
 }
 
-/** A class declared with `@Component` or `@Directive`. */
+/** A class declared with `@Component`, `@Directive` or `@TemplateFunction`. */
 export interface Declaration {
   readonly name: string;
-  readonly kind: "component" | "directive";
+  readonly kind: "component" | "directive" | "templateFunction";
+  /** The name a template calls a template function by, when it is a literal. */
+  readonly templateFunctionName?: string;
+  /** The names of the class's own (not static) properties and methods: a template name may
+   *  hide one. */
+  readonly members: readonly string[];
   /** The selector, when the decorator gives it as a literal, or a constant of this file. */
   readonly selector: string | undefined;
   /** The selector's name, when it is a constant of another file, to resolve. */
@@ -168,7 +173,8 @@ function declarationOf(
   if (!t.isClassDeclaration(declared) || !declared.id) {
     return [];
   }
-  const decorator = (declared.decorators ?? []).map((item) => decoratorInfo(item, constants))
+  const decorator = (declared.decorators ?? []).map((item) =>
+    decoratorInfo(item, constants) ?? templateFunctionInfo(item, constants))
     .find(
       (info) => info !== undefined,
     );
@@ -178,9 +184,43 @@ function declarationOf(
   return [{
     name: declared.id.name,
     ...decorator,
+    members: membersOf(declared),
     inputNames: inputNamesOf(declared, constants),
     statementEnd: statement.end as number,
   }];
+}
+
+/** The names of a class's own properties and methods (not static, not computed). */
+function membersOf(declared: t.ClassDeclaration): readonly string[] {
+  return declared.body.body.flatMap((member) =>
+    (t.isClassProperty(member) || t.isClassMethod(member)) && !member.static && !member.computed
+    && t.isIdentifier(member.key)
+      ? [member.key.name]
+      : []);
+}
+
+/**
+ * The declaration of a `@TemplateFunction("name")` class: its name is the literal argument.
+ * It has no selector, template or imports: it is not a component or a directive.
+ */
+function templateFunctionInfo(
+  decorator: t.Decorator,
+  constants: ReadonlyMap<string, string>,
+): Omit<Declaration, "name" | "members" | "inputNames" | "statementEnd"> | undefined {
+  const call = decorator.expression;
+  if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)
+    || call.callee.name !== "TemplateFunction") {
+    return undefined;
+  }
+  return {
+    kind: "templateFunction",
+    selector: undefined,
+    template: undefined,
+    imports: undefined,
+    exportAs: undefined,
+    exportAsIsDynamic: false,
+    templateFunctionName: literalOf(call.arguments[0], constants),
+  };
 }
 
 /**
@@ -227,7 +267,7 @@ function nameOfInput(
 function decoratorInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name" | "inputNames" | "statementEnd"> | undefined {
+): Omit<Declaration, "name" | "members" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)) {
     return undefined;
