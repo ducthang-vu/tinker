@@ -66,7 +66,7 @@ and `" "` (a space).
 | `!==`, `!=` | done | |
 | `&&`, `\|\|`, `!` | done | short-circuit, as in JavaScript |
 | `test ? then : otherwise`, nested | done | only the chosen branch is evaluated |
-| Arrow functions: `t => t.done` | later | needed for `filter` and `map` in templates |
+| Arrow functions: `t => t.done` | not planned | filter in a `computed` in the component instead |
 | Unary minus: `-1` | later | |
 | Pipes | not planned | |
 
