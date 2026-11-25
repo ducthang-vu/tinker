@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { run } from "@tinker/functional";
-import { AppPathBuilder } from "../destination/app-path-builder.ts";
+import { builderOver } from "../destination/test-builder.ts";
 import { createCommitStep, type BrowserWriter } from "./commit-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { Stop } from "./stop.ts";
@@ -29,7 +29,7 @@ function fakeBrowser(url: string, refuse = false) {
 
 /** A matched request for the destination, as the match step would make it. */
 function matchedFor(arrival: "push" | "pop"): MatchedRequest {
-  const destination = AppPathBuilder.rootOf(declared)
+  const destination = builderOver(declared)
     .to("todos")
     .to("7")
     .build();

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
-import { AppPathBuilder } from "../destination/app-path-builder.ts";
+import { builderOver } from "../destination/test-builder.ts";
 import { fail, fromComputation, run, type Task } from "@tinker/functional";
 import type { Route } from "../router/route.ts";
 import { createGuardStep, type Guard, type GuardResult } from "./guard-step.ts";
@@ -23,7 +23,7 @@ const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] 
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
-  return AppPathBuilder.rootOf(targets)
+  return builderOver(targets)
     .to(path)
     .build();
 }

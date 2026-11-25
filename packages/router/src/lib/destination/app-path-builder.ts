@@ -6,7 +6,7 @@
 // route
 // the builder was provided in. `build()` ends the chain with an AppPath.
 
-import { InjectionToken, inject, provide, signal, type Provider, type ReadonlySignal } from "@tinker/core";
+import { inject, Injectable, Injector, runInInjectionContext } from "@tinker/core";
 import { match } from "@tinker/functional";
 import { levelsOf } from "../router/match.ts";
 import { Router } from "../router/router.ts";
@@ -25,9 +25,6 @@ import {
 
 export { ParseError } from "./app-path-parse.ts";
 
-/** The token the path builder is provided under. */
-export const APP_PATH_BUILDER = new InjectionToken<AppPathBuilder>("APP_PATH_BUILDER");
-
 /** One level of a position: the route it is at, and the segments that level writes. */
 interface Level {
   /** The route of the level. */
@@ -36,54 +33,46 @@ interface Level {
   readonly segments: readonly Segment[];
 }
 
-/** What the builder reads: the routes, and the activated route of the component it is in. */
-interface Context {
-  /** The route tree, read on each step. */
-  readonly routes: ReadonlySignal<Route>;
-  /** The activated route of the component the builder is provided in, if any. */
-  readonly activated: ActivatedRoute | undefined;
-}
-
+@Injectable()
 /**
- * A position in the route tree, with the segments written so far. Every step returns a new builder,
- * and `build` ends the chain with an AppPath.
+ * A position in the route tree, with the segments written so far. It injects the router and the
+ * activated route of the component it is in: `relativeTo()` with no argument starts there. Every
+ * step returns a new builder, and `build` ends the chain with an AppPath. Provide it in a
+ * component's `providers`, or inject it from the root.
  */
 export class AppPathBuilder {
+  private readonly injector = inject(Injector);
+  private readonly router = inject(Router);
+  private readonly activated = inject(ActivatedRoute);
+
   /**
-   * Only `in` and the steps make one.
+   * The builder at a position. Injected, it is the root of the router's tree.
    *
-   * @param context The routes, and the activated route of the component.
-   * @param levels The levels from the root down to the current route.
+   * @param levels The levels from the root down to the current route. None means the root.
    * @param query The query written so far.
    * @param fragment The fragment, if one is set.
    */
-  private constructor(
-    private readonly context: Context,
-    private readonly levels: readonly Level[],
-    private readonly query: Readonly<Record<string, string>>,
-    private readonly fragment: string | undefined,
+  constructor(
+    private readonly levels: readonly Level[] = [],
+    private readonly query: Readonly<Record<string, string>> = {},
+    private readonly fragment: string | undefined = undefined,
   ) {}
 
   /**
-   * A builder at the root of `routes`, in the component whose activated route is `activated`.
+   * A builder at a position, made in the injection context of this builder, so its own injected
+   * dependencies resolve.
    *
-   * @param routes The route tree, read on each step.
-   * @param activated The activated route of the component, if the builder is provided in one.
-   * @returns A builder at the root.
+   * @param levels The levels of the new position.
+   * @param query The query of the new position.
+   * @param fragment The fragment of the new position.
+   * @returns The new builder.
    */
-  static in(routes: ReadonlySignal<Route>, activated?: ActivatedRoute): AppPathBuilder {
-    return new AppPathBuilder({ routes, activated }, [], {}, undefined);
-  }
-
-  /**
-   * A builder at the root of `routes`, for a tree that is not the router's. The root consumes no
-   * segment, and its children are `routes`.
-   *
-   * @param routes The top-level routes.
-   * @returns A builder at the root.
-   */
-  static rootOf(routes: readonly Route[]): AppPathBuilder {
-    return AppPathBuilder.in(signal<Route>({ path: "", children: routes }));
+  private next(
+    levels: readonly Level[],
+    query: Readonly<Record<string, string>>,
+    fragment: string | undefined,
+  ): AppPathBuilder {
+    return runInInjectionContext(this.injector, () => new AppPathBuilder(levels, query, fragment));
   }
 
   /**
@@ -97,7 +86,7 @@ export class AppPathBuilder {
   to(...segments: string[]): AppPathBuilder {
     this.assertPathPhase();
     const parts = segments.length === 1 ? splitSlashes(segments[0] as string) : segments;
-    return new AppPathBuilder(this.context, this.extended(parts, segments.join("/"), false), {}, undefined);
+    return this.next(this.extended(parts, segments.join("/"), false), {}, undefined);
   }
 
   /**
@@ -119,7 +108,7 @@ export class AppPathBuilder {
       .map((segment) => decodeOrThrow(raw, segment));
     const levels = this.extended(parts, raw, raw.startsWith("/"));
     const fragment = fragmentRaw === undefined ? undefined : decodeOrThrow(raw, fragmentRaw);
-    return new AppPathBuilder(this.context, levels, parseQuery(raw, queryRaw), fragment);
+    return this.next(levels, parseQuery(raw, queryRaw), fragment);
   }
 
   /**
@@ -133,7 +122,7 @@ export class AppPathBuilder {
     if (this.levels.length === 0) {
       throw new Error("up: already at the root");
     }
-    return new AppPathBuilder(this.context, this.levels.slice(0, -1), {}, undefined);
+    return this.next(this.levels.slice(0, -1), {}, undefined);
   }
 
   /**
@@ -146,7 +135,7 @@ export class AppPathBuilder {
    */
   relativeTo(route?: ActivatedRoute): AppPathBuilder {
     this.assertPathPhase();
-    const target = route ?? this.context.activated;
+    const target = route ?? this.activated;
     // The first activated route is the root, which has no level of its own.
     const levels = target === undefined
       ? []
@@ -156,7 +145,7 @@ export class AppPathBuilder {
             route: level.route,
             segments: segmentsFor(level.route, level.segments),
           }));
-    return new AppPathBuilder(this.context, levels, {}, undefined);
+    return this.next(levels, {}, undefined);
   }
 
   /**
@@ -172,7 +161,7 @@ export class AppPathBuilder {
       throw new Error("withQuery: the fragment comes last");
     }
     const merged = { ...this.query, ...query };
-    return new AppPathBuilder(this.context, this.levels, merged, this.fragment);
+    return this.next(this.levels, merged, this.fragment);
   }
 
   /**
@@ -186,7 +175,7 @@ export class AppPathBuilder {
     if (this.fragment !== undefined) {
       throw new Error("withFragment: the fragment is already set");
     }
-    return new AppPathBuilder(this.context, this.levels, this.query, value);
+    return this.next(this.levels, this.query, value);
   }
 
   /**
@@ -199,7 +188,7 @@ export class AppPathBuilder {
   build(): AppPath {
     const segments = this.levels.flatMap((level) => level.segments);
     const values = segments.map((segment) => segment.value);
-    if (levelsOf(this.context.routes(), values) === undefined) {
+    if (levelsOf(this.router.routes(), values) === undefined) {
       const path = makeAppPath(segments, this.query, this.fragment);
       throw new ParseError("no-route", path.format(), values[values.length - 1] ?? "");
     }
@@ -221,7 +210,7 @@ export class AppPathBuilder {
   private extended(parts: readonly string[], input: string, absolute: boolean): readonly Level[] {
     const prefix = absolute ? [] : this.levels.slice(0, this.writtenEnd());
     let node = prefix.length === 0
-      ? this.context.routes()
+      ? this.router.routes()
       : (prefix[prefix.length - 1] as Level).route;
     const taken: Level[] = [];
     let index = 0;
@@ -265,18 +254,6 @@ export class AppPathBuilder {
       throw new Error("the path comes before the query and the fragment");
     }
   }
-}
-
-/**
- * The builder for the component it is provided in: its activated route is the default of
- * `relativeTo()`. Provide it in a component's `providers`.
- *
- * @returns The provider of the path builder.
- */
-export function providePathBuilder(): Provider {
-  return provide(APP_PATH_BUILDER, {
-    useFactory: () => AppPathBuilder.in(inject(Router).routes, inject(ActivatedRoute)),
-  });
 }
 
 /**

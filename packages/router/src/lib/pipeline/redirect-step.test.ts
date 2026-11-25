@@ -6,7 +6,7 @@ import type { MatchedRequest } from "./request.ts";
 import { createRedirectStep } from "./redirect-step.ts";
 import { Redirect, type Stop } from "./stop.ts";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
-import { AppPathBuilder } from "../destination/app-path-builder.ts";
+import { builderOver } from "../destination/test-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
 function destinationOf(path: string): AppPath {
@@ -23,7 +23,7 @@ const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] 
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
-  return AppPathBuilder.rootOf(targets)
+  return builderOver(targets)
     .to(path)
     .build();
 }
