@@ -219,16 +219,6 @@ So for this app the trees are worth their size, and the example app now uses the
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
 
-## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
-
-### 1. The public index and `@privateAPI`
-
-**Problem.** `@privateAPI` items are left out of the reference, but they stay exported from
-the package index (`packages/core/src/view/index.ts`), so an app can still import them.
-
-**To do.** Move them out of the public index, or keep them there and accept that the
-reference does not show them.
-
 ## Routing and the folder the app is served under (`packages/router/src/lib/location/`, `.github/workflows/gh-pages.yml`)
 
 ### 1. The folder comes from the page's <base> element
