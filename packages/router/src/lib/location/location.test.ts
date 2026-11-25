@@ -85,18 +85,33 @@ test("replace changes the current entry", () => {
     .toEqual({ tab: "open" });
 });
 
-test("a back or forward move updates the URL and state from the browser", async () => {
+test("a back or forward move is announced to listeners, and the view stays until it is committed", async () => {
   const fake = fakePlatform("/todos");
   const { location } = locationWith(fake.platform);
   location.go("/todos/7");
+  const seen: { url: string; state: unknown }[] = [];
+  location.onPop((url, state) => seen.push({ url, state }));
   fake.pop("/todos", { scroll: 320 });
   await tick();
+  expect(seen)
+    .toEqual([{ url: "/todos", state: { scroll: 320 } }]);
   expect(location.url())
-    .toBe("/todos");
-  expect(location.state())
-    .toEqual({ scroll: 320 });
+    .toBe("/todos/7");
 });
 
+test("a listener that stops listening is no longer called", async () => {
+  const fake = fakePlatform("/todos");
+  const { location } = locationWith(fake.platform);
+  let calls = 0;
+  const stop = location.onPop(() => {
+    calls += 1;
+  });
+  stop();
+  fake.pop("/todos", null);
+  await tick();
+  expect(calls)
+    .toBe(0);
+});
 test("destroying the injector stops listening to the browser", () => {
   const fake = fakePlatform();
   const { destroy } = locationWith(fake.platform);

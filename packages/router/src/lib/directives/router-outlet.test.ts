@@ -112,12 +112,14 @@ test("a URL no route matches shows nothing", () => {
   fixture.destroy();
 });
 
-test("going back to a URL no route matches clears the component", () => {
+test("going back to a URL no route matches is restored: the URL and the component stay on the last page", () => {
   const fixture = appAt("/todos");
   window.history.replaceState(null, "", "/nowhere");
   window.dispatchEvent(new PopStateEvent("popstate"));
   fixture.detectChanges();
   expect(fixture.root.text())
-    .toBe("");
+    .toBe("Todos");
+  expect(window.location.pathname)
+    .toBe("/todos");
   fixture.destroy();
 });

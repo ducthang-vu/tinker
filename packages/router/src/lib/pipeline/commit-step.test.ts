@@ -12,7 +12,6 @@ function fakeBrowser(url: string, refuse = false) {
   const calls: string[] = [];
   let current = url;
   const browser: BrowserWriter = {
-    url: () => current,
     go: (next) => {
       if (refuse) {
         throw new Error("refused");
@@ -65,17 +64,16 @@ describe("the commit step", () => {
       .toBeDefined();
   });
 
-  test("a pop with the browser already at the destination changes nothing, and activates", () => {
+  test("a pop replaces the entry with the destination, even when the URL is the same, and activates", () => {
     const { browser, calls } = fakeBrowser("/app/todos/7");
     const activated: MatchedRequest[] = [];
     const step = createCommitStep({ browser, base: "/app", activate: (m) => activated.push(m) });
     commit(step, matchedFor("pop"));
     expect(calls)
-      .toEqual([]);
+      .toEqual(["replace /app/todos/7"]);
     expect(activated)
       .toHaveLength(1);
   });
-
   test("a pop where a redirect moved the URL replaces the current entry", () => {
     const { browser, calls } = fakeBrowser("/app/elsewhere");
     const step = createCommitStep({ browser, base: "/app", activate: () => {} });

@@ -349,3 +349,98 @@ test("a navigation replaced by a newer one is cancelled, and the newer one is do
     .toBe("/todos");
   destroy();
 });
+
+/** A platform that records its pop listeners, so a test can move the browser back or forward. */
+function poppableRouter(root: Route, url: string) {
+  let current = { url, state: null as unknown };
+  const listeners = new Set<() => void>();
+  const platform: PlatformLocation = {
+    url: () => current.url,
+    state: () => current.state,
+    push: (next, state) => {
+      current = { url: next, state };
+    },
+    replace: (next, state) => {
+      current = { url: next, state };
+    },
+    onPop: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+  const { injector, destroy } = Injector.create({
+    providers: [
+      provide(PLATFORM_LOCATION, { useValue: platform }),
+      provide(Location, { useClass: Location }),
+      provide(Router, { useFactory: () => new Router(root, inject(Location), inject(Injector)) }),
+      provide(ActivatedRoute, { useFactory: () => inject(Router).rootRoute }),
+      provide(APP_PATH_BUILDER, { useFactory: () => AppPathBuilder.in(inject(Router).routes) }),
+    ],
+  });
+  const router = runInInjectionContext(injector, () => inject(Router));
+  const urls = runInInjectionContext(injector, () => inject(APP_PATH_BUILDER));
+  /** The browser moves to `next`, as a back or forward move does, and the router hears of it. */
+  const move = (next: string, state: unknown = null) => {
+    current = { url: next, state };
+    for (const listener of listeners) {
+      listener();
+    }
+  };
+  return { router, urls, move, current: () => current, destroy };
+}
+
+test("a back move through the guards commits, and the routes follow it", () => {
+  const { router, move, destroy } = poppableRouter(ROOT, "/todos/7");
+  move("/todos");
+  expect(router.url())
+    .toBe("/todos");
+  expect(router.activated()[1]?.route)
+    .toBe(TODOS);
+  destroy();
+});
+
+test("a back move a guard rejects is restored: the browser returns to the last committed URL and state", async () => {
+  const deny: Guard = () => false;
+  const guarded: Route = {
+    path: "",
+    component: Root,
+    children: [{ ...TODOS, children: [LIST, { ...DETAIL, canActivate: [deny] }] }],
+  };
+  const { router, urls, move, current, destroy } = poppableRouter(guarded, "/todos");
+  await router.navigate(urls.parse("/todos")
+    .build());
+  move("/todos/7", { scroll: 3 });
+  expect(current())
+    .toEqual({ url: "/todos", state: null });
+  expect(router.url())
+    .toBe("/todos");
+  destroy();
+});
+
+test("a back move a guard redirects goes to the redirect target, which replaces the entry", () => {
+  const toList: Guard = () => AppPathBuilder.rootOf(CHILDREN)
+    .to("todos")
+    .build();
+  const guarded: Route = {
+    path: "",
+    component: Root,
+    children: [{ ...TODOS, children: [LIST, { ...DETAIL, canActivate: [toList] }] }],
+  };
+  const { router, move, current, destroy } = poppableRouter(guarded, "/todos");
+  move("/todos/7");
+  expect(current().url)
+    .toBe("/todos");
+  expect(router.url())
+    .toBe("/todos");
+  destroy();
+});
+
+test("a back move to a URL no route takes is restored at once", () => {
+  const { router, move, current, destroy } = poppableRouter(ROOT, "/todos");
+  move("/nowhere");
+  expect(current().url)
+    .toBe("/todos");
+  expect(router.url())
+    .toBe("/todos");
+  destroy();
+});

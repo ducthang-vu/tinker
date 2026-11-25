@@ -1,6 +1,7 @@
 // The router's view of the browser location: the URL and the state of the current history
-// entry, as signals. `go` and `replace` change the browser and this view together; a back or
-// forward move updates the view from the browser.
+// entry, as signals. `go` and `replace` change the browser and this view together. A back or
+// forward move does not change the view: it is announced to `onPop` listeners, and the router
+// decides whether the entry is committed, or restored with `replace`.
 
 import { computed, inject, Injectable, type ReadonlySignal, signal } from "@tinker/core";
 import { PLATFORM_LOCATION } from "./platform-location.ts";
@@ -16,6 +17,7 @@ export class Location {
   private readonly platform = inject(PLATFORM_LOCATION);
   private readonly entry = signal<Entry>(this.read());
   private readonly stopListening: () => void;
+  private readonly popListeners = new Set<(url: string, state: unknown) => void>();
 
   /** The path, query and hash of the current entry. */
   readonly url: ReadonlySignal<string> = computed(() => this.entry().url);
@@ -23,7 +25,26 @@ export class Location {
   readonly state: ReadonlySignal<unknown> = computed(() => this.entry().state);
 
   constructor() {
-    this.stopListening = this.platform.onPop(() => this.entry.set(this.read()));
+    this.stopListening = this.platform.onPop(() => {
+      const entry = this.read();
+      for (const listener of this.popListeners) {
+        listener(entry.url, entry.state);
+      }
+    });
+  }
+
+  /**
+   * Calls `listener` with the URL and state the browser moved to, when the user goes back or
+   * forward. The view does not change until the listener calls `go` or `replace`.
+   *
+   * @param listener Called with the URL and the state of the entry the browser moved to.
+   * @returns The function that stops the listener.
+   */
+  onPop(listener: (url: string, state: unknown) => void): () => void {
+    this.popListeners.add(listener);
+    return () => {
+      this.popListeners.delete(listener);
+    };
   }
 
   /**

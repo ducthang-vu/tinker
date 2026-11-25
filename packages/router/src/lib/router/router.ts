@@ -1,12 +1,13 @@
 // The router: the current URL, the matched route and params, the list of activated routes, and
 // `navigate`. It reads and writes the URL through Location, so it follows back and forward moves.
 
-import { computed, type Injector, type ReadonlySignal, type Runnable, signal, untracked, watch } from "@tinker/core";
+import { computed, type Injector, type ReadonlySignal, signal } from "@tinker/core";
 import type { AppPath } from "../destination/app-path.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
+import { parseAppPath } from "../destination/app-path-parse.ts";
 import { None, fromNullable, map, match, type Maybe, Emitter, run, switchMap, Superseded, type Switched, type Cancel, type Task } from "@tinker/functional";
 import { createPipeline } from "../pipeline/pipeline.ts";
 import { createMatchStep } from "../pipeline/match-step.ts";
@@ -24,8 +25,13 @@ export interface NavigateOptions {
   readonly state?: unknown;
 }
 
-/** Runs a watch at once: the activated routes follow the URL as soon as it changes. */
-const immediately = { schedule: (task: Runnable) => task.run() };
+/** The URL and state of the last committed navigation. */
+interface Committed {
+  /** The app-relative URL, with its query and fragment. */
+  readonly url: string;
+  /** The history state of the entry. */
+  readonly state: unknown;
+}
 
 /** The router: the current URL, the matched route, the activated routes, and navigate. */
 export class Router {
@@ -47,6 +53,9 @@ export class Router {
   private readonly waiting = new Map<number, (outcome: NavigationOutcome) => void>();
   private readonly pipeline: (request: NavigationRequest) => Task<MatchedRequest, Stop>;
   private readonly stopRouting: Cancel;
+  private readonly stopPops: () => void;
+  /** The last committed URL and state: where a rejected back or forward move returns to. */
+  private committed: Committed;
   private nextId = 1;
   private latestId = 0;
 
@@ -75,15 +84,15 @@ export class Router {
         activate: (matched) => this.activate(matched.chain),
       }),
     });
-    watch(() => {
-      const chain = matchChain(root, location.url());
-      untracked(() => this.activate(chain));
-    }, immediately);
+    this.committed = { url: location.url(), state: location.state() };
+    this.activate(matchChain(root, location.url()));
     // One navigation at a time: a newer request supersedes the one still running.
     this.stopRouting = run(
       switchMap(this.requests.stream, (request) => follow(this.pipeline, request)),
       { next: (item) => this.settle(item) },
     );
+    // A back or forward move is a navigation too: it goes through the guards like any other.
+    this.stopPops = location.onPop((url, state) => this.popped(url, state));
   }
 
   /**
@@ -118,6 +127,7 @@ export class Router {
   /** Stops routing navigations when the injector is destroyed. */
   onDestroy(): void {
     this.stopRouting();
+    this.stopPops();
   }
 
   /**
@@ -127,6 +137,34 @@ export class Router {
    */
   private activate(chain: readonly LevelMatch[] | undefined): void {
     this.list.set(activatedFor(this.rootRoute, this.list(), chain));
+  }
+
+  /**
+   * A back or forward move: the browser has already moved, so the move is a navigation with
+   * arrival `pop`. A URL that no route takes is restored at once, since there is no navigation to
+   * report it.
+   *
+   * @param url The URL the browser moved to.
+   * @param state The state of the entry the browser moved to.
+   */
+  private popped(url: string, state: unknown): void {
+    const id = this.nextId;
+    this.nextId += 1;
+    this.latestId = id;
+    try {
+      const destination = parseAppPath(this.routes(), url);
+      this.requests.emit({ id, destination, state, arrival: "pop", redirectFrom: [] });
+    } catch {
+      this.restore();
+    }
+  }
+
+  /**
+   * Puts the browser back on the last committed URL, replacing the entry, so the routes and the
+   * browser agree again after a rejected back or forward move.
+   */
+  private restore(): void {
+    this.location.replace(this.committed.url, this.committed.state);
   }
 
   /**
@@ -142,6 +180,14 @@ export class Router {
         ? { kind: "cancelled", navigation, by: this.latestId }
         : reason,
     });
+    if (outcome.kind === "done") {
+      this.committed = {
+        url: outcome.navigation.destination.format(),
+        state: outcome.navigation.state,
+      };
+    } else if (outcome.kind === "rejected" && item.value.arrival === "pop") {
+      this.restore();
+    }
     // Every navigation has a waiting promise, so the lookup always finds one.
     map(fromNullable(this.waiting.get(item.value.id)), (resolve) => resolve(outcome));
     this.waiting.delete(item.value.id);
