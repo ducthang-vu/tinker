@@ -104,17 +104,7 @@ name can appear many times.
 **To do.** `queryAll` with a variable (a list of the one value, or of the rows that
 share the name), and a registry per row if a row variable is to be queried.
 
-### 4. Warn when a trusted value is used
-
-**Problem.** `Sanitizer.trustUrl`, `trustHtml` and `trustStyle` let an attribute hold a value that the
-checks would remove (see `docs/sanitization.md`). The bypass is silent. The warning belongs
-to developer mode, which is not built yet (see "Developer mode").
-
-**To do.** When developer mode exists, warn each time a trusted value is set on an attribute
-or style, naming the element and the attribute. Until then the `Trusted…` classes are the
-only record of the bypass.
-
-### 5. Arrow functions
+### 4. Arrow functions
 
 **Problem.** `t => t.done` (needed for `filter` and `map` in templates) is not in the
 expression language. Unary minus is supported (`-count()`).

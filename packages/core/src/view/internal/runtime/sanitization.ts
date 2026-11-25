@@ -112,6 +112,13 @@ export function attributeText(name: string, value: unknown): string | undefined 
   return text;
 }
 
+/** Whether `value` is a trusted value: one the checks above do not remove. */
+export function isTrusted(value: unknown): boolean {
+  return value instanceof TrustedUrl
+    || value instanceof TrustedHtml
+    || value instanceof TrustedStyle;
+}
+
 /** A style value that loads a URL or runs an expression, in any of these forms. */
 const CSS_LOADS = /url\s*\(|image(?:-set)?\s*\(|src\s*\(|expression\s*\(|\\/i;
 

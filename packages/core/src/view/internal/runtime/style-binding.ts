@@ -4,7 +4,7 @@
 // (null, undefined, "" or false) removes the property. The view's watch
 // calls `update()`; the DOM is written only when the value changed.
 
-import { styleText } from "./sanitization.ts";
+import { isTrusted, styleText } from "./sanitization.ts";
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Expression } from "../template/expression.ts";
@@ -38,7 +38,8 @@ export class StyleBinding {
   /** Evaluate the expression, and set or remove the property if that changed. */
   update(): void {
     // A value that loads a URL is not set: see styleText in sanitization.ts.
-    const text = styleText(evaluate(this.expression, this.context));
+    const value = evaluate(this.expression, this.context);
+    const text = styleText(value);
     if (isSome(filter(this.last, (last) => last === text))) {
       return;
     }
@@ -50,6 +51,9 @@ export class StyleBinding {
       this.renderer.removeStyle(element, this.name);
     } else {
       this.renderer.setStyle(element, this.name, text);
+      if (isTrusted(value)) {
+        this.context.checks?.warn(`style ${this.name} on <${element.localName}> holds a trusted value: its checks are bypassed`);
+      }
     }
   }
 }
