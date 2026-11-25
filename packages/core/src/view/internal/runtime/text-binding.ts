@@ -98,12 +98,24 @@ export class TextBinding {
 
   /** Evaluate the expressions, and update the text node if the text changed. */
   update(): void {
+    this.show(this.text());
+  }
+
+  /**
+   * The text the expressions give now. This is the only part that reads signals, so a
+   * watch that runs it records exactly the reads that matter.
+   */
+  text(): string {
     const { strings, expressions } = this.interpolation;
-    const text = expressions.reduce(
+    return expressions.reduce(
       (result, expression, i) =>
         result + toText(evaluate(expression, this.scope)) + strings[i + 1],
       strings[0]!,
     );
+  }
+
+  /** Write `text` to the text node, if it differs from the last one written. Reads no signals. */
+  show(text: string): void {
     if (isNone(filter(this.last, (last) => last === text))) {
       this.renderer.setText(this.node, text);
       this.last = Some.of(text);
