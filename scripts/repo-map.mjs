@@ -300,8 +300,15 @@ export function renderRepoMapMarkdown(graph, options = {}) {
     }
   }
 
-  const symbolCount = graph.nodes.filter((node) => node.type === "symbol").length;
-  const externalCount = graph.nodes.filter((node) => node.type === "module").length;
+  // The counts are those of the files this map lists, so a change elsewhere does not change
+  // its header: otherwise every map changes whenever any symbol does, and PRs conflict on them.
+  const listed = new Set(files.map((file) => file.id));
+  const symbolCount = graph.edges
+    .filter((edge) => edge.type === "exports" && listed.has(edge.from)).length;
+  const externalCount = new Set(graph.edges
+    .filter((edge) => edge.type === "imports" && listed.has(edge.from))
+    .map((edge) => edge.to)
+    .filter((to) => nodes.get(to)?.type === "module")).size;
   const lines = [
     `# Repo map v${graph.schemaVersion}`,
     `files:${files.length} symbols:${symbolCount} external:${externalCount}`,
