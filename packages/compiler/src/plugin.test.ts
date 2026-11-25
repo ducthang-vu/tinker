@@ -755,3 +755,30 @@ describe("template functions imported by a component", () => {
       .toBeNull();
   });
 });
+
+describe("built-in template function names", () => {
+  const files = { "./fns.ts": fixture("template-functions.ts") };
+
+  test("a member named flow fails the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "<p>{{ flow(1) }}</p>" }) class Page { flow(n: number) { return n; } }`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .rejects
+      .toThrow("the member \"flow\" has the name of a built-in template function");
+  });
+
+  test("an import named flow fails the build", async () => {
+    const { result } = transform(
+      `import { Flowed } from "./fns.ts";
+       @Component({ template: "<p>{{ flow() }}</p>", imports: [Flowed] }) class Page {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .rejects
+      .toThrow("has the name of a built-in template function: \"flow\"");
+  });
+});

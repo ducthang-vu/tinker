@@ -301,3 +301,42 @@ test("print writes call arguments back", () => {
   expect(print(valueOrThrow(ExpressionParser.parse("pick(item.id, $event.key)"))))
     .toBe("pick(item.id, $event.key)");
 });
+
+describe("evaluate: pipes and the built-in flow", () => {
+  const double = (n: number) => n * 2;
+  const add = (a: number, b: number) => a + b;
+
+  test("a pipe passes the value on as the first argument of the function", () => {
+    expect(run("price | add(1)", { price: 4, add }))
+      .toBe(5);
+    expect(run("price | double", { price: 4, double }))
+      .toBe(8);
+  });
+
+  test("pipes chain, and a parenthesised pipe is a value like any other", () => {
+    expect(run("price | double | add(1)", { price: 4, double, add }))
+      .toBe(9);
+    expect(run("(price | double) + 1", { price: 4, double }))
+      .toBe(9);
+  });
+
+  test("flow builds a function that applies its functions in order", () => {
+    const addOne = (n: number) => n + 1;
+    expect(run("flow(double, addOne)(4)", { double, addOne }))
+      .toBe(9);
+    expect(run("flow(double)(4)", { double }))
+      .toBe(8);
+  });
+
+  test("a member named flow hides the built-in", () => {
+    expect(run("flow(4)", { flow: (n: number) => `member ${n}` }))
+      .toBe("member 4");
+  });
+
+  test("flow refuses no functions, and a value that is not a function", () => {
+    expect(() => run("flow()(1)", {}))
+      .toThrow("flow needs at least one function");
+    expect(() => run("flow(1)(1)", {}))
+      .toThrow("flow takes functions only");
+  });
+});

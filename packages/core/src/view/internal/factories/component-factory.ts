@@ -68,6 +68,7 @@ import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
 import { CLASS_REPLACEMENTS, DEV_MODE, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
 import { devChecks } from "../template/scope.ts";
+import { BUILT_IN_NAMES } from "../template/built-in-functions.ts";
 import { ElementScope } from "./element-scope.ts";
 import { ElementPlacement } from "../runtime/placement.ts";
 import { DirectiveFactory } from "./directive-factory.ts";
@@ -450,6 +451,13 @@ export class ComponentFactory {
     registerTemplateFunctions(instance, new Map(templateFunctions));
     // The build stops a member that hides an imported template function when it can read the
     // class. Here, in development mode, a member that got past the build is only a warning.
+    if (this.devMode) {
+      for (const name of BUILT_IN_NAMES) {
+        if (name in instance) {
+          this.checks?.warn(`${type.name} has a member named "${name}", which hides the built-in template function ${name}`);
+        }
+      }
+    }
     for (const [name] of templateFunctions) {
       if (name in instance) {
         this.checks?.warn(`${type.name} has a member named "${name}", which hides the template function imported as "${name}"`);
@@ -535,6 +543,9 @@ export class ComponentFactory {
       const declared = resolveForwardRef(entry);
       use(templateFunctionName(declared), {
         Some: (name) => {
+          if (BUILT_IN_NAMES.includes(name)) {
+            throw new Error(`${name} is a built-in template function: an import cannot take its name`);
+          }
           if (types.has(name)) {
             throw new Error(`${name} is imported twice as a template function`);
           }

@@ -164,7 +164,7 @@ export class ExpressionParser {
       return Left.of(new ExpressionError(`Empty expression: write a field or a call, e.g. "title" or "count()"`));
     }
     return pipe(
-      this.conditional(),
+      this.pipeline(),
       flatMap((expression): Parsed<Expression> => {
         this.skipWhitespace();
         return this.atEnd()
@@ -172,6 +172,44 @@ export class ExpressionParser {
           : Left.of(this.error(`Unexpected "${this.source[this.position]}"`));
       }),
     );
+  }
+
+  /**
+   * An expression with its pipes. `value | name` and `value | name(args)` pass `value` as the first
+   * argument of the function `name`: `a | f(b)` is `f(a, b)`. Pipes are the lowest in precedence,
+   * and they go from left to right: `a + b | f | g` is `g(f(a + b))`. Inside the arguments of a
+   * call, a pipe needs parentheses.
+   */
+  private pipeline(): Parsed<Expression> {
+    return flatMap(this.conditional(), (value) => this.pipeRest(value));
+  }
+
+  /** The pipes after `value`, if any: each one wraps what is before it in a call. */
+  private pipeRest(value: Expression): Parsed<Expression> {
+    this.skipWhitespace();
+    // `||` is an operator, read before the pipes: a single `|` is a pipe.
+    if (this.source[this.position] !== "|" || this.source[this.position + 1] === "|") {
+      return Right.of(value);
+    }
+    this.position++;
+    this.skipWhitespace();
+    return flatMap(this.identifier(), (name): Parsed<Expression> =>
+      flatMap(this.pipeArguments(), (args): Parsed<Expression> => this.pipeRest({
+        kind: "call",
+        callee: { kind: "property", receiver: COMPONENT, name },
+        args: [value, ...args],
+      })));
+  }
+
+  /** The `(args)` after a pipe's name, if it has any: none otherwise. */
+  private pipeArguments(): Parsed<readonly Expression[]> {
+    this.skipWhitespace();
+    if (this.source[this.position] !== "(") {
+      return Right.of([]);
+    }
+    this.position++;
+    this.skipWhitespace();
+    return this.arguments();
   }
 
   /**
@@ -301,7 +339,7 @@ export class ExpressionParser {
     }
     if (this.source[this.position] === "(") {
       this.position++;
-      return flatMap(this.conditional(), (inner): Parsed<Expression> => {
+      return flatMap(this.pipeline(), (inner): Parsed<Expression> => {
         this.skipWhitespace();
         if (this.source[this.position] !== ")") {
           return Left.of(this.error(

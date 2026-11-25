@@ -199,3 +199,47 @@ test("an argument list that ends early is an error that says so", () => {
   expect(error("count(1"))
     .toBe(`Expected "," or ")", found "the end" (at column 8 in "count(1")`);
 });
+
+describe("pipes: parsing", () => {
+  test("a pipe is a call of the named function, with the value as its first argument", () => {
+    expect(parse("price | format(locale)"))
+      .toEqual({
+        kind: "call",
+        callee: { kind: "property", receiver: component, name: "format" },
+        args: [parse("price"), parse("locale")],
+      });
+  });
+
+  test("a pipe without arguments passes only the value", () => {
+    expect(parse("price | double"))
+      .toEqual({
+        kind: "call",
+        callee: { kind: "property", receiver: component, name: "double" },
+        args: [parse("price")],
+      });
+  });
+
+  test("pipes go from left to right, and bind looser than any operator", () => {
+    expect(parse("a + b | f | g"))
+      .toEqual(parse("g(f(a + b))"));
+  });
+
+  test("|| is still the logical operator", () => {
+    expect(parse("a || b"))
+      .toEqual({ kind: "binary", operator: "||", left: parse("a"), right: parse("b") });
+  });
+
+  test("inside the arguments of a call, a pipe needs parentheses", () => {
+    expect(error("f(a | g)"))
+      .not
+      .toBe("no error");
+    expect(parse("f((a | g))"))
+      .toEqual(parse("f(g(a))"));
+  });
+
+  test("a pipe with no name is an error", () => {
+    expect(error("price |"))
+      .not
+      .toBe("no error");
+  });
+});
