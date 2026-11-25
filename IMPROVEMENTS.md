@@ -219,3 +219,11 @@ point at the host root.
 **Problem.** `memoise` returns the last result for the same arguments, but nothing checks that the function reads only its arguments. A function that reads the clock, the locale or a signal gives a stale result, and the compiler cannot warn about it.
 
 **To do.** Decide whether purity can be enforced (for example, in dev mode, by running the function untracked and warning on a signal read), or whether the doc comment is the only guard. Also decide whether `memoise` should keep more than the last call.
+
+## Template functions (`packages/core/src/view/internal/authoring/template-function.ts`, `template/evaluate.ts`)
+
+### 1. A member with the same name silently hides the template function
+
+**Problem.** If the component has a member named like an imported template function, the member is called and the import is ignored, with no warning.
+
+**To do.** Warn in development mode when a template function's name is also a member of its component, as the other dev-mode name checks do.

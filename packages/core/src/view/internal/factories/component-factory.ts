@@ -62,6 +62,8 @@ import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { classesIn } from "../template/classes-in.ts";
+import { registerTemplateFunctions } from "../template/template-functions.ts";
+import { isTemplateFunction, templateFunctionName, type TemplateFunctionContract } from "../authoring/template-function.ts";
 import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
 import { CLASS_REPLACEMENTS, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
@@ -347,6 +349,9 @@ export class ComponentFactory {
           },
         ),
         ...(metadata.providers ?? []),
+        // The template functions it imports, created in its injector like its providers.
+        ...this.templateFunctionTypesOf(metadata)
+          .values(),
         ...hostDirectives.flatMap((directive) =>
           valueOrThrow(this.directives.metadataOf(directive)).providers ?? []),
       ],
@@ -429,10 +434,17 @@ export class ComponentFactory {
     // Host directives first, in order, so the component can inject them.
     // The component is a provider of its injector too: created by it (so
     // its onDestroy() runs with the view), and injectable below it.
-    const { hostInstances, instance } = runInInjectionContext(ownInjector.injector, () => ({
-      hostInstances: hostDirectives.map((directive) => inject(directive)),
-      instance: inject(type),
-    }));
+    const { hostInstances, instance, templateFunctions } = runInInjectionContext(
+      ownInjector.injector,
+      () => ({
+        hostInstances: hostDirectives.map((directive) => inject(directive)),
+        instance: inject(type),
+        templateFunctions: [...this.templateFunctionTypesOf(metadata)].map(
+          ([name, fnType]) => [name, inject(fnType) as TemplateFunctionContract] as const,
+        ),
+      }),
+    );
+    registerTemplateFunctions(instance, new Map(templateFunctions));
     // The builder creates the template's child components with this factory.
     const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
     const template = this.builders.create(instance, this, queries, undefined, true, node);
@@ -504,20 +516,43 @@ export class ComponentFactory {
   }
 
   /**
+   * The template functions `metadata` imports, by the name their template calls them by. Two
+   * imports with the same name are an error.
+   */
+  private templateFunctionTypesOf(metadata: ComponentMetadata): Map<string, Class<object>> {
+    const types = new Map<string, Class<object>>();
+    for (const entry of metadata.imports ?? []) {
+      const declared = resolveForwardRef(entry);
+      use(templateFunctionName(declared), {
+        Some: (name) => {
+          if (types.has(name)) {
+            throw new Error(`${name} is imported twice as a template function`);
+          }
+          types.set(name, declared);
+        },
+        None: () => undefined,
+      });
+    }
+    return types;
+  }
+
+  /**
    * The directives `type` imports, with their parsed selectors. Throws for
    * one that is not a directive, or whose selector is not supported.
    */
   private candidatesOf(type: Class<unknown>, metadata: ComponentMetadata): DirectiveCandidate[] {
-    return (metadata.imports ?? []).map((declared) => {
-      const resolved = resolveForwardRef(declared);
-      const imported = this.replacements.get(resolved) ?? resolved;
-      const metadata = valueOrThrow(this.directives.metadataOf(imported));
-      return {
-        type: imported,
-        selector: valueOrThrow(mapLeft(Selector.parse(metadata.selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
-        isComponent: isSome(getComponentMetadata(imported)),
-        exportAs: metadata.exportAs,
-      };
-    });
+    return (metadata.imports ?? [])
+      .filter((declared) => !isTemplateFunction(resolveForwardRef(declared)))
+      .map((declared) => {
+        const resolved = resolveForwardRef(declared);
+        const imported = this.replacements.get(resolved) ?? resolved;
+        const metadata = valueOrThrow(this.directives.metadataOf(imported));
+        return {
+          type: imported,
+          selector: valueOrThrow(mapLeft(Selector.parse(metadata.selector), (error) => new Error(`${imported.name}, imported by ${type.name}: ${error.message}`))),
+          isComponent: isSome(getComponentMetadata(imported)),
+          exportAs: metadata.exportAs,
+        };
+      });
   }
 }
