@@ -9,6 +9,7 @@
 // The records create values themselves, through hooks given by the injector,
 // so they don't need to know what an injector is.
 
+import { Left, Right, type Either } from "@tinker/functional";
 import type { Token } from "./inject.ts";
 
 /**
@@ -78,6 +79,11 @@ export class CircularDependencyError extends Error {
   }
 }
 
+/** The errors that mean a value cannot be given, as opposed to a bug in a factory. */
+function isDependencyError(error: unknown): error is NoProviderError | CircularDependencyError {
+  return error instanceof NoProviderError || error instanceof CircularDependencyError;
+}
+
 /** Marks a record whose value has not been created yet. */
 const UNSET: unique symbol = Symbol("UNSET");
 /** Marks a record whose factory is running right now. */
@@ -132,21 +138,21 @@ export class ProviderRecords {
   }
 
   /**
-   * The value for `token`: created on the first call (through the hooks),
-   * then the same value every time. Throws NoProviderError if there is no provider,
-   * and CircularDependencyError if the value is needed while it is being created.
-   * If creating throws, nothing is cached and the next call tries again.
+   * The value for `token`: created on the first call (through the hooks), then the same value
+   * every time. A Left if there is no provider for it, or if it is needed while it is being
+   * created, or if a factory asked for such a value. Any other error thrown by a factory is a
+   * bug, and it throws. If creating throws, nothing is cached and the next call tries again.
    */
-  get<T>(token: Token<T>): T {
+  get<T>(token: Token<T>): Either<T, NoProviderError | CircularDependencyError> {
     const record = this.records.get(token) as ProviderRecord<T> | undefined;
     if (!record) {
-      throw new NoProviderError(token);
+      return Left.of(new NoProviderError(token));
     }
     if (record.value === CREATING) {
-      throw CircularDependencyError.fromCreationPath(creationPath, this, token);
+      return Left.of(CircularDependencyError.fromCreationPath(creationPath, this, token));
     }
     if (record.value !== UNSET) {
-      return record.value;
+      return Right.of(record.value);
     }
 
     record.value = CREATING;
@@ -158,12 +164,16 @@ export class ProviderRecords {
         : (this.createValue(record.providers[0]!) as T);
     } catch (error) {
       record.value = UNSET; // never leave CREATING behind: the next call tries again
+      if (isDependencyError(error)) {
+        // A factory asked (through inject) for a value that cannot be given: a Left here too.
+        return Left.of(error);
+      }
       throw error;
     } finally {
       creationPath.pop();
     }
     record.value = value;
-    return value;
+    return Right.of(value);
   }
 
   /** Create one provider's value, through the hooks. */
