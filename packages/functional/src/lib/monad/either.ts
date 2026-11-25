@@ -1,6 +1,20 @@
-// Either<T, E>: a Right holding a T, or a Left holding an E. What the client puts in the Left is
-// the client's choice. Each case is a class with a private constructor: build a case with
-// `Right.of(value)` or `Left.of(error)`, and read a value only with `match`.
+// Either<T, E>: a Right holding a T, or a Left holding an E. A Right is a success, and a Left is a
+// failure: the names follow Haskell's convention. What the caller puts in the Left is the caller's
+// choice. Each case is a class with a private constructor: build a case with `Right.of(value)` or
+// `Left.of(error)`, and read a value only with `match`.
+//
+// A pipeline of steps keeps a success going and a failure out of the way. `map` and `flatMap` run
+// their step only on a Right, so the next step gets the value of a success and nothing else:
+//
+//   const id = parseId("7");                          // Right(7): success
+//   const label = map(id, (n) => `user ${n}`);        // Right("user 7"): the step ran
+//   const profile = flatMap(id, (n) => loadUser(n));  // loadUser returns an Either, so it joins
+//
+//   const bad = parseId("x");                         // Left("not a number"): failure
+//   const same = map(bad, (n) => `user ${n}`);        // Left("not a number"): the step was skipped
+//
+// A Left skips every step after it and reaches the end unchanged. `mapLeft` changes the error, and
+// `match` is where the pipeline ends: it reads the value of a Right and the error of a Left.
 
 import {
   EQUALS,
@@ -13,7 +27,9 @@ import {
 } from "./monad.ts";
 import { Continue, Halt, OUTCOME, type Outcome } from "./outcome.ts";
 
-/** A Right: a success, holding a T. */
+/**
+ * A Right: a success, holding a T. The steps after it (`map`, `flatMap`) run on this value.
+ */
 export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Outcome<T, never> {
   /** The case this Right is, for `match`: its name and its value. */
   readonly [MATCHABLE]: Case<"Right", readonly [T]>;
@@ -57,7 +73,10 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Ou
   }
 }
 
-/** A Left: a failure, holding whatever the caller chose to put there. */
+/**
+ * A Left: a failure, holding the error the caller chose. The steps after it are skipped, and it
+ * reaches the end of the pipeline unchanged.
+ */
 export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outcome<never, E> {
   /** The case this Left is, for `match`: its name and its error. */
   readonly [MATCHABLE]: Case<"Left", readonly [E]>;
@@ -101,7 +120,10 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outc
   }
 }
 
-/** Either: a Right holding a T, or a Left holding an E. */
+/**
+ * Either: a Right holding a T (a success), or a Left holding an E (a failure). A pipeline of
+ * `map` and `flatMap` steps runs on the Right, and passes a Left on unchanged.
+ */
 export type Either<T, E> = Right<T> | Left<E>;
 
 /** The two handlers of a match, named after the cases. */
