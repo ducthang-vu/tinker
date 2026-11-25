@@ -6,7 +6,7 @@
 
 import { afterEach, describe, expect, test } from "vitest";
 import { tick } from "./internal/test-support.ts";
-import { match, mapLeft, map, type Either, pipe, toError, Left, Right, attempt, Some, None, fromNullable, getOrElse, flatMap } from "@tinker/functional";
+import { match, map, type Either, pipe, toError, Left, Right, Some, None, fromNullable, getOrElse, flatMap } from "@tinker/functional";
 import {
   bootstrap,
   Component,
@@ -263,10 +263,13 @@ describe("a computed built from functional values, shown in the view", () => {
   });
 
   test("a parse error travels as an Either value, not a throw", () => {
-    const parse = (text: string) => mapLeft(
-      attempt(() => JSON.parse(text) as unknown, (error): error is unknown => true),
-      toError,
-    );
+    const parse = (text: string) => {
+      try {
+        return Right.of<unknown, Error>(JSON.parse(text) as unknown);
+      } catch (error) {
+        return Left.of<Error, unknown>(toError(error));
+      }
+    };
     expect(match(parse("{"), { Left: () => true, Right: () => false }))
       .toBe(true);
     expect(match(parse("[1]"), { Left: () => null, Right: (value) => value }))
