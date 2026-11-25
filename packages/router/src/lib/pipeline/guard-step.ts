@@ -1,22 +1,77 @@
 // The guard step: runs the guards of the matched routes, root first, each route's in order. A guard
-// returns true to allow, false to reject, or a URL to redirect. It runs in the injection context of
-// the router, and may return a Task for work that takes time. The first guard that does not allow
-// stops the step; a throw, or a failing task, stops it with a Failed.
+// returns a Task of a command: ALLOW lets the navigation through, STOP rejects it, and REDIRECT
+// sends it to another URL. A guard that waits returns a Task that succeeds later; a sync guard
+// returns a Task that succeeds at once. The first command that is not ALLOW stops the step, and a
+// throw, or a failing task, stops it with a Failed.
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
 import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker/functional";
-import { type AppPath, isAppPath } from "../destination/app-path.ts";
+import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { GuardStep } from "./steps.ts";
 import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";
 
-/** A guard's answer: allow (true), reject (false), or redirect to a URL. */
-export type GuardResult = boolean | AppPath;
+/** The payload of a STOP command: why the guard stopped the navigation, if it gives a reason. */
+export class StopPayload {
+  /**
+   * The payload of a STOP.
+   *
+   * @param reason Why the navigation is stopped, for the app to show or log.
+   */
+  constructor(readonly reason?: string) {}
+}
 
-/** A guard of a route. It may return its answer, or a Task of it for work that takes time. */
-export type Guard = (
-  request: MatchedRequest,
-) => GuardResult | Task<GuardResult, unknown>;
+/** The STOP command: the guard rejects the navigation, and the navigation changes nothing. */
+export class StopCommand {
+  /** The command's type. */
+  readonly type = "STOP" as const;
+
+  /**
+   * A STOP command.
+   *
+   * @param payload Why the navigation is stopped.
+   */
+  constructor(readonly payload: StopPayload) {}
+}
+
+/** The payload of a REDIRECT command: the URL to go to instead, and why. */
+export class RedirectPayload {
+  /**
+   * The payload of a REDIRECT.
+   *
+   * @param path The URL to go to instead.
+   * @param reason Why the navigation is redirected, for the app to show or log.
+   */
+  constructor(
+    readonly path: AppPath,
+    readonly reason?: string,
+  ) {}
+}
+
+/** The REDIRECT command: the navigation goes to another URL instead. */
+export class RedirectCommand {
+  /** The command's type. */
+  readonly type = "REDIRECT" as const;
+
+  /**
+   * A REDIRECT command.
+   *
+   * @param payload The URL to go to, and why.
+   */
+  constructor(readonly payload: RedirectPayload) {}
+}
+
+/** The ALLOW command: the guard lets the navigation through. */
+export class AllowCommand {
+  /** The command's type. */
+  readonly type = "ALLOW" as const;
+}
+
+/** What a guard returns: a command the router carries out. */
+export type RouteGuardCommand = AllowCommand | StopCommand | RedirectCommand;
+
+/** A guard of a route. It returns a Task of its command: `succeed` for a sync guard. */
+export type Guard = (request: MatchedRequest) => Task<RouteGuardCommand, unknown>;
 
 /**
  * The guard step for a router with `injector`.
@@ -36,10 +91,7 @@ export function createGuardStep(injector: Injector): GuardStep {
 
 /**
  * The guards of one route, in order.
- * @param injector
- * @param matched
- * @param route
- * @param guards
+ *
  * @param injector The injector whose context the guards run in.
  * @param matched The navigation being guarded.
  * @param route The path of the route whose guards these are.
@@ -54,66 +106,72 @@ function guardsOf(
 ): Task<MatchedRequest, Stop> {
   return guards.reduce<Task<MatchedRequest, Stop>>(
     (previous, guard) =>
-      flatMap(previous, () =>
-        flatMap(callGuard(injector, matched, guard), (verdict) =>
-          decide(matched, route, verdict))),
+      flatMap(previous, (current) =>
+        flatMap(callGuard(injector, current, guard), (command) =>
+          decide(current, route, command))),
     succeed(matched),
   );
 }
 
 /**
- * One guard, as a task of its answer. A throw, or a failing task, becomes a Failed.
- * @param injector
- * @param matched
- * @param guard
-         * @param injector The injector whose context the guard runs in.
-         * @param matched The navigation being guarded.
-         * @param guard The guard to call.
-         * @returns A task of the guard's answer. A throw, or a failing task, stops with Failed.
+ * One guard, as a task of its command. A throw, or a failing task, becomes a Failed.
+ *
+ * @param injector The injector whose context the guard runs in.
+ * @param matched The navigation being guarded.
+ * @param guard The guard to call.
+ * @returns A task of the guard's command. A throw, or a failing task, stops with Failed.
  */
 function callGuard(
   injector: Injector,
   matched: MatchedRequest,
   guard: Guard,
-): Task<GuardResult, Stop> {
-  return fromComputation<GuardResult, Stop>((ok, error) => {
-    let produced: GuardResult | Task<GuardResult, unknown>;
+): Task<RouteGuardCommand, Stop> {
+  return fromComputation<RouteGuardCommand, Stop>((ok, error) => {
+    let produced: Task<RouteGuardCommand, unknown>;
     try {
       produced = runInInjectionContext(injector, () => guard(matched));
     } catch (cause) {
       error(failed(matched, cause));
       return;
     }
-    if (typeof produced !== "boolean" && !isAppPath(produced)) {
-      return run(produced, {
-        ok,
-        error: (cause) => error(failed(matched, cause)),
-      });
-    }
-    ok(produced);
+    return run(produced, {
+      ok,
+      error: (cause) => error(failed(matched, cause)),
+    });
   });
 }
 
 /**
- * Turns an answer into the navigation's next step: allowed, rejected, or redirected.
- * @param matched
- * @param route
- * @param verdict
-     * @param matched The navigation being decided.
-     * @param route The path of the route whose guard answered.
-     * @param verdict The guard's answer.
-     * @returns The next step: the request when allowed, or a rejection or redirect stop.
+ * The request with one more entry in its trace.
+ *
+ * @param matched The navigation.
+ * @param entry What the step did.
+ * @returns The navigation with the entry added.
+ */
+function traced(matched: MatchedRequest, entry: unknown): MatchedRequest {
+  return { ...matched, trace: [...matched.trace, entry] };
+}
+
+/**
+ * Carries out a guard's command: lets the navigation through, stops it, or redirects it.
+ *
+ * @param matched The navigation the guard was asked about.
+ * @param route The path of the route whose guard returned the command.
+ * @param command The command the guard returned.
+ * @returns The next step: the request when allowed, or a stop.
  */
 function decide(
   matched: MatchedRequest,
   route: string,
-  verdict: GuardResult,
+  command: RouteGuardCommand,
 ): Task<MatchedRequest, Stop> {
-  if (verdict === true) {
-    return succeed(matched);
+  const entry = { step: "guard", route, command: command.type };
+  switch (command.type) {
+    case "ALLOW":
+      return succeed(traced(matched, entry));
+    case "STOP":
+      return fail(guardRejected(traced(matched, entry), route, command));
+    case "REDIRECT":
+      return fail(Redirect.of(traced(matched, entry), command.payload.path));
   }
-  if (verdict === false) {
-    return fail(guardRejected(matched, route));
-  }
-  return fail(Redirect.of(matched, verdict));
 }

@@ -33,7 +33,7 @@ function matchedFor(arrival: "push" | "pop"): MatchedRequest {
     .to("todos")
     .to("7")
     .build();
-  return { id: 1, destination, state: { x: 1 }, arrival, redirectFrom: [], chain: [] };
+  return { id: 1, destination, state: { x: 1 }, arrival, redirectFrom: [], trace: [], chain: [] };
 }
 
 /** Runs the commit step and returns its outcome: the committed request, or the stop. */

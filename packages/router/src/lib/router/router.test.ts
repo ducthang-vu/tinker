@@ -7,7 +7,16 @@ import { Router } from "./router.ts";
 import type { Route } from "./route.ts";
 import { ParseError, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { builderOver } from "../destination/test-builder.ts";
-import type { Guard } from "../pipeline/guard-step.ts";
+import {
+  AllowCommand,
+  type Guard,
+  RedirectCommand,
+  RedirectPayload,
+  type RouteGuardCommand,
+  StopCommand,
+  StopPayload,
+} from "../pipeline/guard-step.ts";
+import { succeed } from "@tinker/functional";
 import { MAX_REDIRECTS } from "../pipeline/match-step.ts";
 import { fromComputation, getOrThrow, isNone } from "@tinker/functional";
 
@@ -287,7 +296,7 @@ function routerWithGuard(guards: readonly Guard[], url = "/todos") {
 }
 
 test("a guard that says no stops the navigation, naming the route whose guard said it", async () => {
-  const deny: Guard = () => false;
+  const deny: Guard = () => succeed(new StopCommand(new StopPayload("not allowed")));
   const { router, urls, destroy } = routerWithGuard([deny]);
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
@@ -298,9 +307,9 @@ test("a guard that says no stops the navigation, naming the route whose guard sa
 });
 
 test("a guard that redirects sends the navigation to its target instead, which is done", async () => {
-  const toList: Guard = () => builderOver(CHILDREN)
+  const toList: Guard = () => succeed(new RedirectCommand(new RedirectPayload(builderOver(CHILDREN)
     .to("todos")
-    .build();
+    .build())));
   const { router, urls, destroy } = routerWithGuard([toList]);
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
@@ -331,8 +340,8 @@ test("a route that redirects to itself is rejected as failed, with the redirect 
 });
 
 test("a navigation replaced by a newer one is cancelled, and the newer one is done", async () => {
-  let release: ((value: boolean) => void) | undefined;
-  const slow: Guard = () => fromComputation<boolean, unknown>((ok) => {
+  let release: ((value: RouteGuardCommand) => void) | undefined;
+  const slow: Guard = () => fromComputation<RouteGuardCommand, unknown>((ok) => {
     release = ok;
     return () => {};
   });
@@ -343,7 +352,7 @@ test("a navigation replaced by a newer one is cancelled, and the newer one is do
     .build());
   expect(await second)
     .toMatchObject({ kind: "done" });
-  release?.(true);
+  release?.(new AllowCommand());
   expect(await first)
     .toMatchObject({ kind: "cancelled" });
   expect(router.url())
@@ -401,7 +410,7 @@ test("a back move through the guards commits, and the routes follow it", () => {
 });
 
 test("a back move a guard rejects is restored: the browser returns to the last committed URL and state", async () => {
-  const deny: Guard = () => false;
+  const deny: Guard = () => succeed(new StopCommand(new StopPayload("not allowed")));
   const guarded: Route = {
     path: "",
     component: Root,
@@ -419,9 +428,9 @@ test("a back move a guard rejects is restored: the browser returns to the last c
 });
 
 test("a back move a guard redirects goes to the redirect target, which replaces the entry", () => {
-  const toList: Guard = () => builderOver(CHILDREN)
+  const toList: Guard = () => succeed(new RedirectCommand(new RedirectPayload(builderOver(CHILDREN)
     .to("todos")
-    .build();
+    .build())));
   const guarded: Route = {
     path: "",
     component: Root,
@@ -443,5 +452,14 @@ test("a back move to a URL no route takes is restored at once", () => {
     .toBe("/todos");
   expect(router.url())
     .toBe("/todos");
+  destroy();
+});
+
+test("the outcome carries the trace of its navigation, for debugging", async () => {
+  const allowGuard: Guard = () => succeed(new AllowCommand());
+  const { router, urls, destroy } = routerWithGuard([allowGuard]);
+  expect(await router.navigate(urls.parse("/todos/7")
+    .build()))
+    .toMatchObject({ kind: "done", meta: [{ step: "guard", route: ":id", command: "ALLOW" }] });
   destroy();
 });

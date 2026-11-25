@@ -7272,6 +7272,32 @@
           ]
         },
         {
+          "name": "AllowCommand",
+          "kind": "class",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:65",
+          "description": "The ALLOW command: the guard lets the navigation through.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new AllowCommand(): AllowCommand"
+          ],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:67",
+              "description": "The command's type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"ALLOW\""
+            }
+          ]
+        },
+        {
           "name": "AppPath",
           "kind": "interface",
           "source": "packages/router/src/lib/destination/app-path.ts:30",
@@ -7329,7 +7355,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6823",
+              "name": "__@APP_PATH_BRAND@6835",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
@@ -7503,6 +7529,17 @@
           "see": [],
           "throws": [],
           "type": "InjectionToken<ReadonlySignal<Maybe<ActivatedRoute>>>"
+        },
+        {
+          "name": "Guard",
+          "kind": "type",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:74",
+          "description": "A guard of a route. It returns a Task of its command: `succeed` for a sync guard.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "declaration": "export type Guard = (request: MatchedRequest) => Task<RouteGuardCommand, unknown>;"
         },
         {
           "name": "Location",
@@ -7841,6 +7878,98 @@
           ]
         },
         {
+          "name": "RedirectCommand",
+          "kind": "class",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:52",
+          "description": "The REDIRECT command: the navigation goes to another URL instead.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new RedirectCommand(payload: RedirectPayload): RedirectCommand"
+          ],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:54",
+              "description": "The command's type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"REDIRECT\""
+            },
+            {
+              "name": "payload",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:61",
+              "description": "The URL to go to, and why.",
+              "params": [
+                {
+                  "name": "payload",
+                  "text": "The URL to go to, and why."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "RedirectPayload"
+            }
+          ]
+        },
+        {
+          "name": "RedirectPayload",
+          "kind": "class",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:38",
+          "description": "The payload of a REDIRECT command: the URL to go to instead, and why.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new RedirectPayload(path: AppPath, reason?: string | undefined): RedirectPayload"
+          ],
+          "members": [
+            {
+              "name": "path",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:46",
+              "description": "The URL to go to instead.",
+              "params": [
+                {
+                  "name": "path",
+                  "text": "The URL to go to instead."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "AppPath"
+            },
+            {
+              "name": "reason",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:47",
+              "description": "Why the navigation is redirected, for the app to show or log.",
+              "params": [
+                {
+                  "name": "reason",
+                  "text": "Why the navigation is redirected, for the app to show or log."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string | undefined"
+            }
+          ]
+        },
+        {
           "name": "Route",
           "kind": "interface",
           "source": "packages/router/src/lib/router/route.ts:11",
@@ -7917,6 +8046,17 @@
               "type": "readonly Guard[] | undefined"
             }
           ]
+        },
+        {
+          "name": "RouteGuardCommand",
+          "kind": "type",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:71",
+          "description": "What a guard returns: a command the router carries out.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "declaration": "export type RouteGuardCommand = AllowCommand | StopCommand | RedirectCommand;"
         },
         {
           "name": "RouteMatch",
@@ -8057,7 +8197,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:127",
+              "source": "packages/router/src/lib/router/router.ts:128",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],
@@ -8175,6 +8315,81 @@
             "new RouterOutlet(): RouterOutlet"
           ],
           "members": []
+        },
+        {
+          "name": "StopCommand",
+          "kind": "class",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:25",
+          "description": "The STOP command: the guard rejects the navigation, and the navigation changes nothing.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new StopCommand(payload: StopPayload): StopCommand"
+          ],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:27",
+              "description": "The command's type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"STOP\""
+            },
+            {
+              "name": "payload",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:34",
+              "description": "Why the navigation is stopped.",
+              "params": [
+                {
+                  "name": "payload",
+                  "text": "Why the navigation is stopped."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "StopPayload"
+            }
+          ]
+        },
+        {
+          "name": "StopPayload",
+          "kind": "class",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:15",
+          "description": "The payload of a STOP command: why the guard stopped the navigation, if it gives a reason.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "new StopPayload(reason?: string | undefined): StopPayload"
+          ],
+          "members": [
+            {
+              "name": "reason",
+              "kind": "property",
+              "source": "packages/router/src/lib/pipeline/guard-step.ts:21",
+              "description": "Why the navigation is stopped, for the app to show or log.",
+              "params": [
+                {
+                  "name": "reason",
+                  "text": "Why the navigation is stopped, for the app to show or log."
+                }
+              ],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "inheritedFrom": "",
+              "type": "string | undefined"
+            }
+          ]
         },
         {
           "name": "browserPlatformLocation",

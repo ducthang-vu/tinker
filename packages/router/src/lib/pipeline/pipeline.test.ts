@@ -6,6 +6,7 @@ import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import { createPipeline } from "./pipeline.ts";
 import type { PipelineSteps } from "./steps.ts";
 import { failed, guardRejected, noRoute, Redirect, type Stop } from "./stop.ts";
+import { StopCommand, StopPayload } from "./guard-step.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
 function destinationOf(path: string): AppPath {
@@ -27,14 +28,14 @@ function to(path: "login" | "home" | "elsewhere") {
     .build();
 }
 
-const ref = { id: 1, destination: destinationOf("/todos/7") };
+const ref = { id: 1, destination: destinationOf("/todos/7"), trace: [] };
 
 const request: NavigationRequest = {
   id: 1,
   destination: destinationOf("/todos/7"),
   state: null,
   arrival: "push",
-  redirectFrom: [],
+  redirectFrom: [], trace: [],
 };
 
 /**
@@ -140,7 +141,7 @@ describe("stops", () => {
   test("a rejection from the guards stops before the commit", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      guards: () => fail<Stop>(guardRejected(ref, "/todos")),
+      guards: () => fail<Stop>(guardRejected(ref, "/todos", new StopCommand(new StopPayload()))),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)
