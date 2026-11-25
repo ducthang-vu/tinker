@@ -286,6 +286,7 @@ Run its focused tests with `npm run test:repo-map`.
   its own lines, 100% coverage).
 - [docs/architecture.md](docs/architecture.md): how components, directives,
   native nodes, `View`s and `ViewContainerRef`s relate, with diagrams.
+- [docs/hosting.md](docs/hosting.md): how a host must serve a Tinker app, so its deep links work.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
 Not there yet: property bindings on plain elements (`[value]` on an `<input>`),
