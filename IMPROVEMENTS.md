@@ -104,15 +104,6 @@ name can appear many times.
 **To do.** `queryAll` with a variable (a list of the one value, or of the rows that
 share the name), and a registry per row if a row variable is to be queried.
 
-### 4. Arrow functions
-
-**Problem.** `t => t.done` (needed for `filter` and `map` in templates) is not in the
-expression language. Unary minus is supported (`-count()`).
-
-**To do.** Add arrow functions to `expression.ts`, with `filter` and `map` as methods that
-take a function. An arrow function needs its own scope for the parameter, like a `@let`
-but for a call.
-
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 
 ### 1. Warn the author about legitimate but suspicious templates
