@@ -19,6 +19,7 @@ describe("readSource", () => {
         imports: ["Item"],
         exportAs: undefined,
         exportAsIsDynamic: false,
+        members: [],
         inputNames: {},
         statementEnd: expect.any(Number),
       }]);
@@ -29,9 +30,18 @@ describe("readSource", () => {
       .toEqual([{ name: "Item", kind: "directive", selector: "[item]", template: undefined, imports: [],
         exportAs: undefined,
         exportAsIsDynamic: false,
+        members: [],
         inputNames: {},
         statementEnd: expect.any(Number),
       }]);
+  });
+
+  test("reads a template function's literal name, and the names of its own members", () => {
+    const [declaration] = read(
+      `@TemplateFunction("format") class Format { private n = 1; call(x) { return x; } static s = 2; }`,
+    ).declarations;
+    expect(declaration)
+      .toMatchObject({ name: "Format", kind: "templateFunction", templateFunctionName: "format", members: ["n", "call"] });
   });
 
   test("reads an exportAs literal, and marks one that is not a literal as dynamic", () => {

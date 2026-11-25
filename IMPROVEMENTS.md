@@ -222,8 +222,8 @@ point at the host root.
 
 ## Template functions (`packages/core/src/view/internal/authoring/template-function.ts`, `template/evaluate.ts`)
 
-### 1. A member with the same name silently hides the template function
+### 1. A member named like an imported template function is only read on the class's own body
 
-**Problem.** If the component has a member named like an imported template function, the member is called and the import is ignored, with no warning.
+**Problem.** The build stops a component whose own class body has a member named like an imported template function. A member inherited from a base class is not read at build time, so in production the member silently hides the function. In development mode it is a warning at run time.
 
-**To do.** Warn in development mode when a template function's name is also a member of its component, as the other dev-mode name checks do.
+**To do.** Read the base class when the build can resolve it, or make the run-time check an error in strict production builds.

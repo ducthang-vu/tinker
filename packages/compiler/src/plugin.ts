@@ -410,6 +410,7 @@ async function replacementFor(
     skip(host, mode, where, imports.reason);
     return undefined;
   }
+  checkTemplateFunctions(imports.functions, declaration, where, host);
   // Each import gets a placeholder class named as the file names it, so the emitted
   // expression can refer to it by that name.
   const classes = new Map<Class<object>, string>();
@@ -467,10 +468,20 @@ interface NamedSelector {
   readonly exportAs?: string;
 }
 
-/** The selectors of the directives a component imports, or why they cannot be read. */
+/** A template function a component imports: the name in the importing file, and the template's. */
+interface ImportedFunction {
+  readonly name: string;
+  readonly templateName: string;
+}
+
+/** The directives and template functions a component imports, or why they cannot be read. */
 type ImportsRead
-  = | { readonly isRead: true; readonly selectors: NamedSelector[] }
-    | { readonly isRead: false; readonly reason: string };
+  = | {
+    readonly isRead: true;
+    readonly selectors: NamedSelector[];
+    readonly functions: ImportedFunction[];
+  }
+  | { readonly isRead: false; readonly reason: string };
 
 async function importedSelectors(
   names: readonly string[] | undefined,
@@ -482,14 +493,48 @@ async function importedSelectors(
     return { isRead: false, reason: "its imports are not a list of names" };
   }
   const selectors: NamedSelector[] = [];
+  const functions: ImportedFunction[] = [];
   for (const name of names) {
+    const found = await declarationNamed(name, source, filename, host);
+    if (found?.declaration.kind === "templateFunction") {
+      const templateName = found.declaration.templateFunctionName;
+      if (templateName === undefined) {
+        return { isRead: false, reason: `${name} has no literal name` };
+      }
+      functions.push({ name, templateName });
+      continue;
+    }
     const selector = await selectorOf(name, source, filename, host);
     if (selector === undefined) {
       return { isRead: false, reason: `${name} has no literal selector, or is not found` };
     }
     selectors.push({ name, ...selector });
   }
-  return { isRead: true, selectors };
+  return { isRead: true, selectors, functions };
+}
+
+/**
+ * The build-time checks of a component's template functions: two imports with one template name
+ * are an error, and so is a member of the component with that name, which would hide the function.
+ * Both stop the build. A member inherited from a base class is not read here: development mode
+ * warns about it at run time.
+ */
+function checkTemplateFunctions(
+  functions: readonly ImportedFunction[],
+  declaration: Declaration,
+  where: string,
+  host: CheckHost,
+): void {
+  const names = new Set<string>();
+  for (const { name, templateName } of functions) {
+    if (names.has(templateName)) {
+      host.error(`${where}: two imports are template functions named "${templateName}"`);
+    }
+    names.add(templateName);
+    if (declaration.members.includes(templateName)) {
+      host.error(`${where}: the member "${templateName}" hides the template function ${name}, imported as "${templateName}"`);
+    }
+  }
 }
 
 /** The selector of the directive `name` as this file sees it: declared here, or imported. */
@@ -499,22 +544,34 @@ async function selectorOf(
   filename: string,
   host: CheckHost,
 ): Promise<Pick<NamedSelector, "selector" | "isComponent"> | undefined> {
+  const found = await declarationNamed(name, source, filename, host);
+  return found === undefined
+    ? undefined
+    : selectorInfo(found.declaration, found.source, found.filename, host);
+}
+
+/**
+ * The declaration `name` refers to in this file: declared here, or imported and exported by its
+ * file.
+ */
+async function declarationNamed(
+  name: string,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+): Promise<FoundDeclaration | undefined> {
   const local = source.declarations.find((declaration) => declaration.name === name);
   if (local !== undefined) {
-    return selectorInfo(local, source, filename, host);
+    return { declaration: local, source, filename };
   }
   const binding = source.imports.find((imported) => imported.local === name);
   if (binding === undefined) {
     return undefined;
   }
   const file = await host.resolve(binding.source, filename);
-  if (file === null) {
-    return undefined;
-  }
-  const found = await exportedDeclaration(binding.imported, file, host, new Set());
-  return found === undefined
+  return file === null
     ? undefined
-    : selectorInfo(found.declaration, found.source, found.filename, host);
+    : exportedDeclaration(binding.imported, file, host, new Set());
 }
 
 /** A declaration found by its exported name, with the file that declares it. */
