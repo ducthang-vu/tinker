@@ -1,7 +1,7 @@
 // The Injector: gives the value for a token, using its providers.
 // Internal: users never see it (see the design rule in inject.ts).
 
-import { attempt, type Either, Some, None, isSome, use } from "@tinker/functional";
+import { Left, valueOrThrow, type Either, Some, None, isSome, use } from "@tinker/functional";
 import { runInInjectionContext } from "./context/current-injector.ts";
 import { InjectionToken, type Token } from "./inject.ts";
 import {
@@ -159,7 +159,11 @@ export class Injector {
    * injector is destroyed.
    */
   get<T>(token: Token<T>): Either<T, DependencyError> {
-    return attempt(() => this.resolve(token), isDependencyError);
+    if (this.isDestroyed) {
+      return Left.of(new InjectorDestroyedError());
+    }
+    this.adoptRootProvider(token);
+    return this.records.get(token);
   }
 
   /**
@@ -167,15 +171,17 @@ export class Injector {
    * form `inject()` uses, since it runs where there is no way to return an error.
    */
   resolve<T>(token: Token<T>): T {
-    this.assertNotDestroyed();
+    return valueOrThrow(this.get(token));
+  }
+
+  /** A root injector also provides root providers: adopt the one for `token` on first use. */
+  private adoptRootProvider(token: Token<unknown>): void {
     if (this.isRoot() && !this.records.has(token)) {
-      // A root injector also provides root providers: adopt it on first use.
       use(
         findRootProvider(token),
         { Some: (provider) => this.records.add(provider), None: () => undefined },
       );
     }
-    return this.records.get(token);
   }
 
   private assertNotDestroyed(): void {
@@ -195,9 +201,3 @@ export class InjectorDestroyedError extends Error {
 
 /** What `Injector.get` gives as a Left: a value that cannot be given. */
 export type DependencyError = NoProviderError | CircularDependencyError | InjectorDestroyedError;
-
-function isDependencyError(error: unknown): error is DependencyError {
-  return error instanceof NoProviderError
-    || error instanceof CircularDependencyError
-    || error instanceof InjectorDestroyedError;
-}
