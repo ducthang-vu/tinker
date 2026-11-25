@@ -124,6 +124,25 @@ Writes each file into `<dir>`, at its path relative to the working directory:
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.
 
+## The Vite preset
+
+`tinkerVite()` is the Vite setup a Tinker app needs, as one call: the compile step with
+`emit: true`, the standard decorators step, and the aliases that read each workspace package
+from its source. An app's `vite.config.ts` spreads it and adds its own options:
+
+```ts
+import { defineConfig } from "vite";
+import { tinkerVite } from "@tinker/compiler";
+
+export default defineConfig({
+  ...tinkerVite(),
+});
+```
+
+The aliases read the `packages/` folder of this repository, so the preset works for an app
+inside the monorepo, as a workspace package. An app outside it needs the packages installed,
+and gets no aliases from the preset. `tinker new` (see `docs/cli.md`) writes this config.
+
 ## Errors
 
 Every syntax error in a template is reported, not only the first. A problem inside a

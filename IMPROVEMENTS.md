@@ -219,3 +219,23 @@ point at the host root.
 **Problem.** `memoise` returns the last result for the same arguments, but nothing checks that the function reads only its arguments. A function that reads the clock, the locale or a signal gives a stale result, and the compiler cannot warn about it.
 
 **To do.** Decide whether purity can be enforced (for example, in dev mode, by running the function untracked and warning on a signal read), or whether the doc comment is the only guard. Also decide whether `memoise` should keep more than the last call.
+
+## The `tinker` command (`packages/cli`)
+
+### 1. A new app can only be created inside the monorepo
+
+**Problem.** `tinker new` writes an app whose dependencies are the workspace packages
+(`"@tinker/core": "*"`, `"@tinker/compiler": "*"`). The packages are private and not published,
+and the preset's aliases read the repository's `packages/` folder. So the new app only builds
+when it sits in a workspace folder (`examples/` or `packages/`).
+
+**To do.** Publish the packages, so an app outside the repository installs them from a
+registry. Until then, create the app with `--dir examples` or `--dir packages`.
+
+### 2. The command has one command
+
+**Problem.** `tinker` has only `new`. It does not run the dev server or the build for an app,
+so the app's own `package.json` scripts run Vite directly.
+
+**To do.** Add `tinker dev` and `tinker build` once there is a reason to wrap Vite, such as
+a check that must run before each build.
