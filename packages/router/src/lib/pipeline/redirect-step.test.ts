@@ -43,7 +43,7 @@ function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
     destination: destinationOf(url),
     state: null,
     arrival: "push",
-    redirectFrom: [], trace: [],
+    redirectFrom: [], activatedRoutes: [], trace: [],
     chain: routes.map((route) => ({ route, params: {}, segments: [] })),
   };
 }

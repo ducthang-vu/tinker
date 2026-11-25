@@ -1,4 +1,4 @@
-// The pipeline: the four steps in order, as one function from a request to a task. Nothing runs
+// The pipeline: the five steps in order, as one function from a request to a task. Nothing runs
 // until the task is run; that includes the pure steps, which run inside the task's first step. A
 // stop in any step ends the pipeline with that stop, and the steps after it do not run.
 
@@ -10,7 +10,7 @@ import type { Stop } from "./stop.ts";
 /**
  * Builds the pipeline from its steps.
  *
- * @param steps The four steps, in order: match, redirect, guards, commit.
+ * @param steps The five steps, in order: match, redirect, deactivate, guards, commit.
  * @returns A function from a request to the task that runs it.
  */
 export function createPipeline(
@@ -21,6 +21,7 @@ export function createPipeline(
       succeed(request),
       flatMap((r: NavigationRequest) => createTask(steps.match(r))),
       flatMap((m: MatchedRequest) => createTask(steps.redirect(m))),
+      flatMap(steps.deactivate),
       flatMap(steps.guards),
       flatMap(steps.commit),
     );

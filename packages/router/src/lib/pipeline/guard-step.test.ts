@@ -2,10 +2,13 @@ import { describe, expect, test } from "vitest";
 import { Injector, InjectionToken, inject, provide } from "@tinker/core";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
 import { builderOver } from "../destination/test-builder.ts";
-import { fail, fromComputation, run, succeed, type Task } from "@tinker/functional";
+import { fail, fromComputation, None, run, Some, succeed, type Task } from "@tinker/functional";
+import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Route } from "../router/route.ts";
 import {
   AllowCommand,
+  createDeactivateStep,
+  type DeactivateGuard,
   createGuardStep,
   type Guard,
   RedirectCommand,
@@ -44,7 +47,7 @@ function matchedAt(url: string, routes: readonly Route[]): MatchedRequest {
     destination: destinationOf(url),
     state: null,
     arrival: "push",
-    redirectFrom: [], trace: [],
+    redirectFrom: [], activatedRoutes: [], trace: [],
     chain: routes.map((route) => ({ route, params: {}, segments: [] })),
   };
 }
@@ -204,3 +207,71 @@ describe("the guard step", () => {
       .toEqual([]);
   });
 });
+
+describe("the deactivate step", () => {
+  /** The parent of the next activated route: the last one made, or None at the root. */
+  function parentOf(made: readonly ActivatedRoute[]) {
+    const last = made[made.length - 1];
+    return last === undefined ? None.of() : Some.of(last);
+  }
+
+  /** The activated routes of a chain of routes, root first, as the router holds them. */
+  function activatedOf(routes: readonly Route[]): ActivatedRoute[] {
+    return routes.reduce<ActivatedRoute[]>(
+      (made, route) => [
+        ...made,
+        new ActivatedRoute(route, {}, [], parentOf(made)),
+      ],
+      [],
+    );
+  }
+
+  test("the leaving routes' guards run from the last route to the first, in sequence", () => {
+    const log: string[] = [];
+    const logged = (name: string): DeactivateGuard => () => {
+      log.push(name);
+      return allow();
+    };
+    const root: Route = { path: "", component: class {}, canDeactivate: [logged("root")] };
+    const child: Route = { ...page, canDeactivate: [logged("child-1"), logged("child-2")] };
+    const matched = { ...matchedAt("/todos", [root, child]), activatedRoutes: activatedOf([root, child]) };
+    const step = createDeactivateStep(Injector.create().injector);
+    expect(stopOf(step(matched)))
+      .toBeUndefined();
+    expect(log)
+      .toEqual(["child-1", "child-2", "root"]);
+  });
+
+  test("a STOP from a leaving route stops the step, and the routes above it are not asked", () => {
+    const log: string[] = [];
+    const root: Route = { path: "", component: class {}, canDeactivate: [() => {
+      log.push("root");
+      return allow();
+    }] };
+    const child: Route = { ...page, canDeactivate: [() => {
+      log.push("child");
+      return succeed(new StopCommand(new StopPayload("unsaved changes")));
+    }] };
+    const matched = { ...matchedAt("/todos", [root, child]), activatedRoutes: activatedOf([root, child]) };
+    const step = createDeactivateStep(Injector.create().injector);
+    expect(stopOf(step(matched)))
+      .toMatchObject({ kind: "rejected", reason: "guard", route: "/todos", guard: { payload: { reason: "unsaved changes" } } });
+    expect(log)
+      .toEqual(["child"]);
+  });
+
+  test("each deactivate command is recorded in the trace, as a deactivate step", () => {
+    const child: Route = { ...page, canDeactivate: [allowLeaving] };
+    const matched = { ...matchedAt("/todos", [child]), activatedRoutes: activatedOf([child]) };
+    const step = createDeactivateStep(Injector.create().injector);
+    const seen: MatchedRequest[] = [];
+    run(step(matched), { ok: (value) => {
+      seen.push(value);
+    } });
+    expect(seen[0]?.trace)
+      .toEqual([{ step: "deactivate", route: "/todos", command: "ALLOW" }]);
+  });
+});
+
+/** A deactivate guard that allows. */
+const allowLeaving: DeactivateGuard = () => allow();
