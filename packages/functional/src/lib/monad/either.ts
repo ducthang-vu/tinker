@@ -84,9 +84,8 @@ export class Right<T> implements Matchable<"Right", readonly [T]>, Equatable, Ou
 }
 
 /**
- * The Left case of {@link Either}: the one `map` and `flatMap` skip, holding the reason a
- * computation did not produce a value. It reaches the end of the pipeline unchanged. Its
- * counterpart is {@link Right}.
+ * The Left case of {@link Either}: the one `map` and `flatMap` skip, holding what the caller chose
+ * to put there. It reaches the end of the pipeline unchanged. Its counterpart is {@link Right}.
  *
  * @example
  * ```ts
@@ -143,7 +142,7 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outc
  * Either: a {@link Right} or a {@link Left}, the two cases of a computation's result. `map` and
  * `flatMap` continue on a Right and skip a Left, so a pipeline of steps runs on the value of a
  * Right, and a Left reaches the end unchanged. Usually a Right is the value a computation
- * produced, and a Left is the reason it did not produce one: an error, or a message to show.
+ * produced, and a Left holds what the caller chose to put there, usually an error.
  *
  * @example
  * ```ts
@@ -153,8 +152,8 @@ export class Left<E> implements Matchable<"Left", readonly [E]>, Equatable, Outc
  *   /^\d+$/.test(text) ? Right.of(Number(text)) : Left.of("not a number");
  *
  * map(parse("7"), (n) => n * 2); // Right(14): the step ran on the Right
- * map(parse("x"), (n) => n * 2); // Left("not a number"): skipped, the reason passes on
- * match(parse("7"), { Right: (n) => `ok ${n}`, Left: (reason) => reason }); // "ok 7"
+ * map(parse("x"), (n) => n * 2); // Left("not a number"): skipped, the Left passes on
+ * match(parse("7"), { Right: (n) => `ok ${n}`, Left: (message) => message }); // "ok 7"
  * ```
  */
 export type Either<T, E> = Right<T> | Left<E>;
