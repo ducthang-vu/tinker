@@ -25,7 +25,7 @@ import { type Either, match, map, type Maybe, run } from "@tinker/functional";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
-import { compileSource, emitCompiled, type ImportedSelector, TemplateCompileError } from "@tinker/core/compiler";
+import { BUILT_IN_NAMES, compileSource, emitCompiled, type ImportedSelector, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import type { Plugin } from "vite";
 import {
@@ -525,8 +525,17 @@ function checkTemplateFunctions(
   where: string,
   host: CheckHost,
 ): void {
+  // The built-in names (`flow`) are reserved: no member or import may take one.
+  for (const builtIn of BUILT_IN_NAMES) {
+    if (declaration.members.includes(builtIn)) {
+      host.error(`${where}: the member "${builtIn}" has the name of a built-in template function`);
+    }
+  }
   const names = new Set<string>();
   for (const { name, templateName } of functions) {
+    if (BUILT_IN_NAMES.includes(templateName)) {
+      host.error(`${where}: ${name} has the name of a built-in template function: "${templateName}"`);
+    }
     if (names.has(templateName)) {
       host.error(`${where}: two imports are template functions named "${templateName}"`);
     }

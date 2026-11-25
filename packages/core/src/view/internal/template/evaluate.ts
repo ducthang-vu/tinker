@@ -8,6 +8,7 @@
 import type { BinaryOperator, Expression } from "./expression.ts";
 import type { ReadonlySignal } from "../../../signals/index.ts";
 import type { Scope } from "./scope.ts";
+import { BUILT_IN_FUNCTIONS } from "./built-in-functions.ts";
 import { templateFunctionOf } from "./template-functions.ts";
 import type { TemplateFunctionContract } from "../authoring/template-function.ts";
 import { match } from "@tinker/functional";
@@ -62,6 +63,10 @@ export function evaluate(expression: Expression, scope: Scope): unknown {
       if (imported) {
         return imported.call(...args);
       }
+      const builtIn = builtInFunction(callee, scope);
+      if (builtIn) {
+        return builtIn(...args);
+      }
       const declared = callee.kind === "property" ? letOf(callee, scope) : undefined;
       if (declared) {
         // A `@let` holding a function is called without a receiver.
@@ -102,6 +107,21 @@ function importedFunction(callee: Expression, scope: Scope): TemplateFunctionCon
     Some: (fn) => fn,
     None: () => undefined,
   });
+}
+
+/**
+ * The built-in template function a bare call such as `flow(f, g)` names. A member or an import of
+ * the same name hides it (the build refuses one).
+ */
+function builtInFunction(
+  callee: Expression,
+  scope: Scope,
+): ((...args: unknown[]) => unknown) | undefined {
+  if (callee.kind !== "property" || callee.receiver.kind !== "component"
+    || callee.name in scope.component || !Object.hasOwn(BUILT_IN_FUNCTIONS, callee.name)) {
+    return undefined;
+  }
+  return BUILT_IN_FUNCTIONS[callee.name];
 }
 
 function callFunction(

@@ -68,7 +68,8 @@ and `" "` (a space).
 | `test ? then : otherwise`, nested | done | only the chosen branch is evaluated |
 | Arrow functions: `t => t.done` | not planned | filter in a `computed` in the component instead |
 | Unary minus: `-1` | later | |
-| Pipes | not planned | |
+| Pipes: `value \| format(locale)` | done | the value is the first argument; lowest in precedence, left to right; inside a call's arguments, use parentheses |
+| `flow(f, g)`: a function that applies `f`, then `g` | done | built in, with no import; a member or an import with the name `flow` is refused |
 
 ## `@let`
 
