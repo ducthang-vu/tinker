@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@babel/core": "^8.1.2",
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@babel/plugin-syntax-typescript": "^8.0.3",
     "@babel/types": "^8.1.2",
     "@tinker/core": "*",
     "magic-string": "^1.4.5"

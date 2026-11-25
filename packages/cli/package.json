@@ -1,0 +1,19 @@
+{
+  "name": "@tinker/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/cli.ts",
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    }
+  },
+  "scripts": {
+    "build": "vite build && chmod +x dist/tinker.js"
+  },
+  "bin": {
+    "tinker": "./dist/tinker.js"
+  }
+}

@@ -1,7 +1,6 @@
 // The example app's own build and dev server. It imports @tinker/core like any app.
 import { defineConfig, type Plugin } from "vite";
-import { tinkerCompiler } from "@tinker/compiler";
-import { standardDecorators, workspaceAlias } from "../../vite.shared.ts";
+import { tinkerVite } from "@tinker/compiler";
 
 // The folder the app is served under, chosen when it is built: "/tinker/" for a project site on
 // GitHub Pages, "/" (the default) at a domain root.
@@ -23,14 +22,13 @@ function baseTag(): Plugin {
   };
 }
 
+const preset = tinkerVite();
+
 export default defineConfig({
+  ...preset,
   root: "src",
   base,
-  // The check reads the decorators, so it runs before the decorator transform.
-  plugins: [tinkerCompiler({ emit: true }), standardDecorators(), baseTag()],
-  resolve: {
-    alias: workspaceAlias,
-  },
+  plugins: [...preset.plugins, baseTag()],
   server: {
     open: "/",
   },
