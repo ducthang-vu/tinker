@@ -40,19 +40,23 @@ step through it.
   `Stream`, `Task`, `Emitter`, `ChangeDetection`, the parser and the renderer.
   Keep the branching there where it is reused.
 
-## Agreed API specs
+## The agreed public API
 
-An API spec that the team has agreed is a contract, not a suggestion. An AI agent
-must not implement against it on its own.
+The public API is a contract the team has agreed: its classes, functions, names,
+signatures and behaviour. Every change, and every pull request, must follow it.
+An AI agent must not change that API on its own.
 
-- Before writing code that implements, extends or changes an agreed spec, stop and
-  ask the user. Do not decide the spec's shape yourself, and do not guess the
-  missing parts.
-- If the code you are asked to write would differ from the agreed spec (a name,
-  a signature, a type, a behaviour), do not make the change to fit. Report the
-  difference and wait for the user to decide whether the spec or the code changes.
-- Reading the spec, checking the code against it, and listing where they differ
-  are fine without asking.
+- Keep every agreed public name and signature as it is. Do not rename, remove,
+  re-type or re-order parameters of an agreed export, and do not change its
+  behaviour in a way the agreed API does not describe.
+- Adding a new public class, function or option is a change to the API. Ask the
+  user before adding one, and do not decide its shape yourself.
+- If the code you are asked to write would differ from the agreed API, do not
+  make the change to fit. Report the difference and wait for the user to decide
+  whether the API or the code changes.
+- Reading the API, checking the code against it, and listing where they differ
+  are fine without asking. The tests that pin exported values (see
+  [CONVENTIONS.md](CONVENTIONS.md)) are part of the agreed API.
 
 ## Working in this repository
 
