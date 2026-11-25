@@ -602,7 +602,61 @@ function regexPattern(literal: string): Parsed<Pattern> {
   if (/[gy]/.test(flags)) {
     return fail(`A regex pattern cannot have the "g" or "y" flag, since they keep state between matches: "${literal}"`);
   }
-  return map(regexNames(source, flags), (names): Pattern => ({ kind: "regex", source, flags, names }));
+  return flatMap(regexNames(source, flags), (names): Parsed<Pattern> => repeatsRepeat(source)
+    ? fail(`The regex ${literal} repeats a group that already repeats, as (a+)+ does. It can take `
+      + "exponential time on input that almost matches: rewrite it so that each part repeats once, "
+      + "for example ^a+$ instead of ^(a+)+$")
+    : Right.of({ kind: "regex", source, flags, names }));
+}
+
+/**
+ * Whether a regex repeats a group that already repeats, as `(a+)+` does, or repeats a group that
+ * contains a repeat. Such a group can take exponential time on input that almost matches. A
+ * quantifier is `*`, `+`, `{n}`, `{n,}` or `{n,m}`; `?` is an option, not a repeat, and escapes and
+ * bracket classes are not groups. The regex has compiled already, so its parentheses balance.
+ */
+function repeatsRepeat(source: string): boolean {
+  // One entry per open group: whether something inside it repeats.
+  const open: boolean[] = [];
+  let inClass = false;
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i]!;
+    if (char === "\\") {
+      i += 1;
+    } else if (inClass) {
+      inClass = char !== "]";
+    } else if (char === "[") {
+      inClass = true;
+    } else if (char === "(") {
+      open.push(false);
+    } else if (char === ")") {
+      const inner = open.pop()!;
+      const quantified = quantifierLength(source, i + 1) > 0;
+      if (inner && quantified) {
+        return true;
+      }
+      markRepeat(open, inner || quantified);
+    } else {
+      markRepeat(open, quantifierLength(source, i) > 0);
+    }
+  }
+  return false;
+}
+
+/** Records that the innermost open group contains a repeat, if `repeats` and there is one. */
+function markRepeat(open: boolean[], repeats: boolean): void {
+  if (repeats && open.length > 0) {
+    open[open.length - 1] = true;
+  }
+}
+
+/** The length of the quantifier that starts at `at` (`*`, `+`, `{n}`, `{n,}` or `{n,m}`), or 0. */
+function quantifierLength(source: string, at: number): number {
+  if (source[at] === "*" || source[at] === "+") {
+    return 1;
+  }
+  const braces = /^\{\d+(?:,\d*)?\}/.exec(source.slice(at));
+  return braces === null ? 0 : braces[0].length;
 }
 
 /**

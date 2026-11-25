@@ -104,17 +104,7 @@ name can appear many times.
 **To do.** `queryAll` with a variable (a list of the one value, or of the rows that
 share the name), and a registry per row if a row variable is to be queried.
 
-### 4. Warn when a trusted value is used
-
-**Problem.** `Sanitizer.trustUrl`, `trustHtml` and `trustStyle` let an attribute hold a value that the
-checks would remove (see `docs/sanitization.md`). The bypass is silent. The warning belongs
-to developer mode, which is not built yet (see "Developer mode").
-
-**To do.** When developer mode exists, warn each time a trusted value is set on an attribute
-or style, naming the element and the attribute. Until then the `Trusted…` classes are the
-only record of the bypass.
-
-### 5. Arrow functions
+### 4. Arrow functions
 
 **Problem.** `t => t.done` (needed for `filter` and `map` in templates) is not in the
 expression language. Unary minus is supported (`-count()`).
@@ -219,28 +209,6 @@ So for this app the trees are worth their size, and the example app now uses the
 
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.
-
-## Template patterns: regex (`packages/core/src/view/internal/template/`)
-
-### 1. A regex is not checked for catastrophic backtracking
-
-**Problem.** A pattern such as `/^(a+)+$/` can take exponential time on a string that
-almost matches. A `@case` is tried on every change detection cycle, so a slow regex
-delays the whole view. Nothing limits its cost.
-
-**To do.** Decide whether to refuse nested quantifiers at parse time, or to document the
-risk and leave the author to write a linear regex.
-
-
-## API reference (`scripts/api-docs.mjs`, `examples/basics/src/features/apidoc/`)
-
-### 1. The public index and `@privateAPI`
-
-**Problem.** `@privateAPI` items are left out of the reference, but they stay exported from
-the package index (`packages/core/src/view/index.ts`), so an app can still import them.
-
-**To do.** Move them out of the public index, or keep them there and accept that the
-reference does not show them.
 
 ## Routing and the folder the app is served under (`packages/router/src/lib/location/`, `.github/workflows/gh-pages.yml`)
 

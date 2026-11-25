@@ -7,7 +7,7 @@
 
 import type { Renderer } from "../renderer.ts";
 import { evaluate } from "../template/evaluate.ts";
-import { attributeText } from "./sanitization.ts";
+import { attributeText, isTrusted } from "./sanitization.ts";
 import type { Expression } from "../template/expression.ts";
 import type { Scope } from "../template/scope.ts";
 import { Some, None, isSome, filter } from "@tinker/functional";
@@ -39,7 +39,8 @@ export class AttributeBinding {
   /** Evaluate the expression, and set or remove the attribute if that changed. */
   update(): void {
     // A value the attribute may not hold is not set: see sanitization.ts.
-    const text = attributeText(this.name, evaluate(this.expression, this.context));
+    const value = evaluate(this.expression, this.context);
+    const text = attributeText(this.name, value);
     if (isSome(filter(this.last, (last) => last === text))) {
       return;
     }
@@ -48,6 +49,9 @@ export class AttributeBinding {
       this.renderer.removeAttribute(this.element, this.name);
     } else {
       this.renderer.setAttribute(this.element, this.name, text);
+      if (isTrusted(value)) {
+        this.context.checks?.warn(`attribute ${this.name} on <${this.element.localName}> holds a trusted value: its checks are bypassed`);
+      }
     }
   }
 }

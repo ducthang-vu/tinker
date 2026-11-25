@@ -87,11 +87,11 @@ Planned in `IMPROVEMENTS.md`, Templates item 1. Each needs its rule before it sh
 | I1 | The router sets links or URLs | **To check**: read `packages/router` for any attribute it writes. |
 | I2 | The framework's own scope attributes (`tk-cN`, `tk-hN`) | Internal. Not user input. |
 
-### J. Developer mode (not built)
+### J. Developer mode
 
-| # | Case | Proposed rule |
-|---|------|---------------|
-| J1 | A trusted value is set on an attribute | Warn, naming the element and attribute (`IMPROVEMENTS.md`, Developer mode). |
+| # | Case | Rule |
+|---|------|------|
+| J1 | A trusted value is set on an attribute or a style | Warn in development mode, naming the element and the attribute or style. Once per element and name: the same binding is not warned about again. Production makes no warning. |
 
 ## Decisions taken
 
@@ -116,6 +116,6 @@ These are the defaults the code now follows. Change one by changing the rule in
 - Event attributes are refused as before (A8).
 - Tests: `runtime/sanitization.test.ts`, `factories/url-attributes.test.ts`.
 
-Not built yet: property bindings (G, which need their own rules when they exist), the
-developer-mode warning for trusted values (J1), and the router check (I1).
+Not built yet: property bindings (G, which need their own rules when they exist), and the
+router check (I1).
 
