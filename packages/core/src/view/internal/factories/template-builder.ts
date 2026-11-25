@@ -27,7 +27,7 @@ import type {
   CompiledText,
 } from "../template/compile.ts";
 import { outputsNamed } from "../authoring/output.ts";
-import { bindInputsToAttributes, inputsNamed } from "../authoring/input.ts";
+import { bindInputsToAttributes, inputsNamed, type AttributeReport } from "../authoring/input.ts";
 import { type Owned, ownerName } from "../runtime/owner.ts";
 import { devChecks, Scope } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
@@ -226,7 +226,8 @@ export class TemplateBuilder {
       let directives: readonly object[] = [];
       if (node.directives.length > 0) {
         const created = this.directiveFactory
-          .createOnPlacement(node.directives, placement, view, parentInjector, node.attributes);
+          .createOnPlacement(node.directives, placement, view, parentInjector, node.attributes,
+            this.attributeReport(node.name));
         injector = created.injector;
         directives = created.instances;
         hostBindings(created.bindings);
@@ -261,7 +262,7 @@ export class TemplateBuilder {
           contentQueries: content,
           adoptHostBindings: hostBindings,
           setInputs: (component) => {
-            bindInputsToAttributes(component, node.attributes);
+            bindInputsToAttributes(component, node.attributes, this.attributeReport(node.name));
             bindInputs([
               ...this.ownedOf(node.directives, directives),
               ...this.ownedOf([type], [component]),
@@ -426,6 +427,14 @@ export class TemplateBuilder {
   }
 
   /** Evaluate every binding, in template order, writing to the DOM what changed. */
+  /** Where a plain attribute on `element` that an input cannot read is reported (development). */
+  private attributeReport(element: string): AttributeReport | undefined {
+    const checks = this.scope.checks;
+    return checks === undefined
+      ? undefined
+      : { element, warn: (message) => checks.warn(message) };
+  }
+
   update(): void {
     for (const binding of this.bindings) {
       binding.update();

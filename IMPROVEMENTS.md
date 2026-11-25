@@ -142,16 +142,7 @@ the author, not a ban.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
-### 2. Adapters report no errors
-
-**Problem.** `numberAdapter` gives NaN for text that is not a number, and nothing tells the
-author. `booleanAdapter` treats every value except `"false"` as true. An adapter that
-throws would surface as an error during change detection, with no note of which attribute.
-
-**To do.** Decide the policy: keep NaN and document it, or let an adapter report an error
-through `RenderHooks` or `onWarning`, with the element and the attribute named.
-
-### 3. A single argument is taken as options when it has a `name` or `adapter` key
+### 2. A single argument is taken as options when it has a `name` or `adapter` key
 
 **Problem.** `input(value)` treats an object default that has a `name` or `adapter` key
 as options. Such a default must be written `input(value, {})`. The rule is simple but
@@ -161,7 +152,7 @@ guessed from the keys, not from the type.
 instance built by a helper (`inputOptions({ … })`), or accept only the two-argument form
 for object defaults.
 
-### 4. Adapters apply to plain attributes only
+### 3. Adapters apply to plain attributes only
 
 **Problem.** `[size]="n()"` sets the input as the expression gives it, so a binding of the
 wrong type is not converted, and a string bound to a number input is not caught.
