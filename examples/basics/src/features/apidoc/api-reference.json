@@ -902,10 +902,12 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:105",
-          "description": "Either: a Right holding a T, or a Left holding an E.",
+          "source": "packages/functional/src/lib/monad/either.ts:159",
+          "description": "Either: a {@link Right} or a {@link Left}, the two cases of a computation's result. `map` and\n`flatMap` continue on a Right and skip a Left, so a pipeline of steps runs on the value of a\nRight, and a Left reaches the end unchanged. Usually a Right is the value a computation\nproduced, and a Left holds what the caller chose to put there, usually an error.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { Left, map, match, Right, type Either } from \"@tinker/functional\";\n\nconst parse = (text: string): Either<number, string> =>\n  /^\\d+$/.test(text) ? Right.of(Number(text)) : Left.of(\"not a number\");\n\nmap(parse(\"7\"), (n) => n * 2); // Right(14): the step ran on the Right\nmap(parse(\"x\"), (n) => n * 2); // Left(\"not a number\"): skipped, the Left passes on\nmatch(parse(\"7\"), { Right: (n) => `ok ${n}`, Left: (message) => message }); // \"ok 7\"\n```"
+          ],
           "see": [],
           "throws": [],
           "declaration": "export type Either<T, E> = Right<T> | Left<E>;"
@@ -1542,10 +1544,12 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:61",
-          "description": "A Left: a failure, holding whatever the caller chose to put there.",
+          "source": "packages/functional/src/lib/monad/either.ts:98",
+          "description": "The Left case of {@link Either}: the one `map` and `flatMap` skip, holding what the caller chose\nto put there. It reaches the end of the pipeline unchanged. Its counterpart is {@link Right}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { Left, map, Right } from \"@tinker/functional\";\n\nmap(Left.of<string, number>(\"bad\"), (n) => n * 2); // Left(\"bad\"): skipped, so it passes on\nmap(Right.of<number, string>(7), (n) => n * 2); // Right(14): the Right is the one that runs\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -1555,7 +1559,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:63",
+              "source": "packages/functional/src/lib/monad/either.ts:100",
               "description": "The case this Left is, for `match`: its name and its error.",
               "params": [],
               "examples": [],
@@ -1566,7 +1570,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:80",
+              "source": "packages/functional/src/lib/monad/either.ts:117",
               "description": "Whether `other` is a Left holding an equal error.",
               "params": [
                 {
@@ -1585,7 +1589,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:99",
+              "source": "packages/functional/src/lib/monad/either.ts:136",
               "description": "The protocol form: a Left halts with the error it holds.",
               "params": [],
               "examples": [],
@@ -1599,8 +1603,8 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:90",
-              "description": "A failure.",
+              "source": "packages/functional/src/lib/monad/either.ts:127",
+              "description": "A Left: the other case, holding what the caller chose.",
               "params": [
                 {
                   "name": "error",
@@ -1632,10 +1636,12 @@
         {
           "name": "Maybe",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/maybe.ts:83",
-          "description": "Maybe: a Some holding a T, or a None.",
+          "source": "packages/functional/src/lib/monad/maybe.ts:132",
+          "description": "Maybe: a {@link Some} or a {@link None}, the two cases of a value that may be absent. `map` and\n`flatMap` continue on a Some and skip a None, so a pipeline runs on the value when there is one,\nand a None reaches the end unchanged. Usually a Some is a value that was found, and a None is a\nlookup that found nothing.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { fromNullable, map, match, type Maybe } from \"@tinker/functional\";\n\nconst user: Maybe<{ name: string }> = fromNullable({ name: \"Ada\" });\nmap(user, (u) => u.name); // Some(\"Ada\"): the step ran on the Some\nmap(fromNullable<{ name: string }>(null), (u) => u.name); // None: skipped\nmatch(user, { Some: (u) => u.name, None: () => \"guest\" }); // \"Ada\"\n```"
+          ],
           "see": [],
           "throws": [],
           "declaration": "export type Maybe<T> = Some<T> | None;"
@@ -1844,10 +1850,12 @@
         {
           "name": "None",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/maybe.ts:53",
-          "description": "A None: no value.",
+          "source": "packages/functional/src/lib/monad/maybe.ts:87",
+          "description": "The None case of {@link Maybe}: the one `map` and `flatMap` skip, holding nothing: there is no\nvalue. It reaches the end of the pipeline unchanged. Its counterpart is {@link Some}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { map, None, Some } from \"@tinker/functional\";\n\nmap(None.of<number>(), (n) => n * 2); // None: skipped, so it reaches the end\nmap(Some.of(7), (n) => n * 2); // Some(14): the Some is the one that runs\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -1857,7 +1865,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/maybe.ts:55",
+              "source": "packages/functional/src/lib/monad/maybe.ts:89",
               "description": "The case this None is, for `match`: its name, with no value.",
               "params": [],
               "examples": [],
@@ -1868,7 +1876,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:68",
+              "source": "packages/functional/src/lib/monad/maybe.ts:102",
               "description": "Whether `other` is a None.",
               "params": [
                 {
@@ -1887,7 +1895,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:77",
+              "source": "packages/functional/src/lib/monad/maybe.ts:111",
               "description": "No value.",
               "params": [],
               "examples": [],
@@ -2529,10 +2537,12 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:17",
-          "description": "A Right: a success, holding a T.",
+          "source": "packages/functional/src/lib/monad/either.ts:43",
+          "description": "The Right case of {@link Either}: the one `map` and `flatMap` continue on, holding the value a\ncomputation produced. Its counterpart is {@link Left}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { Left, map, Right } from \"@tinker/functional\";\n\nmap(Right.of<number, string>(7), (n) => n * 2); // Right(14): the step ran on the Right\nmap(Left.of<number, string>(\"bad\"), (n) => n * 2); // Left(\"bad\"): the step was skipped\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -2542,7 +2552,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:19",
+              "source": "packages/functional/src/lib/monad/either.ts:45",
               "description": "The case this Right is, for `match`: its name and its value.",
               "params": [],
               "examples": [],
@@ -2553,7 +2563,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:36",
+              "source": "packages/functional/src/lib/monad/either.ts:62",
               "description": "Whether `other` is a Right holding an equal value.",
               "params": [
                 {
@@ -2572,7 +2582,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:55",
+              "source": "packages/functional/src/lib/monad/either.ts:81",
               "description": "The protocol form: a Right continues with the value it holds.",
               "params": [],
               "examples": [],
@@ -2586,7 +2596,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:46",
+              "source": "packages/functional/src/lib/monad/either.ts:72",
               "description": "A success.",
               "params": [
                 {
@@ -2766,10 +2776,12 @@
         {
           "name": "Some",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/maybe.ts:18",
-          "description": "A Some: a value is present.",
+          "source": "packages/functional/src/lib/monad/maybe.ts:41",
+          "description": "The Some case of {@link Maybe}: the one `map` and `flatMap` continue on, holding a value that\nis present. Its counterpart is {@link None}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { map, None, Some } from \"@tinker/functional\";\n\nmap(Some.of(7), (n) => n * 2); // Some(14): the step ran on the Some\nmap(None.of<number>(), (n) => n * 2); // None: the step was skipped\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -2779,7 +2791,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/maybe.ts:20",
+              "source": "packages/functional/src/lib/monad/maybe.ts:43",
               "description": "The case this Some is, for `match`: its name and its value.",
               "params": [],
               "examples": [],
@@ -2790,7 +2802,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:37",
+              "source": "packages/functional/src/lib/monad/maybe.ts:60",
               "description": "Whether `other` is a Some holding an equal value.",
               "params": [
                 {
@@ -2809,7 +2821,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:47",
+              "source": "packages/functional/src/lib/monad/maybe.ts:70",
               "description": "A present value.",
               "params": [
                 {
@@ -4290,10 +4302,12 @@
         {
           "name": "Either",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:105",
-          "description": "Either: a Right holding a T, or a Left holding an E.",
+          "source": "packages/functional/src/lib/monad/either.ts:159",
+          "description": "Either: a {@link Right} or a {@link Left}, the two cases of a computation's result. `map` and\n`flatMap` continue on a Right and skip a Left, so a pipeline of steps runs on the value of a\nRight, and a Left reaches the end unchanged. Usually a Right is the value a computation\nproduced, and a Left holds what the caller chose to put there, usually an error.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { Left, map, match, Right, type Either } from \"@tinker/functional\";\n\nconst parse = (text: string): Either<number, string> =>\n  /^\\d+$/.test(text) ? Right.of(Number(text)) : Left.of(\"not a number\");\n\nmap(parse(\"7\"), (n) => n * 2); // Right(14): the step ran on the Right\nmap(parse(\"x\"), (n) => n * 2); // Left(\"not a number\"): skipped, the Left passes on\nmatch(parse(\"7\"), { Right: (n) => `ok ${n}`, Left: (message) => message }); // \"ok 7\"\n```"
+          ],
           "see": [],
           "throws": [],
           "declaration": "export type Either<T, E> = Right<T> | Left<E>;"
@@ -4301,7 +4315,7 @@
         {
           "name": "EitherCases",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/either.ts:108",
+          "source": "packages/functional/src/lib/monad/either.ts:162",
           "description": "The two handlers of a match, named after the cases.",
           "params": [],
           "examples": [],
@@ -4588,10 +4602,12 @@
         {
           "name": "Left",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:61",
-          "description": "A Left: a failure, holding whatever the caller chose to put there.",
+          "source": "packages/functional/src/lib/monad/either.ts:98",
+          "description": "The Left case of {@link Either}: the one `map` and `flatMap` skip, holding what the caller chose\nto put there. It reaches the end of the pipeline unchanged. Its counterpart is {@link Right}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { Left, map, Right } from \"@tinker/functional\";\n\nmap(Left.of<string, number>(\"bad\"), (n) => n * 2); // Left(\"bad\"): skipped, so it passes on\nmap(Right.of<number, string>(7), (n) => n * 2); // Right(14): the Right is the one that runs\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -4601,7 +4617,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:63",
+              "source": "packages/functional/src/lib/monad/either.ts:100",
               "description": "The case this Left is, for `match`: its name and its error.",
               "params": [],
               "examples": [],
@@ -4612,7 +4628,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:80",
+              "source": "packages/functional/src/lib/monad/either.ts:117",
               "description": "Whether `other` is a Left holding an equal error.",
               "params": [
                 {
@@ -4631,7 +4647,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:99",
+              "source": "packages/functional/src/lib/monad/either.ts:136",
               "description": "The protocol form: a Left halts with the error it holds.",
               "params": [],
               "examples": [],
@@ -4645,8 +4661,8 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:90",
-              "description": "A failure.",
+              "source": "packages/functional/src/lib/monad/either.ts:127",
+              "description": "A Left: the other case, holding what the caller chose.",
               "params": [
                 {
                   "name": "error",
@@ -4734,10 +4750,12 @@
         {
           "name": "Maybe",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/maybe.ts:83",
-          "description": "Maybe: a Some holding a T, or a None.",
+          "source": "packages/functional/src/lib/monad/maybe.ts:132",
+          "description": "Maybe: a {@link Some} or a {@link None}, the two cases of a value that may be absent. `map` and\n`flatMap` continue on a Some and skip a None, so a pipeline runs on the value when there is one,\nand a None reaches the end unchanged. Usually a Some is a value that was found, and a None is a\nlookup that found nothing.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { fromNullable, map, match, type Maybe } from \"@tinker/functional\";\n\nconst user: Maybe<{ name: string }> = fromNullable({ name: \"Ada\" });\nmap(user, (u) => u.name); // Some(\"Ada\"): the step ran on the Some\nmap(fromNullable<{ name: string }>(null), (u) => u.name); // None: skipped\nmatch(user, { Some: (u) => u.name, None: () => \"guest\" }); // \"Ada\"\n```"
+          ],
           "see": [],
           "throws": [],
           "declaration": "export type Maybe<T> = Some<T> | None;"
@@ -4745,7 +4763,7 @@
         {
           "name": "MaybeCases",
           "kind": "type",
-          "source": "packages/functional/src/lib/monad/maybe.ts:86",
+          "source": "packages/functional/src/lib/monad/maybe.ts:135",
           "description": "The two handlers of a match, named after the cases.",
           "params": [],
           "examples": [],
@@ -4801,10 +4819,12 @@
         {
           "name": "None",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/maybe.ts:53",
-          "description": "A None: no value.",
+          "source": "packages/functional/src/lib/monad/maybe.ts:87",
+          "description": "The None case of {@link Maybe}: the one `map` and `flatMap` skip, holding nothing: there is no\nvalue. It reaches the end of the pipeline unchanged. Its counterpart is {@link Some}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { map, None, Some } from \"@tinker/functional\";\n\nmap(None.of<number>(), (n) => n * 2); // None: skipped, so it reaches the end\nmap(Some.of(7), (n) => n * 2); // Some(14): the Some is the one that runs\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -4814,7 +4834,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/maybe.ts:55",
+              "source": "packages/functional/src/lib/monad/maybe.ts:89",
               "description": "The case this None is, for `match`: its name, with no value.",
               "params": [],
               "examples": [],
@@ -4825,7 +4845,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:68",
+              "source": "packages/functional/src/lib/monad/maybe.ts:102",
               "description": "Whether `other` is a None.",
               "params": [
                 {
@@ -4844,7 +4864,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:77",
+              "source": "packages/functional/src/lib/monad/maybe.ts:111",
               "description": "No value.",
               "params": [],
               "examples": [],
@@ -4897,10 +4917,12 @@
         {
           "name": "Right",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/either.ts:17",
-          "description": "A Right: a success, holding a T.",
+          "source": "packages/functional/src/lib/monad/either.ts:43",
+          "description": "The Right case of {@link Either}: the one `map` and `flatMap` continue on, holding the value a\ncomputation produced. Its counterpart is {@link Left}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { Left, map, Right } from \"@tinker/functional\";\n\nmap(Right.of<number, string>(7), (n) => n * 2); // Right(14): the step ran on the Right\nmap(Left.of<number, string>(\"bad\"), (n) => n * 2); // Left(\"bad\"): the step was skipped\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -4910,7 +4932,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/either.ts:19",
+              "source": "packages/functional/src/lib/monad/either.ts:45",
               "description": "The case this Right is, for `match`: its name and its value.",
               "params": [],
               "examples": [],
@@ -4921,7 +4943,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:36",
+              "source": "packages/functional/src/lib/monad/either.ts:62",
               "description": "Whether `other` is a Right holding an equal value.",
               "params": [
                 {
@@ -4940,7 +4962,7 @@
             {
               "name": "__@OUTCOME@216",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:55",
+              "source": "packages/functional/src/lib/monad/either.ts:81",
               "description": "The protocol form: a Right continues with the value it holds.",
               "params": [],
               "examples": [],
@@ -4954,7 +4976,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/either.ts:46",
+              "source": "packages/functional/src/lib/monad/either.ts:72",
               "description": "A success.",
               "params": [
                 {
@@ -4976,10 +4998,12 @@
         {
           "name": "Some",
           "kind": "class",
-          "source": "packages/functional/src/lib/monad/maybe.ts:18",
-          "description": "A Some: a value is present.",
+          "source": "packages/functional/src/lib/monad/maybe.ts:41",
+          "description": "The Some case of {@link Maybe}: the one `map` and `flatMap` continue on, holding a value that\nis present. Its counterpart is {@link None}.",
           "params": [],
-          "examples": [],
+          "examples": [
+            "```ts\nimport { map, None, Some } from \"@tinker/functional\";\n\nmap(Some.of(7), (n) => n * 2); // Some(14): the step ran on the Some\nmap(None.of<number>(), (n) => n * 2); // None: the step was skipped\n```"
+          ],
           "see": [],
           "throws": [],
           "signatures": [
@@ -4989,7 +5013,7 @@
             {
               "name": "__@MATCHABLE@202",
               "kind": "property",
-              "source": "packages/functional/src/lib/monad/maybe.ts:20",
+              "source": "packages/functional/src/lib/monad/maybe.ts:43",
               "description": "The case this Some is, for `match`: its name and its value.",
               "params": [],
               "examples": [],
@@ -5000,7 +5024,7 @@
             {
               "name": "__@EQUALS@198",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:37",
+              "source": "packages/functional/src/lib/monad/maybe.ts:60",
               "description": "Whether `other` is a Some holding an equal value.",
               "params": [
                 {
@@ -5019,7 +5043,7 @@
             {
               "name": "of",
               "kind": "method",
-              "source": "packages/functional/src/lib/monad/maybe.ts:47",
+              "source": "packages/functional/src/lib/monad/maybe.ts:70",
               "description": "A present value.",
               "params": [
                 {
@@ -5496,7 +5520,7 @@
         {
           "name": "attempt",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:149",
+          "source": "packages/functional/src/lib/monad/either.ts:203",
           "description": "Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.\nAny other throw is a bug, and it propagates.",
           "params": [
             {
@@ -5520,7 +5544,7 @@
         {
           "name": "createEither",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:197",
+          "source": "packages/functional/src/lib/monad/either.ts:251",
           "description": "An Either from any outcome: a Continue becomes a Right holding its value, and a Halt becomes a\nLeft holding its reason.",
           "params": [
             {
@@ -5539,7 +5563,7 @@
         {
           "name": "createMaybe",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:213",
+          "source": "packages/functional/src/lib/monad/maybe.ts:262",
           "description": "A Maybe from any outcome: a Continue becomes Some holding its value, and a Halt becomes None.\nThe reason of a Halt is lost, because None holds no value.",
           "params": [
             {
@@ -5638,7 +5662,7 @@
         {
           "name": "filter",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:100",
+          "source": "packages/functional/src/lib/monad/maybe.ts:149",
           "description": "Keep the value only if `predicate` accepts it.",
           "params": [
             {
@@ -5861,7 +5885,7 @@
         {
           "name": "fromEither",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:127",
+          "source": "packages/functional/src/lib/monad/maybe.ts:176",
           "description": "`Some(value)` for a Right, `None` for a Left (its content is dropped).",
           "params": [
             {
@@ -5880,7 +5904,7 @@
         {
           "name": "fromNullable",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:160",
+          "source": "packages/functional/src/lib/monad/maybe.ts:209",
           "description": "A Some of `value`, or a None when `value` is null or undefined.",
           "params": [
             {
@@ -5918,7 +5942,7 @@
         {
           "name": "getOrElse",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:191",
+          "source": "packages/functional/src/lib/monad/maybe.ts:240",
           "description": "The value of a Some, or `fallback` for a None.",
           "params": [
             {
@@ -5941,7 +5965,7 @@
         {
           "name": "getOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:175",
+          "source": "packages/functional/src/lib/monad/maybe.ts:224",
           "description": "The value of a Some. A None throws `makeError()`: this is the one place a missing value is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {
@@ -6041,7 +6065,7 @@
         {
           "name": "isNone",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:150",
+          "source": "packages/functional/src/lib/monad/maybe.ts:199",
           "description": "Whether `self` is a None.",
           "params": [
             {
@@ -6060,7 +6084,7 @@
         {
           "name": "isSome",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:140",
+          "source": "packages/functional/src/lib/monad/maybe.ts:189",
           "description": "Whether `self` is a Some.",
           "params": [
             {
@@ -6217,7 +6241,7 @@
         {
           "name": "mapLeft",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:122",
+          "source": "packages/functional/src/lib/monad/either.ts:176",
           "description": "",
           "params": [],
           "examples": [],
@@ -6238,7 +6262,7 @@
                 },
                 {
                   "name": "f",
-                  "text": "The function applied to a Left's error."
+                  "text": "The function applied to what a Left holds."
                 }
               ],
               "examples": [],
@@ -6311,7 +6335,7 @@
         {
           "name": "orElse",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:202",
+          "source": "packages/functional/src/lib/monad/maybe.ts:251",
           "description": "`self` if it is a Some, or else what `other` gives.",
           "params": [
             {
@@ -6567,7 +6591,7 @@
         {
           "name": "toEither",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/maybe.ts:114",
+          "source": "packages/functional/src/lib/monad/maybe.ts:163",
           "description": "`Right(value)` for a Some, `Left(error)` for a None.",
           "params": [
             {
@@ -6590,7 +6614,7 @@
         {
           "name": "toError",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:169",
+          "source": "packages/functional/src/lib/monad/either.ts:223",
           "description": "`value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).",
           "params": [
             {
@@ -6671,7 +6695,7 @@
         {
           "name": "valueOrThrow",
           "kind": "function",
-          "source": "packages/functional/src/lib/monad/either.ts:181",
+          "source": "packages/functional/src/lib/monad/either.ts:235",
           "description": "The value of a Right. A Left throws its error: this is the one place a predictable error is\nthrown, at the edge of an API that has no way to return it (use it only there).",
           "params": [
             {
