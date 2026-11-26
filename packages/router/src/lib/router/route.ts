@@ -17,7 +17,11 @@ export interface Route {
    * matches; declare it last among the children.
    */
   readonly path: string;
-  /** The component shown when the route matches. Every route needs one. */
+  /**
+   * The component shown when the route matches. A route without one shows nothing of its own: the
+   * outlet shows the first route below it that has a component, so a group of routes can share
+   * a parent with no page of its own.
+   */
   readonly component?: Class<object>;
   /** Static data of the route, read from the `ActivatedRoute` of the component it shows. */
   readonly data?: Readonly<Record<string, unknown>>;
@@ -47,7 +51,8 @@ export interface Route {
 }
 
 /**
- * The component a route shows. Throws for a route with none: every route shows one.
+ * The component a route shows. Throws for a route with none: the outlet only asks for the routes
+ * that have one.
  * @param route
  * @param route The route.
  * @returns The component the route shows.
