@@ -96,13 +96,3 @@ export function makeAppPath(
 ): AppPath {
   return new AppPathValue(segments, query, fragment);
 }
-
-/**
- * Whether a value is an AppPath made by the builder, by its brand.
- *
- * @param value The value to check.
- * @returns True when the value carries the brand.
- */
-export function isAppPath(value: unknown): value is AppPath {
-  return typeof value === "object" && value !== null && APP_PATH_BRAND in value;
-}
