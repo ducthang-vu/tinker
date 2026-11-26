@@ -88,7 +88,7 @@ describe("tinkerCompiler", () => {
       `@Component({ selector: "tk-a", template: "<p>{{ ${"1".padEnd(400, "0")} }}</p>" }) class A {}`,
       "/app/a.ts",
       host,
-      { emit: true, strict: false },
+      { emit: true },
     )
       .catch(() => undefined);
     expect(errors)
@@ -229,42 +229,6 @@ describe("compileComponents", () => {
       .toEqual([]);
     expect(warnings)
       .toEqual(["a.ts: <A> is not compiled: its template is not a literal"]);
-  });
-
-  test("in strict mode, a component that cannot be checked is an error", async () => {
-    const { host, errors } = recordingHost();
-    await expect(compileComponents(`@Component({ template: html }) class A {}`, "/app/a.ts", host, {
-      emit: false,
-      strict: true,
-    }))
-      .rejects
-      .toThrow();
-    expect(errors)
-      .toEqual(["a.ts: <A> cannot be checked: its template is not a literal"]);
-  });
-
-  test("in strict mode, imports that are not a list of names are an error", async () => {
-    const { host, errors } = recordingHost();
-    await expect(compileComponents(`@Component({ template: "<p></p>", imports: list }) class A {}`, "/app/a.ts", host, {
-      emit: false,
-      strict: true,
-    }))
-      .rejects
-      .toThrow();
-    expect(errors)
-      .toEqual(["a.ts: <A> cannot be checked: its imports are not a list of names"]);
-  });
-
-  test("in strict mode, an import that is not found is an error", async () => {
-    const { host, errors } = recordingHost();
-    await expect(compileComponents(`@Component({ template: "<p></p>", imports: [Nowhere] }) class A {}`, "/app/a.ts", host, {
-      emit: false,
-      strict: true,
-    }))
-      .rejects
-      .toThrow();
-    expect(errors)
-      .toEqual(["a.ts: <A> cannot be checked: Nowhere has no literal selector, or is not found"]);
   });
 
   test("skips a component whose imports are not a list of names, with a warning", async () => {
@@ -628,7 +592,7 @@ describe("templateUrl", () => {
 
   test("with emit, the template is the compiled tree of the file", async () => {
     const { host } = recordingHost();
-    const [replacement] = await compileComponents(code, card, host, { emit: true, strict: false });
+    const [replacement] = await compileComponents(code, card, host, { emit: true });
     expect(replacement!.text)
       .toMatch(/^template: /);
     expect(replacement!.text)
@@ -638,7 +602,7 @@ describe("templateUrl", () => {
   test("an error in the file is reported as an error of the template", async () => {
     const { host } = recordingHost();
     const broken = code.replace("./card.html", "./card-broken.html");
-    await expect(compileComponents(broken, card, host, { emit: true, strict: false }))
+    await expect(compileComponents(broken, card, host, { emit: true }))
       .rejects
       .toThrow(/of the template/);
   });
@@ -736,23 +700,26 @@ describe("template functions imported by a component", () => {
       .toBeDefined();
   });
 
-  test("a template function whose name is not a literal cannot be read", async () => {
+  test("a template function whose name is not a literal is skipped with a warning", async () => {
     const code = `import { Dynamic } from "./fns.ts";
        @Component({ template: "<p>{{ dynamic() }}</p>", imports: [Dynamic] }) class Page {}`;
-    await expect(transform(code, "/app/page.ts", files, { strict: true }).result)
-      .rejects
-      .toThrow("Dynamic has no literal name");
-  });
-
-  test("an import that cannot be read fails the build in strict mode, and is skipped otherwise", async () => {
-    const code = `import { Missing } from "./fns.ts";
-       @Component({ template: "<p>{{ missing(1) }}</p>", imports: [Missing] }) class Page {}`;
-    await expect(transform(code, "/app/page.ts", files, { strict: true }).result)
-      .rejects
-      .toThrow("cannot be checked");
-    await expect(transform(code, "/app/page.ts", files).result)
+    const { result, context } = transform(code, "/app/page.ts", files);
+    await expect(result)
       .resolves
       .toBeNull();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("Dynamic has no literal name"));
+  });
+
+  test("an import that cannot be read is skipped with a warning, and the template runs as written", async () => {
+    const code = `import { Missing } from "./fns.ts";
+       @Component({ template: "<p>{{ missing(1) }}</p>", imports: [Missing] }) class Page {}`;
+    const { result, context } = transform(code, "/app/page.ts", files);
+    await expect(result)
+      .resolves
+      .toBeNull();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("is not compiled"));
   });
 });
 
@@ -854,18 +821,6 @@ describe("names a template reads", () => {
       .toBeDefined();
     expect(context.warn)
       .toHaveBeenCalledWith(expect.stringContaining("names are not checked"));
-  });
-
-  test("in strict mode, a class that extends another cannot be checked: the build fails", async () => {
-    const { result } = transform(
-      `@Component({ template: "<p>{{ inherited }}</p>" }) class Page extends Base {}`,
-      "/app/page.ts",
-      {},
-      { strict: true },
-    );
-    await expect(result)
-      .rejects
-      .toThrow("cannot be checked");
   });
 });
 

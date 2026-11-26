@@ -70,11 +70,6 @@ export interface CompilerOptions {
   /** Replace each compiled template with its emitted tree. Off by default. */
   readonly emit?: boolean;
   /**
-   * Fail the build for a component that cannot be checked (a template, imports or a
-   * selector that is not a literal), instead of skipping it with a warning. Off by default.
-   */
-  readonly strict?: boolean;
-  /**
    * Whether the app runs in development mode (DEV_MODE). Defaults to Vite's development mode:
    * off in a production build.
    */
@@ -84,12 +79,11 @@ export interface CompilerOptions {
 /** How a compile run behaves: see CompilerOptions. */
 export interface CompileMode {
   readonly emit: boolean;
-  readonly strict: boolean;
 }
 
 /** The plugin: compiles the templates of components in each source file it transforms. */
 export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
-  const mode: CompileMode = { emit: options.emit ?? false, strict: options.strict ?? false };
+  const mode: CompileMode = { emit: options.emit ?? false };
   // Vite's dev server (`vite`, not `vite build`): only then the hot reload code is added.
   let serving = false;
   return {
@@ -188,14 +182,14 @@ function isSourceWithComponents(code: string, id: string): boolean {
 
 /**
  * Compiles every component declared in `code`. Fails through `host` on the first error,
- * and on a component that cannot be checked when `mode.strict` is set. Gives the
+ * and a warning for a component that cannot be checked. Gives the
  * replacements for the templates to emit: none unless `mode.emit` is set.
  */
 export async function compileComponents(
   code: string,
   filename: string,
   host: CheckHost,
-  mode: CompileMode = { emit: false, strict: false },
+  mode: CompileMode = { emit: false },
 ): Promise<Replacement[]> {
   const source = readSource(code, filename);
   const replacements: Replacement[] = [];
@@ -225,7 +219,7 @@ export async function compileComponents(
     }
     const template = await templateOf(declaration, source, filename, host);
     if (template === undefined) {
-      skip(host, mode, where, "its template is not a literal");
+      skip(host, where, "its template is not a literal");
       continue;
     }
     const replacement = await replacementFor(declaration, template, source, filename, host, mode);
@@ -258,7 +252,7 @@ function styleReplacementFor(
     host.error(`${where}: styleUrls takes a list of files, like ["./a.css"]`);
   }
   if (styleUrls.urls === undefined) {
-    skip(host, mode, where, "its styleUrls is not a literal");
+    skip(host, where, "its styleUrls is not a literal");
     return undefined;
   }
   // The files are joined in the order they are listed, into one `styles`.
@@ -286,7 +280,7 @@ async function templateUrlReplacementFor(
     host.error(`${where}: give either template or templateUrl, not both`);
   }
   if (templateUrl.urls === undefined) {
-    skip(host, mode, where, "its templateUrl is not a literal");
+    skip(host, where, "its templateUrl is not a literal");
     return undefined;
   }
   if (templateUrl.isList) {
@@ -396,13 +390,9 @@ async function constantValue(
   return constantValue(binding.imported, readSource(readFileSync(file, "utf8"), file), file, host, inner);
 }
 
-/** A component that cannot be checked: an error in strict mode, a warning otherwise. */
-function skip(host: CheckHost, mode: CompileMode, where: string, reason: string): void {
-  if (mode.strict) {
-    host.error(`${where} cannot be checked: ${reason}`);
-  } else {
-    host.warn(`${where} is not compiled: ${reason}`);
-  }
+/** A component that cannot be checked: a warning, and it is not compiled: it runs as written. */
+function skip(host: CheckHost, where: string, reason: string): void {
+  host.warn(`${where} is not compiled: ${reason}`);
 }
 
 async function replacementFor(
@@ -416,7 +406,7 @@ async function replacementFor(
   const where = `${basename(filename)}: <${declaration.name}>`;
   const imports = await importedSelectors(declaration.imports, source, filename, host);
   if (!imports.isRead) {
-    skip(host, mode, where, imports.reason);
+    skip(host, where, imports.reason);
     return undefined;
   }
   checkTemplateFunctions(imports.functions, declaration, where, host);
@@ -430,7 +420,7 @@ async function replacementFor(
       ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }) };
   });
   if (declaration.extendsAnother) {
-    unchecked(host, mode, where, "it extends another class, so its inherited members are not read");
+    unchecked(host, where, "it extends another class, so its inherited members are not read");
   }
   return match(compileSource(template.text, list), {
     Left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
@@ -475,14 +465,8 @@ function checkNames(
   }
 }
 
-/**
- * A component whose names cannot be checked: an error in strict mode, a warning otherwise. Its
- * template is still compiled.
- */
-function unchecked(host: CheckHost, mode: CompileMode, where: string, reason: string): void {
-  if (mode.strict) {
-    host.error(`${where} cannot be checked: ${reason}`);
-  }
+/** A component whose names cannot be checked: a warning. Its template is still compiled. */
+function unchecked(host: CheckHost, where: string, reason: string): void {
   host.warn(`${where}: names are not checked: ${reason}`);
 }
 

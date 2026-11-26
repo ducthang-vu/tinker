@@ -36,7 +36,7 @@ function recording(): CheckOutput & { logs: string[]; errors: string[] } {
 describe("checkFiles", () => {
   test("returns 0 for files whose templates compile, and imports are found on disk", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("importer.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("importer.ts")], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
@@ -47,7 +47,7 @@ describe("checkFiles", () => {
 
   test("returns 1, and names the component, for a template that does not compile", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("broken.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("broken.ts")], output);
     expect(code)
       .toBe(1);
     expect(output.errors)
@@ -60,25 +60,16 @@ describe("checkFiles", () => {
 
   test("warns about a template that is not a literal, and still returns 0", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("dynamic.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("dynamic.ts")], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
       .toEqual(["warning: dynamic.ts: <Dynamic> is not compiled: its template is not a literal"]);
   });
 
-  test("in strict mode, the same file fails the check", async () => {
-    const output = recording();
-    const code = await checkFiles([fixture("dynamic.ts")], { strict: true }, output);
-    expect(code)
-      .toBe(1);
-    expect(output.errors)
-      .toEqual(["dynamic.ts: <Dynamic> cannot be checked: its template is not a literal"]);
-  });
-
   test("a file that cannot be read is reported, and the others are still checked", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("missing.ts"), fixture("importer.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("missing.ts"), fixture("importer.ts")], output);
     expect(code)
       .toBe(1);
     expect(output.errors[0])
@@ -89,7 +80,7 @@ describe("checkFiles", () => {
 
   test("an import that is not a relative path or a file is not found", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("external.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("external.ts")], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
@@ -103,7 +94,7 @@ describe("checkFiles", () => {
       @Component({ selector: "tk-page", template: "<p>x</p>", imports: [Widget] }) export class Page {}
     `);
     const output = recording();
-    const code = await checkFiles([path], { strict: false }, output);
+    const code = await checkFiles([path], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
@@ -119,7 +110,7 @@ describe("checkFiles", () => {
       @Component({ selector: "tk-page", template: "<p>x</p>", imports: [Gone] }) export class Page {}
     `);
     const output = recording();
-    const code = await checkFiles([path], { strict: false }, output);
+    const code = await checkFiles([path], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
@@ -130,7 +121,7 @@ describe("checkFiles", () => {
 
   test("an import through a path alias is followed, and its directive is checked", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("aliased/page.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("aliased/page.ts")], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
@@ -139,7 +130,7 @@ describe("checkFiles", () => {
 
   test("an alias that names no file is reported as a warning", async () => {
     const output = recording();
-    const code = await checkFiles([fixture("aliased/unknown.ts")], { strict: false }, output);
+    const code = await checkFiles([fixture("aliased/unknown.ts")], output);
     expect(code)
       .toBe(0);
     expect(output.errors)
