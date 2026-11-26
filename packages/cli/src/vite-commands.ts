@@ -5,8 +5,11 @@
 import { build, createServer } from "vite";
 
 /** Serves the app in `root` with Vite's dev server. It keeps running until the process stops. */
-export async function serveApp(root: string): Promise<void> {
-  const server = await createServer({ root });
+export async function serveApp(
+  root: string,
+  options: { readonly port?: number } = {},
+): Promise<void> {
+  const server = await createServer({ root, server: { port: options.port } });
   await server.listen();
   server.printUrls();
 }

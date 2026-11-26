@@ -1,7 +1,7 @@
 // The `tinker` command:
 //
 //   tinker new <name> [--dir <parent>]  writes a new Tinker app into `<parent>/<name>`
-//   tinker dev                          serves the app in the current folder
+//   tinker dev [--port <n> | -p <n>]    serves the app in the current folder
 //   tinker build                        builds the app in the current folder into dist/
 //
 // `new` uses the current folder as its parent unless `--dir` gives one. The result of `run` is
@@ -18,13 +18,10 @@ export interface Output {
   readonly error: (line: string) => void;
 }
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev | tinker build";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] | tinker build";
 
-/** The app commands: each runs in the current folder, with no arguments. */
-const APP_COMMANDS: Readonly<Record<string, (root: string) => Promise<void>>> = {
-  dev: serveApp,
-  build: buildApp,
-};
+/** The app command `build`: it runs in the current folder, with no arguments. */
+const BUILD_COMMAND = "build";
 
 /** Runs the command with its arguments (without the program name). Returns the exit code. */
 export async function run(args: readonly string[], output: Output): Promise<number> {
@@ -32,9 +29,11 @@ export async function run(args: readonly string[], output: Output): Promise<numb
   if (command === "new") {
     return newApp(rest, output);
   }
-  const appCommand = command === undefined ? undefined : APP_COMMANDS[command];
-  if (appCommand !== undefined) {
-    return runAppCommand(appCommand, rest, output);
+  if (command === "dev") {
+    return devApp(rest, output);
+  }
+  if (command === BUILD_COMMAND) {
+    return runAppCommand(buildApp, rest, output);
   }
   output.error(command === undefined ? USAGE : `Unknown command "${command}". ${USAGE}`);
   return 2;
@@ -60,6 +59,43 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
     output.error((error as Error).message);
     return 2;
   }
+}
+
+/** `tinker dev [--port <n> | -p <n>]`: the port must be a number from 1 to 65535. */
+async function devApp(args: readonly string[], output: Output): Promise<number> {
+  let port: number | undefined;
+  try {
+    const { values, positionals } = parseArgs({
+      args,
+      options: { port: { type: "string", short: "p" } },
+      allowPositionals: true,
+      strict: true,
+    });
+    if (positionals.length > 0) {
+      output.error(USAGE);
+      return 2;
+    }
+    port = values.port === undefined ? undefined : parsePort(values.port);
+  } catch (error) {
+    output.error((error as Error).message);
+    return 2;
+  }
+  try {
+    await serveApp(process.cwd(), { port });
+    return 0;
+  } catch (error) {
+    output.error((error as Error).message);
+    return 1;
+  }
+}
+
+/** A port number: digits only, from 1 to 65535. */
+function parsePort(value: string): number {
+  const port = Number(value);
+  if (!/^\d+$/.test(value) || port < 1 || port > 65535) {
+    throw new Error(`--port must be a number from 1 to 65535, got "${value}"`);
+  }
+  return port;
 }
 
 async function runAppCommand(
