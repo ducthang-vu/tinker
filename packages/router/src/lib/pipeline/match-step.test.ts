@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { fail, run, succeed } from "@tinker/functional";
+import { fail, fromComputation, run, succeed } from "@tinker/functional";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
 import { builderOver } from "../destination/test-builder.ts";
 import type { Route } from "../router/route.ts";
 import {
   AllowCommand,
+  type RouteGate,
+  type RouteGuardCommand,
   RedirectCommand,
   RedirectPayload,
   StopCommand,
@@ -383,6 +385,176 @@ describe("a gate or a load that fails", () => {
     expect(first.matched)
       .toBeDefined();
     expect(second.matched)
+      .toBeDefined();
+  });
+});
+
+describe("cancelling a navigation", () => {
+  /** Starts the match task for `request`: its cancel, and what it ended with. */
+  function startMatch(
+    step: MatchStep,
+    request: NavigationRequest,
+  ): { cancel: () => void; ran: Promise<Ran> } {
+    let cancel: () => void = () => undefined;
+    const ran = new Promise<Ran>((resolve) => {
+      cancel = run(step(request), {
+        ok: (matched) => resolve({ matched }),
+        error: (stop) => resolve({ stop }),
+      });
+    });
+    return { cancel, ran };
+  }
+
+  /** A lazy tree whose loader records its signal, and resolves when `finish` is called. */
+  function deferredTree(signals: AbortSignal[]): { tree: Route; finish: () => void } {
+    let finish: () => void = () => undefined;
+    const tree: Route = {
+      path: "",
+      component: class {},
+      children: [{
+        path: "/lazy",
+        loadChildren: (signal) => {
+          signals.push(signal);
+          return new Promise((resolve) => {
+            finish = () => resolve([{ path: "", component: class {} }]);
+          });
+        },
+      }],
+    };
+    return { tree, finish: () => finish() };
+  }
+
+  const lazyDestination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
+
+  test("cancelling a navigation that is the only one waiting aborts its load", () => {
+    const signals: AbortSignal[] = [];
+    const { tree } = deferredTree(signals);
+    const { cancel } = startMatch(stepOver(tree), requestFor(lazyDestination));
+    expect(signals[0]?.aborted)
+      .toBe(false);
+    cancel();
+    expect(signals[0]?.aborted)
+      .toBe(true);
+  });
+
+  test("a load another navigation still waits for is not aborted", async () => {
+    const signals: AbortSignal[] = [];
+    const { tree, finish } = deferredTree(signals);
+    const step = stepOver(tree);
+    const first = startMatch(step, requestFor(lazyDestination));
+    const second = startMatch(step, requestFor(lazyDestination));
+    first.cancel();
+    expect(signals[0]?.aborted)
+      .toBe(false);
+    finish();
+    const { matched } = await second.ran;
+    expect(matched)
+      .toBeDefined();
+  });
+
+  test("after its load was aborted, a later navigation loads the children again", async () => {
+    const signals: AbortSignal[] = [];
+    const { tree, finish } = deferredTree(signals);
+    const step = stepOver(tree);
+    startMatch(step, requestFor(lazyDestination))
+      .cancel();
+    const again = startMatch(step, requestFor(lazyDestination));
+    expect(signals.length)
+      .toBe(2);
+    finish();
+    const { matched } = await again.ran;
+    expect(matched)
+      .toBeDefined();
+  });
+
+  /** A gate that allows only when `finish` is called: its task waits until then. */
+  function heldGate(): { gate: RouteGate; finish: () => void } {
+    const held: { finish?: () => void } = {};
+    const gate: RouteGate = () =>
+      fromComputation<RouteGuardCommand, unknown>((ok) => {
+        held.finish = () => ok(new AllowCommand());
+      });
+    return { gate, finish: () => held.finish?.() };
+  }
+
+  test("a navigation cancelled while a gate waits starts no further gate", () => {
+    const { gate, finish } = heldGate();
+    let later = 0;
+    const tree: Route = {
+      path: "",
+      component: class {},
+      children: [{
+        path: "/home",
+        component: class {},
+        canMatch: [gate, () => {
+          later += 1;
+          return succeed(new AllowCommand());
+        }],
+      }],
+    };
+    const destination = builderOver(declared)
+      .to("home")
+      .build();
+    const { cancel } = startMatch(stepOver(tree), requestFor(destination));
+    cancel();
+    finish();
+    expect(later)
+      .toBe(0);
+  });
+
+  test("a navigation cancelled while its canLoad waits does not load the children", () => {
+    const { gate, finish } = heldGate();
+    let loads = 0;
+    const tree: Route = {
+      path: "",
+      component: class {},
+      children: [{
+        path: "/lazy",
+        canLoad: [gate],
+        loadChildren: () => {
+          loads += 1;
+          return Promise.resolve([]);
+        },
+      }],
+    };
+    const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
+    const { cancel } = startMatch(stepOver(tree), requestFor(destination));
+    cancel();
+    finish();
+    expect(loads)
+      .toBe(0);
+  });
+
+  test("a load aborted late does not forget the load that a later navigation started", async () => {
+    let loads = 0;
+    const finishers: Array<() => void> = [];
+    const tree: Route = {
+      path: "",
+      component: class {},
+      children: [{
+        path: "/lazy",
+        loadChildren: (signal) => {
+          loads += 1;
+          return new Promise((resolve, reject) => {
+            signal.addEventListener("abort", () => reject(new Error("aborted")));
+            finishers.push(() => resolve([{ path: "", component: class {} }]));
+          });
+        },
+      }],
+    };
+    const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
+    const step = stepOver(tree);
+    startMatch(step, requestFor(destination))
+      .cancel();
+    const second = startMatch(step, requestFor(destination));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const third = startMatch(step, requestFor(destination));
+    expect(loads)
+      .toBe(2);
+    finishers.at(-1)?.();
+    expect((await second.ran).matched)
+      .toBeDefined();
+    expect((await third.ran).matched)
       .toBeDefined();
   });
 });

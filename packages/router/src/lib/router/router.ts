@@ -7,7 +7,7 @@ import { type NavigationEvent, finalEventOf } from "./navigation-event.ts";
 import type { AppPath } from "../destination/app-path.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
-import { type LevelMatch, matchChain, matchRoute, type RouteMatch, type RouteParams } from "./match.ts";
+import { type LevelMatch, matchChain, matchOfChain, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
 import { parseAppPath } from "../destination/app-path-parse.ts";
 import { None, fromNullable, map, match, type Maybe, Emitter, run, switchMap, Superseded, type Switched, type Cancel, type Task } from "@tinker/functional";
@@ -50,6 +50,8 @@ export class Router {
   private readonly root: Route;
   private readonly location: Location;
   private readonly list = signal<readonly ActivatedRoute[]>([]);
+  /** The leaf of the committed chain, with its params: what `match` shows. */
+  private readonly leaf = signal<RouteMatch | undefined>(undefined);
   private readonly requests = Emitter.create<NavigationRequest>();
   private readonly eventSource = Emitter.create<NavigationEvent>();
   /** The navigation events: STARTED when a navigation begins, then DONE, CANCELLED, or REJECTED. */
@@ -78,7 +80,7 @@ export class Router {
     this.routes = signal<Route>(root);
     this.events = this.eventSource.stream;
     this.rootRoute = new ActivatedRoute(root, {}, [], None.of());
-    this.match = computed(() => matchRoute(root, location.url()));
+    this.match = this.leaf;
     this.activated = this.list;
     this.pipeline = createPipeline({
       match: createMatchStep(root, { injector }),
@@ -179,6 +181,7 @@ export class Router {
    */
   private activate(chain: readonly LevelMatch[] | undefined): void {
     this.list.set(activatedFor(this.rootRoute, this.list(), chain));
+    this.leaf.set(matchOfChain(chain));
   }
 
   /**
