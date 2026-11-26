@@ -57,7 +57,7 @@ describe("parsing a URL from the root", () => {
 
   test("a malformed part throws a malformed ParseError", () => {
     expect(() => parseAppPath(ROOT, "/home%E0%A4%A"))
-      .toThrow("malformed");
+      .toThrow("MALFORMED");
   });
 });
 

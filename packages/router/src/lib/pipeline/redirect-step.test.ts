@@ -111,6 +111,6 @@ describe("the redirect step", () => {
     } }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 });

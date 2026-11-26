@@ -44,13 +44,16 @@ export interface Cancelled {
  */
 export type RejectionSource = "MATCH" | "REDIRECT" | "DEACTIVATE_GUARD" | "ACTIVATE_GUARD" | "COMMIT";
 
+/** The steps whose guards can say no: a canMatch, a canDeactivate, or a canActivate guard. */
+export type GuardSource = "MATCH" | "DEACTIVATE_GUARD" | "ACTIVATE_GUARD";
+
 /** The navigation stopped before it committed, and changed nothing. */
 export type Rejected
   = | {
     /** The outcome kind: the navigation was rejected. */
     readonly kind: "rejected";
     /** Why: no route matches the destination. */
-    readonly reason: "no-route";
+    readonly reason: "NO_ROUTE";
     /** The step that stopped it: always MATCH. */
     readonly source: RejectionSource;
     /** The navigation that matched no route. */
@@ -62,9 +65,9 @@ export type Rejected
     /** The outcome kind: the navigation was rejected. */
     readonly kind: "rejected";
     /** Why: a guard said no. */
-    readonly reason: "guard";
+    readonly reason: "GUARD";
     /** The step whose guard said no: DEACTIVATE_GUARD or ACTIVATE_GUARD. */
-    readonly source: RejectionSource;
+    readonly source: GuardSource;
     /** The navigation the guard rejected. */
     readonly navigation: NavigationRef;
     /** The path of the route whose guard said no. */
@@ -78,7 +81,7 @@ export type Rejected
     /** The outcome kind: the navigation was rejected. */
     readonly kind: "rejected";
     /** Why: a step failed. */
-    readonly reason: "failed";
+    readonly reason: "FAILED";
     /** The step that failed. */
     readonly source: RejectionSource;
     /** The navigation whose step failed. */

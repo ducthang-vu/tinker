@@ -97,7 +97,7 @@ describe("the commit step", () => {
     const step = createCommitStep({ browser, activate: (m) => activated.push(m) });
     const outcome = commit(step, matchedFor("push"));
     expect(outcome?.error)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
     expect(activated)
       .toEqual([]);
   });

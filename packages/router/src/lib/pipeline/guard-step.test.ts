@@ -105,14 +105,14 @@ describe("the guard step", () => {
     expect(log)
       .toEqual(["root", "child-1", "child-2"]);
     expect(rejected)
-      .toMatchObject({ kind: "rejected", reason: "guard" });
+      .toMatchObject({ kind: "rejected", reason: "GUARD" });
   });
 
   test("a STOP carries its reason to the rejection, as the guard command", () => {
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [() => stop("not signed in")] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toMatchObject({ kind: "rejected", reason: "guard", guard: { payload: { reason: "not signed in" } } });
+      .toMatchObject({ kind: "rejected", reason: "GUARD", guard: { payload: { reason: "not signed in" } } });
   });
 
   test("a REDIRECT stops with a Redirect to its path", () => {
@@ -134,7 +134,7 @@ describe("the guard step", () => {
     }] }];
     const rejected = stopOf(step(matchedAt("/todos", routes)));
     expect(rejected)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
     expect((rejected as { cause: unknown }).cause)
       .toBe(thrown);
   });
@@ -159,14 +159,14 @@ describe("the guard step", () => {
       .toEqual([]);
     answer(new StopCommand(new StopPayload()));
     expect(seen[0])
-      .toMatchObject({ kind: "rejected", reason: "guard" });
+      .toMatchObject({ kind: "rejected", reason: "GUARD" });
   });
 
   test("a guard's task that fails stops with a Failed", () => {
     const step = createGuardStep(Injector.create().injector);
     const routes: Route[] = [{ ...page, canActivate: [() => fail(new Error("offline"))] }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 
   test("a guard runs in the injection context of the router, so it can inject", () => {
@@ -178,7 +178,7 @@ describe("the guard step", () => {
       canActivate: [() => (inject(SESSION) ? allow() : stop())],
     }];
     expect(stopOf(step(matchedAt("/todos", routes))))
-      .toMatchObject({ kind: "rejected", reason: "guard" });
+      .toMatchObject({ kind: "rejected", reason: "GUARD" });
   });
 
   test("a guard receives the matched request", () => {
@@ -255,7 +255,7 @@ describe("the deactivate step", () => {
     const matched = { ...matchedAt("/todos", [root, child]), activatedRoutes: activatedOf([root, child]) };
     const step = createDeactivateStep(Injector.create().injector);
     expect(stopOf(step(matched)))
-      .toMatchObject({ kind: "rejected", reason: "guard", route: "/todos", guard: { payload: { reason: "unsaved changes" } } });
+      .toMatchObject({ kind: "rejected", reason: "GUARD", route: "/todos", guard: { payload: { reason: "unsaved changes" } } });
     expect(log)
       .toEqual(["child"]);
   });

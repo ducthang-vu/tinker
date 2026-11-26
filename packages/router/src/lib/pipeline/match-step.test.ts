@@ -82,7 +82,7 @@ describe("the match step", () => {
     const empty: Route = nested({ path: "", component: class {} }, []);
     const { stop } = await runMatch(stepOver(empty), requestFor(destination));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "no-route" });
+      .toMatchObject({ kind: "rejected", reason: "NO_ROUTE" });
   });
 
   test("a navigation past the redirect cap fails at the match step", async () => {
@@ -95,7 +95,7 @@ describe("the match step", () => {
     };
     const { stop } = await runMatch(stepOver(root), redirected);
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 
   test("a part below a route with no children is a no-route stop", async () => {
@@ -105,7 +105,7 @@ describe("the match step", () => {
     ];
     const { stop } = await runMatch(stepOver(root), requestFor(makeAppPath(below, {}, undefined)));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "no-route" });
+      .toMatchObject({ kind: "rejected", reason: "NO_ROUTE" });
   });
 });
 
@@ -196,7 +196,7 @@ describe("lazy routes", () => {
       .toEqual(["", "/lazy", ""]);
   });
 
-  test("a canMatch STOP on a lazy route skips it, so its children are not loaded", async () => {
+  test("a canMatch STOP on a lazy route, with no other route to match, is a guard rejection; its children are not loaded", async () => {
     const loads = { count: 0 };
     const destination = makeAppPath(
       [{ kind: "segment", value: "lazy" }],
@@ -210,7 +210,7 @@ describe("lazy routes", () => {
     expect(loads.count)
       .toBe(0);
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "no-route" });
+      .toMatchObject({ kind: "rejected", reason: "GUARD", source: "MATCH", route: "/lazy" });
   });
 
   test("a lazy route loads once: a later navigation uses the loaded children", async () => {
@@ -239,7 +239,7 @@ describe("lazy routes", () => {
     const step = stepOver(tree);
     const { stop } = await runMatch(step, requestFor(destination));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
     await runMatch(step, requestFor(destination));
     expect(attempts)
       .toBe(2);
@@ -262,7 +262,7 @@ describe("a gate or a load that fails", () => {
       .build();
     const { stop } = await runMatch(stepOver(tree), requestFor(destination));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 
   test("a canMatch gate whose task fails fails the navigation", async () => {
@@ -278,7 +278,7 @@ describe("a gate or a load that fails", () => {
       .build();
     const { stop } = await runMatch(stepOver(tree), requestFor(destination));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 
   test("a canMatch REDIRECT on a lazy route sends the navigation elsewhere, and nothing is loaded", async () => {
@@ -317,7 +317,7 @@ describe("a gate or a load that fails", () => {
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const { stop } = await runMatch(stepOver(tree), requestFor(destination));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 
   test("a loader that throws as it is called fails the navigation, and is not kept", async () => {
@@ -335,7 +335,7 @@ describe("a gate or a load that fails", () => {
     const step = stepOver(tree);
     const { stop } = await runMatch(step, requestFor(destination));
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
     await runMatch(step, requestFor(destination));
     expect(attempts)
       .toBe(2);
