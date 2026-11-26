@@ -37,8 +37,8 @@ test("NextRouteWithComponent is the first shown route after the root, as a signa
 });
 
 test("a route with no component is allowed, at the top or below another route", () => {
-  expect(() => provideRouter([{ path: "/todos" }]))
+  expect(() => provideRouter([{ path: "/todos", component: class {} }]))
     .not.toThrow();
-  expect(() => provideRouter([{ path: "/a", component: TodoList, children: [{ path: "b" }] }]))
+  expect(() => provideRouter([{ path: "/a", component: TodoList, children: [{ path: "b", component: class {} }] }]))
     .not.toThrow();
 });

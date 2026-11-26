@@ -19,7 +19,7 @@ function destinationOf(path: string): AppPath {
   );
 }
 
-const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
+const targets = [{ path: "/login", component: class {} }, { path: "/home", component: class {} }, { path: "/elsewhere", component: class {} }] as const;
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
@@ -53,7 +53,7 @@ const page = { path: "/todos", component: class {} };
 describe("the redirect step", () => {
   test("a route that returns a URL stops the navigation with a Redirect to it", () => {
     const step = createRedirectStep(Injector.create().injector);
-    const routes = [{ ...page, redirect: () => to("login") }];
+    const routes = [{ path: page.path, redirect: () => to("login") }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
       .toBeInstanceOf(Redirect);
@@ -61,7 +61,7 @@ describe("the redirect step", () => {
 
   test("routes that return undefined let the navigation go on", () => {
     const step = createRedirectStep(Injector.create().injector);
-    const routes = [{ ...page, redirect: () => undefined }];
+    const routes = [{ path: page.path, redirect: () => undefined }];
     expect(stopOf(step(matchedAt("/todos", routes))))
       .toBeUndefined();
   });
@@ -78,7 +78,7 @@ describe("the redirect step", () => {
       },
     };
     const child = {
-      ...page,
+      path: page.path,
       redirect: () => {
         asked.push("child");
         return to("elsewhere");
@@ -98,7 +98,7 @@ describe("the redirect step", () => {
       providers: [provide(TARGET, { useValue: to("login") })],
     });
     const step = createRedirectStep(injector);
-    const routes = [{ ...page, redirect: () => inject(TARGET) }];
+    const routes = [{ path: page.path, redirect: () => inject(TARGET) }];
     const outcome = step(matchedAt("/todos", routes));
     expect(stopOf(outcome))
       .toEqual(Redirect.of(matchedAt("/todos", routes), to("login")));
@@ -106,7 +106,7 @@ describe("the redirect step", () => {
 
   test("a redirect that throws stops the navigation with a Failed", () => {
     const step = createRedirectStep(Injector.create().injector);
-    const routes = [{ ...page, redirect: () => {
+    const routes = [{ path: page.path, redirect: () => {
       throw new Error("no config");
     } }];
     const outcome = step(matchedAt("/todos", routes));

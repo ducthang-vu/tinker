@@ -44,7 +44,7 @@ export function createCommitStep(options: CommitOptions): CommitStep {
         options.activate(matched);
         ok(matched);
       } catch (cause) {
-        error(failed(matched, cause));
+        error(failed(matched, cause, "COMMIT"));
       }
     });
 }

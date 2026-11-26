@@ -15,7 +15,7 @@ function destinationOf(path: string): AppPath {
   );
 }
 
-const target = builderOver([{ path: "/todos", children: [{ path: "/:id" }] }] as const)
+const target = builderOver([{ path: "/todos", children: [{ path: "/:id", component: class {} }] }] as const)
   .to("todos")
   .to("1")
   .build();
@@ -28,14 +28,13 @@ test("componentOf gives the component a route shows", () => {
 });
 
 test("componentOf throws for a route with no component, naming it", () => {
-  expect(() => componentOf({ path: "/todos" }))
-    .toThrow("The route \"/todos\" needs a component");
+  expect(() => componentOf({ path: "/todos", children: [] }))
+    .toThrow("The route \"/todos\" has no component");
 });
 
 test("a route's redirect returns the URL to go to, or undefined to leave the navigation alone", () => {
   const route: Route = {
     path: "/todos",
-    component: class {},
     redirect: (request) => (request.destination.format() === "/todos" ? target : undefined),
   };
   const matched: MatchedRequest = {

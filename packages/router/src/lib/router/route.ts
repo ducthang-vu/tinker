@@ -1,14 +1,18 @@
-// A route: a path, and the component it shows. The app gives its top-level routes to the router
-// (provideRouter); a route's children match the segments its path leaves over, and the router
-// matches a URL against the tree, from a root that is never shown.
+// A route: a path, and what it does with the URL: redirect, show a component, or group routes.
+// The app gives its top-level routes to the router (provideRouter); a route's children match the
+// segments its path leaves over, and the router matches a URL against the tree, from a root that
+// is never shown.
 
 import type { Class } from "@tinker/core";
 import type { DeactivateGuard, Guard, RouteGate } from "../pipeline/guard-step.ts";
 import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
-/** A route: a path and the component it shows, with its children, guards and redirect. */
-export interface Route {
+/** A route: a path, and what it does with the URL. Redirect, page and group are its three kinds. */
+export type Route = RedirectRoute | PageRoute | GroupRoute;
+
+/** What every kind of route has. */
+interface RouteCommon {
   /**
    * The one segment the route consumes, e.g. `"todos"`. A segment that starts with `:` is a param,
    * so `":id"` matches `"7"` with `id` set to `"7"`. A longer URL is nested: `"todos"` with a
@@ -18,25 +22,30 @@ export interface Route {
    */
   readonly path: string;
   /**
-   * The component shown when the route matches. A route without one shows nothing of its own: the
-   * outlet shows the first route below it that has a component, so a group of routes can share
-   * a parent with no page of its own.
+   * Asked for each navigation that reaches the route, before its children are looked at. ALLOW
+   * keeps the route; STOP skips it, so the next route with a matching path is tried; REDIRECT sends
+   * the navigation elsewhere. They run in order, in the injection context of the router.
    */
-  readonly component?: Class<object>;
+  readonly canMatch?: readonly RouteGate[];
+}
+
+/** The children of a route, or the loader that loads them, never both. */
+type Nesting
+  = | {
+    /** The routes under this one, matched against the segments its path leaves over. */
+    readonly children: readonly Route[];
+    readonly loadChildren?: never;
+  }
+  | {
+    /** Loads the routes under this one the first time a navigation reaches it. */
+    readonly loadChildren: (signal: AbortSignal) => Promise<readonly Route[]>;
+    readonly children?: never;
+  };
+
+/** Guards and static data: what a route that shows something, or groups children, has. */
+interface RouteGuards {
   /** Static data of the route, read from the `ActivatedRoute` of the component it shows. */
   readonly data?: Readonly<Record<string, unknown>>;
-  /**
-   * The routes under this one, matched against the segments its path leaves over, in order; the
-   * first that matches wins. A route without children must match the whole URL.
-   */
-  readonly children?: readonly Route[];
-  /**
-   * Sends a navigation that matches this route to another URL. It is given the matched request,
-   * and returns the URL to go to instead, or `undefined` to leave the navigation alone. It is
-   * asked before any guard runs, and it runs in the injection context of the router, so it can
-   * `inject`.
-   */
-  readonly redirect?: (request: MatchedRequest) => AppPath | undefined;
   /**
    * Guards that run when the navigation leaves this route, before any activate guard. They run
    * from the last route left to the first, in sequence, in the injection context of the router.
@@ -48,21 +57,56 @@ export interface Route {
    * injection context of the router.
    */
   readonly canActivate?: readonly Guard[];
+}
+
+/**
+ * A route that sends the navigation elsewhere. It shows nothing and nests nothing, so it has no
+ * component, children, guards or data. To redirect after the guards, use a `canActivate` guard
+ * that returns REDIRECT on a page route instead.
+ */
+export interface RedirectRoute extends RouteCommon {
   /**
-   * Asked for each navigation that reaches the route, before its children are looked at. ALLOW
-   * keeps the route; STOP skips it, so the next route with a matching path is tried; REDIRECT sends
-   * the navigation elsewhere. They run in order, in the injection context of the router.
+   * Sends a navigation that matches this route to another URL. It is given the matched request,
+   * and returns the URL to go to instead, or `undefined` to leave the navigation alone. It runs in
+   * the injection context of the router, so it can `inject`.
    */
-  readonly canMatch?: readonly RouteGate[];
-  /**
-   * The children of the route, loaded the first time a navigation reaches it. The loader receives a
-   * signal that is aborted when every navigation waiting for the load has been superseded. A loader
-   * that passes the signal to `fetch` stops its download; a loader using `import()` cannot be
-   * stopped once started, and its children are still kept for the next navigation. A route that has
-   * `children` does not use this. Once loaded, the children are kept, so the route loads once.
-   */
+  readonly redirect: (request: MatchedRequest) => AppPath | undefined;
+  /** A redirect route shows nothing, so it has no component. */
+  readonly component?: never;
+  /** A redirect route nests nothing, so it has no children. */
+  readonly children?: never;
+  /** A redirect route nests nothing, so it has no loader for children. */
+  readonly loadChildren?: never;
+  /** A redirect route has no data: it shows no component to read it. */
+  readonly data?: never;
+  /** A redirect route has no activate guard: the guards of the chain do not run before it. */
+  readonly canActivate?: never;
+  /** A redirect route has no deactivate guard: it is never left as a page. */
+  readonly canDeactivate?: never;
+}
+
+/** A route that shows a component. It may nest routes below it, for its own page to show. */
+export interface PageRoute extends RouteCommon, RouteGuards {
+  /** The component shown when the route matches. */
+  readonly component: Class<object>;
+  /** A page route shows its component, so it does not redirect. */
+  readonly redirect?: never;
+  /** The routes under the page, shown inside it. */
+  readonly children?: readonly Route[];
+  /** Loads the routes under the page the first time a navigation reaches it. */
   readonly loadChildren?: (signal: AbortSignal) => Promise<readonly Route[]>;
 }
+
+/**
+ * A route that shows no component of its own, and groups routes under it. The outlet shows the
+ * first route below it that has a component, so the group can share a parent with no page.
+ */
+export type GroupRoute = RouteCommon & RouteGuards & Nesting & {
+  /** A group shows no component of its own. */
+  readonly component?: never;
+  /** A group does not redirect. */
+  readonly redirect?: never;
+};
 
 /**
  * The component a route shows. Throws for a route with none: the outlet only asks for the routes
@@ -74,7 +118,7 @@ export interface Route {
  */
 export function componentOf(route: Route): Class<object> {
   if (route.component === undefined) {
-    throw new Error(`The route "${route.path}" needs a component: every route shows one`);
+    throw new Error(`The route "${route.path}" has no component`);
   }
   return route.component;
 }

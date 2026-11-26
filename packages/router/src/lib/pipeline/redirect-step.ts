@@ -27,7 +27,7 @@ export function createRedirectStep(injector: Injector): RedirectStep {
         ? Right.of<MatchedRequest, Stop>(matched)
         : Left.of<Stop, MatchedRequest>(Redirect.of(matched, target));
     } catch (cause) {
-      return Left.of<Stop, MatchedRequest>(failed(matched, cause));
+      return Left.of<Stop, MatchedRequest>(failed(matched, cause, "REDIRECT"));
     }
   };
 }
