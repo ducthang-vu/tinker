@@ -106,30 +106,14 @@ share the name), and a registry per row if a row variable is to be queried.
 
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 
-### 1. Warn the author about legitimate but suspicious templates
+### 1. Warn about unknown names and add `onWarning`
 
-**Problem.** Some template code is allowed but usually a mistake. A `@let`
-that has the name of a field or method hides it, which is legitimate, but a
-reader can't tell which name is meant. A read of a name that the component
-doesn't have silently gives `undefined`. Neither breaks the app, so neither
-should be an error, and nothing tells the author today.
+**Problem.** A read of a name the component doesn't have silently gives `undefined` in development
+mode when the build did not check the template.
 
-**To do.** Add a developer mode, off in production:
-
-- **Turned on** by the compiler's `dev` option (`tinkerCompiler({ dev })`, which
-  defaults to Vite's development mode). The app reads it as the `DEV_MODE` token,
-  which is already built: the compiler defines `globalThis.__TINKER_DEV__`.
-- **Checks**: shadowing (a `@let`, or later a block's name, over a field or
-  method, or over an outer name), and an unknown name read from the component.
-  They are warnings. Declaring the same name twice in one scope stays an error
-  in both modes.
-- **Where warnings go**: `console.warn` by default, and an `onWarning` callback
-  on `bootstrap`, so tests can check them and apps can send them to their own
-  logging.
-- **Production** skips every check, so developer mode has no cost there.
-
-Shadowing across scopes is allowed, as in most languages: this is a warning for
-the author, not a ban.
+**To do.** Warn in development mode, through an `onWarning` callback on `bootstrap` (default:
+`console.warn`), and turn the checks on with the compiler's `dev` option, which the app reads as
+the `DEV_MODE` token.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
@@ -154,13 +138,7 @@ add a dev-mode check next to the other development warnings.
 
 ## Template syntax (`packages/core/src/view/internal/template/tinker-parser.ts`)
 
-The engine's parser is `TinkerTemplateParser`, which reads without a DOM and reports
-every malformed markup with its line and column. It decodes the 253 references HTML 4
-defines (and `&apos;`) with a table, `entities.ts`, and numeric references by the
-standard's rules. `textarea` and `title` read their content as text with references
-decoded.
-
-Known deviations from the browser:
+Known deviations of `TinkerTemplateParser` from the browser:
 
 - The HTML 5 names beyond the HTML 4 list (such as `&check;`) are kept as written. The full table adds about 16 KB gzipped to the
   example's bundle, against about 2 KB for this one.
@@ -204,11 +182,6 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 ## Routing and the folder the app is served under (`packages/router/src/lib/location/`, `.github/workflows/gh-pages.yml`)
 
 ### 1. The folder comes from the page's <base> element
-
-**What was done.** `browserPlatformLocation` reads the folder the app is served under from the
-page's `<base>` element, which the build writes (`TINKER_BASE`, the `baseTag` plugin in
-`examples/basics/vite.config.ts`). Paths, `push`, `replace` and `href` all use it. An app
-needs no code for it, and a test provides a different `PLATFORM_LOCATION` to override it.
 
 **To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
 point at the host root.
@@ -260,7 +233,8 @@ registry. Until then, create the app with `--dir examples` or `--dir packages`.
 
 **Problem.** A name the template declares anywhere (a `@let`, a `@map` item, a binding, a reference) counts as known everywhere in the template. A name used outside the block that declares it therefore passes the build and fails at run time.
 
-**To do.** Check names against the scope they are used in, as the template compiler does for references.
+**To do.** Check each read against the scope it is in, using that walk, not against the names
+declared anywhere in the template.
 
 ### 2. Classes that extend another are not checked
 

@@ -33,8 +33,8 @@ export class Dynamic {
   }
 }
 
-// A template function named like the built-in flow: a component may not import it.
-@TemplateFunction("flow")
+// A template function named like the built-in $flow: a component may not import it.
+@TemplateFunction("$flow")
 export class Flowed {
   call(): number {
     return 1;

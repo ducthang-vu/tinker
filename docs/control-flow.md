@@ -69,13 +69,13 @@ and `" "` (a space).
 | Arrow functions: `t => t.done` | not planned | filter in a `computed` in the component instead |
 | Unary minus: `-1` | done | negates its operand, which is a whole operand: `-count() * 2` is `(-count()) * 2` |
 | Pipes: `value \| format(locale)` | done | the value is the first argument; lowest in precedence, left to right; inside a call's arguments, use parentheses |
-| `flow(f, g)`: a function that applies `f`, then `g` | done | built in, with no import; a member or an import with the name `flow` is refused |
+| `$flow(f, g)`: a function that applies `f`, then `g` | done | built in, with no import; a member or an import with the name `$flow` is refused |
 
 ## `@let`
 
 | Form | Meaning | Status |
 |---|---|---|
-| `@let name = expression;` | declares a value for the bindings after it; it shadows a field of the same name | done |
+| `@let name = expression;` | declares a value for the bindings after it; its name may not be a field or method of the component, a built-in, or a name declared around it (shadowing is refused at build time) | done |
 | `@let name;` with no value | declares a name to be set later | not planned |
 
 ## `@match`

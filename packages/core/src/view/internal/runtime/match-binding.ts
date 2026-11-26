@@ -13,7 +13,7 @@ import { computed, type ReadonlySignal, signal, type Signal } from "../../../sig
 import type { CompiledMatch, CompiledNode } from "../template/compile.ts";
 import { evaluate } from "../template/evaluate.ts";
 import type { Literal, Pattern, RelationOperator } from "../template/pattern.ts";
-import { Scope } from "../template/scope.ts";
+import { Scope, warnShadows } from "../template/scope.ts";
 import type { EmbeddedView } from "./embedded-view.ts";
 import type { Binding } from "./text-binding.ts";
 import type { View } from "./view.ts";
@@ -92,6 +92,7 @@ export class MatchBinding implements Binding {
       for (const [name, bound] of this.names) {
         lets.set(name, bound);
       }
+      warnShadows(this.scope.component, this.scope.checks, this.above, this.names.keys());
       const scope = new Scope(this.scope.component, lets, this.scope.checks);
       this.shown = this.render(choice.body, scope, this.injector);
     }

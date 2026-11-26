@@ -29,7 +29,7 @@ import type {
 import { outputsNamed } from "../authoring/output.ts";
 import { bindInputsToAttributes, inputsNamed, type AttributeReport } from "../authoring/input.ts";
 import { type Owned, ownerName } from "../runtime/owner.ts";
-import { devChecks, Scope } from "../template/scope.ts";
+import { devChecks, Scope, warnShadows } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { requireMethod, runHandler } from "../template/handler.ts";
 import { computed, type Signal, signal } from "../../../signals/index.ts";
@@ -467,6 +467,7 @@ export class TemplateBuilder {
       if (this.scope.checks !== undefined && node.name in this.component) {
         this.scope.checks.warn(`@let ${node.name} hides the ${this.component.constructor.name} member of the same name: the template reads the @let`);
       }
+      warnShadows(this.component, this.scope.checks, this.scope.lets, [node.name]);
       this.scope.lets.set(node.name, computed(partial(evaluate, node.expression, above)));
       return [];
     }

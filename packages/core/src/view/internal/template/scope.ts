@@ -40,3 +40,32 @@ export class Scope {
     readonly checks?: NameChecks,
   ) {}
 }
+
+/**
+ * Dev-mode warnings for names a block declares that hide another: a name declared around the
+ * block, or a member of the component. The build refuses these in a template it compiles, so a
+ * warning here is for one it could not see (a member inherited from a base class, or a template
+ * that was not compiled at build time).
+ *
+ * @param component The component, whose members are the names it can hide.
+ * @param checks The dev-mode checks; nothing is checked without them.
+ * @param around The names declared around the block.
+ * @param names The names the block declares.
+ */
+export function warnShadows(
+  component: object,
+  checks: NameChecks | undefined,
+  around: ReadonlyMap<string, unknown>,
+  names: Iterable<string>,
+): void {
+  if (checks === undefined) {
+    return;
+  }
+  for (const name of names) {
+    if (around.has(name)) {
+      checks.warn(`${name} shadows a name declared around it: rename one of them`);
+    } else if (name in component) {
+      checks.warn(`${name} hides the ${component.constructor.name} member of the same name`);
+    }
+  }
+}

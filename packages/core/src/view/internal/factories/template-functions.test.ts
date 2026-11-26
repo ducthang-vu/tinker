@@ -181,7 +181,7 @@ describe("pipes and flow with template functions", () => {
     }
     @Component({
       selector: "tk-mapped",
-      template: "<p>{{ items().map(flow(double, double)).join(\",\") }}</p>",
+      template: "<p>{{ items().map($flow(double, double)).join(\",\") }}</p>",
       imports: [Double],
     })
     class Mapped {
@@ -193,8 +193,8 @@ describe("pipes and flow with template functions", () => {
       .toBe("4,8");
   });
 
-  test("an import named flow is refused: it is a built-in name", () => {
-    @TemplateFunction("flow")
+  test("an import named $flow is refused: it is a built-in name", () => {
+    @TemplateFunction("$flow")
     class Imported implements TemplateFunctionContract<[], number> {
       call(): number {
         return 1;
@@ -209,12 +209,12 @@ describe("pipes and flow with template functions", () => {
       .toContain("is a built-in template function");
   });
 
-  test("in development mode, a member named flow is warned about", async () => {
+  test("in development mode, a member named $flow is warned about", async () => {
     const warn = vi.spyOn(console, "warn")
       .mockImplementation(() => undefined);
-    @Component({ selector: "tk-flow-member", template: "<p>{{ flow(1) }}</p>" })
+    @Component({ selector: "tk-flow-member", template: "<p>{{ $flow(1) }}</p>" })
     class Member {
-      flow(n: number): string {
+      $flow(n: number): string {
         return `member ${n}`;
       }
     }
@@ -222,7 +222,7 @@ describe("pipes and flow with template functions", () => {
     const view = valueOrThrow(renderComponent(engine, Member));
     await tick();
     expect(warn)
-      .toHaveBeenCalledWith("Member has a member named \"flow\", which hides the built-in template function flow");
+      .toHaveBeenCalledWith("Member has a member named \"$flow\", which hides the built-in template function $flow");
     expect(view.host.nativeElement.querySelector("p")!.textContent)
       .toBe("member 1");
     warn.mockRestore();

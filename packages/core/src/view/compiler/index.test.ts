@@ -8,6 +8,7 @@ test("the compiler's public API exports exactly these values", () => {
       "emitCompiled",
       "BUILT_IN_NAMES",
       "namesIn",
+      "shadowsIn",
       "Selector",
       "TemplateCompileError",
     ]);
