@@ -7505,7 +7505,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6963",
+              "name": "__@APP_PATH_BRAND@6981",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
@@ -7668,17 +7668,6 @@
               ]
             }
           ]
-        },
-        {
-          "name": "ChildActivatedRoute",
-          "kind": "const",
-          "source": "packages/router/src/lib/state/child-activated-route.ts:8",
-          "description": "",
-          "params": [],
-          "examples": [],
-          "see": [],
-          "throws": [],
-          "type": "InjectionToken<ReadonlySignal<Maybe<ActivatedRoute>>>"
         },
         {
           "name": "DeactivateGuard",
@@ -7872,6 +7861,164 @@
               "type": "unknown"
             }
           ]
+        },
+        {
+          "name": "NavigationCancelled",
+          "kind": "interface",
+          "source": "packages/router/src/lib/router/navigation-event.ts:25",
+          "description": "A navigation was replaced by a newer one before it committed.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:27",
+              "description": "The event type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"CANCELLED\""
+            },
+            {
+              "name": "payload",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:29",
+              "description": "The cancelled navigation.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "Cancelled"
+            }
+          ]
+        },
+        {
+          "name": "NavigationDone",
+          "kind": "interface",
+          "source": "packages/router/src/lib/router/navigation-event.ts:17",
+          "description": "A navigation committed.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:19",
+              "description": "The event type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"DONE\""
+            },
+            {
+              "name": "payload",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:21",
+              "description": "The committed navigation.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "Done"
+            }
+          ]
+        },
+        {
+          "name": "NavigationEvent",
+          "kind": "type",
+          "source": "packages/router/src/lib/router/navigation-event.ts:41",
+          "description": "A navigation event: the start, or the one final event of the outcome.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "declaration": "export type NavigationEvent\n  = | NavigationStarted\n    | NavigationDone\n    | NavigationCancelled\n    | NavigationRejected;"
+        },
+        {
+          "name": "NavigationRejected",
+          "kind": "interface",
+          "source": "packages/router/src/lib/router/navigation-event.ts:33",
+          "description": "A navigation was rejected: a guard stopped it, no route takes it, or a step failed.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:35",
+              "description": "The event type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"REJECTED\""
+            },
+            {
+              "name": "payload",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:37",
+              "description": "The rejection, with its reason.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "Rejected"
+            }
+          ]
+        },
+        {
+          "name": "NavigationStarted",
+          "kind": "interface",
+          "source": "packages/router/src/lib/router/navigation-event.ts:9",
+          "description": "A navigation has started: the pipeline is about to run it.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "type",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:11",
+              "description": "The event type.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "\"STARTED\""
+            },
+            {
+              "name": "payload",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/navigation-event.ts:13",
+              "description": "The request the pipeline starts with, with the routes it leaves.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "NavigationRequest"
+            }
+          ]
+        },
+        {
+          "name": "NextRouteWithComponent",
+          "kind": "const",
+          "source": "packages/router/src/lib/state/next-route-with-component.ts:10",
+          "description": "",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "type": "InjectionToken<ReadonlySignal<Maybe<ActivatedRoute>>>"
         },
         {
           "name": "PLATFORM_LOCATION",
@@ -8154,8 +8301,8 @@
             {
               "name": "component",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:21",
-              "description": "The component shown when the route matches. Every route needs one.",
+              "source": "packages/router/src/lib/router/route.ts:25",
+              "description": "The component shown when the route matches. A route without one shows nothing of its own: the\noutlet shows the first route below it that has a component, so a group of routes can share\na parent with no page of its own.",
               "params": [],
               "examples": [],
               "see": [],
@@ -8165,7 +8312,7 @@
             {
               "name": "data",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:23",
+              "source": "packages/router/src/lib/router/route.ts:27",
               "description": "Static data of the route, read from the `ActivatedRoute` of the component it shows.",
               "params": [],
               "examples": [],
@@ -8176,7 +8323,7 @@
             {
               "name": "children",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:28",
+              "source": "packages/router/src/lib/router/route.ts:32",
               "description": "The routes under this one, matched against the segments its path leaves over, in order; the\nfirst that matches wins. A route without children must match the whole URL.",
               "params": [],
               "examples": [],
@@ -8187,7 +8334,7 @@
             {
               "name": "redirect",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:35",
+              "source": "packages/router/src/lib/router/route.ts:39",
               "description": "Sends a navigation that matches this route to another URL. It is given the matched request,\nand returns the URL to go to instead, or `undefined` to leave the navigation alone. It is\nasked before any guard runs, and it runs in the injection context of the router, so it can\n`inject`.",
               "params": [],
               "examples": [],
@@ -8198,7 +8345,7 @@
             {
               "name": "canDeactivate",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:40",
+              "source": "packages/router/src/lib/router/route.ts:44",
               "description": "Guards that run when the navigation leaves this route, before any activate guard. They run\nfrom the last route left to the first, in sequence, in the injection context of the router.",
               "params": [],
               "examples": [],
@@ -8209,7 +8356,7 @@
             {
               "name": "canActivate",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:46",
+              "source": "packages/router/src/lib/router/route.ts:50",
               "description": "Guards that decide whether the navigation may go on, run after the deactivate guards. Each\nreturns a Task of a command: ALLOW, STOP, or REDIRECT. They run root first, in sequence, in the\ninjection context of the router.",
               "params": [],
               "examples": [],
