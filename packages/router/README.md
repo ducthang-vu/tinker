@@ -273,6 +273,17 @@ so a wrong segment is reported by the navigation, not when the path is built.
 The types are `NavigationStarted`, `NavigationDone`, `NavigationCancelled` and
 `NavigationRejected`, and `NavigationEvent` is their union.
 
+## Changing the routes while the app runs
+
+`Router.resetRoutes(routes)` replaces the top-level routes. The router matches
+the current URL against the new routes straight away, without changing the URL
+or adding a history entry. If no new route takes the URL, nothing is shown until
+the URL changes. Routes that were already loaded keep their children.
+
+```ts
+inject(Router).resetRoutes([...ROUTES, { path: "beta", component: Beta }]);
+```
+
 ## The browser location
 
 The router reads and writes the browser through `Location`. The app is served
@@ -282,7 +293,6 @@ to replace it.
 
 ## What it does not do
 
-- Routes are fixed when the app starts. `Router.routes` never changes.
 - There are no resolvers: data is not loaded before a route is shown.
 - Lazy routes have no preloading and no retry policy. A failed load is retried
   only by the next navigation to it.

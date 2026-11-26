@@ -9,6 +9,7 @@ import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchOfChain, type RouteMatch, type RouteParams } from "./match.ts";
 import type { Route } from "./route.ts";
+import { seedChildren } from "./lazy-children.ts";
 import { parseAppPath } from "../destination/app-path-parse.ts";
 import { None, fromNullable, map, match, type Maybe, Emitter, run, switchMap, Superseded, type Switched, type Cancel, type Task } from "@tinker/functional";
 import { createPipeline } from "../pipeline/pipeline.ts";
@@ -166,6 +167,18 @@ export class Router {
       this.waiting.set(id, resolve);
       this.requests.emit(request);
     });
+  }
+
+  /**
+   * Replaces the routes the router matches, and matches the current URL against them again. The
+   * URL is not changed, and no history entry is added. If no new route takes the URL, nothing is
+   * shown until the URL changes.
+   *
+   * @param routes The new top-level routes.
+   */
+  resetRoutes(routes: readonly Route[]): void {
+    seedChildren(this.root, routes);
+    this.start(this.location.url(), this.location.state());
   }
 
   /** Stops routing navigations when the injector is destroyed. */
