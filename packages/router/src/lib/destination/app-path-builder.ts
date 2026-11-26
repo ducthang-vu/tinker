@@ -189,7 +189,7 @@ export class AppPathBuilder {
     const values = segments.map((segment) => segment.value);
     if (levelsOf(this.router.routes(), values) === undefined) {
       const path = makeAppPath(segments, this.query, this.fragment);
-      throw new ParseError("no-route", path.format(), values[values.length - 1] ?? "");
+      throw new ParseError("NO_ROUTE", path.format(), values[values.length - 1] ?? "");
     }
     return makeAppPath(segments, this.query, this.fragment);
   }
@@ -222,7 +222,7 @@ export class AppPathBuilder {
         if (isUnloadedLazy(node)) {
           return withUnchecked([...prefix, ...taken], parts.slice(index));
         }
-        throw new ParseError("no-route", input, part);
+        throw new ParseError("NO_ROUTE", input, part);
       }
       // The empty-path routes on the way write no segment: they share the URL of their child.
       const child = path[path.length - 1] as Route;

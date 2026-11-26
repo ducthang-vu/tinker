@@ -76,7 +76,7 @@ describe("steps that add segments", () => {
     const error = errorOf(() => builderOver(TREE)
       .build());
     expect(error.reason)
-      .toBe("no-route");
+      .toBe("NO_ROUTE");
     expect(error.at)
       .toBe("");
   });
@@ -85,7 +85,7 @@ describe("steps that add segments", () => {
     const error = errorOf(() => builderOver(TREE)
       .to("nope"));
     expect(error.reason)
-      .toBe("no-route");
+      .toBe("NO_ROUTE");
     expect(error.at)
       .toBe("nope");
   });
@@ -112,7 +112,7 @@ describe("steps that add segments", () => {
       .to("group")
       .build());
     expect(error.reason)
-      .toBe("no-route");
+      .toBe("NO_ROUTE");
     expect(error.at)
       .toBe("group");
   });
@@ -216,7 +216,7 @@ describe("parse", () => {
     const error = errorOf(() => builderOver(TREE)
       .parse("/nowhere"));
     expect(error.reason)
-      .toBe("no-route");
+      .toBe("NO_ROUTE");
     expect(error.at)
       .toBe("nowhere");
   });
@@ -230,16 +230,16 @@ describe("parse", () => {
   test("a malformed percent-encoding throws a malformed ParseError in the path, query or fragment", () => {
     expect(errorOf(() => builderOver(TREE)
       .parse("/todos/%E0%A4%A")).reason)
-      .toBe("malformed");
+      .toBe("MALFORMED");
     expect(errorOf(() => builderOver(TREE)
       .parse("/home?a=%E0%A4%A")).reason)
-      .toBe("malformed");
+      .toBe("MALFORMED");
     expect(errorOf(() => builderOver(TREE)
       .parse("/home#%E0%A4%A")).reason)
-      .toBe("malformed");
+      .toBe("MALFORMED");
     expect(errorOf(() => builderOver(TREE)
       .parse("/home?%E0%A4%A=1")).reason)
-      .toBe("malformed");
+      .toBe("MALFORMED");
   });
 });
 
@@ -430,7 +430,7 @@ describe("an empty-path route that is a layout", () => {
     const error = errorOf(() => builderOver(listOnly)
       .to("shell", "nope"));
     expect(error.reason)
-      .toBe("no-route");
+      .toBe("NO_ROUTE");
     expect(error.at)
       .toBe("nope");
   });

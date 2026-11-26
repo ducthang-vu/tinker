@@ -16,7 +16,7 @@ export class ParseError extends Error {
    * @param at The part that failed.
    */
   constructor(
-    readonly reason: "no-route" | "malformed",
+    readonly reason: "NO_ROUTE" | "MALFORMED",
     /** The raw input. */
     readonly input: string,
     /** The part that failed: the segment, the query pair, or the fragment. */
@@ -93,7 +93,7 @@ export function decodeOrThrow(input: string, raw: string): string {
   try {
     return decodeURIComponent(raw);
   } catch {
-    throw new ParseError("malformed", input, raw);
+    throw new ParseError("MALFORMED", input, raw);
   }
 }
 
@@ -124,7 +124,7 @@ export function parseAppPath(root: Route, url: string): AppPath {
     .map((segment) => decodeOrThrow(url, segment));
   const levels = levelsOf(root, values);
   if (levels === undefined) {
-    throw new ParseError("no-route", url, values[values.length - 1] ?? "");
+    throw new ParseError("NO_ROUTE", url, values[values.length - 1] ?? "");
   }
   // A segment under a lazy route whose children are not loaded is taken as written: the navigation
   // that loads the children checks it.

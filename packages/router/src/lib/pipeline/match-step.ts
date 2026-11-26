@@ -18,6 +18,7 @@ import type { RouteGate } from "./guard-step.ts";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import type { MatchStep } from "./steps.ts";
 import { failed, guardRejected, noRoute, Redirect, type Stop } from "./stop.ts";
+import type { StopCommand } from "./guard-step.ts";
 
 /** The most redirects one navigation may follow. A navigation past it fails at the match step. */
 export const MAX_REDIRECTS = 10;
@@ -33,16 +34,20 @@ interface Scope {
   readonly releases: Cancel[];
 }
 
-/** How the walk of one route ended: with the levels it matched, with no match, or with a stop. */
+/**
+ * How the walk of one route ended: with the levels it matched, with no match, with a stop, or with
+ * a route whose canMatch denied it, which is reported only when no other route matches.
+ */
 type Walk
   = | { readonly kind: "found"; readonly levels: readonly LevelMatch[] }
     | { readonly kind: "miss" }
-    | { readonly kind: "stop"; readonly stop: Stop };
+    | { readonly kind: "stop"; readonly stop: Stop }
+    | { readonly kind: "denied"; readonly route: string; readonly command: StopCommand };
 
-/** What the gates of a route said: keep going, skip the route, or stop the navigation. */
+/** What the gates of a route said: keep going, skip the route with its STOP, or stop. */
 type Verdict
   = | { readonly kind: "allow" }
-    | { readonly kind: "skip" }
+    | { readonly kind: "skip"; readonly command: StopCommand }
     | { readonly kind: "stop"; readonly stop: Stop };
 
 /** What the children of a route are: none, the routes, or a stop from loading them. */
@@ -121,7 +126,7 @@ function gatesOf(
     } else if (command.type === "REDIRECT") {
       done({ kind: "stop", stop: Redirect.of(request, command.payload.path) });
     } else {
-      done({ kind: "skip" });
+      done({ kind: "skip", command });
     }
   });
 }
@@ -195,7 +200,7 @@ function walk(
       return;
     }
     if (verdict.kind === "skip") {
-      done(MISS);
+      done({ kind: "denied", route: route.path, command: verdict.command });
       return;
     }
     const rest = segments.slice(consumed.count);
@@ -210,7 +215,7 @@ function walk(
       } else if (children.kind === "none") {
         done(rest.length === 0 ? { kind: "found", levels: [own] } : MISS);
       } else {
-        walkEach(options, scope, request, children.routes, rest, own, done);
+        walkEach(options, scope, request, children.routes, rest, own, undefined, done);
       }
     });
   });
@@ -225,6 +230,7 @@ function walk(
  * @param routes The routes to try, in order.
  * @param segments The segments the routes must match.
  * @param own The level of the parent route, which the matches go below.
+ * @param denial
  * @param done Receives how the walk ended.
  */
 function walkEach(
@@ -234,11 +240,12 @@ function walkEach(
   routes: readonly Route[],
   segments: readonly string[],
   own: LevelMatch,
+  denial: Walk | undefined,
   done: (result: Walk) => void,
 ): void {
   const [first, ...later] = routes;
   if (first === undefined) {
-    done(MISS);
+    done(denial ?? MISS);
     return;
   }
   walk(options, scope, request, first, segments, (below) => {
@@ -246,8 +253,10 @@ function walkEach(
       done({ kind: "found", levels: [own, ...below.levels] });
     } else if (below.kind === "stop") {
       done(below);
+    } else if (below.kind === "denied") {
+      walkEach(options, scope, request, later, segments, own, denial ?? below, done);
     } else {
-      walkEach(options, scope, request, later, segments, own, done);
+      walkEach(options, scope, request, later, segments, own, denial, done);
     }
   });
 }
@@ -273,6 +282,8 @@ export function createMatchStep(root: Route, options: MatchOptions): MatchStep {
             ok({ ...request, chain: result.levels });
           } else if (result.kind === "miss") {
             error(noRoute(request));
+          } else if (result.kind === "denied") {
+            error(guardRejected(request, result.route, result.command, "MATCH"));
           } else {
             error(result.stop);
           }

@@ -124,7 +124,7 @@ describe("stops", () => {
     expect(log)
       .toEqual([]);
     expect(outcome.error)
-      .toMatchObject({ kind: "rejected", reason: "no-route" });
+      .toMatchObject({ kind: "rejected", reason: "NO_ROUTE" });
   });
 
   test("a redirect stops at redirect: guards and commit do not run", () => {
@@ -148,7 +148,7 @@ describe("stops", () => {
     expect(log)
       .toEqual(["match", "redirect"]);
     expect(outcome.error)
-      .toMatchObject({ kind: "rejected", reason: "guard" });
+      .toMatchObject({ kind: "rejected", reason: "GUARD" });
   });
 
   test("a failure in the commit step is the pipeline's failure", () => {
@@ -158,7 +158,7 @@ describe("stops", () => {
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(outcome.error)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 
   test("a navigation past the redirect cap stops at match, before anything else", () => {
@@ -170,7 +170,7 @@ describe("stops", () => {
     expect(log)
       .toEqual([]);
     expect(outcome.error)
-      .toMatchObject({ kind: "rejected", reason: "failed" });
+      .toMatchObject({ kind: "rejected", reason: "FAILED" });
   });
 });
 

@@ -113,7 +113,7 @@ test("a URL no route matches is rejected with the no-route reason, and the URL d
     .build();
   const outcome = await router.navigate(elsewhere, { state: { scroll: 1 } });
   expect(outcome)
-    .toMatchObject({ kind: "rejected", reason: "no-route" });
+    .toMatchObject({ kind: "rejected", reason: "NO_ROUTE" });
   expect(router.url())
     .toBe("/todos");
   expect(fake.state())
@@ -299,7 +299,7 @@ test("a guard that says no stops the navigation, naming the route whose guard sa
   const { router, urls, destroy } = routerWithGuard([deny]);
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
-    .toMatchObject({ kind: "rejected", reason: "guard", route: ":id" });
+    .toMatchObject({ kind: "rejected", reason: "GUARD", route: ":id" });
   expect(router.url())
     .toBe("/todos");
   destroy();
@@ -330,7 +330,7 @@ test("a route that redirects to itself is rejected as failed, with the redirect 
   const outcome = await router.navigate(urls.parse("/todos")
     .build());
   expect(outcome)
-    .toMatchObject({ kind: "rejected", reason: "failed" });
+    .toMatchObject({ kind: "rejected", reason: "FAILED" });
   expect(router.url())
     .toBe("/");
   destroy();
@@ -465,7 +465,7 @@ test("a deactivate guard that stops keeps the user on the route they leave", asy
   const { router, urls, destroy } = routerOver(guarded, "/todos/7");
   expect(await router.navigate(urls.parse("/todos")
     .build()))
-    .toMatchObject({ kind: "rejected", reason: "guard", guard: { payload: { reason: "unsaved changes" } } });
+    .toMatchObject({ kind: "rejected", reason: "GUARD", guard: { payload: { reason: "unsaved changes" } } });
   expect(router.url())
     .toBe("/todos/7");
   destroy();
@@ -497,7 +497,7 @@ test("a navigation no route takes is rejected, with the match step as its source
   } });
   const outcome = await router.navigate(makeAppPath([{ kind: "segment", value: "nowhere" }], {}, undefined));
   expect(outcome)
-    .toMatchObject({ kind: "rejected", reason: "no-route", source: "MATCH" });
+    .toMatchObject({ kind: "rejected", reason: "NO_ROUTE", source: "MATCH" });
   expect(seen.at(-1))
     .toMatchObject({ type: "REJECTED", source: "MATCH" });
   stop();

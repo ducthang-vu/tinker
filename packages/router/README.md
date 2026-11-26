@@ -145,11 +145,13 @@ export class TodoList {
 
 - `done`: the navigation committed.
 - `cancelled`: a newer navigation replaced it before it committed.
-- `rejected`, with a `reason`:
-  - `no-route`: no route takes the path.
-  - `guard`: a guard stopped it. The `guard` field holds the stop command and
-    `route` names the route that stopped it.
-  - `failed`: a step threw. The `cause` field holds the error.
+- `rejected`, with a `reason` and a `source` (the step that stopped it):
+  - `NO_ROUTE`: no route takes the path. The source is `MATCH`.
+  - `GUARD`: a guard said no. The `guard` field holds the stop command, and
+    `route` names the route whose guard said it. The source is `MATCH` when a
+    `canMatch` denied every route the path could take, `DEACTIVATE_GUARD` for a
+    `canDeactivate` guard, or `ACTIVATE_GUARD` for a `canActivate` guard.
+  - `FAILED`: a step threw. The `cause` field holds the error.
 
 A rejected or cancelled navigation changes nothing. Back and forward moves go
 through the same guards. A rejected back or forward move puts the browser back
@@ -173,7 +175,7 @@ cannot be made by mistake:
 - `build()`: returns the `AppPath`. It throws a `ParseError` when no route takes
   the whole path.
 
-A `ParseError` has a `reason` (`no-route` or `malformed`), the input, and the
+A `ParseError` has a `reason` (`NO_ROUTE` or `MALFORMED`), the input, and the
 part that failed.
 
 ## Guards and redirects
@@ -196,7 +198,7 @@ const signedIn: Guard = () =>
 ```
 
 - `AllowCommand`: the navigation goes on.
-- `StopCommand(new StopPayload(reason?))`: the navigation is rejected with reason `guard`.
+- `StopCommand(new StopPayload(reason?))`: the navigation is rejected with reason `GUARD`.
 - `RedirectCommand(new RedirectPayload(path, reason?))`: the navigation goes to
   another `AppPath` instead.
 
@@ -262,8 +264,9 @@ so a wrong segment is reported by the navigation, not when the path is built.
   - `DONE` has `COMMIT`.
   - `CANCELLED` has `NEW_NAVIGATION`: a newer navigation replaced it. Its `by`
     field is that navigation's id.
-  - `REJECTED` has the step that stopped it: `MATCH` (no route, a failed
-    loader, or the redirect cap), `REDIRECT` (a `redirect` that threw),
+  - `REJECTED` has the step that stopped it: `MATCH` (no route, a `canMatch`
+    denial, a failed loader, or the redirect cap), `REDIRECT` (a `redirect`
+    that threw),
     `DEACTIVATE_GUARD`, `ACTIVATE_GUARD`, or `COMMIT`.
 - `payload` is the outcome: `Done`, `Cancelled`, or `Rejected`.
 
@@ -285,5 +288,6 @@ to replace it.
   only by the next navigation to it.
 - The trace of a navigation (`meta`) is `unknown[]`. It is for debugging, and
   the app does not act on it.
-- `canMatch` skips a route, it does not reject the navigation. A navigation no
-  route takes is `no-route`.
+- `canMatch` skips a route, so a sibling with the same path can match. Only
+  when every route the path could take is denied is the navigation rejected,
+  with reason `GUARD` and source `MATCH`.

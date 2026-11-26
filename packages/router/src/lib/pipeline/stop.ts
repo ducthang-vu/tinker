@@ -4,7 +4,12 @@
 
 import type { AppPath } from "../destination/app-path.ts";
 import type { StopCommand } from "./guard-step.ts";
-import type { NavigationRef, Rejected, RejectionSource } from "./navigation-outcome.ts";
+import type {
+  GuardSource,
+  NavigationRef,
+  Rejected,
+  RejectionSource,
+} from "./navigation-outcome.ts";
 
 /** A route or a guard sends the navigation to `target` instead. Internal: not a final result. */
 export class Redirect {
@@ -41,7 +46,7 @@ export type Stop = Redirect | Rejected;
  * @returns A no-route rejection.
  */
 export function noRoute(navigation: NavigationRef): Rejected {
-  return { kind: "rejected", reason: "no-route", source: "MATCH", navigation, meta: navigation.trace };
+  return { kind: "rejected", reason: "NO_ROUTE", source: "MATCH", navigation, meta: navigation.trace };
 }
 
 /**
@@ -57,11 +62,11 @@ export function guardRejected(
   navigation: NavigationRef,
   route: string,
   guard: StopCommand,
-  source: "DEACTIVATE_GUARD" | "ACTIVATE_GUARD",
+  source: GuardSource,
 ): Rejected {
   return {
     kind: "rejected",
-    reason: "guard",
+    reason: "GUARD",
     source,
     navigation,
     route,
@@ -83,5 +88,5 @@ export function failed(
   cause: unknown,
   source: RejectionSource,
 ): Rejected {
-  return { kind: "rejected", reason: "failed", source, navigation, cause, meta: navigation.trace };
+  return { kind: "rejected", reason: "FAILED", source, navigation, cause, meta: navigation.trace };
 }
