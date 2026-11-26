@@ -172,13 +172,13 @@ describe("canMatch", () => {
 
 describe("lazy routes", () => {
   /** A lazy route for `/lazy` whose children are a page for `""`, counting its loads. */
-  function lazyTree(loads: { count: number }, canLoad: StopCommand | AllowCommand): Route {
+  function lazyTree(loads: { count: number }, canMatch: StopCommand | AllowCommand): Route {
     return {
       path: "",
       component: class {},
       children: [{
         path: "/lazy",
-        canLoad: [() => succeed(canLoad)],
+        canMatch: [() => succeed(canMatch)],
         loadChildren: () => {
           loads.count += 1;
           return Promise.resolve([{ path: "", component: class {} }]);
@@ -204,7 +204,7 @@ describe("lazy routes", () => {
       .toEqual(["", "/lazy", ""]);
   });
 
-  test("a canLoad STOP rejects the navigation, and the children are not loaded", async () => {
+  test("a canMatch STOP on a lazy route skips it, so its children are not loaded", async () => {
     const loads = { count: 0 };
     const destination = makeAppPath(
       [{ kind: "segment", value: "lazy" }],
@@ -218,7 +218,7 @@ describe("lazy routes", () => {
     expect(loads.count)
       .toBe(0);
     expect(stop)
-      .toMatchObject({ kind: "rejected", reason: "guard" });
+      .toMatchObject({ kind: "rejected", reason: "no-route" });
   });
 
   test("a lazy route loads once: a later navigation uses the loaded children", async () => {
@@ -295,7 +295,7 @@ describe("a gate or a load that fails", () => {
       .toMatchObject({ kind: "rejected", reason: "failed" });
   });
 
-  test("a canLoad REDIRECT sends the navigation elsewhere, and nothing is loaded", async () => {
+  test("a canMatch REDIRECT on a lazy route sends the navigation elsewhere, and nothing is loaded", async () => {
     let loads = 0;
     const target = builderOver(declared)
       .to("home")
@@ -305,7 +305,7 @@ describe("a gate or a load that fails", () => {
       component: class {},
       children: [{
         path: "/lazy",
-        canLoad: [() => succeed(new RedirectCommand(new RedirectPayload(target)))],
+        canMatch: [() => succeed(new RedirectCommand(new RedirectPayload(target)))],
         loadChildren: () => {
           loads += 1;
           return Promise.resolve([]);
@@ -320,13 +320,13 @@ describe("a gate or a load that fails", () => {
       .toBe(0);
   });
 
-  test("a canLoad gate that throws rejects the navigation as failed", async () => {
+  test("a canMatch gate of a lazy route that throws rejects the navigation as failed", async () => {
     const tree: Route = {
       path: "",
       component: class {},
       children: [{
         path: "/lazy",
-        canLoad: [() => {
+        canMatch: [() => {
           throw new Error("boom");
         }],
         loadChildren: () => Promise.resolve([]),
@@ -502,7 +502,7 @@ describe("cancelling a navigation", () => {
       .toBe(0);
   });
 
-  test("a navigation cancelled while its canLoad waits does not load the children", () => {
+  test("a navigation cancelled while a lazy route's canMatch waits does not load the children", () => {
     const { gate, finish } = heldGate();
     let loads = 0;
     const tree: Route = {
@@ -510,7 +510,7 @@ describe("cancelling a navigation", () => {
       component: class {},
       children: [{
         path: "/lazy",
-        canLoad: [gate],
+        canMatch: [gate],
         loadChildren: () => {
           loads += 1;
           return Promise.resolve([]);

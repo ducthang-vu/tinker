@@ -1,9 +1,8 @@
 // The match step: walks the route tree from the root, down the parts of the destination, and
 // returns the levels that match. It is a Task, because a route may have to load its children
 // first. A route runs its canMatch gates before the walk goes on: a STOP skips the route, so the
-// next route with a matching path is tried. A route with loadChildren then runs its canLoad gates,
-// and loads its children once; a STOP there rejects the navigation, so nothing is downloaded past
-// it.
+// next route with a matching path is tried. A lazy route's children load only after its canMatch
+// gates allow the route, so a skipped lazy route downloads nothing.
 //
 // The walk passes its result on to a callback. When every gate is synchronous, the walk completes
 // before the step returns, as the other steps do; only a load that is still running waits.
@@ -87,14 +86,13 @@ function settle<T>(
 
 /**
  * Runs the gates of a route in order, in the injector's context. A STOP skips the route when
- * `onStop` is "skip", and rejects the navigation when it is "reject".
+ * A STOP skips the route.
  *
  * @param options The injector the gates run in.
  * @param scope The scope of the walk.
  * @param request The navigation being matched.
  * @param route The route whose gates these are.
  * @param gates The gates still to run, in order.
- * @param onStop What a STOP does: skip the route, or reject the navigation.
  * @param done Receives the verdict.
  */
 function gatesOf(
@@ -103,7 +101,6 @@ function gatesOf(
   request: NavigationRequest,
   route: Route,
   gates: readonly RouteGate[],
-  onStop: "skip" | "reject",
   done: (verdict: Verdict) => void,
 ): void {
   const [gate, ...later] = gates;
@@ -120,20 +117,18 @@ function gatesOf(
     }
     const command = settled.value;
     if (command.type === "ALLOW") {
-      gatesOf(options, scope, request, route, later, onStop, done);
+      gatesOf(options, scope, request, route, later, done);
     } else if (command.type === "REDIRECT") {
       done({ kind: "stop", stop: Redirect.of(request, command.payload.path) });
     } else {
-      done(onStop === "skip"
-        ? { kind: "skip" }
-        : { kind: "stop", stop: guardRejected(request, route.path, command) });
+      done({ kind: "skip" });
     }
   });
 }
 
 /**
  * The children of a route: its own, or, for a lazy route, the loaded ones. A lazy route that is not
- * loaded runs its canLoad gates, then holds its load.
+ * loaded holds its load, which starts only once the route has been allowed by its canMatch gates.
  *
  * @param options The injector the gates run in.
  * @param scope The scope of the walk.
@@ -162,18 +157,12 @@ function childrenOf(
     done({ kind: "routes", routes: known });
     return;
   }
-  gatesOf(options, scope, request, route, route.canLoad ?? [], "reject", (verdict) => {
-    if (verdict.kind === "stop") {
-      done({ kind: "stop", stop: verdict.stop });
-      return;
-    }
-    const hold = loadChildrenOnce(route, loader);
-    scope.releases.push(() => hold.release());
-    hold.promise.then(
-      (routes) => done({ kind: "routes", routes }),
-      (cause: unknown) => done({ kind: "stop", stop: failed(request, cause) }),
-    );
-  });
+  const hold = loadChildrenOnce(route, loader);
+  scope.releases.push(() => hold.release());
+  hold.promise.then(
+    (routes) => done({ kind: "routes", routes }),
+    (cause: unknown) => done({ kind: "stop", stop: failed(request, cause) }),
+  );
 }
 
 /**
@@ -204,7 +193,7 @@ function walk(
     done(MISS);
     return;
   }
-  gatesOf(options, scope, request, route, route.canMatch ?? [], "skip", (verdict) => {
+  gatesOf(options, scope, request, route, route.canMatch ?? [], (verdict) => {
     if (verdict.kind === "stop") {
       done({ kind: "stop", stop: verdict.stop });
       return;
