@@ -378,13 +378,13 @@ class Scanner {
         return failed(this.error("attribute value is never closed", state.pos), state);
       }
       const value = this.source.slice(state.pos + 1, close);
-      return done(decodeReferences(value), { ...state, pos: close + 1 });
+      return done(decodeReferences(value, "attribute"), { ...state, pos: close + 1 });
     }
     const taken = this.take(state, UNQUOTED_VALUE);
     if (taken.text === "") {
       return failed(this.error("expected an attribute value", state.pos), state);
     }
-    return done(decodeReferences(taken.text), taken.state);
+    return done(decodeReferences(taken.text, "attribute"), taken.state);
   }
 
   private comment(state: State): Step<void> {

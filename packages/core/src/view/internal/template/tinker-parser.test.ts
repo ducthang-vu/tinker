@@ -418,9 +418,9 @@ describe("TinkerTemplateParser", () => {
       .toEqual([{ name: "title", value: "<b> A" }]);
   });
 
-  test("decodes the HTML 4 references and numeric ones, and keeps the others as written", () => {
+  test("decodes the HTML 4 references, the numeric ones, and a legacy name without its semicolon", () => {
     expect(parseOne("<p>&copy; &hellip; &#x110000; &#x41 &notathing;</p>").children)
-      .toEqual([{ kind: "text", value: "© … \uFFFD &#x41 &notathing;" }]);
+      .toEqual([{ kind: "text", value: "© … \uFFFD &#x41 ¬athing;" }]);
   });
 
   test("textarea and title read their content as text, with references decoded", () => {

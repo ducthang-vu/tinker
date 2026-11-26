@@ -136,15 +136,6 @@ wrong type is not converted, and a string bound to a number input is not caught.
 type errors at bind time are wanted, check the value against the input's adapter, or
 add a dev-mode check next to the other development warnings.
 
-## Template syntax (`packages/core/src/view/internal/template/tinker-parser.ts`)
-
-Known deviations of `TinkerTemplateParser` from the browser:
-
-- The HTML 5 names beyond the HTML 4 list (such as `&check;`) are kept as written. The full table adds about 16 KB gzipped to the
-  example's bundle, against about 2 KB for this one.
-- A reference without its semicolon (`&copy`) is kept as written; the browser decodes some
-  of them.
-
 ## Build-time template compiler (`packages/compiler`)
 
 The plugin compiles each component's literal template into the expression that
