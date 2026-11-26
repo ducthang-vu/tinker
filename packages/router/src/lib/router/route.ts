@@ -55,11 +55,6 @@ export interface Route {
    */
   readonly canMatch?: readonly RouteGate[];
   /**
-   * Asked once, before the children of a route with `loadChildren` are loaded. ALLOW loads them;
-   * STOP rejects the navigation, and nothing is downloaded; REDIRECT sends it elsewhere.
-   */
-  readonly canLoad?: readonly RouteGate[];
-  /**
    * The children of the route, loaded the first time a navigation reaches it. The loader receives a
    * signal that is aborted when every navigation waiting for the load has been superseded, so the
    * download can stop. A route that has `children` does not use this. Once loaded, the children are
