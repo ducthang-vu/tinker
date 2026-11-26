@@ -12,6 +12,7 @@
     "build": "npm run build -w @tinker/functional && npm run build -w @tinker/core",
     "build:example": "npm run build -w @tinker/example-basics",
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
+    "prelint": "npm run docs:api",
     "lint": "eslint .",
     "format": "eslint --fix .",
     "pretest": "npm run build -w @tinker/compiler && npm run docs:api",
