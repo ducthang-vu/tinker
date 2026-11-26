@@ -174,10 +174,17 @@ it is on purpose.
 - **Inputs are required unless they have a default.** `input<string>()`
   throws if read before it is bound, and `input("top")` is optional: the
   reverse of Angular's `input()` and `input.required()`.
-- **`[name]` binds inputs only.** It sets the input `name` of the directives
-  and component on the element, never a DOM property: `[title]` on a plain
-  `<p>` is an error, not a write to `p.title`. Input names match
-  case-insensitively, as HTML attribute names are.
+- **`[name]` sets an input, or else a DOM property.** It sets the input `name`
+  of the directives and component on the element if one has that name. If none
+  does, it sets the DOM property `name` of the element, as Angular does:
+  `[value]="draft()"` on an `<input>` sets `input.value` and leaves the `value`
+  attribute alone, and `[textContent]` on a `<p>` sets its text. Names match
+  case-insensitively, as HTML attribute names are. A name that is neither an input
+  nor a property is an error when the element is built. Values go through the
+  sanitizer: `[href]` to `javascript:` is set to `""`, and `[innerHTML]` takes only a
+  `TrustedHtml` (see `docs/sanitization.md`). Only writable properties
+  bind: methods (`[click]`), read-only ones (`[tagName]`), event handlers
+  (`[onclick]`) and `[__proto__]` are errors.
   Class names keep their case: `[class.isOpen]` adds the class `isOpen`.
 - **Input options** name an input for templates and convert its plain
   attribute. `input(0, { name: "size", adapter: numberAdapter })` is set by

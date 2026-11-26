@@ -31,6 +31,12 @@ export interface Renderer {
   removeAttribute(element: Element, name: string): void;
   /** Set a DOM property (e.g. `value`, `disabled`), not an attribute. */
   setProperty(element: Element, name: string, value: unknown): void;
+  /**
+   * The DOM property of `element` that `name` names, matched case-insensitively (the
+   * browser's parser lowercases template attribute names, so `[textContent]` arrives as
+   * `textcontent`), or undefined when the element has no such property.
+   */
+  propertyNameOf(element: Element, name: string): string | undefined;
   addClass(element: Element, name: string): void;
   removeClass(element: Element, name: string): void;
   setStyle(element: HTMLElement, property: string, value: string): void;
@@ -101,6 +107,29 @@ export class DomRenderer implements Renderer {
     (element as unknown as Record<string, unknown>)[name] = value;
   }
 
+  propertyNameOf(element: Element, name: string): string | undefined {
+    const wanted = name.toLowerCase();
+    for (
+      let object: object | null = element;
+      object !== null;
+      object = Object.getPrototypeOf(object)
+    ) {
+      const found = Object.getOwnPropertyNames(object)
+        .find((key) => key.toLowerCase() === wanted);
+      if (found !== undefined) {
+        // The first owner decides: only a writable property (or one with a setter) of
+        // the element's own interface can be bound. Methods, read-only properties,
+        // event handlers (`on…`) and the root Object.prototype (`__proto__`) are not
+        // bindable. The root is the object with no prototype: checking identity with
+        // this realm's Object.prototype would miss one from another realm (jsdom's).
+        return Object.getPrototypeOf(object) !== null && isBindable(object, found)
+          ? found
+          : undefined;
+      }
+    }
+    return undefined;
+  }
+
   addClass(element: Element, name: string): void {
     element.classList.add(name);
   }
@@ -121,4 +150,20 @@ export class DomRenderer implements Renderer {
     target.addEventListener(event, handler);
     return () => target.removeEventListener(event, handler);
   }
+}
+
+/**
+ * Whether `key`, an own property of `owner`, can be bound: a data property that is writable
+ * and not a method, or an accessor with a setter. Event handlers (`on…`) are never bindable.
+ */
+function isBindable(owner: object, key: string): boolean {
+  if (/^on/i.test(key)) {
+    return false;
+  }
+  // `key` is one of the owner's own names, so it has a descriptor.
+  const descriptor = Object.getOwnPropertyDescriptor(owner, key)!;
+  if ("value" in descriptor) {
+    return descriptor.writable === true && typeof descriptor.value !== "function";
+  }
+  return descriptor.set !== undefined;
 }

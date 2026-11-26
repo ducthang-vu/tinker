@@ -73,16 +73,23 @@ root as the one case that renders into an existing element.
 
 ## Templates (`packages/core/src/view/internal/template/`, `factories/template-builder.ts`)
 
-### 1. Property bindings on plain elements
+### 1. Property bindings on plain elements: limitations
 
-**Problem.** `[name]` binds inputs only, so `[value]` on an `<input>` or
-`[textContent]` on a `<p>` is an error. Forms need the DOM property, and a
-two-way `[(value)]` needs it too.
+**Done.** `[name]` sets an input of the element's directives, or else the DOM property
+`name` (`[value]`, `[textContent]`, `[disabled]`), with inputs winning, as in Angular.
+Its limitations:
 
-**To do.** Decide the syntax that separates a DOM property from an input (a
-prefix, or a check that the element has no directive with that input), then
-bind the property through the renderer. `[(value)]` is sugar for the property and
-its `(input)` handler, once this exists.
+- **The property is looked up when the element is built.** A property that an element
+  gains later (a custom element defined after the template is built) is an error at
+  build time, not a binding that waits for it.
+- **There is no `[(value)]`.** Two-way binding needs the property plus an `(input)`
+  handler; it is not sugar over the property yet.
+- **Reflected properties follow their attribute.** Setting `disabled` changes the
+  attribute too, because the browser reflects it. Nothing here guards that.
+- **No type checks.** A string bound to a number property is set as it is.
+- **A refused value is set to `""`.** `[href]` to `javascript:` and `[innerHTML]` without
+  a `TrustedHtml` are set to `""` (see `docs/sanitization.md`, G), so the property is
+  written, not left as it was.
 
 ### 2. Content queries see only direct element children
 

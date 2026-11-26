@@ -98,8 +98,6 @@ describe("TemplateBuilder", () => {
       );
     expect(() => build(`<p [a.b.c]="c">x</p>`, {}))
       .toThrow(`"[a.b.c]" on <p>`);
-    expect(() => build(`<p [title]="t">x</p>`, {}))
-      .toThrow("[title] on <p>: only inputs can be bound");
   });
 });
 

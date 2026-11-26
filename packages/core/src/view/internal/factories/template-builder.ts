@@ -235,15 +235,18 @@ export class TemplateBuilder {
       // Input bindings set the inputs of the element's directives and
       // component: their first values now (before the component's first
       // render), then this view's watch keeps them up to date.
+      // A `[name]` with no input of that name (and no owner) sets the DOM property `name`
+      // of the element, if it has one: inputs win, as in Angular.
       const bindInputs = (owned: readonly Owned[]) => {
-        const binders = node.inputBindings.map(({ name, owner, expression }) =>
-          this.bindingFactory.inputs(
-            name,
-            expression,
-            this.scope,
-            reached(owned, "input", name, owner, node.name),
-            node.name,
-          ));
+        const binders = node.inputBindings.map(({ name, owner, expression }) => {
+          const targets = reached(owned, "input", name, owner, node.name);
+          const property = owner === undefined && targets.length === 0 && element !== undefined
+            ? this.renderer.propertyNameOf(element, name)
+            : undefined;
+          return property !== undefined && element !== undefined
+            ? this.bindingFactory.property(element, property, expression, this.scope)
+            : this.bindingFactory.inputs(name, expression, this.scope, targets, node.name);
+        });
         for (const binder of binders) {
           binder.update();
         }
@@ -632,7 +635,9 @@ export class TemplateBuilder {
     links: { readonly sink?: ViewQueries; readonly content?: ContentQueries },
   ): Maybe<number> {
     const hasEvents = node.outputBindings.length > 0;
-    if (node.directives.length === 0 && isNone(node.component) && !hasEvents
+    // A `[name]` on a plain element sets a DOM property, so the element needs its entry too.
+    const hasInputs = node.inputBindings.length > 0;
+    if (node.directives.length === 0 && isNone(node.component) && !hasEvents && !hasInputs
       && references.length === 0) {
       return None.of();
     }

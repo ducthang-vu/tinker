@@ -11,6 +11,7 @@ import { inputsNamed } from "../authoring/input.ts";
 import { AttributeBinding } from "./attribute-binding.ts";
 import { ClassBinding } from "./class-binding.ts";
 import { InputBinder } from "./input-binder.ts";
+import { PropertyBinding } from "./property-binding.ts";
 import { StyleBinding } from "./style-binding.ts";
 import { RENDERER } from "../tokens.ts";
 import type { Scope } from "../template/scope.ts";
@@ -51,7 +52,8 @@ export class BindingFactory {
     const targets = inputsNamed(instances, name);
     if (targets.length === 0) {
       throw new Error(
-        `[${name}] on <${elementName}>: no directive or component on this element has an input "${name}"`,
+        `[${name}] on <${elementName}>: no directive or component on this element has an input "${name}", `
+        + `and <${elementName}> has no DOM property "${name}" either`,
       );
     }
     return new InputBinder(targets, expression, context);
@@ -68,6 +70,16 @@ export class BindingFactory {
     context: Scope,
   ): ClassBinding {
     return new ClassBinding(element, name, expression, context, this.renderer);
+  }
+
+  /** A binding setting the DOM property `name` of `element` to `expression`'s value. */
+  property(
+    element: Element,
+    name: string,
+    expression: Expression,
+    context: Scope,
+  ): PropertyBinding {
+    return new PropertyBinding(element, name, expression, context, this.renderer);
   }
 
   /** A binding setting the inline style property `name` of `element` to `expression`'s value. */
