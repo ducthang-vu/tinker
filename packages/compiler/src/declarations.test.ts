@@ -20,7 +20,7 @@ describe("readSource", () => {
         exportAs: undefined,
         exportAsIsDynamic: false,
         members: [],
-        extendsAnother: false,
+
         inputNames: {},
         statementEnd: expect.any(Number),
       }]);
@@ -32,7 +32,7 @@ describe("readSource", () => {
         exportAs: undefined,
         exportAsIsDynamic: false,
         members: [],
-        extendsAnother: false,
+
         inputNames: {},
         statementEnd: expect.any(Number),
       }]);
@@ -232,5 +232,19 @@ describe("readSource", () => {
     ).declarations;
     expect(declaration?.imports)
       .toBeUndefined();
+  });
+
+  test("reads every class of the file: its members, and the class it extends", () => {
+    const { classes } = read(`
+      class Base { title = 1; static s = 2; greet() {} }
+      export class Page extends Base { private n = 1; }
+      class Other extends mixin(Base) {}
+    `);
+    expect(classes)
+      .toEqual([
+        { name: "Base", members: ["title", "greet"], extendsUnreadable: false },
+        { name: "Page", members: ["n"], superClass: "Base", extendsUnreadable: false },
+        { name: "Other", members: [], extendsUnreadable: true },
+      ]);
   });
 });

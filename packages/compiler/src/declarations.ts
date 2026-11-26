@@ -34,9 +34,6 @@ export interface Declaration {
   readonly kind: "component" | "directive" | "templateFunction";
   /** The name a template calls a template function by, when it is a literal. */
   readonly templateFunctionName?: string;
-  /** Whether the class extends another: its inherited members are not read, so its names are not
-   *  checked. */
-  readonly extendsAnother: boolean;
   /** The names of the class's own (not static) properties and methods: a template name may
    *  hide one. */
   readonly members: readonly string[];
@@ -84,8 +81,21 @@ export interface ImportBinding {
   readonly source: string;
 }
 
+/** A class of a file, decorated or not: its members, and what it extends. */
+export interface ClassInfo {
+  readonly name: string;
+  /** The names of its own (not static) properties and methods. */
+  readonly members: readonly string[];
+  /** The class it extends, when that is a plain name. */
+  readonly superClass?: string;
+  /** Whether it extends something that is not a plain name (a call, a member): not read. */
+  readonly extendsUnreadable: boolean;
+}
+
 export interface SourceInfo {
   readonly declarations: readonly Declaration[];
+  /** Every top-level class of the file, decorated or not, for the members a component inherits. */
+  readonly classes: readonly ClassInfo[];
   readonly imports: readonly ImportBinding[];
   /** The named re-exports: `export { imported as local } from "source"`. */
   readonly reexports: readonly ImportBinding[];
@@ -112,6 +122,7 @@ export function readSource(code: string, filename: string): SourceInfo {
   const constants = constantsOf(body);
   return {
     declarations: body.flatMap((statement) => declarationOf(statement, constants)),
+    classes: body.flatMap(classesOf),
     imports: body.flatMap(importsOf),
     reexports: body.flatMap(reexportsOf),
     starExports: body.flatMap(starExportsOf),
@@ -188,9 +199,23 @@ function declarationOf(
     name: declared.id.name,
     ...decorator,
     members: membersOf(declared),
-    extendsAnother: declared.superClass !== null && declared.superClass !== undefined,
     inputNames: inputNamesOf(declared, constants),
     statementEnd: statement.end as number,
+  }];
+}
+
+/** The class a top-level statement declares, if it declares one. */
+function classesOf(statement: t.Statement): ClassInfo[] {
+  const declared = t.isExportNamedDeclaration(statement) ? statement.declaration : statement;
+  if (!t.isClassDeclaration(declared) || !declared.id) {
+    return [];
+  }
+  const superClass = declared.superClass;
+  return [{
+    name: declared.id.name,
+    members: membersOf(declared),
+    ...(t.isIdentifier(superClass) && { superClass: superClass.name }),
+    extendsUnreadable: superClass != null && !t.isIdentifier(superClass),
   }];
 }
 
@@ -210,7 +235,7 @@ function membersOf(declared: t.ClassDeclaration): readonly string[] {
 function templateFunctionInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name" | "members" | "extendsAnother" | "inputNames" | "statementEnd"> | undefined {
+): Omit<Declaration, "name" | "members" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)
     || call.callee.name !== "TemplateFunction") {
@@ -271,7 +296,7 @@ function nameOfInput(
 function decoratorInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name" | "members" | "extendsAnother" | "inputNames" | "statementEnd"> | undefined {
+): Omit<Declaration, "name" | "members" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)) {
     return undefined;

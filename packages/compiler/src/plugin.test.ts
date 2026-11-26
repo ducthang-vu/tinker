@@ -878,3 +878,106 @@ describe("names are checked where they are read", () => {
       .toThrow("the template reads \"todo\", which Page does not have");
   });
 });
+
+describe("members a component inherits", () => {
+  const files = { "./base.ts": fixture("base.ts") };
+
+  test("a name of a base class in the same file is a member of the component", async () => {
+    const { result } = transform(
+      `class Base { title = "x"; }
+       @Component({ template: "<p>{{ title }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+  });
+
+  test("a name of a base class imported from another file is a member of the component", async () => {
+    const { result } = transform(
+      `import { Base } from "./base.ts";
+       @Component({ template: "<p>{{ title }}{{ greet() }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+  });
+
+  test("the members of the base classes a base extends are members too", async () => {
+    const { result } = transform(
+      `import { Middle } from "./base.ts";
+       @Component({ template: "<p>{{ greet() }}</p>" }) class Page extends Middle {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+  });
+
+  test("a name no class in the chain has fails the build", async () => {
+    const { result } = transform(
+      `import { Base } from "./base.ts";
+       @Component({ template: "<p>{{ nope }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .rejects
+      .toThrow("the template reads \"nope\", which Page does not have");
+  });
+
+  test("a superclass that is not a plain name is not read: a warning, and the names are not checked", async () => {
+    const { result, context } = transform(
+      `@Component({ template: "<p>{{ anything }}</p>" }) class Page extends mixin(Base) {}`,
+      "/app/page.ts",
+      files,
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("extends an expression"));
+  });
+
+  test("an import from a file that cannot be found is a reason the names are not checked", async () => {
+    const { result, context } = transform(
+      `import { Base } from "./missing.ts";
+       @Component({ template: "<p>{{ anything }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("its base class Base is not found"));
+  });
+
+  test("base classes that extend each other are a reason the names are not checked", async () => {
+    const { result, context } = transform(
+      `class A extends B {} class B extends A {}
+       @Component({ template: "<p>{{ anything }}</p>" }) class Page extends A {}`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("extends itself through"));
+  });
+
+  test("a base class whose own superclass cannot be read is a reason the names are not checked", async () => {
+    const { result, context } = transform(
+      `class Base extends mixin(Other) {}
+       @Component({ template: "<p>{{ anything }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("extends an expression"));
+  });
+});

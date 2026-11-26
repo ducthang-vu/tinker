@@ -208,13 +208,7 @@ point at the host root.
 
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
-### 1. Classes that extend another are not checked
-
-**Problem.** The members a class inherits are not read at build time, so its names are not checked. In strict mode the build fails for such a component; otherwise it warns.
-
-**To do.** Read the base class when the build can resolve it.
-
-### 2. Expressions are not type checked
+### 1. Expressions are not type checked
 
 **Problem.** The build checks that a name exists, not what it is. A wrong argument type, or calling a field that is not a function, fails only at run time.
 
