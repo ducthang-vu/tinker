@@ -901,3 +901,25 @@ describe("the hot reload code", () => {
       .toContain("__tinkerHot");
   });
 });
+
+describe("names are checked where they are read", () => {
+  test("a @map item read inside its block passes the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "@map todos(); let todo { <p>{{ todo }}</p> }" }) class Page { todos() { return []; } }`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+  });
+
+  test("a @map item read outside its block fails the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "@map todos(); let todo { <p>{{ todo }}</p> }<p>{{ todo }}</p>" }) class Page { todos() { return []; } }`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .rejects
+      .toThrow("the template reads \"todo\", which Page does not have");
+  });
+});

@@ -220,20 +220,13 @@ registry. Until then, create the app with `--dir examples` or `--dir packages`.
 
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
-### 1. The name check is not scoped
-
-**Problem.** A name the template declares anywhere (a `@let`, a `@map` item, a binding, a reference) counts as known everywhere in the template. A name used outside the block that declares it therefore passes the build and fails at run time.
-
-**To do.** Check each read against the scope it is in, using that walk, not against the names
-declared anywhere in the template.
-
-### 2. Classes that extend another are not checked
+### 1. Classes that extend another are not checked
 
 **Problem.** The members a class inherits are not read at build time, so its names are not checked. In strict mode the build fails for such a component; otherwise it warns.
 
 **To do.** Read the base class when the build can resolve it.
 
-### 3. Expressions are not type checked
+### 2. Expressions are not type checked
 
 **Problem.** The build checks that a name exists, not what it is. A wrong argument type, or calling a field that is not a function, fails only at run time.
 

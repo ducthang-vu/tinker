@@ -25,7 +25,7 @@ import { type Either, match, map, type Maybe, run } from "@tinker/functional";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
-import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError } from "@tinker/core/compiler";
+import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError, unknownReads } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
@@ -451,24 +451,19 @@ async function replacementFor(
  * does not have would only fail at run time.
  */
 function checkNames(
-  nodes: unknown,
+  nodes: readonly CompiledNode[],
   declaration: Declaration,
   functions: readonly ImportedFunction[],
   where: string,
   host: CheckHost,
 ): void {
-  const names = namesIn(nodes);
   const known = new Set<string>([
     ...declaration.members,
-    ...names.declared,
     ...functions.map((fn) => fn.templateName),
     ...BUILT_IN_NAMES,
   ]);
-  for (const name of names.read) {
-    // A `$` name is a special of the template (`$index`, `$event`), not a member.
-    if (!known.has(name) && !name.startsWith("$")) {
-      host.error(`${where}: the template reads "${name}", which ${declaration.name} does not have`);
-    }
+  for (const name of unknownReads(nodes, known)) {
+    host.error(`${where}: the template reads "${name}", which ${declaration.name} does not have`);
   }
   // A name declared in the template may not hide another name: the build refuses it.
   const hidden = new Map<string, string>([
