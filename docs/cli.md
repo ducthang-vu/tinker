@@ -1,6 +1,6 @@
 # The `tinker` command (`packages/cli`)
 
-`tinker` creates a new Tinker app. It has one command so far.
+`tinker` creates a Tinker app, and runs it: `new`, `dev` and `build`.
 
 ## `tinker new <name> [--dir <parent>]`
 
@@ -10,11 +10,11 @@ The folder must not exist yet, or must be empty, so nothing is overwritten.
 
 The app has:
 
-- `package.json`: scripts `dev`, `build` and `preview` (Vite), and the Tinker packages as
-  dependencies.
+- `package.json`: the scripts `dev` (`tinker dev`) and `build` (`tinker build`), the Tinker
+  packages as dependencies, and `@tinker/cli`.
 - `index.html`, which holds the root element `<tk-app>`.
-- `vite.config.ts`, which spreads `tinkerVite()` from `@tinker/compiler` (see
-  `docs/compiler.md`).
+- `vite.config.ts`, which exports the Tinker preset, `tinkerVite()` from `@tinker/compiler`
+  (see `docs/compiler.md`).
 - `src/main.ts`, which bootstraps the root component, and `src/app.ts`, the root component.
 
 Then, in the app's folder:
@@ -24,13 +24,23 @@ npm install
 npm run dev
 ```
 
-The exit code is 0 when the app is written, and 2 for a usage or input error, with the
-message on stderr.
+## `tinker dev` and `tinker build`
+
+Run in the app's folder. They use Vite, which is a dependency of `@tinker/cli`, so the app does
+not name it.
+
+- `tinker dev` serves the app with Vite's dev server, and keeps running until it is stopped.
+- `tinker build` builds the app into its `dist/` folder.
+
+## Exit codes
+
+- 0: the command succeeded.
+- 1: `dev` or `build` failed. The message is on stderr.
+- 2: a usage or input error, such as a missing name, an invalid name, or an unknown command.
+  The message is on stderr.
 
 ## What it does not do
 
-- It does not create a dev or build script of its own. `npm run dev` and `npm run build` run
-  Vite directly, through the preset.
 - The generated app depends on the Tinker packages as workspace packages (`"*"`). Those are
   private, so the app must be created inside this repository's workspace, under `examples/` or
   `packages/`, for `npm install` to link them. See `IMPROVEMENTS.md`.

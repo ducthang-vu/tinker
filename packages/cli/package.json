@@ -15,5 +15,8 @@
   },
   "bin": {
     "tinker": "./dist/tinker.js"
+  },
+  "dependencies": {
+    "vite": "^8.3.8"
   }
 }

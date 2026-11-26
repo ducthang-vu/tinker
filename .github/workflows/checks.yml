@@ -30,6 +30,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Generate the API reference
+        run: npm run docs:api
+
       - name: Lint
         run: npm run lint
 
