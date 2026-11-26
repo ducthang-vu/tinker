@@ -228,3 +228,134 @@ describe("pipes and flow with template functions", () => {
     warn.mockRestore();
   });
 });
+
+describe("memoised template functions", () => {
+  test("a template that re-runs with the same arguments does not call the function again", async () => {
+    let calls = 0;
+    @TemplateFunction("double")
+    class Double implements TemplateFunctionContract<[number], number> {
+      call(n: number): number {
+        calls++;
+        return n * 2;
+      }
+    }
+    @Component({
+      selector: "tk-memo",
+      template: "<p>{{ double(value()) }}-{{ other() }}</p>",
+      imports: [Double],
+    })
+    class Memo {
+      readonly value = signal(4);
+      readonly other = signal(0);
+    }
+    const engine = Engine.create();
+    const view = valueOrThrow(renderComponent(engine, Memo));
+    await tick();
+    expect(calls)
+      .toBe(1);
+    const memo = view.instance as Memo;
+    memo.other.set(1);
+    engine.flush();
+    await tick();
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("8-1");
+    expect(calls)
+      .toBe(1);
+  });
+
+  test("memoise: false calls the function each time the template re-runs", async () => {
+    let calls = 0;
+    @TemplateFunction("double", { memoise: false })
+    class Double implements TemplateFunctionContract<[number], number> {
+      call(n: number): number {
+        calls++;
+        return n * 2;
+      }
+    }
+    @Component({
+      selector: "tk-fresh",
+      template: "<p>{{ double(value()) }}-{{ other() }}</p>",
+      imports: [Double],
+    })
+    class Fresh {
+      readonly value = signal(4);
+      readonly other = signal(0);
+    }
+    const engine = Engine.create();
+    const view = valueOrThrow(renderComponent(engine, Fresh));
+    await tick();
+    (view.instance as Fresh).other.set(1);
+    engine.flush();
+    await tick();
+    expect(calls)
+      .toBe(2);
+  });
+
+  test("in development mode, a memoised call that reads a signal is warned about", async () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    @TemplateFunction("scaled")
+    class Scaled implements TemplateFunctionContract<[number], number> {
+      readonly factor = signal(3);
+      call(n: number): number {
+        return n * this.factor();
+      }
+    }
+    @Component({ selector: "tk-scaled", template: "<p>{{ scaled(2) }}</p>", imports: [Scaled] })
+    class Show {}
+    const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
+    const view = valueOrThrow(renderComponent(engine, Show));
+    await tick();
+    expect(warn)
+      .toHaveBeenCalledWith("Show.scaled is memoised, but it reads a signal: its result is not updated when the signal changes. Opt out with { memoise: false }");
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("6");
+    warn.mockRestore();
+  });
+
+  test("outside development mode, a memoised call that reads a signal is not warned about", async () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    @TemplateFunction("scaled")
+    class Scaled implements TemplateFunctionContract<[number], number> {
+      readonly factor = signal(3);
+      call(n: number): number {
+        return n * this.factor();
+      }
+    }
+    @Component({ selector: "tk-scaled-prod", template: "<p>{{ scaled(2) }}</p>", imports: [Scaled] })
+    class Show {}
+    const view = valueOrThrow(renderComponent(Engine.create(), Show));
+    await tick();
+    expect(warn)
+      .not
+      .toHaveBeenCalled();
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("6");
+    warn.mockRestore();
+  });
+});
+
+describe("memoised template functions in development mode", () => {
+  test("a memoised call that reads no signal is not warned about", async () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    @TemplateFunction("double")
+    class Double implements TemplateFunctionContract<[number], number> {
+      call(n: number): number {
+        return n * 2;
+      }
+    }
+    @Component({ selector: "tk-pure", template: "<p>{{ double(3) }}</p>", imports: [Double] })
+    class Pure {}
+    const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
+    const view = valueOrThrow(renderComponent(engine, Pure));
+    await tick();
+    expect(warn)
+      .not
+      .toHaveBeenCalled();
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("6");
+    warn.mockRestore();
+  });
+});

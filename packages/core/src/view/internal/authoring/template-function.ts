@@ -23,11 +23,27 @@
 import { Injectable } from "../../../di/index.ts";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";
 import type { AbstractClass, Class } from "../../../utils/types.ts";
-import { isSome, map, type Maybe } from "@tinker/functional";
+import { isSome, map, match, type Maybe } from "@tinker/functional";
 
 /** What a template function is: a `call()` method, with the types of its arguments and result. */
 export interface TemplateFunctionContract<A extends unknown[] = unknown[], R = unknown> {
   call(...args: A): R;
+}
+
+/** What the decorator takes besides the name. */
+export interface TemplateFunctionOptions {
+  /**
+   * Whether a call with the same arguments as last time gives the last result, without running
+   * `call()` again. On by default; a function that reads anything but its arguments (a signal, the
+   * clock, the locale) sets `false`, or its result is not updated when that changes. In development
+   * mode a memoised call that reads a signal is warned about.
+   */
+  readonly memoise?: boolean;
+}
+
+interface TemplateFunctionMetadata {
+  readonly name: string;
+  readonly memoise: boolean;
 }
 
 /** The key of the static metadata property (module-private). */
@@ -43,7 +59,7 @@ const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
  * @returns The class decorator. The class must have a `call()` method.
  * @throws If `name` is not an identifier.
  */
-export function TemplateFunction(name: string) {
+export function TemplateFunction(name: string, options: TemplateFunctionOptions = {}) {
   if (!IDENTIFIER.test(name)) {
     throw new Error(`@TemplateFunction("${name}"): the name must be an identifier, such as "format"`);
   }
@@ -56,7 +72,11 @@ export function TemplateFunction(name: string) {
       throw new Error(`${target.name} is a template function, so it needs a call() method`);
     }
     Injectable()(target, context);
-    defineMetadata(target, TEMPLATE_FUNCTION_METADATA, Object.freeze({ name }));
+    defineMetadata(
+      target,
+      TEMPLATE_FUNCTION_METADATA,
+      Object.freeze({ name, memoise: options.memoise !== false }),
+    );
   };
 }
 
@@ -68,9 +88,22 @@ export function TemplateFunction(name: string) {
  */
 export function templateFunctionName(type: AbstractClass): Maybe<string> {
   return map(
-    ownMetadata<{ readonly name: string }>(type, TEMPLATE_FUNCTION_METADATA),
+    ownMetadata<TemplateFunctionMetadata>(type, TEMPLATE_FUNCTION_METADATA),
     (metadata) => metadata.name,
   );
+}
+
+/**
+ * Whether the template function `type` is memoised: on unless its decorator sets `memoise: false`.
+ *
+ * @param type The class to look at, a template function.
+ * @returns True when its calls are memoised.
+ */
+export function templateFunctionMemoised(type: AbstractClass): boolean {
+  return match(ownMetadata<TemplateFunctionMetadata>(type, TEMPLATE_FUNCTION_METADATA), {
+    Some: (metadata) => metadata.memoise,
+    None: () => false,
+  });
 }
 
 /**
