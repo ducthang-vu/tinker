@@ -828,3 +828,36 @@ describe("names a template reads", () => {
       .toThrow("cannot be checked");
   });
 });
+
+describe("the hot reload code", () => {
+  const component = `@Component({ template: "<p>x</p>" }) class Page {}`;
+
+  function run(command: "serve" | "build") {
+    const plugin = tinkerCompiler();
+    const config = plugin.config as unknown as (c: unknown, env: unknown) => unknown;
+    config({}, { command, mode: "development", isSsrBuild: false, isPreview: false });
+    const hook = plugin.transform as (this: unknown, code: string, id: string) => Promise<unknown>;
+    const context = {
+      addWatchFile: () => undefined,
+      resolve: async () => null,
+      error: (message: string): never => {
+        throw new Error(message);
+      },
+      warn: () => undefined,
+    };
+    return hook.call(context, component, "/app/page.ts");
+  }
+
+  test("is added when Vite serves the app", async () => {
+    const result = await run("serve") as { code: string };
+    expect(result.code)
+      .toContain("__tinkerHot(import.meta.hot");
+  });
+
+  test("is not added to a build", async () => {
+    const result = await run("build") as { code: string } | null;
+    expect(result?.code ?? "")
+      .not
+      .toContain("__tinkerHot");
+  });
+});

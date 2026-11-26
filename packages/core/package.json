@@ -14,6 +14,11 @@
       "types": "./dist/view/compiler/index.d.ts",
       "default": "./dist/view/compiler/index.js"
     },
+    "./hot": {
+      "development": "./src/view/internal/hot.ts",
+      "types": "./dist/view/internal/hot.d.ts",
+      "default": "./dist/view/internal/hot.js"
+    },
     "./testing": {
       "development": "./src/view/testing.ts",
       "types": "./dist/view/testing.d.ts",
