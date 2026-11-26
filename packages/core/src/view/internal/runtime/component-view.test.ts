@@ -236,3 +236,50 @@ describe("RenderScope", () => {
       .toBe(true);
   });
 });
+
+describe("ComponentView.rerender", () => {
+  test("a view not given a way to render again throws", () => {
+    const { view } = makeView();
+    expect(() => view.rerender())
+      .toThrow("cannot render its template again");
+  });
+
+  test("a view given a way to render again runs it, and not after destruction", () => {
+    const { view } = makeView();
+    let renders = 0;
+    view.setRerender(() => {
+      renders++;
+    });
+    view.rerender();
+    expect(renders)
+      .toBe(1);
+    view.destroy();
+    view.rerender();
+    expect(renders)
+      .toBe(1);
+  });
+
+  test("destroying the current render destroys its scope, and the view keeps its nodes", () => {
+    const { view, host, nodes } = makeView();
+    const log: string[] = [];
+    view.renderScope()
+      .addDestroyCallback(() => log.push("render"));
+    view.destroyRender();
+    expect(log)
+      .toEqual(["render"]);
+    expect(nodes.every((node) => host.contains(node)))
+      .toBe(true);
+  });
+
+  test("replacing the nodes removes the old ones from the host and renders the new ones", () => {
+    const { view, host, nodes } = makeView();
+    const fresh = document.createElement("em");
+    view.replaceNodes([fresh]);
+    expect(nodes.some((node) => host.contains(node)))
+      .toBe(false);
+    expect(host.contains(fresh))
+      .toBe(true);
+    expect(view.nodes)
+      .toEqual([fresh]);
+  });
+});
