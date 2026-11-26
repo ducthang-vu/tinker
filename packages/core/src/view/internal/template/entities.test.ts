@@ -56,3 +56,15 @@ describe("legacy names, which decode without their semicolon", () => {
       .toBe("&#65 A");
   });
 });
+
+describe("the HTML 5 names beyond HTML 4", () => {
+  test("decode with their semicolon, to the characters the standard gives", () => {
+    expect(decodeReferences("&check; &NotEqualTilde; &rarr;"))
+      .toBe("✓ ≂̸ →");
+  });
+
+  test("need their semicolon", () => {
+    expect(decodeReferences("&check x"))
+      .toBe("&check x");
+  });
+});
