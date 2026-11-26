@@ -42,6 +42,13 @@ not name it.
 the page's `<base>` element, which the router reads, so the app routes correctly under that
 folder. A path that does not start and end with `/` is refused.
 
+## `--help` and `--version`
+
+- `tinker` with no command, `tinker --help`, `tinker -h` and `tinker help` print the list of
+  commands and options, and exit with 0. `--help` after a command (such as `tinker dev --help`)
+  prints the same list and runs nothing.
+- `tinker --version` and `tinker -v` print the version of `@tinker/cli`, and exit with 0.
+
 ## Exit codes
 
 - 0: the command succeeded.

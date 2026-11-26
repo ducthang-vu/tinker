@@ -1,8 +1,9 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+// @vitest-environment node
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { run } from "./cli.ts";
+import { findVersion, run } from "./cli.ts";
 import { buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 vi.mock("./vite-commands.ts", () => ({
@@ -279,11 +280,73 @@ describe("tinker command", () => {
     });
   });
 
-  test("with no command, prints the usage and fails", async () => {
-    expect(await run([], output))
-      .toBe(2);
-    expect(errors)
-      .toEqual([USAGE]);
+  describe("help and version", () => {
+    test("with no command, prints the help and succeeds", async () => {
+      expect(await run([], output))
+        .toBe(0);
+      expect(logged[0])
+        .toContain("Commands:");
+      expect(logged[0])
+        .toContain("-v, --version");
+      expect(errors)
+        .toEqual([]);
+    });
+
+    test("--help, -h and help print the help", async () => {
+      for (const flag of ["--help", "-h", "help"]) {
+        logged = [];
+        expect(await run([flag], output))
+          .toBe(0);
+        expect(logged[0])
+          .toContain("Commands:");
+      }
+    });
+
+    test("--help after a command prints the help, and runs nothing", async () => {
+      expect(await run(["dev", "--help"], output))
+        .toBe(0);
+      expect(logged[0])
+        .toContain("Options:");
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("findVersion walks up to the package, and fails outside any", () => {
+      const inside = mkdtempSync(join(tmpdir(), "tinker-version-"));
+      try {
+        mkdirSync(join(inside, "dist", "assets"), { recursive: true });
+        writeFileSync(join(inside, "package.json"), JSON.stringify({ name: "@tinker/cli", version: "9.9.9" }));
+        expect(findVersion(join(inside, "dist", "assets")))
+          .toBe("9.9.9");
+      } finally {
+        rmSync(inside, { recursive: true, force: true });
+      }
+      const other = mkdtempSync(join(tmpdir(), "tinker-version-"));
+      try {
+        mkdirSync(join(other, "inner"));
+        writeFileSync(join(other, "inner", "package.json"), JSON.stringify({ name: "some-other", version: "1.0.0" }));
+        expect(() => findVersion(join(other, "inner")))
+          .toThrow("could not be found");
+      } finally {
+        rmSync(other, { recursive: true, force: true });
+      }
+      const outside = mkdtempSync(join(tmpdir(), "tinker-version-"));
+      try {
+        expect(() => findVersion(outside))
+          .toThrow("could not be found");
+      } finally {
+        rmSync(outside, { recursive: true, force: true });
+      }
+    });
+
+    test("--version and -v print the version of the package", async () => {
+      const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+      expect(await run(["--version"], output))
+        .toBe(0);
+      expect(await run(["-v"], output))
+        .toBe(0);
+      expect(logged)
+        .toEqual([manifest.version, manifest.version]);
+    });
   });
 
   test("an unknown command fails and names it", async () => {
