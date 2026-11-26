@@ -24,6 +24,8 @@ export function hotCodeFor(code: string, file: string): string | undefined {
   return [
     `import { __tinkerHot } from "@tinker/core/hot";`,
     "if (import.meta.hot) {",
+    // Vite reads this statically: a module that accepts its own updates has this call.
+    "  import.meta.hot.accept();",
     `  __tinkerHot(import.meta.hot, ${JSON.stringify(file)}, ${JSON.stringify(fingerprintOf(code, templates))}, [${names.join(", ")}]);`,
     "}",
   ].join("\n");

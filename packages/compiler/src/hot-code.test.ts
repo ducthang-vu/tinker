@@ -22,6 +22,8 @@ describe("hotCodeFor", () => {
     expect(code)
       .toContain("if (import.meta.hot) {");
     expect(code)
+      .toContain("import.meta.hot.accept();");
+    expect(code)
       .toContain(`__tinkerHot(import.meta.hot, "/app/page.ts", "`);
     expect(code)
       .toContain(`[["Page", Page]]`);

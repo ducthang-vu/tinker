@@ -7524,7 +7524,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@7009",
+              "name": "__@APP_PATH_BRAND@7010",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
