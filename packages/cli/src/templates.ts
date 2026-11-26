@@ -19,16 +19,15 @@ function packageJson(name: string): string {
     private: true,
     type: "module",
     scripts: {
-      dev: "vite",
-      build: "vite build",
-      preview: "vite preview",
+      dev: "tinker dev",
+      build: "tinker build",
     },
     dependencies: {
       "@tinker/core": "*",
     },
     devDependencies: {
+      "@tinker/cli": "*",
       "@tinker/compiler": "*",
-      "vite": "^8.3.8",
     },
   }, null, 2)}\n`;
 }
@@ -50,13 +49,10 @@ function indexHtml(name: string): string {
 }
 
 function viteConfig(): string {
-  return `// The app's Vite config: the Tinker preset (the compiler, the decorators, the aliases).
-import { defineConfig } from "vite";
+  return `// The app's build settings: the Tinker preset (the compiler, the decorators, the aliases).
 import { tinkerVite } from "@tinker/compiler";
 
-export default defineConfig({
-  ...tinkerVite(),
-});
+export default tinkerVite();
 `;
 }
 
