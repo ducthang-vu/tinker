@@ -2,20 +2,20 @@
 // The app is a root component (`App`) in src/app.ts, bootstrapped by src/main.ts.
 
 /** The files of a new app named `name`, by their path relative to the app's folder. */
-export function appFiles(name: string): Map<string, string> {
+export function appFiles(name: string, prefix: string): Map<string, string> {
   return new Map([
-    ["package.json", packageJson(name)],
-    ["index.html", indexHtml(name)],
+    ["package.json", packageJson(name, prefix)],
+    ["index.html", indexHtml(name, prefix)],
     ["vite.config.ts", viteConfig()],
     ["src/main.ts", mainTs()],
-    ["src/app.ts", appTs(name)],
+    ["src/app.ts", appTs(name, prefix)],
     ["tsconfig.json", tsconfig()],
     [".gitignore", gitignore()],
     ["README.md", readme(name)],
   ]);
 }
 
-function packageJson(name: string): string {
+function packageJson(name: string, prefix: string): string {
   return `${JSON.stringify({
     name,
     version: "0.0.1",
@@ -35,10 +35,11 @@ function packageJson(name: string): string {
       "@tinker/compiler": "*",
       "typescript": "npm:@typescript/typescript6@6.0.2",
     },
+    tinker: { prefix },
   }, null, 2)}\n`;
 }
 
-function indexHtml(name: string): string {
+function indexHtml(name: string, prefix: string): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -47,7 +48,7 @@ function indexHtml(name: string): string {
     <title>${name}</title>
   </head>
   <body>
-    <tk-app></tk-app>
+    <${prefix}-app></${prefix}-app>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>
@@ -76,11 +77,11 @@ bootstrap(App);
 `;
 }
 
-function appTs(name: string): string {
+function appTs(name: string, prefix: string): string {
   return `import { Component } from "@tinker/core";
 
 @Component({
-  selector: "tk-app",
+  selector: "${prefix}-app",
   template: \`<h1>{{ title }}</h1>\`,
 })
 export class App {

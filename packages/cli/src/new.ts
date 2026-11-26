@@ -8,19 +8,28 @@ import { appFiles } from "./templates.ts";
 /** A name is a package name: lower case letters, digits and dashes, starting with a letter. */
 export const NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
 
+/** The prefix of the app's selectors when `--prefix` gives none. */
+export const DEFAULT_PREFIX = "app";
+
+/** A prefix starts each selector: lower case letters and digits, starting with a letter. */
+export const PREFIX_PATTERN = /^[a-z][a-z0-9]*$/;
+
 /**
  * Writes the app into `<parent>/<name>` and returns that folder. Throws when the name is not a
  * valid package name, or the folder exists and is not empty.
  */
-export function createApp(name: string, parent: string): string {
+export function createApp(name: string, parent: string, prefix: string = DEFAULT_PREFIX): string {
   if (!NAME_PATTERN.test(name)) {
     throw new Error(`"${name}" is not a valid app name: use lower case letters, digits and dashes`);
+  }
+  if (!PREFIX_PATTERN.test(prefix)) {
+    throw new Error(`"${prefix}" is not a valid prefix: use lower case letters and digits, starting with a letter`);
   }
   const folder = join(parent, name);
   if (existsSync(folder) && readdirSync(folder).length > 0) {
     throw new Error(`${folder} already exists and is not empty`);
   }
-  for (const [path, content] of appFiles(name)) {
+  for (const [path, content] of appFiles(name, prefix)) {
     const file = join(folder, path);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, content);
