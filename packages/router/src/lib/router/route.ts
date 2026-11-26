@@ -3,7 +3,7 @@
 // matches a URL against the tree, from a root that is never shown.
 
 import type { Class } from "@tinker/core";
-import type { DeactivateGuard, Guard } from "../pipeline/guard-step.ts";
+import type { DeactivateGuard, Guard, RouteGate } from "../pipeline/guard-step.ts";
 import type { AppPath } from "../destination/app-path.ts";
 import type { MatchedRequest } from "../pipeline/request.ts";
 
@@ -48,6 +48,22 @@ export interface Route {
    * injection context of the router.
    */
   readonly canActivate?: readonly Guard[];
+  /**
+   * Asked for each navigation that reaches the route, before its children are looked at. ALLOW
+   * keeps the route; STOP skips it, so the next route with a matching path is tried; REDIRECT sends
+   * the navigation elsewhere. They run in order, in the injection context of the router.
+   */
+  readonly canMatch?: readonly RouteGate[];
+  /**
+   * Asked once, before the children of a route with `loadChildren` are loaded. ALLOW loads them;
+   * STOP rejects the navigation, and nothing is downloaded; REDIRECT sends it elsewhere.
+   */
+  readonly canLoad?: readonly RouteGate[];
+  /**
+   * The children of the route, loaded the first time a navigation reaches it. A route that has
+   * `children` does not use this. Once loaded, the children are kept, so the route loads once.
+   */
+  readonly loadChildren?: () => Promise<readonly Route[]>;
 }
 
 /**

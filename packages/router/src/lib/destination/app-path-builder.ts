@@ -6,6 +6,7 @@
 
 import { inject, Injectable, Injector, runInInjectionContext } from "@tinker/core";
 import { match } from "@tinker/functional";
+import { loadedChildrenOf } from "../router/lazy-children.ts";
 import { levelsOf } from "../router/match.ts";
 import { Router } from "../router/router.ts";
 import type { Route } from "../router/route.ts";
@@ -214,9 +215,19 @@ export class AppPathBuilder {
     let index = 0;
     while (index < parts.length) {
       const part = parts[index] as string;
-      const child = takenBy(node, part);
-      if (child === undefined) {
+      const path = takenBy(node, part);
+      if (path === undefined) {
+        // A lazy route whose children are not loaded yet takes the rest as written: the navigation
+        // that loads the children checks it. The segments are written by that route's level.
+        if (isUnloadedLazy(node)) {
+          return withUnchecked([...prefix, ...taken], parts.slice(index));
+        }
         throw new ParseError("no-route", input, part);
+      }
+      // The empty-path routes on the way write no segment: they share the URL of their child.
+      const child = path[path.length - 1] as Route;
+      for (const empty of path.slice(0, -1)) {
+        taken.push({ route: empty, segments: [] });
       }
       // A `**` route takes the rest of the URL in one level. An empty-path route takes the empty
       // part but writes no segment, so it shares the URL of its parent.
@@ -269,17 +280,69 @@ function ancestryOf(route: ActivatedRoute): readonly ActivatedRoute[] {
 }
 
 /**
- * The child that takes a segment: a literal child first, then a param child, then a `**` child.
+ * Whether a route is lazy and its children are not loaded yet, so the router cannot check the
+ * segments below it.
+ *
+ * @param route The route to check.
+ * @returns True when the route loads its children and has not loaded them.
+ */
+function isUnloadedLazy(route: Route): boolean {
+  return route.children === undefined
+    && route.loadChildren !== undefined
+    && loadedChildrenOf(route) === undefined;
+}
+
+/**
+ * The levels with `values` written after the last one, as plain segments: the last level is the
+ * lazy route the values lie under.
+ *
+ * @param levels The levels, with the lazy route last.
+ * @param values The values to write, unchecked.
+ * @returns The levels, the last one with the values added.
+ */
+function withUnchecked(levels: readonly Level[], values: readonly string[]): readonly Level[] {
+  const last = levels[levels.length - 1] as Level;
+  const written = values.map((value): Segment => ({ kind: "segment", value }));
+  return [...levels.slice(0, -1), { ...last, segments: [...last.segments, ...written] }];
+}
+
+/**
+ * The children of a route: its own, or, for a lazy route, the loaded ones.
+ *
+ * @param node The route.
+ * @returns The children, or none.
+ */
+function childrenOf(node: Route): readonly Route[] {
+  return node.children ?? loadedChildrenOf(node) ?? [];
+}
+
+/**
+ * The routes that take a segment, from `node` down: the child that takes it, after the empty-path
+ * routes on the way. A child takes a segment as a literal child first, then a param child, then a
+ * `**` child; an empty-path child passes the segment on to its own children.
  *
  * @param node The route whose children are searched.
  * @param segment The segment to take.
- * @returns The child, or undefined when no child takes the segment.
+ * @returns The routes on the way, the last one taking the segment, or undefined when none does.
  */
-function takenBy(node: Route, segment: string): Route | undefined {
-  const children = node.children ?? [];
+function takenBy(node: Route, segment: string): readonly Route[] | undefined {
+  const children = childrenOf(node);
+  const named = children.filter((child) => segmentOf(child.path) !== "");
   const literal = children.find((child) => segmentOf(child.path) === segment);
-  const param = children.find((child) => segmentOf(child.path)
+  const param = named.find((child) => segmentOf(child.path)
     .startsWith(":"));
-  const rest = children.find((child) => segmentOf(child.path) === "**");
-  return literal ?? param ?? rest;
+  const rest = named.find((child) => segmentOf(child.path) === "**");
+  const direct = literal ?? param ?? rest;
+  if (direct !== undefined) {
+    return [direct];
+  }
+  for (const child of children) {
+    if (segmentOf(child.path) === "") {
+      const below = takenBy(child, segment);
+      if (below !== undefined) {
+        return [child, ...below];
+      }
+    }
+  }
+  return undefined;
 }

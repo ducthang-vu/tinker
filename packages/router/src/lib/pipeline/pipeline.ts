@@ -19,7 +19,7 @@ export function createPipeline(
   return (request) =>
     pipe(
       succeed(request),
-      flatMap((r: NavigationRequest) => createTask(steps.match(r))),
+      flatMap(steps.match),
       flatMap((m: MatchedRequest) => createTask(steps.redirect(m))),
       flatMap(steps.deactivate),
       flatMap(steps.guards),
