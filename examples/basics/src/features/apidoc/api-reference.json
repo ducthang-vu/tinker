@@ -1,6 +1,59 @@
 {
   "entries": [
     {
+      "specifier": "@tinker/cli",
+      "source": "packages/cli/src/cli.ts",
+      "exports": [
+        {
+          "name": "Output",
+          "kind": "interface",
+          "source": "packages/cli/src/cli.ts:9",
+          "description": "Where the command writes its messages.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "members": [
+            {
+              "name": "log",
+              "kind": "property",
+              "source": "packages/cli/src/cli.ts:10",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "(line: string) => void"
+            },
+            {
+              "name": "error",
+              "kind": "property",
+              "source": "packages/cli/src/cli.ts:11",
+              "description": "",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "(line: string) => void"
+            }
+          ]
+        },
+        {
+          "name": "run",
+          "kind": "function",
+          "source": "packages/cli/src/cli.ts:17",
+          "description": "Runs the command with its arguments (without the program name). Returns the exit code.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "run(args: readonly string[], output: Output): number"
+          ]
+        }
+      ]
+    },
+    {
       "specifier": "@tinker/compiler",
       "source": "packages/compiler/src/index.ts",
       "exports": [
@@ -15,6 +68,19 @@
           "throws": [],
           "signatures": [
             "tinkerCompiler(options?: CompilerOptions): Plugin"
+          ]
+        },
+        {
+          "name": "tinkerVite",
+          "kind": "function",
+          "source": "packages/compiler/src/vite.ts:18",
+          "description": "The Vite config of a Tinker app: the plugins and the aliases. Spread it into the app's\n`defineConfig`, then add the app's own options. The app's own plugins go after `plugins`.",
+          "params": [],
+          "examples": [],
+          "see": [],
+          "throws": [],
+          "signatures": [
+            "tinkerVite(): Omit<UserConfig, \"plugins\"> & { plugins: Plugin[]; }"
           ]
         }
       ]
@@ -1356,7 +1422,7 @@
               "type": "boolean"
             },
             {
-              "name": "__@TOKEN_TYPE@409",
+              "name": "__@TOKEN_TYPE@496",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:59",
               "description": "Type-only (`declare`): no such property exists at runtime.",
@@ -1518,7 +1584,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@839",
+              "name": "__@INPUT_TYPE@916",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1557,7 +1623,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:100",
               "description": "The case this Left is, for `match`: its name and its error.",
@@ -1568,7 +1634,7 @@
               "type": "Case<\"Left\", readonly [E]>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:117",
               "description": "Whether `other` is a Left holding an equal error.",
@@ -1583,11 +1649,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Left whose error is equal to this one's.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:136",
               "description": "The protocol form: a Left halts with the error it holds.",
@@ -1597,7 +1663,7 @@
               "throws": [],
               "returns": "A Halt holding this Left's error.",
               "signatures": [
-                "__@OUTCOME@220(): Halt<E>"
+                "__@OUTCOME@307(): Halt<E>"
               ]
             },
             {
@@ -1696,7 +1762,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@839",
+              "name": "__@INPUT_TYPE@916",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1863,7 +1929,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:89",
               "description": "The case this None is, for `match`: its name, with no value.",
@@ -1874,7 +1940,7 @@
               "type": "Case<\"None\", readonly []>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:102",
               "description": "Whether `other` is a None.",
@@ -1889,7 +1955,7 @@
               "throws": [],
               "returns": "`true` when `other` is a None.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
@@ -2577,7 +2643,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:45",
               "description": "The case this Right is, for `match`: its name and its value.",
@@ -2588,7 +2654,7 @@
               "type": "Case<\"Right\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:62",
               "description": "Whether `other` is a Right holding an equal value.",
@@ -2603,11 +2669,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Right whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:81",
               "description": "The protocol form: a Right continues with the value it holds.",
@@ -2617,7 +2683,7 @@
               "throws": [],
               "returns": "A Continue holding this Right's value.",
               "signatures": [
-                "__@OUTCOME@220(): Continue<T>"
+                "__@OUTCOME@307(): Continue<T>"
               ]
             },
             {
@@ -2816,7 +2882,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:43",
               "description": "The case this Some is, for `match`: its name and its value.",
@@ -2827,7 +2893,7 @@
               "type": "Case<\"Some\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:60",
               "description": "Whether `other` is a Some holding an equal value.",
@@ -2842,7 +2908,7 @@
               "throws": [],
               "returns": "`true` when `other` is a Some whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
@@ -3214,7 +3280,7 @@
               "type": "boolean | undefined"
             },
             {
-              "name": "__@TOKEN_TYPE@409",
+              "name": "__@TOKEN_TYPE@496",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:33",
               "description": "Type-only marker, never set at runtime. It makes `T` part of the type\n(so `Token<string>` and `Token<number>` differ), and it is required, so\nneither a plain `{ name }` object nor a class can pass for a token.",
@@ -4292,7 +4358,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@1001",
+              "name": "__@CHAIN@1079",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:63",
               "description": "The chain of `f`: the flatMap of a chain, under the CHAIN symbol.",
@@ -4301,7 +4367,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@1001<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@1079<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4337,7 +4403,7 @@
               "type": "T"
             },
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/outcome.ts:38",
               "description": "The value itself: a Continue is already in the protocol's form.",
@@ -4347,7 +4413,7 @@
               "throws": [],
               "returns": "This Continue.",
               "signatures": [
-                "__@OUTCOME@220(): Continue<T>"
+                "__@OUTCOME@307(): Continue<T>"
               ]
             },
             {
@@ -4567,7 +4633,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/monad.ts:116",
               "description": "Whether `other` is equal to this value.",
@@ -4576,7 +4642,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             }
           ]
@@ -4603,7 +4669,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@999",
+              "name": "__@MAP@1077",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:25",
               "description": "The value mapped with `f`: the map of a functor, under the MAP symbol.",
@@ -4612,7 +4678,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@999<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@1077<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -4648,7 +4714,7 @@
               "type": "E"
             },
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/outcome.ts:67",
               "description": "The value itself: a Halt is already in the protocol's form.",
@@ -4658,7 +4724,7 @@
               "throws": [],
               "returns": "This Halt.",
               "signatures": [
-                "__@OUTCOME@220(): Halt<E>"
+                "__@OUTCOME@307(): Halt<E>"
               ]
             },
             {
@@ -4699,7 +4765,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:100",
               "description": "The case this Left is, for `match`: its name and its error.",
@@ -4710,7 +4776,7 @@
               "type": "Case<\"Left\", readonly [E]>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:117",
               "description": "Whether `other` is a Left holding an equal error.",
@@ -4725,11 +4791,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Left whose error is equal to this one's.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:136",
               "description": "The protocol form: a Left halts with the error it holds.",
@@ -4739,7 +4805,7 @@
               "throws": [],
               "returns": "A Halt holding this Left's error.",
               "signatures": [
-                "__@OUTCOME@220(): Halt<E>"
+                "__@OUTCOME@307(): Halt<E>"
               ]
             },
             {
@@ -4819,7 +4885,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/monad.ts:26",
               "description": "The case this value is, for `match`.",
@@ -4916,7 +4982,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:89",
               "description": "The case this None is, for `match`: its name, with no value.",
@@ -4927,7 +4993,7 @@
               "type": "Case<\"None\", readonly []>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:102",
               "description": "Whether `other` is a None.",
@@ -4942,7 +5008,7 @@
               "throws": [],
               "returns": "`true` when `other` is a None.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
@@ -4984,7 +5050,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/outcome.ts:21",
               "description": "This value as a Continue or a Halt: the form the outcome protocol reads.",
@@ -4993,7 +5059,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@OUTCOME@220(): Continue<T> | Halt<E>"
+                "__@OUTCOME@307(): Continue<T> | Halt<E>"
               ]
             }
           ]
@@ -5014,7 +5080,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/either.ts:45",
               "description": "The case this Right is, for `match`: its name and its value.",
@@ -5025,7 +5091,7 @@
               "type": "Case<\"Right\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:62",
               "description": "Whether `other` is a Right holding an equal value.",
@@ -5040,11 +5106,11 @@
               "throws": [],
               "returns": "`true` when `other` is a Right whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
-              "name": "__@OUTCOME@220",
+              "name": "__@OUTCOME@307",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/either.ts:81",
               "description": "The protocol form: a Right continues with the value it holds.",
@@ -5054,7 +5120,7 @@
               "throws": [],
               "returns": "A Continue holding this Right's value.",
               "signatures": [
-                "__@OUTCOME@220(): Continue<T>"
+                "__@OUTCOME@307(): Continue<T>"
               ]
             },
             {
@@ -5095,7 +5161,7 @@
           ],
           "members": [
             {
-              "name": "__@MATCHABLE@206",
+              "name": "__@MATCHABLE@293",
               "kind": "property",
               "source": "packages/functional/src/lib/monad/maybe.ts:43",
               "description": "The case this Some is, for `match`: its name and its value.",
@@ -5106,7 +5172,7 @@
               "type": "Case<\"Some\", readonly [T]>"
             },
             {
-              "name": "__@EQUALS@202",
+              "name": "__@EQUALS@289",
               "kind": "method",
               "source": "packages/functional/src/lib/monad/maybe.ts:60",
               "description": "Whether `other` is a Some holding an equal value.",
@@ -5121,7 +5187,7 @@
               "throws": [],
               "returns": "`true` when `other` is a Some whose value is equal to this one's.",
               "signatures": [
-                "__@EQUALS@202(other: unknown): boolean"
+                "__@EQUALS@289(other: unknown): boolean"
               ]
             },
             {
@@ -5162,7 +5228,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@999",
+              "name": "__@MAP@1077",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:216",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -5177,11 +5243,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@999<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@1077<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@1001",
+              "name": "__@CHAIN@1079",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:236",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -5196,7 +5262,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@1001<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@1079<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -7439,7 +7505,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6892",
+              "name": "__@APP_PATH_BRAND@6969",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
