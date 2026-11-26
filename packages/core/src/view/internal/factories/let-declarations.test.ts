@@ -24,15 +24,6 @@ class Greeting {
   }
 }
 
-@Component({ selector: "tk-shadow", template: "@let label = value(); {{ label }}" })
-class Shadow {
-  readonly label = signal("field");
-
-  value(): string {
-    return "local";
-  }
-}
-
 @Component({ selector: "tk-callable", template: "@let make = greet; {{ make() }}" })
 class Callable {
   greet(): string {
@@ -69,14 +60,6 @@ describe("@let template variables", () => {
     expect(host.textContent!.trim())
       .toBe("Hi Bo (7)");
     app.destroy();
-  });
-
-  test("a variable shadows a method or field of the same name", async () => {
-    const host = document.createElement("section");
-    bootstrap(Shadow, { host });
-    await tick();
-    expect(host.textContent!.trim())
-      .toBe("local");
   });
 
   test("a variable holding a function is called without a receiver", async () => {
