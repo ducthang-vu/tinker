@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { matchChain, matchOfChain } from "./match.ts";
+import { nested } from "../destination/test-builder.ts";
 import type { Route } from "./route.ts";
 
 class Page {}
@@ -11,11 +12,8 @@ const matchRoute = (root: Route, url: string) => matchOfChain(matchChain(root, u
 const leaf = (path: string): Route => ({ path, component: Page });
 
 /** A route whose children match the segments after its path. */
-const branch = (path: string, children: readonly Route[]): Route => ({
-  path,
-  component: Page,
-  children,
-});
+const branch = (path: string, children: readonly Route[]): Route =>
+  nested({ path, component: Page }, children);
 
 const TODOS = leaf("/todos");
 const TODO = leaf("/todos/:id");

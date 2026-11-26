@@ -1,24 +1,21 @@
+import { nested } from "./test-builder.ts";
 import { describe, expect, test } from "vitest";
 import { parseAppPath, ParseError } from "./app-path-parse.ts";
 import type { Route } from "../router/route.ts";
 
 class Page {}
 
-const ROOT: Route = {
+const ROOT: Route = nested({
   path: "",
-  component: Page,
-  children: [
-    {
-      path: "todos",
-      component: Page,
-      children: [
-        { path: "", component: Page },
-        { path: ":id", component: Page },
-      ],
-    },
-    { path: "home", component: Page },
-  ],
-};
+  component: Page }, [
+  nested({
+    path: "todos",
+    component: Page }, [
+    { path: "", component: Page },
+    { path: ":id", component: Page },
+  ]),
+  { path: "home", component: Page },
+]);
 
 describe("parsing a URL from the root", () => {
   test("a URL that a route takes is an app path, with its segments as the route gives them", () => {
@@ -72,11 +69,9 @@ describe("the same URL in the router is the same URL in the builder", () => {
 });
 
 test("a URL under a lazy route whose children are not loaded is parsed as written", () => {
-  const root: Route = {
+  const root: Route = nested({
     path: "",
-    component: Page,
-    children: [{ path: "lazy", loadChildren: () => new Promise(() => undefined) }],
-  };
+    component: Page }, [{ path: "lazy", loadChildren: () => new Promise(() => undefined) }]);
   expect(parseAppPath(root, "/lazy/7/x").segments)
     .toEqual([
       { kind: "segment", value: "lazy" },

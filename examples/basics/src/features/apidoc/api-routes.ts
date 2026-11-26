@@ -7,21 +7,23 @@ import { ApiOverview } from "./api-overview.ts";
 import { ApiPackage, ApiPackageList } from "./api-package.ts";
 import { ApiSymbol } from "./api-symbol.ts";
 
-/** The API layout and its pages, as the children of the lazy `api` route. */
+/** The API pages under the lazy `api` route: the layout, and the package and symbol pages. */
 export const API_CHILDREN: readonly Route[] = [
   {
     path: "",
     component: ApiLayout,
-    children: [
-      {
-        path: ":package",
-        component: ApiPackage,
-        children: [
-          { path: ":symbol", component: ApiSymbol },
-          { path: "", component: ApiPackageList },
-        ],
-      },
-      { path: "", component: ApiOverview },
-    ],
+    loadChildren: () =>
+      Promise.resolve([
+        {
+          path: ":package",
+          component: ApiPackage,
+          loadChildren: () =>
+            Promise.resolve([
+              { path: ":symbol", component: ApiSymbol },
+              { path: "", component: ApiPackageList },
+            ]),
+        },
+        { path: "", component: ApiOverview },
+      ]),
   },
 ];

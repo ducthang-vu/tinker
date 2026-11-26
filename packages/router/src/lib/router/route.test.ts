@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { MatchedRequest } from "../pipeline/request.ts";
 import { componentOf, type Route } from "./route.ts";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
-import { builderOver } from "../destination/test-builder.ts";
+import { builderOver, nested } from "../destination/test-builder.ts";
 
 /** A destination of literal segments for a path such as "/todos/7". */
 function destinationOf(path: string): AppPath {
@@ -15,7 +15,7 @@ function destinationOf(path: string): AppPath {
   );
 }
 
-const target = builderOver([{ path: "/todos", children: [{ path: "/:id", component: class {} }] }] as const)
+const target = builderOver([nested({ path: "/todos" }, [{ path: "/:id", component: class {} }])] as const)
   .to("todos")
   .to("1")
   .build();
@@ -28,7 +28,7 @@ test("componentOf gives the component a route shows", () => {
 });
 
 test("componentOf throws for a route with no component, naming it", () => {
-  expect(() => componentOf({ path: "/todos", children: [] }))
+  expect(() => componentOf(nested({ path: "/todos" }, [])))
     .toThrow("The route \"/todos\" has no component");
 });
 

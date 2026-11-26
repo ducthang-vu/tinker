@@ -1,3 +1,4 @@
+import { nested } from "../destination/test-builder.ts";
 import { expect, test } from "vitest";
 import { Component, inject } from "@tinker/core";
 import { getDirectiveMetadata } from "@tinker/core/testing";
@@ -39,15 +40,13 @@ class App {
 class TodosShell {}
 
 const ROUTES = [
-  {
+  nested({
     path: "/todos",
-    component: TodosShell,
-    children: [
-      { path: "", component: TodoList },
-      { path: ":id", component: TodoDetail },
-    ],
-  },
-  { path: "group", children: [{ path: "", component: TodoList }] },
+    component: TodosShell }, [
+    { path: "", component: TodoList },
+    { path: ":id", component: TodoDetail },
+  ]),
+  nested({ path: "group" }, [{ path: "", component: TodoList }]),
   { path: "lazy", loadChildren: () => Promise.resolve([{ path: "", component: TodoList }]) },
 ];
 

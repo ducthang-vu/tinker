@@ -7,7 +7,7 @@ import { Router } from "./router.ts";
 import type { PageRoute, Route } from "./route.ts";
 import { ParseError, AppPathBuilder } from "../destination/app-path-builder.ts";
 import { makeAppPath } from "../destination/app-path.ts";
-import { builderOver } from "../destination/test-builder.ts";
+import { builderOver, nested } from "../destination/test-builder.ts";
 import {
   AllowCommand,
   type DeactivateGuard,
@@ -48,9 +48,9 @@ class TodoShell {}
 /** The routes of the todos: the list at `/todos`, and the detail at `/todos/:id`, under a shell. */
 const LIST: PageRoute = { path: "", component: TodoList };
 const DETAIL: PageRoute = { path: ":id", component: TodoDetail };
-const TODOS: PageRoute = { path: "todos", component: TodoShell, children: [LIST, DETAIL] };
+const TODOS: PageRoute = nested({ path: "todos", component: TodoShell }, [LIST, DETAIL]);
 const CHILDREN: readonly Route[] = [TODOS];
-const ROOT: Route = { path: "", component: Root, children: CHILDREN };
+const ROOT: Route = nested({ path: "", component: Root }, CHILDREN);
 
 /** A router over `root`, and its injected builder, in a fake platform that starts at `url`. */
 function routerOver(root: Route, url: string) {
@@ -129,11 +129,9 @@ test("a navigation to a matched URL resolves done once it commits", async () => 
 
 test("a ** route catches the URLs no other route matches", async () => {
   const NotFound = class {};
-  const tree: Route = {
+  const tree: Route = nested({
     path: "",
-    component: Root,
-    children: [TODOS, { path: "**", component: NotFound }],
-  };
+    component: Root }, [TODOS, { path: "**", component: NotFound }]);
   const { router, urls, destroy } = routerOver(tree, "/todos");
   await router.navigate(urls.parse("/nowhere")
     .build());
@@ -207,7 +205,7 @@ test("a level is made again when its params change, and the levels above it stay
 
 test("a ** level is made again when its segments change", async () => {
   const notFound = { path: "**", component: class {} };
-  const { router, urls, destroy } = routerOver({ path: "", component: Root, children: [notFound] }, "/anything/a");
+  const { router, urls, destroy } = routerOver(nested({ path: "", component: Root }, [notFound]), "/anything/a");
   const before = router.activated()[1];
   await router.navigate(urls.parse("/anything/b")
     .build());
@@ -218,10 +216,10 @@ test("a ** level is made again when its segments change", async () => {
 
 /** A tree of orgs and teams: `/orgs/:org/teams/:team`, one segment per level. */
 const TEAM: Route = { path: ":team", component: class {} };
-const TEAMS: Route = { path: "teams", children: [TEAM] };
-const ORG: Route = { path: ":org", component: class {}, children: [TEAMS] };
-const ORGS: Route = { path: "orgs", children: [ORG] };
-const ORG_ROOT: Route = { path: "", component: Root, children: [ORGS] };
+const TEAMS: Route = nested({ path: "teams" }, [TEAM]);
+const ORG: Route = nested({ path: ":org", component: class {} }, [TEAMS]);
+const ORGS: Route = nested({ path: "orgs" }, [ORG]);
+const ORG_ROOT: Route = nested({ path: "", component: Root }, [ORGS]);
 
 test("a level under a changed parent is made again, though its own params are the same", async () => {
   const { router, urls, destroy } = routerOver(ORG_ROOT, "/orgs/acme/teams/x");
@@ -291,11 +289,9 @@ test("parse throws a ParseError for a URL no route matches", () => {
 
 /** A router over the todos tree whose `:id` route runs `guards`, starting at `url`. */
 function routerWithGuard(guards: readonly Guard[], url = "/todos") {
-  const guarded: Route = {
-    ...TODOS,
-    children: [LIST, { ...DETAIL, canActivate: guards }],
-  };
-  return routerOver({ path: "", component: Root, children: [guarded] }, url);
+  const guarded: Route = nested({
+    ...TODOS }, [LIST, { ...DETAIL, canActivate: guards }]);
+  return routerOver(nested({ path: "", component: Root }, [guarded]), url);
 }
 
 test("a guard that says no stops the navigation, naming the route whose guard said it", async () => {
@@ -323,13 +319,11 @@ test("a guard that redirects sends the navigation to its target instead, which i
 });
 
 test("a route that redirects to itself is rejected as failed, with the redirect cap as the cause", async () => {
-  const loop: Route = {
+  const loop: Route = nested({
     path: "",
-    component: Root,
-    children: [{ path: "todos", redirect: () => builderOver(CHILDREN)
-      .to("todos")
-      .build() }],
-  };
+    component: Root }, [{ path: "todos", redirect: () => builderOver(CHILDREN)
+    .to("todos")
+    .build() }]);
   const { router, urls, destroy } = routerOver(loop, "/");
   expect(MAX_REDIRECTS)
     .toBe(10);
@@ -414,11 +408,9 @@ test("a back move through the guards commits, and the routes follow it", () => {
 
 test("a back move a guard rejects is restored: the browser returns to the last committed URL and state", async () => {
   const deny: Guard = () => succeed(new StopCommand(new StopPayload("not allowed")));
-  const guarded: Route = {
+  const guarded: Route = nested({
     path: "",
-    component: Root,
-    children: [{ ...TODOS, children: [LIST, { ...DETAIL, canActivate: [deny] }] }],
-  };
+    component: Root }, [nested({ ...TODOS }, [LIST, { ...DETAIL, canActivate: [deny] }])]);
   const { router, urls, move, current, destroy } = poppableRouter(guarded, "/todos");
   await router.navigate(urls.parse("/todos")
     .build());
@@ -434,11 +426,9 @@ test("a back move a guard redirects goes to the redirect target, which replaces 
   const toList: Guard = () => succeed(new RedirectCommand(new RedirectPayload(builderOver(CHILDREN)
     .to("todos")
     .build())));
-  const guarded: Route = {
+  const guarded: Route = nested({
     path: "",
-    component: Root,
-    children: [{ ...TODOS, children: [LIST, { ...DETAIL, canActivate: [toList] }] }],
-  };
+    component: Root }, [nested({ ...TODOS }, [LIST, { ...DETAIL, canActivate: [toList] }])]);
   const { router, move, current, destroy } = poppableRouter(guarded, "/todos");
   move("/todos/7");
   expect(current().url)
@@ -469,11 +459,9 @@ test("the outcome carries the trace of its navigation, for debugging", async () 
 
 test("a deactivate guard that stops keeps the user on the route they leave", async () => {
   const stay: DeactivateGuard = () => succeed(new StopCommand(new StopPayload("unsaved changes")));
-  const guarded: Route = {
+  const guarded: Route = nested({
     path: "",
-    component: Root,
-    children: [{ ...TODOS, children: [LIST, { ...DETAIL, canDeactivate: [stay] }] }],
-  };
+    component: Root }, [nested({ ...TODOS }, [LIST, { ...DETAIL, canDeactivate: [stay] }])]);
   const { router, urls, destroy } = routerOver(guarded, "/todos/7");
   expect(await router.navigate(urls.parse("/todos")
     .build()))

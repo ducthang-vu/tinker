@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { run } from "@tinker/functional";
-import { builderOver } from "../destination/test-builder.ts";
+import { builderOver, nested } from "../destination/test-builder.ts";
 import { createCommitStep, type BrowserWriter } from "./commit-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { Stop } from "./stop.ts";
 
-const declared = [{ path: "/todos", children: [{ path: "/:id", component: class {} }] }] as const;
+const declared = [nested({ path: "/todos" }, [{ path: "/:id", component: class {} }])] as const;
 
 /** A browser that records what it is asked to do, and starts at `url`. */
 function fakeBrowser(url: string, refuse = false) {

@@ -1,3 +1,4 @@
+import { nested } from "../destination/test-builder.ts";
 import { expect, test } from "vitest";
 import { Component } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
@@ -52,14 +53,12 @@ class App {}
 class TodosShell {}
 
 const ROUTES = [
-  {
+  nested({
     path: "/todos",
-    component: TodosShell,
-    children: [
-      { path: "", component: TodoList },
-      { path: ":id", component: Root },
-    ],
-  },
+    component: TodosShell }, [
+    { path: "", component: TodoList },
+    { path: ":id", component: Root },
+  ]),
 ];
 
 /** Clicks the anchor with the mouse init given; tells whether the default was stopped. */

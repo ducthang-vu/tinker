@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { fail, fromComputation, run, succeed } from "@tinker/functional";
 import { type AppPath, type Segment, makeAppPath } from "../destination/app-path.ts";
-import { builderOver } from "../destination/test-builder.ts";
+import { builderOver, nested } from "../destination/test-builder.ts";
 import type { Route } from "../router/route.ts";
 import {
   AllowCommand,
@@ -18,16 +18,14 @@ import { Redirect, type Stop } from "./stop.ts";
 import { Injector } from "@tinker/core";
 import type { MatchStep } from "./steps.ts";
 
-const declared = [{ path: "/todos", children: [{ path: "/:id", component: class {} }] }, { path: "/home", component: class {} }] as const;
+const declared = [nested({ path: "/todos" }, [{ path: "/:id", component: class {} }]), { path: "/home", component: class {} }] as const;
 
-const root: Route = {
+const root: Route = nested({
   path: "",
-  component: class {},
-  children: [
-    { path: "/todos", component: class {}, children: [{ path: "/:id", component: class {} }] },
-    { path: "/home", component: class {} },
-  ],
-};
+  component: class {} }, [
+  nested({ path: "/todos", component: class {} }, [{ path: "/:id", component: class {} }]),
+  { path: "/home", component: class {} },
+]);
 
 /** A request for a destination, with no redirects. */
 function requestFor(destination: AppPath): NavigationRequest {
@@ -81,7 +79,7 @@ describe("the match step", () => {
     const destination = builderOver(declared)
       .to("home")
       .build();
-    const empty: Route = { path: "", component: class {}, children: [] };
+    const empty: Route = nested({ path: "", component: class {} }, []);
     const { stop } = await runMatch(stepOver(empty), requestFor(destination));
     expect(stop)
       .toMatchObject({ kind: "rejected", reason: "no-route" });
@@ -122,45 +120,41 @@ describe("canMatch", () => {
   }
 
   test("a STOP skips the route, so the next route with the same path is matched", async () => {
-    const tree: Route = {
+    const home: Route = { path: "/home", component: class {} };
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [
-        homeWith(new StopCommand(new StopPayload("not yet"))),
-        { path: "/home", component: class {} },
-      ],
-    };
+      component: class {} }, [
+      homeWith(new StopCommand(new StopPayload("not yet"))),
+      home,
+    ]);
     const destination = builderOver(declared)
       .to("home")
       .build();
     const { matched } = await runMatch(stepOver(tree), requestFor(destination));
     expect(matched?.chain.at(-1)?.route)
-      .toBe(tree.children?.[1]);
+      .toBe(home);
   });
 
   test("a gate that allows keeps the route", async () => {
-    const tree: Route = {
+    const allowed = homeWith(new AllowCommand());
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [homeWith(new AllowCommand())],
-    };
+      component: class {} }, [allowed]);
     const destination = builderOver(declared)
       .to("home")
       .build();
     const { matched } = await runMatch(stepOver(tree), requestFor(destination));
     expect(matched?.chain.at(-1)?.route)
-      .toBe(tree.children?.[0]);
+      .toBe(allowed);
   });
 
   test("a REDIRECT stops the navigation with a redirect to its URL", async () => {
     const target = builderOver(declared)
       .to("todos", "1")
       .build();
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [homeWith(new RedirectCommand(new RedirectPayload(target)))],
-    };
+      component: class {} }, [homeWith(new RedirectCommand(new RedirectPayload(target)))]);
     const destination = builderOver(declared)
       .to("home")
       .build();
@@ -173,18 +167,16 @@ describe("canMatch", () => {
 describe("lazy routes", () => {
   /** A lazy route for `/lazy` whose children are a page for `""`, counting its loads. */
   function lazyTree(loads: { count: number }, canMatch: StopCommand | AllowCommand): Route {
-    return {
+    return nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        canMatch: [() => succeed(canMatch)],
-        loadChildren: () => {
-          loads.count += 1;
-          return Promise.resolve([{ path: "", component: class {} }]);
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      canMatch: [() => succeed(canMatch)],
+      loadChildren: () => {
+        loads.count += 1;
+        return Promise.resolve([{ path: "", component: class {} }]);
+      },
+    }]);
   }
 
   test("a lazy route loads its children, and matches in them", async () => {
@@ -234,17 +226,15 @@ describe("lazy routes", () => {
 
   test("a failed load is a failed stop, and is not kept", async () => {
     let attempts = 0;
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        loadChildren: () => {
-          attempts += 1;
-          return Promise.reject(new Error("offline"));
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      loadChildren: () => {
+        attempts += 1;
+        return Promise.reject(new Error("offline"));
+      },
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const step = stepOver(tree);
     const { stop } = await runMatch(step, requestFor(destination));
@@ -258,17 +248,15 @@ describe("lazy routes", () => {
 
 describe("a gate or a load that fails", () => {
   test("a canMatch gate that throws fails the navigation", async () => {
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
+      component: class {} }, [{
+      path: "/home",
       component: class {},
-      children: [{
-        path: "/home",
-        component: class {},
-        canMatch: [() => {
-          throw new Error("boom");
-        }],
+      canMatch: [() => {
+        throw new Error("boom");
       }],
-    };
+    }]);
     const destination = builderOver(declared)
       .to("home")
       .build();
@@ -278,15 +266,13 @@ describe("a gate or a load that fails", () => {
   });
 
   test("a canMatch gate whose task fails fails the navigation", async () => {
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
+      component: class {} }, [{
+      path: "/home",
       component: class {},
-      children: [{
-        path: "/home",
-        component: class {},
-        canMatch: [() => fail(new Error("no service"))],
-      }],
-    };
+      canMatch: [() => fail(new Error("no service"))],
+    }]);
     const destination = builderOver(declared)
       .to("home")
       .build();
@@ -300,18 +286,16 @@ describe("a gate or a load that fails", () => {
     const target = builderOver(declared)
       .to("home")
       .build();
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        canMatch: [() => succeed(new RedirectCommand(new RedirectPayload(target)))],
-        loadChildren: () => {
-          loads += 1;
-          return Promise.resolve([]);
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      canMatch: [() => succeed(new RedirectCommand(new RedirectPayload(target)))],
+      loadChildren: () => {
+        loads += 1;
+        return Promise.resolve([]);
+      },
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const { stop } = await runMatch(stepOver(tree), requestFor(destination));
     expect(stop)
@@ -321,17 +305,15 @@ describe("a gate or a load that fails", () => {
   });
 
   test("a canMatch gate of a lazy route that throws rejects the navigation as failed", async () => {
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        canMatch: [() => {
-          throw new Error("boom");
-        }],
-        loadChildren: () => Promise.resolve([]),
+      component: class {} }, [{
+      path: "/lazy",
+      canMatch: [() => {
+        throw new Error("boom");
       }],
-    };
+      loadChildren: () => Promise.resolve([]),
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const { stop } = await runMatch(stepOver(tree), requestFor(destination));
     expect(stop)
@@ -340,17 +322,15 @@ describe("a gate or a load that fails", () => {
 
   test("a loader that throws as it is called fails the navigation, and is not kept", async () => {
     let attempts = 0;
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        loadChildren: () => {
-          attempts += 1;
-          throw new Error("bad chunk");
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      loadChildren: () => {
+        attempts += 1;
+        throw new Error("bad chunk");
+      },
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const step = stepOver(tree);
     const { stop } = await runMatch(step, requestFor(destination));
@@ -363,17 +343,15 @@ describe("a gate or a load that fails", () => {
 
   test("two navigations that reach a lazy route at once share one load", async () => {
     let loads = 0;
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        loadChildren: () => {
-          loads += 1;
-          return Promise.resolve([{ path: "", component: class {} }]);
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      loadChildren: () => {
+        loads += 1;
+        return Promise.resolve([{ path: "", component: class {} }]);
+      },
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const step = stepOver(tree);
     const [first, second] = await Promise.all([
@@ -408,19 +386,17 @@ describe("cancelling a navigation", () => {
   /** A lazy tree whose loader records its signal, and resolves when `finish` is called. */
   function deferredTree(signals: AbortSignal[]): { tree: Route; finish: () => void } {
     let finish: () => void = () => undefined;
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        loadChildren: (signal) => {
-          signals.push(signal);
-          return new Promise((resolve) => {
-            finish = () => resolve([{ path: "", component: class {} }]);
-          });
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      loadChildren: (signal) => {
+        signals.push(signal);
+        return new Promise((resolve) => {
+          finish = () => resolve([{ path: "", component: class {} }]);
+        });
+      },
+    }]);
     return { tree, finish: () => finish() };
   }
 
@@ -480,18 +456,16 @@ describe("cancelling a navigation", () => {
   test("a navigation cancelled while a gate waits starts no further gate", () => {
     const { gate, finish } = heldGate();
     let later = 0;
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
+      component: class {} }, [{
+      path: "/home",
       component: class {},
-      children: [{
-        path: "/home",
-        component: class {},
-        canMatch: [gate, () => {
-          later += 1;
-          return succeed(new AllowCommand());
-        }],
+      canMatch: [gate, () => {
+        later += 1;
+        return succeed(new AllowCommand());
       }],
-    };
+    }]);
     const destination = builderOver(declared)
       .to("home")
       .build();
@@ -505,18 +479,16 @@ describe("cancelling a navigation", () => {
   test("a navigation cancelled while a lazy route's canMatch waits does not load the children", () => {
     const { gate, finish } = heldGate();
     let loads = 0;
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        canMatch: [gate],
-        loadChildren: () => {
-          loads += 1;
-          return Promise.resolve([]);
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      canMatch: [gate],
+      loadChildren: () => {
+        loads += 1;
+        return Promise.resolve([]);
+      },
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const { cancel } = startMatch(stepOver(tree), requestFor(destination));
     cancel();
@@ -528,20 +500,18 @@ describe("cancelling a navigation", () => {
   test("a load aborted late does not forget the load that a later navigation started", async () => {
     let loads = 0;
     const finishers: Array<() => void> = [];
-    const tree: Route = {
+    const tree: Route = nested({
       path: "",
-      component: class {},
-      children: [{
-        path: "/lazy",
-        loadChildren: (signal) => {
-          loads += 1;
-          return new Promise((resolve, reject) => {
-            signal.addEventListener("abort", () => reject(new Error("aborted")));
-            finishers.push(() => resolve([{ path: "", component: class {} }]));
-          });
-        },
-      }],
-    };
+      component: class {} }, [{
+      path: "/lazy",
+      loadChildren: (signal) => {
+        loads += 1;
+        return new Promise((resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("aborted")));
+          finishers.push(() => resolve([{ path: "", component: class {} }]));
+        });
+      },
+    }]);
     const destination = makeAppPath([{ kind: "segment", value: "lazy" }], {}, undefined);
     const step = stepOver(tree);
     startMatch(step, requestFor(destination))
