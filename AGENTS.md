@@ -65,6 +65,11 @@ An AI agent must not change that API on its own.
   `npm run typecheck`, `npm run build`. Report any failure with its output.
 - Regenerate the repo map after changing exports or imports:
   `npm run repo-map -- --format markdown`.
+- Every commit removes the dead code it leaves behind: functions, types,
+  exports, parameters, branches, and tests that nothing uses any more. Search
+  for each name you stop using (`grep -rn`) before the commit, and delete it in
+  the same commit. A commit that makes code dead without removing it is not
+  finished.
 - Do not skip tests, or add a disable comment or coverage exclusion to get
   green, without a clear reason written next to it.
 - Document every new feature accurately: what it does, its syntax, and what it
