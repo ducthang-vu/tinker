@@ -163,7 +163,7 @@ describe("compileComponents", () => {
     const { host, errors, warnings } = recordingHost({ "./item.ts": fixture("item.ts") });
     await compileComponents(`
       import { Item } from "./item.ts";
-      @Component({ selector: "tk-a", template: "<p item>{{ x() }}</p>", imports: [Item] }) class A {}
+      @Component({ selector: "tk-a", template: "<p item>{{ x() }}</p>", imports: [Item] }) class A { x = () => 1; }
     `, "/app/a.ts", host);
     expect(errors)
       .toEqual([]);
@@ -780,5 +780,51 @@ describe("built-in template function names", () => {
     await expect(result)
       .rejects
       .toThrow("has the name of a built-in template function: \"flow\"");
+  });
+});
+
+describe("names a template reads", () => {
+  test("a name the component does not have fails the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "<p>{{ missing }}</p>" }) class Page { title = "x"; }`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .rejects
+      .toThrow("the template reads \"missing\", which Page does not have");
+  });
+
+  test("a member of the component, and a @let it declares, are names the template may read", async () => {
+    const { result } = transform(
+      `@Component({ template: "@let total = count;<p>{{ total }}</p>" }) class Page { count = 1; }`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+  });
+
+  test("a class that extends another is not checked: a warning, and its template still compiles", async () => {
+    const { result, context } = transform(
+      `@Component({ template: "<p>{{ inherited }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .resolves
+      .toBeDefined();
+    expect(context.warn)
+      .toHaveBeenCalledWith(expect.stringContaining("names are not checked"));
+  });
+
+  test("in strict mode, a class that extends another cannot be checked: the build fails", async () => {
+    const { result } = transform(
+      `@Component({ template: "<p>{{ inherited }}</p>" }) class Page extends Base {}`,
+      "/app/page.ts",
+      {},
+      { strict: true },
+    );
+    await expect(result)
+      .rejects
+      .toThrow("cannot be checked");
   });
 });

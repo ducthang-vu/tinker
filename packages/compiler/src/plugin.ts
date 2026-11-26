@@ -25,7 +25,7 @@ import { type Either, match, map, type Maybe, run } from "@tinker/functional";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
-import { BUILT_IN_NAMES, compileSource, emitCompiled, type ImportedSelector, TemplateCompileError } from "@tinker/core/compiler";
+import { BUILT_IN_NAMES, compileSource, emitCompiled, type ImportedSelector, namesIn, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import type { Plugin } from "vite";
 import {
@@ -420,12 +420,58 @@ async function replacementFor(
     return { selector: imported.selector, isComponent: imported.isComponent, type,
       ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }) };
   });
+  if (declaration.extendsAnother) {
+    unchecked(host, mode, where, "it extends another class, so its inherited members are not read");
+  }
   return match(compileSource(template.text, list), {
     Left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
-    Right: (nodes) => mode.emit
-      ? emitted(template, emitCompiled(nodes, classes, HELPERS), where, host)
-      : undefined,
+    Right: (nodes) => {
+      if (!declaration.extendsAnother) {
+        checkNames(nodes, declaration, imports.functions, where, host);
+      }
+      return mode.emit
+        ? emitted(template, emitCompiled(nodes, classes, HELPERS), where, host)
+        : undefined;
+    },
   });
+}
+
+/**
+ * The names a template reads must be the component's members, names the template declares, its
+ * imported template functions, or built-ins. Anything else stops the build: a read the component
+ * does not have would only fail at run time.
+ */
+function checkNames(
+  nodes: unknown,
+  declaration: Declaration,
+  functions: readonly ImportedFunction[],
+  where: string,
+  host: CheckHost,
+): void {
+  const names = namesIn(nodes);
+  const known = new Set<string>([
+    ...declaration.members,
+    ...names.declared,
+    ...functions.map((fn) => fn.templateName),
+    ...BUILT_IN_NAMES,
+  ]);
+  for (const name of names.read) {
+    // A `$` name is a special of the template (`$index`, `$event`), not a member.
+    if (!known.has(name) && !name.startsWith("$")) {
+      host.error(`${where}: the template reads "${name}", which ${declaration.name} does not have`);
+    }
+  }
+}
+
+/**
+ * A component whose names cannot be checked: an error in strict mode, a warning otherwise. Its
+ * template is still compiled.
+ */
+function unchecked(host: CheckHost, mode: CompileMode, where: string, reason: string): void {
+  if (mode.strict) {
+    host.error(`${where} cannot be checked: ${reason}`);
+  }
+  host.warn(`${where}: names are not checked: ${reason}`);
 }
 
 /** The replacement of the template's text by its compiled expression, or the error stopping it. */

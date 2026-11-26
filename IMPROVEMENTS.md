@@ -253,3 +253,23 @@ when it sits in a workspace folder (`examples/` or `packages/`).
 
 **To do.** Publish the packages, so an app outside the repository installs them from a
 registry. Until then, create the app with `--dir examples` or `--dir packages`.
+
+## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
+
+### 1. The name check is not scoped
+
+**Problem.** A name the template declares anywhere (a `@let`, a `@map` item, a binding, a reference) counts as known everywhere in the template. A name used outside the block that declares it therefore passes the build and fails at run time.
+
+**To do.** Check names against the scope they are used in, as the template compiler does for references.
+
+### 2. Classes that extend another are not checked
+
+**Problem.** The members a class inherits are not read at build time, so its names are not checked. In strict mode the build fails for such a component; otherwise it warns.
+
+**To do.** Read the base class when the build can resolve it.
+
+### 3. Expressions are not type checked
+
+**Problem.** The build checks that a name exists, not what it is. A wrong argument type, or calling a field that is not a function, fails only at run time.
+
+**To do.** Generate a type-check file for each template, with the component typed as its class, so `npm run typecheck` reports them.
