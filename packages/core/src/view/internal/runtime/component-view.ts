@@ -28,6 +28,61 @@ export class ComponentViewFactory {
   }
 }
 
+/**
+ * What one render of a template creates, in a component's view: the element contexts of its
+ * template, the watch that updates it, its directives and child components, and their destroy
+ * callbacks. Destroying it leaves the component itself (its injector, its state) alone, so its
+ * template can be rendered again. Inputs are recorded on the component's view, where its
+ * bindings look them up.
+ */
+export class RenderScope implements View {
+  private readonly callbacks: (() => void)[] = [];
+  private readonly contexts: ElementContext[] = [];
+  private isDestroyed = false;
+
+  constructor(
+    private readonly owner: Pick<View, "addInputs">,
+    readonly node: ViewNode,
+  ) {}
+
+  /** Run `callback` when the scope is destroyed (right away if it already is). */
+  addDestroyCallback(callback: () => void): void {
+    if (this.isDestroyed) {
+      callback();
+      return;
+    }
+    this.callbacks.push(callback);
+  }
+
+  /** Record the inputs of a directive in the template: its component's view looks them up. */
+  addInputs(directive: object, inputs: ReadonlyMap<string, InputBinding<unknown>>): void {
+    this.owner.addInputs(directive, inputs);
+  }
+
+  /** Record the context of an element of the template. */
+  addElement(context: ElementContext): void {
+    this.contexts.push(context);
+  }
+
+  /**
+   * Destroy the scope: the views of the components on its elements, then its destroy callbacks
+   * (most recent first). Calling it again does nothing.
+   */
+  destroy(): void {
+    if (this.isDestroyed) {
+      return;
+    }
+    this.isDestroyed = true;
+    for (const context of this.contexts.splice(0)) {
+      use(context.componentView, { Some: (view) => view.destroy(), None: () => undefined });
+    }
+    for (const callback of this.callbacks.splice(0)
+      .reverse()) {
+      callback();
+    }
+  }
+}
+
 export class ComponentView<T> implements View {
   private readonly contexts: ElementContext[] = [];
   private readonly destroyCallbacks: (() => void)[] = [];
@@ -94,6 +149,16 @@ export class ComponentView<T> implements View {
 
   private inputNamed(name: string): Either<{ bind(value: unknown): void }, Error> {
     return match(this.input(this.component as object, name), { Some: (input) => Right.of(input), None: () => Left.of(new Error(`${(this.component as object).constructor.name} has no input "${name}"`)) });
+  }
+
+  /**
+   * A render scope of this view, destroyed with it: what a render of the template creates goes in
+   * it. Create it where its destruction should run, among the other destroy callbacks.
+   */
+  renderScope(): RenderScope {
+    const scope = new RenderScope(this, this.node);
+    this.addDestroyCallback(() => scope.destroy());
+    return scope;
   }
 
   /** Run `callback` when the view is destroyed (right away if it already is). */

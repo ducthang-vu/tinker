@@ -384,22 +384,24 @@ export class ComponentFactory {
     view.addDestroyCallback(() => rootCleanups.forEach((cleanup) => cleanup()));
     // Its outputs are over when it is: the templates subscribed to them are told.
     view.addDestroyCallback(partial(endOutputs, instance));
+    // What the template renders (its watch, directives, child components) goes in a render scope.
+    const render = view.renderScope();
     // The component's inputs live on its own view: `view.setInput` binds them.
     view.addInputs(instance, inputsOf(instance));
     // In a template: the element's inputs are set (attributes, then bindings), before it renders.
     child?.setInputs(instance);
     // Its host directives, on its host element (their host bindings: below).
     const hostBindings = hostDirectives.flatMap((directive, i) =>
-      this.directives.attach(directive, hostInstances[i]!, host, view));
+      this.directives.attach(directive, hostInstances[i]!, host, render));
     // In a template: its element's input bindings, then the directives and
     // child components of its own template's elements, now that its view
     // exists, and before the first render.
-    template.createDirectivesAndComponents(view, ownInjector.injector);
+    template.createDirectivesAndComponents(render, ownInjector.injector);
     // Its own host bindings: listeners now. The class bindings (with its host
     // directives') belong to whichever view contains its host element: the
     // parent's for a component in a template, which updates them with its
     // own bindings on that element; its own view for a root component.
-    hostBindings.push(...this.directives.applyHost(type, instance, host, view));
+    hostBindings.push(...this.directives.applyHost(type, instance, host, render));
     if (child) {
       child.adoptHostBindings(hostBindings);
     } else {
@@ -411,7 +413,7 @@ export class ComponentFactory {
     // The first render waits for the next tick, after the caller has bound the inputs
     // (see `create`). Effects of that tick run before the views, so an effect sees them too.
     const viewWatch = watch(() => template.update(), this.changeDetection.views.forNode(node));
-    view.addDestroyCallback(() => viewWatch.destroy());
+    render.addDestroyCallback(() => viewWatch.destroy());
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);
