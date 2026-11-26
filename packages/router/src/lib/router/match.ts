@@ -45,16 +45,6 @@ export function matchChain(root: Route, url: string): readonly LevelMatch[] | un
 }
 
 /**
- * The leaf that matches `url`, with the params of every level, or undefined when none does.
- * @param root
- * @param url
- * @returns The leaf route and its params, or undefined when no route matches.
- */
-export function matchRoute(root: Route, url: string): RouteMatch | undefined {
-  return matchOfChain(matchChain(root, url));
-}
-
-/**
  * The leaf of a chain of levels, with the params of every level.
  *
  * @param chain The levels, root first, or undefined when no route matches.

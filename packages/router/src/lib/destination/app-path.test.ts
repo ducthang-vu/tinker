@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isAppPath, makeAppPath, type Segment } from "./app-path.ts";
+import { makeAppPath, type Segment } from "./app-path.ts";
 
 const todo: Segment[] = [
   { kind: "segment", value: "todos" },
@@ -65,24 +65,5 @@ describe("an app path is fixed once made", () => {
       .toEqual(todo);
     expect(path.fragment)
       .toBe("top");
-  });
-});
-
-describe("telling an app path from another value", () => {
-  test("a value made by the builder is an app path", () => {
-    expect(isAppPath(makeAppPath([], {}, undefined)))
-      .toBe(true);
-  });
-
-  test("an object with the same shape but without the brand is not", () => {
-    expect(isAppPath({ segments: [], query: {}, fragment: undefined, format: () => "/" }))
-      .toBe(false);
-  });
-
-  test("null and primitives are not app paths", () => {
-    expect(isAppPath(null))
-      .toBe(false);
-    expect(isAppPath("/todos"))
-      .toBe(false);
   });
 });

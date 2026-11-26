@@ -1,8 +1,11 @@
 import { expect, test } from "vitest";
-import { matchChain, matchRoute } from "./match.ts";
+import { matchChain, matchOfChain } from "./match.ts";
 import type { Route } from "./route.ts";
 
 class Page {}
+
+/** The leaf the URL matches, with its params, or undefined when no route takes it. */
+const matchRoute = (root: Route, url: string) => matchOfChain(matchChain(root, url));
 
 /** A route with no children. */
 const leaf = (path: string): Route => ({ path, component: Page });
