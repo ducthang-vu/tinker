@@ -17,7 +17,7 @@
 //   const upload = Stream.from<number, Response>((sink) => { ... });
 //   run(upload, { next: showProgress, ok: showResult, error: showError });
 
-import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "../monad/either.ts";
+import { Left, Right, toError, type Either } from "../monad/either.ts";
 import { type Chain, CHAIN, flatMap, type Functor, MAP } from "../functor/functor.ts";
 import { match, use } from "../monad/monad.ts";
 
@@ -263,8 +263,13 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
  * @param f The function to call.
  * @returns A Right of `f`'s result, or a Left of what it threw, as an Error.
  */
-const attemptAsError = <U>(f: () => U): Either<U, Error> =>
-  mapLeftEither(attempt(f, (error): error is Error => true), toError);
+function attemptAsError<U>(f: () => U): Either<U, Error> {
+  try {
+    return Right.of<U, Error>(f());
+  } catch (error) {
+    return Left.of<Error, U>(toError(error));
+  }
+}
 
 /**
  * Start the stream (each call is a new run) and tell `observer` its items and its end. Returns how

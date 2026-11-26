@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { EDGE_VALUES } from "../../testing.ts";
-import { attempt, Left, mapLeft, Right, toError, type Either, valueOrThrow } from "./either.ts";
+import { Left, mapLeft, Right, toError, type Either, valueOrThrow } from "./either.ts";
 import { flatMap, map } from "../functor/functor.ts";
 import { isEqual, match } from "./monad.ts";
 
@@ -46,30 +46,6 @@ describe("map, flatMap and mapLeft, data-first and data-last", () => {
       .toBe("right 1");
     expect(show(mapLeft((error: string) => error + "!")(Left.of("e"))))
       .toBe("left e!");
-  });
-});
-
-describe("attempt", () => {
-  const isError = (error: unknown): error is Error => error instanceof Error;
-
-  test("a Right of the result when fn succeeds", () => {
-    expect(show(attempt(() => 3, isError)))
-      .toBe("right 3");
-  });
-
-  test("a Left of what fn threw when the predicate accepts it", () => {
-    const failed = attempt(() => {
-      throw new Error("bad");
-    }, isError);
-    expect(show(failed))
-      .toBe("left Error: bad");
-  });
-
-  test("a throw the predicate rejects propagates: it is a bug", () => {
-    expect(() => attempt(() => {
-      throw "not an error";
-    }, isError))
-      .toThrow();
   });
 });
 
