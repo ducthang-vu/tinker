@@ -439,8 +439,9 @@ export class ComponentFactory {
         view.replaceNodes(current.build(this.templateOf(target, targetMetadata), projected));
         this.bindRender(view.renderScope(), { ...parts, template: current });
       });
-      trackRoot(type, view);
     }
+    // Every view is tracked: a component whose live views cannot render again is reloaded.
+    trackRoot(type, view);
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);

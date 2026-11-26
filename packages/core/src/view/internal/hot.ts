@@ -50,11 +50,13 @@ export function __tinkerHot(
   fingerprint: string,
   declared: readonly (readonly [string, object])[],
 ): void {
-  const changedCode = declared.some(([name]) => {
+  // A change of code, or a live view that cannot render again (one in a template), reloads.
+  const cannotUpdate = declared.some(([name]) => {
     const existing = components.get(`${file}#${name}`);
-    return existing !== undefined && existing.fingerprint !== fingerprint;
+    return existing !== undefined && (existing.fingerprint !== fingerprint
+      || [...existing.views].some((view) => !view.destroyed && !view.renderable));
   });
-  if (changedCode) {
+  if (cannotUpdate) {
     hot.invalidate();
     return;
   }

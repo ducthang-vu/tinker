@@ -192,6 +192,11 @@ export class ComponentView<T> implements View {
     }
   }
 
+  /** Whether this view can render its template again: see `rerender`. */
+  get renderable(): boolean {
+    return this.rerenderer !== undefined;
+  }
+
   /** Set how this view renders its template again: see `rerender`. */
   setRerender(rerender: (next?: object) => void): void {
     this.rerenderer = rerender;

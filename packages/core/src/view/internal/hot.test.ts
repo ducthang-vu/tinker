@@ -68,6 +68,20 @@ describe("__tinkerHot", () => {
       .toEqual(["accept", "accept"]);
   });
 
+  test("a component with a live view in a template cannot be updated in place: the page reloads", async () => {
+    const { hot, log } = hotStub();
+    @Component({ selector: "tk-child", template: "<p>child</p>" })
+    class Child {}
+    __tinkerHot(hot, "/hot/child.ts", "fp", [["Child", Child]]);
+    @Component({ selector: "tk-parent", template: "<tk-child></tk-child>", imports: [Child] })
+    class Parent {}
+    valueOrThrow(renderComponent(Engine.create(), Parent));
+    await tick();
+    __tinkerHot(hot, "/hot/child.ts", "fp", [["Child", Child]]);
+    expect(log)
+      .toEqual(["accept", "invalidate"]);
+  });
+
   test("after a template-only change, a new instance of the old class renders the new template", async () => {
     const { hot } = hotStub();
     @Component({ selector: "tk-old", template: "<p>old</p>" })

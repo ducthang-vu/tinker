@@ -4,6 +4,8 @@
 /** A root component's view, as the hot reload sees it. */
 export interface TrackedView {
   readonly destroyed: boolean;
+  /** Whether it can render its template again: a root view can, one in a template cannot. */
+  readonly renderable: boolean;
   /** Render its template again, from its instance, with `next`'s template (the class it now is). */
   rerender(next?: object): void;
 }
