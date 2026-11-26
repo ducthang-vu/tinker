@@ -79,6 +79,11 @@ An AI agent must not change that API on its own.
 - Record each known limitation of a new feature in `IMPROVEMENTS.md`, with the
   problem and what to do about it. A limitation left out of that file is one
   nobody will remember.
+- `IMPROVEMENTS.md` lists only what is still open: gaps, limitations and planned
+  work. Never write what is done, a changelog, or a status line such as "Done".
+  When a change finishes an entry, remove the entry in the same commit.
+- Before each commit, read `AGENTS.md` again and check the commit against it:
+  the dead-code search, the docs, and `IMPROVEMENTS.md`.
 - Do not open pull requests, or push to `main`, unless the user asks.
 - Before you open a pull request, rebase the branch onto the latest `main` (`git fetch origin main`, then `git rebase origin/main`), resolve any conflicts, and run the checks again. Open the pull request only after that. Regenerate generated files (the API reference, the repo maps) rather than picking a side in a conflict.
 - Before pushing, rebase the branch onto the latest `main` (`git fetch origin`, then
