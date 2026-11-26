@@ -59,5 +59,8 @@ jobs:
       - name: Example builds, and its bundle parses
         run: |
           npm run build:example
-          cp dist/example/assets/*.js /tmp/example-bundle.mjs
-          node --check /tmp/example-bundle.mjs
+          # Every chunk of the example is checked: the lazy API chunk is a file of its own.
+          for file in dist/example/assets/*.js; do
+            cp "$file" /tmp/example-bundle.mjs
+            node --check /tmp/example-bundle.mjs
+          done
