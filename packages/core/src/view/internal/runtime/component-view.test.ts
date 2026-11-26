@@ -159,3 +159,80 @@ describe("ComponentView", () => {
       .toBe(true);
   });
 });
+
+describe("RenderScope", () => {
+  test("destroying a render scope runs its own callbacks, most recent first, and not the view's", () => {
+    const { view } = makeView();
+    const log: string[] = [];
+    view.addDestroyCallback(() => log.push("view"));
+    const scope = view.renderScope();
+    scope.addDestroyCallback(() => log.push("first"));
+    scope.addDestroyCallback(() => log.push("second"));
+    scope.destroy();
+    expect(log)
+      .toEqual(["second", "first"]);
+    scope.destroy();
+    expect(log)
+      .toEqual(["second", "first"]);
+  });
+
+  test("a callback added after the scope is destroyed runs right away", () => {
+    const { view } = makeView();
+    const scope = view.renderScope();
+    scope.destroy();
+    const log: string[] = [];
+    scope.addDestroyCallback(() => log.push("late"));
+    expect(log)
+      .toEqual(["late"]);
+  });
+
+  test("inputs recorded through a scope are found on the component's view", () => {
+    const { view } = makeView();
+    const scope = view.renderScope();
+    class Tooltip {
+      readonly text = input<string>();
+    }
+    const tooltip = new Tooltip();
+    scope.addInputs(tooltip, inputsOf(tooltip));
+    expect(isNone(view.input(tooltip, "text")))
+      .toBe(false);
+  });
+
+  test("destroying the view destroys its scopes, once", () => {
+    const { view } = makeView();
+    const log: string[] = [];
+    const scope = view.renderScope();
+    scope.addDestroyCallback(() => log.push("scope"));
+    view.destroy();
+    expect(log)
+      .toEqual(["scope"]);
+    view.destroy();
+    expect(log)
+      .toEqual(["scope"]);
+  });
+
+  test("destroying a scope removes no node of the view, and destroying the view removes them", () => {
+    const { view, host, kept, nodes } = makeView();
+    const scope = view.renderScope();
+    scope.destroy();
+    expect(host.contains(kept))
+      .toBe(true);
+    expect(nodes.every((node) => host.contains(node)))
+      .toBe(true);
+    view.destroy();
+    expect(nodes.some((node) => host.contains(node)))
+      .toBe(false);
+  });
+
+  test("the component views of the elements recorded in a scope are destroyed with it", () => {
+    const { view } = makeView();
+    const scope = view.renderScope();
+    const context = new ElementContext(document.createElement("section"));
+    const child = new ComponentView(document.createElement("div"), {}, [], new DomRenderer(), {});
+    context.attachComponent(child);
+    scope.addElement(context);
+    scope.destroy();
+    expect(child.destroyed)
+      .toBe(true);
+  });
+});
