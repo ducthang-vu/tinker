@@ -306,33 +306,3 @@ export function run<T, R, E>(
     end: (result) => use(result, { Left: fail, Right: (value) => handlers.ok?.(value) }),
   });
 }
-
-/**
- * Transform the errors, of the items and of the end. Successes pass through.
- *
- * @param stream The stream whose errors to transform.
- * @param f The function applied to each error.
- * @returns A stream with the same values, and the errors transformed by `f`.
- */
-export function mapErrors<T, R, E, F>(stream: Stream<T, R, E>, f: (error: E) => F): Stream<T, R, F>;
-/**
- * Transform the errors, of the items and of the end. Successes pass through.
- *
- * @param f The function applied to each error.
- * @returns A function that takes a stream and transforms its errors with `f`.
- */
-export function mapErrors<E, F>(
-  f: (error: E) => F,
-): <T, R>(stream: Stream<T, R, E>) => Stream<T, R, F>;
-export function mapErrors(...args: readonly unknown[]): unknown {
-  if (args.length === 1) {
-    const [f] = args as [(error: unknown) => unknown];
-    return (stream: Stream<unknown, unknown, unknown>) => mapErrors(stream, f);
-  }
-  const [stream, f] = args as [Stream<unknown, unknown, unknown>, (error: unknown) => unknown];
-  return Stream.from<unknown, unknown, unknown>((sink) =>
-    subscribe(stream, {
-      next: (item) => sink.next(mapLeftEither(item, f)),
-      end: (result) => sink.end(mapLeftEither(result, f)),
-    })) as Stream<unknown, unknown, unknown>;
-}

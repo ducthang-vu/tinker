@@ -36,7 +36,6 @@ export {
   Stream,
   run,
   subscribe,
-  mapErrors,
 } from "./lib/stream/stream.ts";
 export type {
   Cancel,
