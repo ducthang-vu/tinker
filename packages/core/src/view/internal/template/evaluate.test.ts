@@ -339,4 +339,20 @@ describe("evaluate: pipes and the built-in flow", () => {
     expect(() => run("$flow(1)(1)", {}))
       .toThrow("flow takes functions only");
   });
+
+  describe("evaluate: forbidden members", () => {
+    test("a template may not read the constructor, the prototype or __proto__ of a value", () => {
+      expect(() => run("title.constructor.constructor(\"return 1\")()", { title: "x" }))
+        .toThrow("The template may not read \"constructor\"");
+      expect(() => run("items.prototype", { items: [] }))
+        .toThrow("The template may not read \"prototype\"");
+      expect(() => run("items.__proto__", { items: [] }))
+        .toThrow("The template may not read \"__proto__\"");
+    });
+
+    test("ordinary members are read as before", () => {
+      expect(run("items.length", { items: [1, 2] }))
+        .toBe(2);
+    });
+  });
 });

@@ -25,7 +25,7 @@ import { type Either, match, map, type Maybe, run } from "@tinker/functional";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
-import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError, unknownReads } from "@tinker/core/compiler";
+import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, forbiddenMembersIn, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError, unknownReads } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
@@ -435,6 +435,9 @@ async function replacementFor(
   return match(compileSource(template.text, list), {
     Left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
     Right: (nodes) => {
+      for (const name of forbiddenMembersIn(nodes)) {
+        host.error(`${where}: the template reads "${name}", which a template may not do`);
+      }
       if (inherited.isRead) {
         const members = [...declaration.members, ...inherited.members];
         checkNames(nodes, declaration, members, imports.functions, where, host);

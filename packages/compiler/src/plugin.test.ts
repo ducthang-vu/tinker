@@ -980,4 +980,16 @@ describe("members a component inherits", () => {
     expect(context.warn)
       .toHaveBeenCalledWith(expect.stringContaining("extends an expression"));
   });
+
+  describe("forbidden members", () => {
+    test("a template that reads the constructor of a value fails the build", async () => {
+      const { result } = transform(
+        `@Component({ template: "<p>{{ title.constructor }}</p>" }) class Page { title = "x"; }`,
+        "/app/page.ts",
+      );
+      await expect(result)
+        .rejects
+        .toThrow("the template reads \"constructor\", which a template may not do");
+    });
+  });
 });

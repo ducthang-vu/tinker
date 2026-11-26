@@ -193,7 +193,16 @@ function operate(operator: BinaryOperator, left: unknown, right: unknown): unkno
   }
 }
 
+/**
+ * The members a template may never read: they reach the code of the value (its constructor is
+ * `Function`, whose calls run code), or its prototype. A template that names one is refused.
+ */
+export const FORBIDDEN_MEMBERS: ReadonlySet<string> = new Set(["constructor", "__proto__", "prototype"]);
+
 function read(receiver: unknown, name: string): unknown {
+  if (FORBIDDEN_MEMBERS.has(name)) {
+    throw new TypeError(`The template may not read "${name}"`);
+  }
   return (receiver as Record<string, unknown>)[name];
 }
 

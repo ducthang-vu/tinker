@@ -1,4 +1,5 @@
 import type { CompiledNode } from "./compile.ts";
+import { FORBIDDEN_MEMBERS } from "./evaluate.ts";
 
 // The names a compiled template reads from its component, and the names it declares.
 //
@@ -187,4 +188,32 @@ function readInto(
 /** `scope` with `names` added. */
 function withNames(scope: ReadonlySet<string>, names: readonly string[]): ReadonlySet<string> {
   return new Set([...scope, ...names]);
+}
+
+/**
+ * The forbidden members a compiled template reads (`constructor`, `__proto__`, `prototype`), each
+ * once. The run time refuses them too; the build refuses them so the page is never built.
+ *
+ * @param nodes The compiled nodes, or any tree of values that contains them.
+ * @returns The forbidden member names read.
+ */
+export function forbiddenMembersIn(nodes: unknown): string[] {
+  const found = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      value.forEach(walk);
+      return;
+    }
+    if (typeof value !== "object" || value === null) {
+      return;
+    }
+    const node = value as Record<string, unknown>;
+    if (node.kind === "property" && typeof node.name === "string" && FORBIDDEN_MEMBERS.has(node.name)) {
+      found.add(node.name);
+    }
+    Object.values(node)
+      .forEach(walk);
+  };
+  walk(nodes);
+  return [...found];
 }
