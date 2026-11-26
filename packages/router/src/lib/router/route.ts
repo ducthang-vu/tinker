@@ -56,9 +56,10 @@ export interface Route {
   readonly canMatch?: readonly RouteGate[];
   /**
    * The children of the route, loaded the first time a navigation reaches it. The loader receives a
-   * signal that is aborted when every navigation waiting for the load has been superseded, so the
-   * download can stop. A route that has `children` does not use this. Once loaded, the children are
-   * kept, so the route loads once.
+   * signal that is aborted when every navigation waiting for the load has been superseded. A loader
+   * that passes the signal to `fetch` stops its download; a loader using `import()` cannot be
+   * stopped once started, and its children are still kept for the next navigation. A route that has
+   * `children` does not use this. Once loaded, the children are kept, so the route loads once.
    */
   readonly loadChildren?: (signal: AbortSignal) => Promise<readonly Route[]>;
 }

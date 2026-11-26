@@ -222,7 +222,9 @@ A route can load its children when a navigation first reaches it:
   The loaded children are kept with the route, so later navigations use them.
 - A load that is still running is shared by the navigations that wait for it.
 - The loader receives a signal. It is aborted when the navigations waiting for
-  the load have all been superseded, so the download can stop.
+  the load have all been superseded. A loader that passes it to `fetch` stops
+  its download. A loader using `import()` cannot be stopped once it has started,
+  and its children are still kept for the next navigation.
 - A failed load is not kept, so a later navigation tries again.
 - `canMatch` runs before the load. A `STOP` skips the route, so its children
   are not downloaded. A `REDIRECT` sends the navigation elsewhere.
@@ -256,8 +258,6 @@ to replace it.
 - There are no resolvers: data is not loaded before a route is shown.
 - Lazy routes have no preloading and no retry policy. A failed load is retried
   only by the next navigation to it.
-- A superseded navigation is cancelled, but a loader that ignores its signal
-  keeps downloading.
 - The trace of a navigation (`meta`) is `unknown[]`. It is for debugging, and
   the app does not act on it.
 - `canMatch` skips a route, it does not reject the navigation. A navigation no
