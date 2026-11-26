@@ -10,9 +10,12 @@
 // exit code: 0 when the command succeeded, 1 when `dev` or `build` failed, and 2 for a usage or
 // input error, with the message on stderr. `dev` returns once the server is listening.
 
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { type ParseArgsOptionsConfig, parseArgs } from "node:util";
 import { createApp } from "./new.ts";
-import { type AppOptions, buildApp, serveApp } from "./vite-commands.ts";
+import { type AppOptions, buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 /** Where the command writes its messages. */
 export interface Output {
@@ -20,7 +23,48 @@ export interface Output {
   readonly error: (line: string) => void;
 }
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>]";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
+
+/** What `tinker --help` prints: each command, and what it does. */
+const HELP = `${USAGE.replace("Usage: ", "Usage:\n  ")
+  .replaceAll(" | ", "\n  ")}
+
+Commands:
+  new <name>      write a new Tinker app into <parent>/<name> (the current folder, or --dir)
+  dev             serve the app in the current folder, until it is stopped
+  build           build the app in the current folder into dist/
+  preview         serve the built dist/ folder, until it is stopped (run build first)
+
+Options:
+  -p, --port <n>  the port, a number from 1 to 65535 (dev and preview)
+  --base <path>   the folder the app is served under, such as /tinker/ (dev, build, preview)
+  --dir <parent>  the folder to write the new app into (new)
+  -h, --help      print this help
+  -v, --version   print the version`;
+
+/**
+ * The version of this package. The code is bundled into `dist/assets/` in a build, so the package
+ * is found by walking up from this file to the folder whose package.json is this package's.
+ */
+function versionOf(): string {
+  return findVersion(dirname(fileURLToPath(import.meta.url)));
+}
+
+/** The version in the package.json of `@tinker/cli`, found from `folder` upward. */
+export function findVersion(folder: string): string {
+  for (let current = folder; ; current = dirname(current)) {
+    const file = join(current, "package.json");
+    if (existsSync(file)) {
+      const manifest = JSON.parse(readFileSync(file, "utf8")) as { name?: string; version: string };
+      if (manifest.name === "@tinker/cli") {
+        return manifest.version;
+      }
+    }
+    if (dirname(current) === current) {
+      throw new Error("The version of @tinker/cli could not be found");
+    }
+  }
+}
 
 /** The options `dev` and `build` take, besides `--base`, which both take. */
 const BASE_OPTION = { base: { type: "string" } } as const;
@@ -29,6 +73,18 @@ const PORT_OPTION = { port: { type: "string", short: "p" } } as const;
 /** Runs the command with its arguments (without the program name). Returns the exit code. */
 export async function run(args: readonly string[], output: Output): Promise<number> {
   const [command, ...rest] = args;
+  if (command === undefined || command === "--help" || command === "-h" || command === "help") {
+    output.log(HELP);
+    return 0;
+  }
+  if (command === "--version" || command === "-v") {
+    output.log(versionOf());
+    return 0;
+  }
+  if (rest.includes("--help") || rest.includes("-h")) {
+    output.log(HELP);
+    return 0;
+  }
   if (command === "new") {
     return newApp(rest, output);
   }
@@ -36,10 +92,14 @@ export async function run(args: readonly string[], output: Output): Promise<numb
     return appCommand(rest, output, { ...PORT_OPTION, ...BASE_OPTION }, (options) =>
       serveApp(process.cwd(), options));
   }
+  if (command === "preview") {
+    return appCommand(rest, output, { ...PORT_OPTION, ...BASE_OPTION }, (options) =>
+      previewApp(process.cwd(), options));
+  }
   if (command === "build") {
     return appCommand(rest, output, BASE_OPTION, (options) => buildApp(process.cwd(), options));
   }
-  output.error(command === undefined ? USAGE : `Unknown command "${command}". ${USAGE}`);
+  output.error(`Unknown command "${command}". ${USAGE}`);
   return 2;
 }
 

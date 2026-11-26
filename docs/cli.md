@@ -10,7 +10,8 @@ The folder must not exist yet, or must be empty, so nothing is overwritten.
 
 The app has:
 
-- `package.json`: the scripts `dev` (`tinker dev`) and `build` (`tinker build`), the Tinker
+- `package.json`: the scripts `dev` (`tinker dev`), `build` (`tinker build`) and `preview`
+  (`tinker preview`), the Tinker
   packages as dependencies, and `@tinker/cli`.
 - `index.html`, which holds the root element `<tk-app>`.
 - `vite.config.ts`, which takes its plugins and aliases from `tinkerConfig()` of `@tinker/compiler`
@@ -24,7 +25,7 @@ npm install
 npm run dev
 ```
 
-## `tinker dev` and `tinker build`
+## `tinker dev`, `tinker build` and `tinker preview`
 
 Run in the app's folder. They use Vite, which is a dependency of `@tinker/cli`, so the app does
 not name it.
@@ -33,11 +34,20 @@ not name it.
   keeps running until it is stopped. The port is a number from 1 to 65535; without `--port` Vite
   picks its default. `--port=<n>` works too.
 - `tinker build [--base <path>]` builds the app into its `dist/` folder.
+- `tinker preview [--port <n> | -p <n>] [--base <path>]` serves the built `dist/` folder, as a
+  host would, until it is stopped. It needs `tinker build` first: without `dist/`, it refuses.
 
 `--base` is the folder the app is served under. It starts and ends with `/`, such as
 `/tinker/` for a project site on GitHub Pages; the default is `/`. Both commands write it into
 the page's `<base>` element, which the router reads, so the app routes correctly under that
 folder. A path that does not start and end with `/` is refused.
+
+## `--help` and `--version`
+
+- `tinker` with no command, `tinker --help`, `tinker -h` and `tinker help` print the list of
+  commands and options, and exit with 0. `--help` after a command (such as `tinker dev --help`)
+  prints the same list and runs nothing.
+- `tinker --version` and `tinker -v` print the version of `@tinker/cli`, and exit with 0.
 
 ## Exit codes
 
