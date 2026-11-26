@@ -1,6 +1,6 @@
 // The app commands, over Vite: `tinker dev` serves the app in `root`, and `tinker build` builds
 // it into its `dist` folder. Vite is a dependency of this package, not of the app, so an app
-// never names it: its config is the Tinker preset (see the `tinkerVite` of @tinker/compiler).
+// never names it: its config is the Tinker preset (see the `tinkerConfig` of @tinker/compiler).
 
 import { build, createServer } from "vite";
 
