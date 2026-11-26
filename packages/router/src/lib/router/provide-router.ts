@@ -10,6 +10,7 @@ import { browserPlatformLocation, PLATFORM_LOCATION } from "../location/platform
 import { Router } from "./router.ts";
 import { AppPathBuilder } from "../destination/app-path-builder.ts";
 import type { Route } from "./route.ts";
+import { seedChildren } from "./lazy-children.ts";
 
 /**
  * The providers for a router over `routes`, the top-level routes of the app, using the browser's
@@ -20,7 +21,8 @@ import type { Route } from "./route.ts";
  */
 export function provideRouter(routes: readonly Route[]): readonly Provider[] {
   // The router matches over one tree: the routes are the children of a root that is never shown.
-  const root: Route = { path: "", children: routes };
+  const root: Route = { path: "", loadChildren: () => Promise.resolve(routes) };
+  seedChildren(root, routes);
   return [
     provide(PLATFORM_LOCATION, { useValue: browserPlatformLocation }),
     provide(Location, { useClass: Location }),

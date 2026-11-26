@@ -41,6 +41,17 @@ export function loadedChildrenOf(route: Route): readonly Route[] | undefined {
 }
 
 /**
+ * Records the children of a route as already loaded. The router uses it for its own root, whose
+ * routes it was given, so the root needs no loader.
+ *
+ * @param route The route the children belong to.
+ * @param children The routes under it.
+ */
+export function seedChildren(route: Route, children: readonly Route[]): void {
+  loaded.set(route, children);
+}
+
+/**
  * Holds the load of the children of `route`, starting it with `loader` unless a load is running.
  *
  * @param route The route with loadChildren.

@@ -1,3 +1,4 @@
+import { nested } from "./test-builder.ts";
 import { describe, expect, test } from "vitest";
 import { Injector, inject, provide, runInInjectionContext, signal } from "@tinker/core";
 import { provideRouter } from "../router/provide-router.ts";
@@ -11,14 +12,12 @@ class Page {}
 
 /** The todos (a list under `""`, a detail under `:id`) and a home page. */
 const TREE: Route[] = [
-  {
+  nested({
     path: "todos",
-    component: Page,
-    children: [
-      { path: "", component: Page },
-      { path: ":id", component: Page },
-    ],
-  },
+    component: Page }, [
+    { path: "", component: Page },
+    { path: ":id", component: Page },
+  ]),
   { path: "home", component: Page },
 ];
 
@@ -107,7 +106,7 @@ describe("steps that add segments", () => {
 
   test("a path that stops short of a route cannot be built: build throws, naming the segment", () => {
     const group: Route[] = [
-      { path: "group", component: Page, children: [{ path: ":id", component: Page }] },
+      nested({ path: "group", component: Page }, [{ path: ":id", component: Page }]),
     ];
     const error = errorOf(() => builderOver(group)
       .to("group")
@@ -410,15 +409,11 @@ describe("a lazy route that is not loaded yet", () => {
 });
 
 describe("an empty-path route that is a layout", () => {
-  const LAYOUT: Route[] = [{
+  const LAYOUT: Route[] = [nested({
     path: "shell",
-    component: Page,
-    children: [{
-      path: "",
-      component: Page,
-      children: [{ path: ":id", component: Page }],
-    }],
-  }];
+    component: Page }, [nested({
+    path: "",
+    component: Page }, [{ path: ":id", component: Page }])])];
 
   test("a segment below the layout is taken through it, and the layout writes nothing", () => {
     expect(builderOver(LAYOUT)
@@ -429,11 +424,9 @@ describe("an empty-path route that is a layout", () => {
   });
 
   test("a segment that no child of the layout takes is a no-route error", () => {
-    const listOnly: Route[] = [{
+    const listOnly: Route[] = [nested({
       path: "shell",
-      component: Page,
-      children: [{ path: "", component: Page, children: [{ path: "list", component: Page }] }],
-    }];
+      component: Page }, [nested({ path: "", component: Page }, [{ path: "list", component: Page }])])];
     const error = errorOf(() => builderOver(listOnly)
       .to("shell", "nope"));
     expect(error.reason)

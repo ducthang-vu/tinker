@@ -110,7 +110,7 @@ function levelsFrom(
     params: consumed.params,
     segments: segments.slice(0, consumed.count),
   };
-  const children = route.children ?? loadedChildrenOf(route);
+  const children = loadedChildrenOf(route);
   if (children === undefined) {
     if (route.loadChildren !== undefined) {
       return [{ ...own, unchecked: rest }];

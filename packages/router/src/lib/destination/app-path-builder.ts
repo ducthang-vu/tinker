@@ -287,8 +287,7 @@ function ancestryOf(route: ActivatedRoute): readonly ActivatedRoute[] {
  * @returns True when the route loads its children and has not loaded them.
  */
 function isUnloadedLazy(route: Route): boolean {
-  return route.children === undefined
-    && route.loadChildren !== undefined
+  return route.loadChildren !== undefined
     && loadedChildrenOf(route) === undefined;
 }
 
@@ -313,7 +312,7 @@ function withUnchecked(levels: readonly Level[], values: readonly string[]): rea
  * @returns The children, or none.
  */
 function childrenOf(node: Route): readonly Route[] {
-  return node.children ?? loadedChildrenOf(node) ?? [];
+  return loadedChildrenOf(node) ?? [];
 }
 
 /**

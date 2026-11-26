@@ -29,18 +29,8 @@ interface RouteCommon {
   readonly canMatch?: readonly RouteGate[];
 }
 
-/** The children of a route, or the loader that loads them, never both. */
-type Nesting
-  = | {
-    /** The routes under this one, matched against the segments its path leaves over. */
-    readonly children: readonly Route[];
-    readonly loadChildren?: never;
-  }
-  | {
-    /** Loads the routes under this one the first time a navigation reaches it. */
-    readonly loadChildren: (signal: AbortSignal) => Promise<readonly Route[]>;
-    readonly children?: never;
-  };
+/** The loader of the routes under a route. It runs the first time a navigation reaches it. */
+type Nesting = { readonly loadChildren: (signal: AbortSignal) => Promise<readonly Route[]> };
 
 /** Guards and static data: what a route that shows something, or groups children, has. */
 interface RouteGuards {
@@ -73,8 +63,6 @@ export interface RedirectRoute extends RouteCommon {
   readonly redirect: (request: MatchedRequest) => AppPath | undefined;
   /** A redirect route shows nothing, so it has no component. */
   readonly component?: never;
-  /** A redirect route nests nothing, so it has no children. */
-  readonly children?: never;
   /** A redirect route nests nothing, so it has no loader for children. */
   readonly loadChildren?: never;
   /** A redirect route has no data: it shows no component to read it. */
@@ -91,8 +79,6 @@ export interface PageRoute extends RouteCommon, RouteGuards {
   readonly component: Class<object>;
   /** A page route shows its component, so it does not redirect. */
   readonly redirect?: never;
-  /** The routes under the page, shown inside it. */
-  readonly children?: readonly Route[];
   /** Loads the routes under the page the first time a navigation reaches it. */
   readonly loadChildren?: (signal: AbortSignal) => Promise<readonly Route[]>;
 }

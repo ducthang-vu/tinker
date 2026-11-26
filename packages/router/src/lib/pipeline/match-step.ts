@@ -143,10 +143,6 @@ function childrenOf(
   route: Route,
   done: (children: Children) => void,
 ): void {
-  if (route.children !== undefined) {
-    done({ kind: "routes", routes: route.children });
-    return;
-  }
   const loader = route.loadChildren;
   if (loader === undefined) {
     done({ kind: "none" });

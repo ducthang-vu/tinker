@@ -28,21 +28,20 @@ import { ROUTES } from "./routes.ts";
 bootstrap(App, { providers: provideRouter(ROUTES) });
 ```
 
-The root of the route tree is never shown. Its children are the routes you pass.
+The root of the route tree is never shown. The routes you pass are the routes under it.
 
 ## Routes
 
 A `Route` is one of three kinds:
 
-- **Page:** a `component`, optionally with `children` or `loadChildren`, and
-  guards. It shows its component, and the children show inside it.
-- **Group:** `children` or `loadChildren`, and no component. The outlet shows
+- **Page:** a `component`, optionally with `loadChildren`, and guards. It shows
+  its component, and the routes it loads show inside it.
+- **Group:** `loadChildren`, and no component. The outlet shows
   the first route below it that has a component, so a group can share a parent
   with no page of its own.
 - **Redirect:** a `redirect` function, and nothing else that shows or nests. It
-  has no component, children, guards or data.
+  has no component, loader, guards or data.
 
-A page or group route has `children` or `loadChildren`, never both.
 
 ```ts
 const ROUTES: readonly Route[] = [
@@ -50,10 +49,11 @@ const ROUTES: readonly Route[] = [
   {
     path: "todos",
     component: TodosShell,
-    children: [
-      { path: "", component: TodoList },
-      { path: ":id", component: TodoDetail },
-    ],
+    loadChildren: () =>
+      Promise.resolve([
+        { path: "", component: TodoList },
+        { path: ":id", component: TodoDetail },
+      ]),
   },
   { path: "old", redirect: () => inject(AppPathBuilder).to("todos").build() },
   { path: "**", component: NotFound },
@@ -64,9 +64,10 @@ const ROUTES: readonly Route[] = [
   for its parent's URL. `:name` is a param, which takes any one segment and
   puts its value in `params`. `**` takes the rest of the URL, and matches any
   URL, so declare it last.
-- `children` are matched against the segments the path leaves over, in order.
-  The first child that matches wins. A route without children must match the
-  whole URL.
+- The routes a page or group loads are matched against the segments its path
+  leaves over, in order. The first one that matches wins. A route with no loaded
+  routes below it must match the whole URL. A route's routes are loaded the first
+  time a navigation reaches it.
 - `data` is static data of a page or group route, read from the `ActivatedRoute`
   of the component it shows (`inject(ActivatedRoute).route.data`).
 - `canMatch`, `canActivate`, `canDeactivate` and `loadChildren` are described
@@ -219,7 +220,7 @@ guard of a page or group route instead.
 
 ## Lazy routes
 
-A route can load its children when a navigation first reaches it:
+A route can load the routes under it when a navigation first reaches it:
 
 ```ts
 {

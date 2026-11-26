@@ -1,3 +1,4 @@
+import { nested } from "../destination/test-builder.ts";
 import { expect, test } from "vitest";
 import { Component } from "@tinker/core";
 import { TestBed } from "@tinker/testing";
@@ -20,11 +21,9 @@ class Parent {}
 class App {}
 
 const ROUTES = [
-  {
+  nested({
     path: "/parent",
-    component: Parent,
-    children: [{ path: "child", component: Child }],
-  },
+    component: Parent }, [{ path: "child", component: Child }]),
 ];
 
 test("a routed component with an outlet shows the next level inside it", () => {
