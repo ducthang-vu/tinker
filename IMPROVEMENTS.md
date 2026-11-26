@@ -73,11 +73,7 @@ root as the one case that renders into an existing element.
 
 ## Templates (`packages/core/src/view/internal/template/`, `factories/template-builder.ts`)
 
-### 1. Property bindings on plain elements: limitations
-
-**Done.** `[name]` sets an input of the element's directives, or else the DOM property
-`name` (`[value]`, `[textContent]`, `[disabled]`), with inputs winning, as in Angular.
-Its limitations:
+### 1. Property bindings on plain elements: gaps
 
 - **The property is looked up when the element is built.** A property that an element
   gains later (a custom element defined after the template is built) is an error at
