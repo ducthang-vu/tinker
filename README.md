@@ -296,6 +296,5 @@ Run its focused tests with `npm run test:repo-map`.
 - [docs/hosting.md](docs/hosting.md): how a host must serve a Tinker app, so its deep links work.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md): known gaps and planned work.
 
-Not there yet: property bindings on plain elements (`[value]` on an `<input>`),
-two-way binding `[(value)]` on plain elements, and the gaps listed in
+Not there yet: two-way binding `[(value)]` on plain elements, and the gaps listed in
 [IMPROVEMENTS.md](IMPROVEMENTS.md).
