@@ -176,25 +176,19 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 
 **To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
 point at the host root.
-### 2. The builder checks only the routes that have loaded
-
-**Problem.** Every nested route loads its routes through `loadChildren`, so `AppPathBuilder` and `parse` cannot see the routes under a nested route until it has loaded. A path under such a route is accepted when it is built, and a path no route takes is reported only when the navigation runs (`NO_ROUTE`). A typo in a `routerlink` under a lazy route is therefore found when the link is followed, not in the build.
-
-**To do.** Decide whether the typo is worth catching earlier. The options are a dev-mode warning when a path is built under an unloaded route, or the compiler listing the paths of literal routes at build time. The compiler cannot see routes that are built at runtime, so it would only cover part of the tree.
-
-### 3. The trace of a navigation is untyped
+### 2. The trace of a navigation is untyped
 
 **Problem.** `meta` on each outcome, and `trace` on the navigation, is `unknown[]`. Each step writes its own entry, so the app cannot read the trace without casting.
 
 **To do.** Give each step an entry type, with a discriminant for its source, and type `meta` with the union of those entries.
 
-### 4. A route change has no history option
+### 3. A route change has no history option
 
 **Problem.** `Router.resetRoutes` replaces the current history entry, so Back never returns to the URL from before the change.
 
 **To do.** Add an option, `{ history: "replace" | "push" }`, that defaults to replace. Nothing in the framework needs it yet.
 
-### 5. A route change can leave nothing shown
+### 4. A route change can leave nothing shown
 
 **Problem.** When the new routes take no URL the current URL matches, `resetRoutes` shows nothing until the URL changes. The app cannot tell that it has no route, except from the empty outlet.
 
