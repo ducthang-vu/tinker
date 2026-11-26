@@ -80,6 +80,7 @@ An AI agent must not change that API on its own.
   problem and what to do about it. A limitation left out of that file is one
   nobody will remember.
 - Do not open pull requests, or push to `main`, unless the user asks.
+- Before you open a pull request, rebase the branch onto the latest `main` (`git fetch origin main`, then `git rebase origin/main`), resolve any conflicts, and run the checks again. Open the pull request only after that. Regenerate generated files (the API reference, the repo maps) rather than picking a side in a conflict.
 - Before pushing, rebase the branch onto the latest `main` (`git fetch origin`, then
   `git rebase origin/main`). Do not merge `main` into the branch.
 - Never push to a branch whose pull request has merged. Start a new branch from the latest

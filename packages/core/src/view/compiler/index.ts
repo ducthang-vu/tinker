@@ -5,7 +5,7 @@
 export { compileSource, type ImportedSelector } from "./compile-source.ts";
 export { emitCompiled } from "./emit.ts";
 export { BUILT_IN_NAMES } from "../internal/template/built-in-functions.ts";
-export { namesIn } from "../internal/template/template-names.ts";
+export { namesIn, unknownReads } from "../internal/template/template-names.ts";
 export { shadowsIn } from "../internal/template/template-shadows.ts";
 export { Selector } from "../internal/template/selector.ts";
 export type { CompiledNode } from "../internal/template/compile.ts";

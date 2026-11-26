@@ -1,3 +1,5 @@
+import type { CompiledNode } from "./compile.ts";
+
 // The names a compiled template reads from its component, and the names it declares.
 //
 // The build checks each name a template reads against the component's members, the names the
@@ -66,4 +68,123 @@ function declare(value: unknown, declared: Set<string>): void {
       }
     }
   }
+}
+
+/**
+ * The names a compiled template reads that are not visible where it reads them: a name is visible
+ * if the scope of the read declares it (a `@let` before it, a `@map` item or `@case` binding around
+ * it, a template reference on its element or before it, a `let-` name in a template), or if `known`
+ * has it, or if it starts with `$` (a template special). A name declared elsewhere in the template
+ * is not visible: a read outside its block is unknown.
+ *
+ * @param nodes The compiled nodes of the template.
+ * @param known The names visible everywhere: the component's members, its imported template
+ *   functions, and the built-ins.
+ * @returns The unknown names, each once.
+ */
+export function unknownReads(nodes: readonly CompiledNode[], known: ReadonlySet<string>): string[] {
+  const unknown = new Set<string>();
+  visitScopedAll(nodes, new Set(), known, unknown);
+  return [...unknown];
+}
+
+/** Visit sibling nodes in order: a name one declares (a `@let`, a reference) is visible after. */
+function visitScopedAll(
+  nodes: readonly CompiledNode[],
+  scope: ReadonlySet<string>,
+  known: ReadonlySet<string>,
+  unknown: Set<string>,
+): void {
+  let visible: ReadonlySet<string> = scope;
+  for (const node of nodes) {
+    visible = visitScoped(node, visible, known, unknown);
+  }
+}
+
+/** Visit one node; returns the names visible to the nodes after it. */
+function visitScoped(
+  node: CompiledNode,
+  scope: ReadonlySet<string>,
+  known: ReadonlySet<string>,
+  unknown: Set<string>,
+): ReadonlySet<string> {
+  switch (node.kind) {
+    case "text":
+      readInto(node.interpolation.expressions, scope, known, unknown);
+      return scope;
+    case "let":
+      readInto(node.expression, scope, known, unknown);
+      return new Set([...scope, node.name]);
+    case "map": {
+      // The list is read outside the block; the item is visible to its `track` and its body.
+      readInto(node.list, scope, known, unknown);
+      const inItem = withNames(scope, namesIn(node.item).declared);
+      if (node.track !== undefined) {
+        readInto(node.track, inItem, known, unknown);
+      }
+      visitScopedAll(node.body, inItem, known, unknown);
+      return scope;
+    }
+    case "match": {
+      if (node.subject !== undefined) {
+        readInto(node.subject, scope, known, unknown);
+      }
+      for (const current of node.cases) {
+        const inCase = withNames(scope, namesIn(current.pattern).declared);
+        if (current.guard !== undefined) {
+          readInto(current.guard, inCase, known, unknown);
+        }
+        visitScopedAll(current.body, inCase, known, unknown);
+      }
+      if (node.default !== undefined) {
+        visitScopedAll(node.default, scope, known, unknown);
+      }
+      return scope;
+    }
+    case "declaration": {
+      const declared = withNames(scope, [node.name, ...node.names]);
+      visitScopedAll(node.body, declared, known, unknown);
+      return withNames(scope, [node.name]);
+    }
+    case "element": {
+      // The bindings are read where the element is: its own references are visible to them.
+      const references = withNames(scope, namesIn(node.references).declared);
+      readInto(
+        {
+          classBindings: node.classBindings,
+          classObjects: node.classObjects,
+          styleBindings: node.styleBindings,
+          attributeBindings: node.attributeBindings,
+          inputBindings: node.inputBindings,
+          outputBindings: node.outputBindings,
+        },
+        references,
+        known,
+        unknown,
+      );
+      visitScopedAll(node.children, references, known, unknown);
+      return references;
+    }
+    case "slot":
+      return scope;
+  }
+}
+
+/** The names read by `value` that are not visible: added to `unknown`. */
+function readInto(
+  value: unknown,
+  scope: ReadonlySet<string>,
+  known: ReadonlySet<string>,
+  unknown: Set<string>,
+): void {
+  for (const name of namesIn(value).read) {
+    if (!scope.has(name) && !known.has(name) && !name.startsWith("$")) {
+      unknown.add(name);
+    }
+  }
+}
+
+/** `scope` with `names` added. */
+function withNames(scope: ReadonlySet<string>, names: readonly string[]): ReadonlySet<string> {
+  return new Set([...scope, ...names]);
 }
