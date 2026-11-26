@@ -81,7 +81,7 @@ export class Router {
     this.match = computed(() => matchRoute(root, location.url()));
     this.activated = this.list;
     this.pipeline = createPipeline({
-      match: createMatchStep(root),
+      match: createMatchStep(root, { injector }),
       redirect: createRedirectStep(injector),
       deactivate: createDeactivateStep(injector),
       guards: createGuardStep(injector),
@@ -91,7 +91,6 @@ export class Router {
       }),
     });
     this.committed = { url: location.url(), state: location.state() };
-    this.activate(matchChain(root, location.url()));
     // One navigation at a time: a newer request supersedes the one still running.
     this.stopRouting = run(
       switchMap(this.requests.stream, (request) => {
@@ -103,6 +102,37 @@ export class Router {
     );
     // A back or forward move is a navigation too: it goes through the guards like any other.
     this.stopPops = location.onPop((url, state) => this.popped(url, state));
+    // The URL the app starts at is a navigation too: a lazy route on it loads before it is shown.
+    this.start(location.url(), location.state());
+  }
+
+  /**
+   * Runs the URL the app starts at through the pipeline, as a navigation that replaces the entry it
+   * is on. A URL no route takes shows nothing, as it did before.
+   *
+   * @param url The URL the browser is on.
+   * @param state The state of the entry.
+   */
+  private start(url: string, state: unknown): void {
+    let destination: AppPath;
+    try {
+      destination = parseAppPath(this.root, url);
+    } catch {
+      this.activate(undefined);
+      return;
+    }
+    const id = this.nextId;
+    this.nextId += 1;
+    this.latestId = id;
+    this.requests.emit({
+      id,
+      destination,
+      state,
+      arrival: "start",
+      redirectFrom: [],
+      activatedRoutes: [],
+      trace: [],
+    });
   }
 
   /**

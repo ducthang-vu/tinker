@@ -7524,7 +7524,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6998",
+              "name": "__@APP_PATH_BRAND@7006",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
@@ -7539,7 +7539,7 @@
         {
           "name": "AppPathBuilder",
           "kind": "class",
-          "source": "packages/router/src/lib/destination/app-path-builder.ts:34",
+          "source": "packages/router/src/lib/destination/app-path-builder.ts:35",
           "description": "",
           "params": [],
           "examples": [],
@@ -7552,7 +7552,7 @@
             {
               "name": "to",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:84",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:85",
               "description": "Adds segments below the current position. One string is split on `/`; several are taken as\nthey are. Throws when no route takes the segments.",
               "params": [
                 {
@@ -7573,7 +7573,7 @@
             {
               "name": "parse",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:101",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:102",
               "description": "Continues from this position with a raw URL. A URL that starts with `/` is read from the root;\nany other is read from this position. A relative URL is written at the last level that wrote a\nsegment, so a list page under its parent is reached from that parent. Each segment is matched\nas\nthe router matches. The query and the fragment of the URL are added to the ones written so far.",
               "params": [
                 {
@@ -7594,7 +7594,7 @@
             {
               "name": "up",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:118",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:119",
               "description": "Moves to the parent route. Throws at the root.",
               "params": [],
               "examples": [],
@@ -7610,7 +7610,7 @@
             {
               "name": "relativeTo",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:136",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:137",
               "description": "Starts at an activated route, with the segments it was reached by. With no argument, it is the\nactivated route the builder was provided in. A builder injected at the root has the root route\nas that route, so its `relativeTo()` starts at the root: provide the builder in a component to\nstart at the component's route.",
               "params": [
                 {
@@ -7631,7 +7631,7 @@
             {
               "name": "withQuery",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:157",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:158",
               "description": "Adds query pairs. Allowed after the path and before the fragment, and any number of times; a\npair with the same name as an earlier one replaces it.",
               "params": [
                 {
@@ -7652,7 +7652,7 @@
             {
               "name": "withFragment",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:172",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:173",
               "description": "Sets the fragment. It comes last, so nothing can follow it but `build`.",
               "params": [
                 {
@@ -7673,7 +7673,7 @@
             {
               "name": "build",
               "kind": "method",
-              "source": "packages/router/src/lib/destination/app-path-builder.ts:186",
+              "source": "packages/router/src/lib/destination/app-path-builder.ts:187",
               "description": "The app path the chain has written: the segments, the query, and the fragment. It throws when\nno route takes the whole path, so a path that stops short of a route cannot be built.",
               "params": [],
               "examples": [],
@@ -7691,7 +7691,7 @@
         {
           "name": "DeactivateGuard",
           "kind": "type",
-          "source": "packages/router/src/lib/pipeline/guard-step.ts:81",
+          "source": "packages/router/src/lib/pipeline/guard-step.ts:87",
           "description": "A deactivate guard: asked when the navigation leaves a route. It gets the navigation and the\nactivated route it leaves.",
           "params": [],
           "examples": [],
@@ -8382,6 +8382,39 @@
               "see": [],
               "throws": [],
               "type": "readonly Guard[] | undefined"
+            },
+            {
+              "name": "canMatch",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/route.ts:56",
+              "description": "Asked for each navigation that reaches the route, before its children are looked at. ALLOW\nkeeps the route; STOP skips it, so the next route with a matching path is tried; REDIRECT sends\nthe navigation elsewhere. They run in order, in the injection context of the router.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "readonly RouteGate[] | undefined"
+            },
+            {
+              "name": "canLoad",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/route.ts:61",
+              "description": "Asked once, before the children of a route with `loadChildren` are loaded. ALLOW loads them;\nSTOP rejects the navigation, and nothing is downloaded; REDIRECT sends it elsewhere.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "readonly RouteGate[] | undefined"
+            },
+            {
+              "name": "loadChildren",
+              "kind": "property",
+              "source": "packages/router/src/lib/router/route.ts:66",
+              "description": "The children of the route, loaded the first time a navigation reaches it. A route that has\n`children` does not use this. Once loaded, the children are kept, so the route loads once.",
+              "params": [],
+              "examples": [],
+              "see": [],
+              "throws": [],
+              "type": "(() => Promise<readonly Route[]>) | undefined"
             }
           ]
         },
@@ -8399,7 +8432,7 @@
         {
           "name": "RouteMatch",
           "kind": "interface",
-          "source": "packages/router/src/lib/router/match.ts:24",
+          "source": "packages/router/src/lib/router/match.ts:30",
           "description": "The leaf route that matches the URL, with the params read along the whole path.",
           "params": [],
           "examples": [],
@@ -8409,7 +8442,7 @@
             {
               "name": "route",
               "kind": "property",
-              "source": "packages/router/src/lib/router/match.ts:26",
+              "source": "packages/router/src/lib/router/match.ts:32",
               "description": "The leaf route the URL matches.",
               "params": [],
               "examples": [],
@@ -8420,7 +8453,7 @@
             {
               "name": "params",
               "kind": "property",
-              "source": "packages/router/src/lib/router/match.ts:28",
+              "source": "packages/router/src/lib/router/match.ts:34",
               "description": "The params read along the whole path.",
               "params": [],
               "examples": [],
@@ -8433,7 +8466,7 @@
         {
           "name": "RouteParams",
           "kind": "type",
-          "source": "packages/router/src/lib/router/match.ts:11",
+          "source": "packages/router/src/lib/router/match.ts:12",
           "description": "The params a path read, by name.",
           "params": [],
           "examples": [],
@@ -8523,7 +8556,7 @@
             {
               "name": "navigate",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:120",
+              "source": "packages/router/src/lib/router/router.ts:150",
               "description": "Go to `destination` as a new history entry, with `options.state`. The navigation runs through\nthe guards and redirects of the matched routes. It resolves with its outcome: `done` when it\ncommits; `cancelled` when a newer navigation replaces it first; and `rejected`, with the\nreason: `no-route` when no route takes the path, `guard` when a guard said no (naming the\nroute), or `failed` when a step threw (with the cause). A rejected or cancelled navigation\nchanges nothing.",
               "params": [
                 {
@@ -8546,7 +8579,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:140",
+              "source": "packages/router/src/lib/router/router.ts:170",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],

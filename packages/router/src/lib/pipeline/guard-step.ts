@@ -75,6 +75,12 @@ export type RouteGuardCommand = AllowCommand | StopCommand | RedirectCommand;
 export type Guard = (request: MatchedRequest) => Task<RouteGuardCommand, unknown>;
 
 /**
+ * A gate of a route, asked about a navigation before the route is used: canMatch and canLoad. It
+ * returns a Task of its command, as a guard does.
+ */
+export type RouteGate = (request: NavigationRequest) => Task<RouteGuardCommand, unknown>;
+
+/**
  * A deactivate guard: asked when the navigation leaves a route. It gets the navigation and the
  * activated route it leaves.
  */

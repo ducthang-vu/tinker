@@ -1,8 +1,9 @@
 // The interface of each step of the pipeline. A step is a function: the pipeline is built from
 // these four, in order, and any of them can be replaced (in a test, say) without changing the rest.
 //
-//   match     Either  Does a route match the URL? Stops with NoRoute, or Failed when
-//                     redirectFrom is past the cap.
+//   match     Task    Does a route match the URL? Loads the children of lazy routes on the way,
+//                     so it is a Task. Stops with NoRoute, or Failed when redirectFrom is past the
+//                     cap or a load fails.
 //   redirect  Either  Does a route send the navigation elsewhere? Stops with Redirect.
 //   guards    Task    Do the guards of the matched routes allow it? Stops with Rejected,
 //                     Redirect, or Failed. A guard may wait, so the step is a Task.
@@ -13,8 +14,11 @@ import type { Either, Task } from "@tinker/functional";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
 import type { Stop } from "./stop.ts";
 
-/** Matches the request's URL against the route tree. Pure. */
-export type MatchStep = (request: NavigationRequest) => Either<MatchedRequest, Stop>;
+/**
+ * Matches the request's URL against the route tree. A route may run its gates and load its
+ * children on the way, so the step is a Task.
+ */
+export type MatchStep = (request: NavigationRequest) => Task<MatchedRequest, Stop>;
 
 /** Asks the matched routes whether to redirect. Pure. */
 export type RedirectStep = (matched: MatchedRequest) => Either<MatchedRequest, Stop>;

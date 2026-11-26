@@ -70,3 +70,17 @@ describe("the same URL in the router is the same URL in the builder", () => {
       .toEqual([{ kind: "segment", value: "todos" }]);
   });
 });
+
+test("a URL under a lazy route whose children are not loaded is parsed as written", () => {
+  const root: Route = {
+    path: "",
+    component: Page,
+    children: [{ path: "lazy", loadChildren: () => new Promise(() => undefined) }],
+  };
+  expect(parseAppPath(root, "/lazy/7/x").segments)
+    .toEqual([
+      { kind: "segment", value: "lazy" },
+      { kind: "segment", value: "7" },
+      { kind: "segment", value: "x" },
+    ]);
+});

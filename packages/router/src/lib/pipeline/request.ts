@@ -14,8 +14,11 @@ export interface NavigationRequest {
   readonly destination: AppPath;
   /** The history state the URL is given. */
   readonly state: unknown;
-  /** `push` adds a history entry (a `navigate` call); `pop` is a back or forward move. */
-  readonly arrival: "push" | "pop";
+  /**
+   * `push` adds a history entry (a `navigate` call); `pop` is a back or forward move; `start` is
+   * the URL the app starts at, which replaces the entry it is already on.
+   */
+  readonly arrival: "push" | "pop" | "start";
   /**
    * The URLs this navigation was redirected from, oldest first. Empty for the first request. A
    * redirect appends the URL it came from, so the chain of redirects is readable from the request.
