@@ -51,12 +51,21 @@ export function matchChain(root: Route, url: string): readonly LevelMatch[] | un
  * @returns The leaf route and its params, or undefined when no route matches.
  */
 export function matchRoute(root: Route, url: string): RouteMatch | undefined {
-  const chain = matchChain(root, url);
+  return matchOfChain(matchChain(root, url));
+}
+
+/**
+ * The leaf of a chain of levels, with the params of every level.
+ *
+ * @param chain The levels, root first, or undefined when no route matches.
+ * @returns The leaf route and its params, or undefined when there is no chain.
+ */
+export function matchOfChain(chain: readonly LevelMatch[] | undefined): RouteMatch | undefined {
   if (chain === undefined) {
     return undefined;
   }
   return {
-    route: chain[chain.length - 1]?.route as Route,
+    route: (chain[chain.length - 1] as LevelMatch).route,
     params: Object.fromEntries(chain.flatMap((level) => Object.entries(level.params))),
   };
 }

@@ -60,10 +60,12 @@ export interface Route {
    */
   readonly canLoad?: readonly RouteGate[];
   /**
-   * The children of the route, loaded the first time a navigation reaches it. A route that has
-   * `children` does not use this. Once loaded, the children are kept, so the route loads once.
+   * The children of the route, loaded the first time a navigation reaches it. The loader receives a
+   * signal that is aborted when every navigation waiting for the load has been superseded, so the
+   * download can stop. A route that has `children` does not use this. Once loaded, the children are
+   * kept, so the route loads once.
    */
-  readonly loadChildren?: () => Promise<readonly Route[]>;
+  readonly loadChildren?: (signal: AbortSignal) => Promise<readonly Route[]>;
 }
 
 /**
