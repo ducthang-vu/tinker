@@ -21,6 +21,7 @@ function packageJson(name: string): string {
     scripts: {
       dev: "tinker dev",
       build: "tinker build",
+      preview: "tinker preview",
     },
     dependencies: {
       "@tinker/core": "*",

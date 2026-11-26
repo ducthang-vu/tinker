@@ -3,14 +3,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { run } from "./cli.ts";
-import { buildApp, serveApp } from "./vite-commands.ts";
+import { buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 vi.mock("./vite-commands.ts", () => ({
   buildApp: vi.fn(async () => undefined),
+  previewApp: vi.fn(async () => undefined),
   serveApp: vi.fn(async () => undefined),
 }));
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>]";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
 
 describe("tinker command", () => {
   let parent: string;
@@ -240,6 +241,41 @@ describe("tinker command", () => {
         .toBe(1);
       expect(errors)
         .toEqual(["Failed to load config"]);
+    });
+  });
+
+  describe("preview", () => {
+    test("serves the built app in the current folder, on the default port and base", async () => {
+      expect(await run(["preview"], output))
+        .toBe(0);
+      expect(previewApp)
+        .toHaveBeenCalledWith(process.cwd(), { port: undefined, base: undefined });
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("takes --port, -p and --base", async () => {
+      expect(await run(["preview", "-p", "4173", "--base", "/app/"], output))
+        .toBe(0);
+      expect(previewApp)
+        .toHaveBeenCalledWith(process.cwd(), { port: 4173, base: "/app/" });
+    });
+
+    test("refuses an invalid port, and a positional argument", async () => {
+      expect(await run(["preview", "--port", "abc"], output))
+        .toBe(2);
+      expect(await run(["preview", "extra"], output))
+        .toBe(2);
+      expect(previewApp).not.toHaveBeenCalled();
+    });
+
+    test("a failure, such as a missing build, is reported with exit code 1", async () => {
+      vi.mocked(previewApp)
+        .mockRejectedValueOnce(new Error("There is no dist folder"));
+
+      expect(await run(["preview"], output))
+        .toBe(1);
+      expect(errors)
+        .toEqual(["There is no dist folder"]);
     });
   });
 

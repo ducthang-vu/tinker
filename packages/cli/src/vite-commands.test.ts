@@ -1,10 +1,14 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { build, createServer } from "vite";
-import { buildApp, serveApp } from "./vite-commands.ts";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { build, createServer, preview } from "vite";
+import { buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 vi.mock("vite", () => ({
   build: vi.fn(async () => undefined),
   createServer: vi.fn(),
+  preview: vi.fn(),
 }));
 
 describe("serveApp", () => {
@@ -60,5 +64,38 @@ describe("buildApp", () => {
 
     expect(build)
       .toHaveBeenCalledWith({ root: "/app", base: "/tinker/" });
+  });
+});
+
+describe("previewApp", () => {
+  let root: string;
+  let server: { printUrls: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    root = mkdtempSync(join(tmpdir(), "tinker-preview-"));
+    server = { printUrls: vi.fn() };
+    vi.mocked(preview)
+      .mockResolvedValue(server as never);
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test("refuses when the app has no dist folder, and starts nothing", async () => {
+    await expect(previewApp(root)).rejects.toThrow("run tinker build first");
+    expect(preview).not.toHaveBeenCalled();
+  });
+
+  test("serves the built app on the given port and base, and prints the URLs", async () => {
+    mkdirSync(join(root, "dist"));
+
+    await previewApp(root, { port: 4173, base: "/app/" });
+
+    expect(preview)
+      .toHaveBeenCalledWith({ root, base: "/app/", preview: { port: 4173 } });
+    expect(server.printUrls)
+      .toHaveBeenCalled();
   });
 });

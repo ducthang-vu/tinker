@@ -12,7 +12,7 @@
 
 import { type ParseArgsOptionsConfig, parseArgs } from "node:util";
 import { createApp } from "./new.ts";
-import { type AppOptions, buildApp, serveApp } from "./vite-commands.ts";
+import { type AppOptions, buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 /** Where the command writes its messages. */
 export interface Output {
@@ -20,7 +20,7 @@ export interface Output {
   readonly error: (line: string) => void;
 }
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>]";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
 
 /** The options `dev` and `build` take, besides `--base`, which both take. */
 const BASE_OPTION = { base: { type: "string" } } as const;
@@ -35,6 +35,10 @@ export async function run(args: readonly string[], output: Output): Promise<numb
   if (command === "dev") {
     return appCommand(rest, output, { ...PORT_OPTION, ...BASE_OPTION }, (options) =>
       serveApp(process.cwd(), options));
+  }
+  if (command === "preview") {
+    return appCommand(rest, output, { ...PORT_OPTION, ...BASE_OPTION }, (options) =>
+      previewApp(process.cwd(), options));
   }
   if (command === "build") {
     return appCommand(rest, output, BASE_OPTION, (options) => buildApp(process.cwd(), options));
