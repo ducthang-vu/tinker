@@ -32,7 +32,17 @@ The root of the route tree is never shown. Its children are the routes you pass.
 
 ## Routes
 
-A `Route` is a plain object:
+A `Route` is one of three kinds:
+
+- **Page:** a `component`, optionally with `children` or `loadChildren`, and
+  guards. It shows its component, and the children show inside it.
+- **Group:** `children` or `loadChildren`, and no component. The outlet shows
+  the first route below it that has a component, so a group can share a parent
+  with no page of its own.
+- **Redirect:** a `redirect` function, and nothing else that shows or nests. It
+  has no component, children, guards or data.
+
+A page or group route has `children` or `loadChildren`, never both.
 
 ```ts
 const ROUTES: readonly Route[] = [
@@ -45,6 +55,7 @@ const ROUTES: readonly Route[] = [
       { path: ":id", component: TodoDetail },
     ],
   },
+  { path: "old", redirect: () => inject(AppPathBuilder).to("todos").build() },
   { path: "**", component: NotFound },
 ];
 ```
@@ -53,16 +64,14 @@ const ROUTES: readonly Route[] = [
   for its parent's URL. `:name` is a param, which takes any one segment and
   puts its value in `params`. `**` takes the rest of the URL, and matches any
   URL, so declare it last.
-- `component` is the component shown when the route matches. A route with no
-  component shows nothing of its own, and the outlet shows the first route
-  below it that has one. This lets a group of routes share a parent.
 - `children` are matched against the segments the path leaves over, in order.
   The first child that matches wins. A route without children must match the
   whole URL.
-- `data` is static data of the route, read from the `ActivatedRoute` of the
-  component it shows (`inject(ActivatedRoute).route.data`).
-- `redirect`, `canMatch`, `canActivate`, `canDeactivate` and `loadChildren` are
-  described below.
+- `data` is static data of a page or group route, read from the `ActivatedRoute`
+  of the component it shows (`inject(ActivatedRoute).route.data`).
+- `canMatch`, `canActivate`, `canDeactivate` and `loadChildren` are described
+  below. `canMatch` applies to every kind of route. `canActivate` and
+  `canDeactivate` apply to page and group routes only.
 
 ## Showing the routes
 
@@ -196,13 +205,17 @@ promise.
 The guards on a route run in this order, for each navigation:
 
 1. `canMatch` gates, while the URL is matched. See [Lazy routes](#lazy-routes).
-2. `redirect`: a function of the matched request that returns an `AppPath`, or
+2. `redirect`, on a redirect route: a function that returns an `AppPath`, or
    `undefined` to leave the navigation alone.
 3. `canDeactivate` guards of the routes being left, from the last to the first.
    Each receives the request and the route it leaves.
 4. `canActivate` guards of the matched routes, root first.
 
 Then the navigation commits.
+
+A redirect route has no `canActivate`, so its redirect runs before the guards
+of the chain. To redirect after a check, return `REDIRECT` from the `canActivate`
+guard of a page or group route instead.
 
 ## Lazy routes
 
@@ -241,9 +254,20 @@ so a wrong segment is reported by the navigation, not when the path is built.
 `Router.events` is a stream of the navigations. Each navigation publishes
 `STARTED` when it begins, then one final event for its outcome: `DONE`,
 `CANCELLED`, or `REJECTED`. Each event is an object of the form
-`{ type, payload }`. The types are `NavigationStarted`, `NavigationDone`,
-`NavigationCancelled` and `NavigationRejected`, and `NavigationEvent` is their
-union.
+`{ type, source, payload }`:
+
+- `source` says what produced the event:
+  - `STARTED` has `START`.
+  - `DONE` has `COMMIT`.
+  - `CANCELLED` has `NEW_NAVIGATION`: a newer navigation replaced it. Its `by`
+    field is that navigation's id.
+  - `REJECTED` has the step that stopped it: `MATCH` (no route, a failed
+    loader, or the redirect cap), `REDIRECT` (a `redirect` that threw),
+    `DEACTIVATE_GUARD`, `ACTIVATE_GUARD`, or `COMMIT`.
+- `payload` is the outcome: `Done`, `Cancelled`, or `Rejected`.
+
+The types are `NavigationStarted`, `NavigationDone`, `NavigationCancelled` and
+`NavigationRejected`, and `NavigationEvent` is their union.
 
 ## The browser location
 

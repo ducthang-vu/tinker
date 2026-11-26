@@ -112,7 +112,7 @@ function gatesOf(
     runInInjectionContext(options.injector, () => gate(request));
   settle(scope, invoke, (settled) => {
     if (!settled.ok) {
-      done({ kind: "stop", stop: failed(request, settled.error) });
+      done({ kind: "stop", stop: failed(request, settled.error, "MATCH") });
       return;
     }
     const command = settled.value;
@@ -161,7 +161,7 @@ function childrenOf(
   scope.releases.push(() => hold.release());
   hold.promise.then(
     (routes) => done({ kind: "routes", routes }),
-    (cause: unknown) => done({ kind: "stop", stop: failed(request, cause) }),
+    (cause: unknown) => done({ kind: "stop", stop: failed(request, cause, "MATCH") }),
   );
 }
 
@@ -269,7 +269,7 @@ export function createMatchStep(root: Route, options: MatchOptions): MatchStep {
     fromComputation<MatchedRequest, Stop>((ok, error) => {
       const scope: Scope = { releases: [] };
       if (request.redirectFrom.length > MAX_REDIRECTS) {
-        error(failed(request, new Error(`more than ${MAX_REDIRECTS} redirects`)));
+        error(failed(request, new Error(`more than ${MAX_REDIRECTS} redirects`), "MATCH"));
       } else {
         const segments = request.destination.segments.map((part) => part.value);
         walk(options, scope, request, root, segments, (result) => {

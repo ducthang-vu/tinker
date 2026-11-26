@@ -4,8 +4,9 @@ import { ActivatedRoute } from "../state/activated-route.ts";
 import { Location } from "../location/location.ts";
 import { PLATFORM_LOCATION, type PlatformLocation } from "../location/platform-location.ts";
 import { Router } from "./router.ts";
-import type { Route } from "./route.ts";
+import type { PageRoute, Route } from "./route.ts";
 import { ParseError, AppPathBuilder } from "../destination/app-path-builder.ts";
+import { makeAppPath } from "../destination/app-path.ts";
 import { builderOver } from "../destination/test-builder.ts";
 import {
   AllowCommand,
@@ -45,9 +46,9 @@ class TodoDetail {}
 class TodoShell {}
 
 /** The routes of the todos: the list at `/todos`, and the detail at `/todos/:id`, under a shell. */
-const LIST: Route = { path: "", component: TodoList };
-const DETAIL: Route = { path: ":id", component: TodoDetail };
-const TODOS: Route = { path: "todos", component: TodoShell, children: [LIST, DETAIL] };
+const LIST: PageRoute = { path: "", component: TodoList };
+const DETAIL: PageRoute = { path: ":id", component: TodoDetail };
+const TODOS: PageRoute = { path: "todos", component: TodoShell, children: [LIST, DETAIL] };
 const CHILDREN: readonly Route[] = [TODOS];
 const ROOT: Route = { path: "", component: Root, children: CHILDREN };
 
@@ -325,7 +326,7 @@ test("a route that redirects to itself is rejected as failed, with the redirect 
   const loop: Route = {
     path: "",
     component: Root,
-    children: [{ path: "todos", component: TodoList, redirect: () => builderOver(CHILDREN)
+    children: [{ path: "todos", redirect: () => builderOver(CHILDREN)
       .to("todos")
       .build() }],
   };
@@ -492,8 +493,25 @@ test("the router publishes STARTED, then one final event for the outcome, for ea
     .build());
   expect(seen.map((event) => event.type))
     .toEqual(["STARTED", "DONE"]);
+  expect(seen.map((event) => event.source))
+    .toEqual(["START", "COMMIT"]);
   expect(seen[1])
-    .toEqual({ type: "DONE", payload: outcome });
+    .toEqual({ type: "DONE", source: "COMMIT", payload: outcome });
+  stop();
+  destroy();
+});
+
+test("a navigation no route takes is rejected, with the match step as its source", async () => {
+  const { router, destroy } = routerAt("/todos");
+  const seen: NavigationEvent[] = [];
+  const stop = run(router.events, { next: (event) => {
+    seen.push(event);
+  } });
+  const outcome = await router.navigate(makeAppPath([{ kind: "segment", value: "nowhere" }], {}, undefined));
+  expect(outcome)
+    .toMatchObject({ kind: "rejected", reason: "no-route", source: "MATCH" });
+  expect(seen.at(-1))
+    .toMatchObject({ type: "REJECTED", source: "MATCH" });
   stop();
   destroy();
 });

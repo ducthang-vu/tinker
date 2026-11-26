@@ -5,7 +5,7 @@ import { createCommitStep, type BrowserWriter } from "./commit-step.ts";
 import type { MatchedRequest } from "./request.ts";
 import type { Stop } from "./stop.ts";
 
-const declared = [{ path: "/todos", children: [{ path: "/:id" }] }] as const;
+const declared = [{ path: "/todos", children: [{ path: "/:id", component: class {} }] }] as const;
 
 /** A browser that records what it is asked to do, and starts at `url`. */
 function fakeBrowser(url: string, refuse = false) {

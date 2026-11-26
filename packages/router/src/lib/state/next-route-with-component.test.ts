@@ -9,7 +9,7 @@ const ROUTE = { path: "", component: Page };
 
 test("shownAfter skips routes with no component, and is None when none follows", () => {
   const home = new ActivatedRoute({ path: "home", component: Page }, {}, [], None.of());
-  const group = new ActivatedRoute({ path: "group" }, {}, [], None.of());
+  const group = new ActivatedRoute({ path: "group", children: [] }, {}, [], None.of());
   const detail = new ActivatedRoute({ path: ":id", component: Page }, {}, [], None.of());
   expect(shownAfter([home, group, detail], home))
     .toEqual(Some.of(detail));

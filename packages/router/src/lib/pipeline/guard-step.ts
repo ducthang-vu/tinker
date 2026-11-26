@@ -123,7 +123,7 @@ function deactivateOf(
   return guards.reduce<Task<MatchedRequest, Stop>>(
     (previous, guard) =>
       flatMap(previous, (current) =>
-        flatMap(callGuard(injector, current, () => guard(current, leaving)), (command) =>
+        flatMap(callGuard(injector, current, "DEACTIVATE_GUARD", () => guard(current, leaving)), (command) =>
           decide(current, leaving.route.path, command, "deactivate"))),
     succeed(matched),
   );
@@ -163,7 +163,7 @@ function guardsOf(
   return guards.reduce<Task<MatchedRequest, Stop>>(
     (previous, guard) =>
       flatMap(previous, (current) =>
-        flatMap(callGuard(injector, current, () => guard(current)), (command) =>
+        flatMap(callGuard(injector, current, "ACTIVATE_GUARD", () => guard(current)), (command) =>
           decide(current, route, command, "guard"))),
     succeed(matched),
   );
@@ -174,12 +174,14 @@ function guardsOf(
  *
  * @param injector The injector whose context the guard runs in.
  * @param matched The navigation being guarded.
+ * @param source The step the guard belongs to: a deactivate or an activate guard.
  * @param invoke Calls the guard, and returns its task.
  * @returns A task of the guard's command. A throw, or a failing task, stops with Failed.
  */
 function callGuard(
   injector: Injector,
   matched: MatchedRequest,
+  source: "DEACTIVATE_GUARD" | "ACTIVATE_GUARD",
   invoke: () => Task<RouteGuardCommand, unknown>,
 ): Task<RouteGuardCommand, Stop> {
   return fromComputation<RouteGuardCommand, Stop>((ok, error) => {
@@ -187,12 +189,12 @@ function callGuard(
     try {
       produced = runInInjectionContext(injector, invoke);
     } catch (cause) {
-      error(failed(matched, cause));
+      error(failed(matched, cause, source));
       return;
     }
     return run(produced, {
       ok,
-      error: (cause) => error(failed(matched, cause)),
+      error: (cause) => error(failed(matched, cause, source)),
     });
   });
 }
@@ -224,11 +226,12 @@ function decide(
   step: "guard" | "deactivate",
 ): Task<MatchedRequest, Stop> {
   const entry = { step, route, command: command.type };
+  const source = step === "guard" ? "ACTIVATE_GUARD" : "DEACTIVATE_GUARD";
   switch (command.type) {
     case "ALLOW":
       return succeed(traced(matched, entry));
     case "STOP":
-      return fail(guardRejected(traced(matched, entry), route, command));
+      return fail(guardRejected(traced(matched, entry), route, command, source));
     case "REDIRECT":
       return fail(Redirect.of(traced(matched, entry), command.payload.path));
   }

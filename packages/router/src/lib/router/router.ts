@@ -97,7 +97,7 @@ export class Router {
     this.stopRouting = run(
       switchMap(this.requests.stream, (request) => {
         const started = this.started(request);
-        this.eventSource.emit({ type: "STARTED", payload: started });
+        this.eventSource.emit({ type: "STARTED", source: "START", payload: started });
         return follow(this.pipeline, started);
       }),
       { next: (item) => this.settle(item) },

@@ -18,7 +18,7 @@ import { Redirect, type Stop } from "./stop.ts";
 import { Injector } from "@tinker/core";
 import type { MatchStep } from "./steps.ts";
 
-const declared = [{ path: "/todos", children: [{ path: "/:id" }] }, { path: "/home" }] as const;
+const declared = [{ path: "/todos", children: [{ path: "/:id", component: class {} }] }, { path: "/home", component: class {} }] as const;
 
 const root: Route = {
   path: "",

@@ -19,7 +19,7 @@ function destinationOf(path: string): AppPath {
   );
 }
 
-const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
+const targets = [{ path: "/login", component: class {} }, { path: "/home", component: class {} }, { path: "/elsewhere", component: class {} }] as const;
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
@@ -142,7 +142,7 @@ describe("stops", () => {
   test("a rejection from the guards stops before the commit", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      guards: () => fail<Stop>(guardRejected(ref, "/todos", new StopCommand(new StopPayload()))),
+      guards: () => fail<Stop>(guardRejected(ref, "/todos", new StopCommand(new StopPayload()), "ACTIVATE_GUARD")),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)
@@ -154,7 +154,7 @@ describe("stops", () => {
   test("a failure in the commit step is the pipeline's failure", () => {
     const cause = new Error("refused");
     const steps = fakeSteps([], {
-      commit: () => fail<Stop>(failed(ref, cause)),
+      commit: () => fail<Stop>(failed(ref, cause, "COMMIT")),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(outcome.error)
@@ -164,7 +164,7 @@ describe("stops", () => {
   test("a navigation past the redirect cap stops at match, before anything else", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      match: () => fail(failed(ref, new Error("too many redirects"))),
+      match: () => fail(failed(ref, new Error("too many redirects"), "MATCH")),
     });
     const outcome = outcomeOf(createPipeline(steps)({ ...request, redirectFrom: Array.from({ length: 11 }, () => destinationOf("/x")) }));
     expect(log)

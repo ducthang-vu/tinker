@@ -31,7 +31,7 @@ function destinationOf(path: string): AppPath {
   );
 }
 
-const targets = [{ path: "/login" }, { path: "/home" }, { path: "/elsewhere" }] as const;
+const targets = [{ path: "/login", component: class {} }, { path: "/home", component: class {} }, { path: "/elsewhere", component: class {} }] as const;
 
 /** A destination for one of the targets above, built by the URL builder. */
 function to(path: "login" | "home" | "elsewhere") {
