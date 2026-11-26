@@ -382,3 +382,63 @@ describe("the injected builder", () => {
     destroy();
   });
 });
+
+describe("a lazy route that is not loaded yet", () => {
+  const LAZY: Route[] = [
+    { path: "home", component: Page },
+    { path: "lazy", loadChildren: () => new Promise(() => undefined) },
+  ];
+
+  test("the builder takes the segments under it, since the navigation checks them", () => {
+    expect(builderOver(LAZY)
+      .to("lazy", "anything", "deeper")
+      .build()
+      .format())
+      .toBe("/lazy/anything/deeper");
+  });
+
+  test("parse takes the segments under it as written", () => {
+    expect(builderOver(LAZY)
+      .parse("/lazy/7/x")
+      .build().segments)
+      .toEqual([
+        { kind: "segment", value: "lazy" },
+        { kind: "segment", value: "7" },
+        { kind: "segment", value: "x" },
+      ]);
+  });
+});
+
+describe("an empty-path route that is a layout", () => {
+  const LAYOUT: Route[] = [{
+    path: "shell",
+    component: Page,
+    children: [{
+      path: "",
+      component: Page,
+      children: [{ path: ":id", component: Page }],
+    }],
+  }];
+
+  test("a segment below the layout is taken through it, and the layout writes nothing", () => {
+    expect(builderOver(LAYOUT)
+      .to("shell", "7")
+      .build()
+      .format())
+      .toBe("/shell/7");
+  });
+
+  test("a segment that no child of the layout takes is a no-route error", () => {
+    const listOnly: Route[] = [{
+      path: "shell",
+      component: Page,
+      children: [{ path: "", component: Page, children: [{ path: "list", component: Page }] }],
+    }];
+    const error = errorOf(() => builderOver(listOnly)
+      .to("shell", "nope"));
+    expect(error.reason)
+      .toBe("no-route");
+    expect(error.at)
+      .toBe("nope");
+  });
+});

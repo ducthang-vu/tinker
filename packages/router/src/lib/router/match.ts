@@ -5,6 +5,7 @@
 // are not part of the path, and empty segments are ignored, so "/todos/" is "/todos". This is the
 // one matcher: the pipeline and the builder's `parse` use it too.
 
+import { loadedChildrenOf } from "./lazy-children.ts";
 import type { Route } from "./route.ts";
 
 /** The params a path read, by name. */
@@ -18,6 +19,11 @@ export interface LevelMatch {
   readonly params: RouteParams;
   /** The URL segments the level consumed. */
   readonly segments: readonly string[];
+  /**
+   * The segments under a lazy route whose children are not loaded yet. They are not checked here:
+   * the navigation that loads the children checks them.
+   */
+  readonly unchecked?: readonly string[];
 }
 
 /** The leaf route that matches the URL, with the params read along the whole path. */
@@ -55,36 +61,18 @@ export function matchRoute(root: Route, url: string): RouteMatch | undefined {
   };
 }
 
-/** A route as the matcher sees it: its path, and the children it nests. */
-export interface PathNode<N> {
-  /** The path the node consumes: one segment, a `:param`, `""` for none, or `**` for the rest. */
-  readonly path: string;
-  /** The nodes nested under this one. */
-  readonly children?: readonly N[];
-}
-
-/** One level of a segment match: the node, the params it read, and the segments it consumed. */
-export interface SegmentLevel<N> {
-  /** The node of the level. */
-  readonly route: N;
-  /** The params the level read from its segments. */
-  readonly params: RouteParams;
-  /** The segments the level consumed. */
-  readonly segments: readonly string[];
-}
-
 /**
  * The levels from `root` down that match `segments`, root first, or undefined when none does. The
- * router's one matcher: the URL matching, the pipeline and the builder's `parse` all use it.
+ * router's one matcher: the URL matching, the builder's checks and `parse` all use it.
  *
  * @param root The node the match starts at.
  * @param segments The segments to match, in order.
  * @returns The levels, root first, or undefined when no route matches.
  */
-export function levelsOf<N extends PathNode<N>>(
-  root: N,
+export function levelsOf(
+  root: Route,
   segments: readonly string[],
-): readonly SegmentLevel<N>[] | undefined {
+): readonly LevelMatch[] | undefined {
   return levelsFrom(root, segments);
 }
 
@@ -106,10 +94,10 @@ function segmentsOf(url: string): readonly string[] {
  * @param segments
  * @returns The levels that match, or undefined when none do.
  */
-function levelsFrom<N extends PathNode<N>>(
-  route: N,
+function levelsFrom(
+  route: Route,
   segments: readonly string[],
-): readonly SegmentLevel<N>[] | undefined {
+): readonly LevelMatch[] | undefined {
   if (route.path === "**") {
     return [{ route, params: {}, segments }];
   }
@@ -118,15 +106,19 @@ function levelsFrom<N extends PathNode<N>>(
     return undefined;
   }
   const rest = segments.slice(consumed.count);
-  const own: SegmentLevel<N> = {
+  const own: LevelMatch = {
     route,
     params: consumed.params,
     segments: segments.slice(0, consumed.count),
   };
-  if (route.children === undefined) {
+  const children = route.children ?? loadedChildrenOf(route);
+  if (children === undefined) {
+    if (route.loadChildren !== undefined) {
+      return [{ ...own, unchecked: rest }];
+    }
     return rest.length === 0 ? [own] : undefined;
   }
-  for (const child of route.children) {
+  for (const child of children) {
     const below = levelsFrom(child, rest);
     if (below !== undefined) {
       return [own, ...below];
@@ -141,7 +133,7 @@ function levelsFrom<N extends PathNode<N>>(
  * @param segments
   * @returns The params of the pattern, or undefined when it does not match.
  */
-function consume(
+export function consume(
   pattern: string,
   segments: readonly string[],
 ): { params: RouteParams; count: number } | undefined {

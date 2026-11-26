@@ -48,7 +48,13 @@ const ROUTES = [
     ],
   },
   { path: "group", children: [{ path: "", component: TodoList }] },
+  { path: "lazy", loadChildren: () => Promise.resolve([{ path: "", component: TodoList }]) },
 ];
+
+/** Waits for the pending loads and the navigations they start. */
+function settled(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 /** An app with the router over ROOT, starting at `url`. */
 function appAt(url: string) {
@@ -129,5 +135,14 @@ test("going back to a URL no route matches is restored: the URL and the componen
     .toBe("Todos");
   expect(window.location.pathname)
     .toBe("/todos");
+  fixture.destroy();
+});
+
+test("a lazy route on the start URL shows its page once its children are loaded", async () => {
+  const fixture = appAt("/lazy");
+  await settled();
+  fixture.detectChanges();
+  expect(fixture.root.text())
+    .toBe("Todos");
   fixture.destroy();
 });

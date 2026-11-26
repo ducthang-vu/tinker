@@ -126,7 +126,12 @@ export function parseAppPath(root: Route, url: string): AppPath {
   if (levels === undefined) {
     throw new ParseError("no-route", url, values[values.length - 1] ?? "");
   }
-  const segments: Segment[] = levels.flatMap((level) => segmentsFor(level.route, level.segments));
+  // A segment under a lazy route whose children are not loaded is taken as written: the navigation
+  // that loads the children checks it.
+  const segments: Segment[] = levels.flatMap((level) => [
+    ...segmentsFor(level.route, level.segments),
+    ...(level.unchecked ?? []).map((value): Segment => ({ kind: "segment", value })),
+  ]);
   const fragment = fragmentRaw === undefined ? undefined : decodeOrThrow(url, fragmentRaw);
   return makeAppPath(segments, parseQuery(url, queryRaw), fragment);
 }

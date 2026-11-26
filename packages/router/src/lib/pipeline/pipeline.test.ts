@@ -46,7 +46,7 @@ function fakeSteps(log: string[], overrides: Partial<PipelineSteps> = {}): Pipel
   return {
     match: (r) => {
       log.push("match");
-      return Right.of<MatchedRequest, Stop>({ ...r, chain: [] });
+      return succeed({ ...r, chain: [] });
     },
     redirect: (m) => {
       log.push("redirect");
@@ -102,7 +102,7 @@ describe("the pipeline's order", () => {
   test("each step receives the result of the step before it", () => {
     const seen: number[] = [];
     const steps = fakeSteps([], {
-      match: (r) => Right.of<MatchedRequest, Stop>({ ...r, chain: [], redirectFrom: [destinationOf("/home")] }),
+      match: (r) => succeed({ ...r, chain: [], redirectFrom: [destinationOf("/home")] }),
       guards: (m) => {
         seen.push(m.redirectFrom.length);
         return succeed(m);
@@ -118,7 +118,7 @@ describe("stops", () => {
   test("no route stops at match: the later steps do not run", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      match: () => Left.of<Stop, MatchedRequest>(noRoute(ref)),
+      match: () => fail(noRoute(ref)),
     });
     const outcome = outcomeOf(createPipeline(steps)(request));
     expect(log)
@@ -164,7 +164,7 @@ describe("stops", () => {
   test("a navigation past the redirect cap stops at match, before anything else", () => {
     const log: string[] = [];
     const steps = fakeSteps(log, {
-      match: () => Left.of<Stop, MatchedRequest>(failed(ref, new Error("too many redirects"))),
+      match: () => fail(failed(ref, new Error("too many redirects"))),
     });
     const outcome = outcomeOf(createPipeline(steps)({ ...request, redirectFrom: Array.from({ length: 11 }, () => destinationOf("/x")) }));
     expect(log)
