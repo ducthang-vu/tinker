@@ -8,6 +8,10 @@ Writes a new app into `<parent>/<name>`. The parent is the current folder unless
 one. The name is a package name: lower case letters, digits and dashes, starting with a letter.
 The folder must not exist yet, or must be empty, so nothing is overwritten.
 
+`--prefix <prefix>` sets the prefix of the app's component selectors, default `app`: lower case
+letters and digits, starting with a letter. The root component's selector is `<prefix>-app`, and
+the prefix is stored in `package.json` under `tinker.prefix`, for the generators.
+
 The app has:
 
 - `package.json`: the scripts `dev` (`tinker dev`), `build` (`tinker build`) and `preview`

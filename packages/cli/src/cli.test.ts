@@ -12,7 +12,7 @@ vi.mock("./vite-commands.ts", () => ({
   serveApp: vi.fn(async () => undefined),
 }));
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
 
 describe("tinker command", () => {
   let parent: string;
@@ -73,6 +73,28 @@ describe("tinker command", () => {
         .toBe(2);
       expect(errors)
         .toEqual([USAGE]);
+    });
+
+    test("--prefix sets the selectors of the app, and the default is app", async () => {
+      expect(await run(["new", "my-app", "--dir", parent, "--prefix", "shop"], output))
+        .toBe(0);
+      expect(await run(["new", "other-app", "--dir", parent], output))
+        .toBe(0);
+      expect(readFileSync(join(parent, "my-app", "index.html"), "utf8"))
+        .toContain("<shop-app></shop-app>");
+      expect(readFileSync(join(parent, "my-app", "src", "app.ts"), "utf8"))
+        .toContain(`selector: "shop-app"`);
+      expect(JSON.parse(readFileSync(join(parent, "my-app", "package.json"), "utf8")).tinker)
+        .toEqual({ prefix: "shop" });
+      expect(readFileSync(join(parent, "other-app", "index.html"), "utf8"))
+        .toContain("<app-app></app-app>");
+    });
+
+    test("an invalid prefix fails with the reason, and writes nothing", async () => {
+      expect(await run(["new", "my-app", "--dir", parent, "--prefix", "My-Shop"], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain("is not a valid prefix");
     });
 
     test("an unknown option fails, with the parser's message", async () => {
