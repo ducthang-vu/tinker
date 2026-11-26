@@ -254,14 +254,6 @@ when it sits in a workspace folder (`examples/` or `packages/`).
 **To do.** Publish the packages, so an app outside the repository installs them from a
 registry. Until then, create the app with `--dir examples` or `--dir packages`.
 
-### 2. The command has one command
-
-**Problem.** `tinker` has only `new`. It does not run the dev server or the build for an app,
-so the app's own `package.json` scripts run Vite directly.
-
-**To do.** Add `tinker dev` and `tinker build` once there is a reason to wrap Vite, such as
-a check that must run before each build.
-
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
 ### 1. The name check is not scoped

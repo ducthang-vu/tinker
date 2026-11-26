@@ -128,20 +128,20 @@ Writes each file into `<dir>`, at its path relative to the working directory:
 
 `tinkerVite()` is the Vite setup a Tinker app needs, as one call: the compile step with
 `emit: true`, the standard decorators step, and the aliases that read each workspace package
-from its source. An app's `vite.config.ts` spreads it and adds its own options:
+from its source. An app's `vite.config.ts` exports it, as `tinker new` writes it:
 
 ```ts
-import { defineConfig } from "vite";
 import { tinkerVite } from "@tinker/compiler";
 
-export default defineConfig({
-  ...tinkerVite(),
-});
+export default tinkerVite();
 ```
+
+The app does not import Vite. `tinker dev` and `tinker build` (see `docs/cli.md`) run Vite,
+which is a dependency of `@tinker/cli`.
 
 The aliases read the `packages/` folder of this repository, so the preset works for an app
 inside the monorepo, as a workspace package. An app outside it needs the packages installed,
-and gets no aliases from the preset. `tinker new` (see `docs/cli.md`) writes this config.
+and gets no aliases from the preset.
 
 ## Errors
 
