@@ -146,3 +146,11 @@ test("a lazy route on the start URL shows its page once its children are loaded"
     .toBe("Todos");
   fixture.destroy();
 });
+
+test("after its children load, the router's match is the lazy page", async () => {
+  const fixture = appAt("/lazy");
+  await settled();
+  expect(fixture.root.instance.router.match()?.route.component)
+    .toBe(TodoList);
+  fixture.destroy();
+});

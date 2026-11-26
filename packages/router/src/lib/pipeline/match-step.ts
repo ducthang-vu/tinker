@@ -7,9 +7,11 @@
 //
 // The walk passes its result on to a callback. When every gate is synchronous, the walk completes
 // before the step returns, as the other steps do; only a load that is still running waits.
+// Cancelling the task cancels its gates and gives up its hold on any load, so a superseded
+// navigation stops.
 
 import { type Injector, runInInjectionContext } from "@tinker/core";
-import { fromComputation, run, type Task } from "@tinker/functional";
+import { type Cancel, fromComputation, run, type Task } from "@tinker/functional";
 import { loadChildrenOnce, loadedChildrenOf } from "../router/lazy-children.ts";
 import { consume, type LevelMatch } from "../router/match.ts";
 import type { Route } from "../router/route.ts";
@@ -25,6 +27,11 @@ export const MAX_REDIRECTS = 10;
 export interface MatchOptions {
   /** The injector whose context the gates run in. */
   readonly injector: Injector;
+}
+
+/** What one navigation's walk holds: what to give up when the navigation is cancelled. */
+interface Scope {
+  readonly releases: Cancel[];
 }
 
 /** How the walk of one route ended: with the levels it matched, with no match, or with a stop. */
@@ -54,11 +61,17 @@ const MISS: Walk = { kind: "miss" };
 
 /**
  * Runs a task, and passes its outcome on as a value. A throw while the task is made is a failure.
+ * The task is kept on the scope, so cancelling the scope cancels it.
  *
+ * @param scope The scope of the walk: nothing starts once it is cancelled.
  * @param start Makes the task.
  * @param done Receives the outcome.
  */
-function settle<T>(start: () => Task<T, unknown>, done: (settled: Settled<T>) => void): void {
+function settle<T>(
+  scope: Scope,
+  start: () => Task<T, unknown>,
+  done: (settled: Settled<T>) => void,
+): void {
   let made: Task<T, unknown>;
   try {
     made = start();
@@ -66,10 +79,10 @@ function settle<T>(start: () => Task<T, unknown>, done: (settled: Settled<T>) =>
     done({ ok: false, error });
     return;
   }
-  run(made, {
+  scope.releases.push(run(made, {
     ok: (value) => done({ ok: true, value }),
     error: (error) => done({ ok: false, error }),
-  });
+  }));
 }
 
 /**
@@ -77,6 +90,7 @@ function settle<T>(start: () => Task<T, unknown>, done: (settled: Settled<T>) =>
  * `onStop` is "skip", and rejects the navigation when it is "reject".
  *
  * @param options The injector the gates run in.
+ * @param scope The scope of the walk.
  * @param request The navigation being matched.
  * @param route The route whose gates these are.
  * @param gates The gates still to run, in order.
@@ -85,6 +99,7 @@ function settle<T>(start: () => Task<T, unknown>, done: (settled: Settled<T>) =>
  */
 function gatesOf(
   options: MatchOptions,
+  scope: Scope,
   request: NavigationRequest,
   route: Route,
   gates: readonly RouteGate[],
@@ -98,14 +113,14 @@ function gatesOf(
   }
   const invoke = (): ReturnType<RouteGate> =>
     runInInjectionContext(options.injector, () => gate(request));
-  settle(invoke, (settled) => {
+  settle(scope, invoke, (settled) => {
     if (!settled.ok) {
       done({ kind: "stop", stop: failed(request, settled.error) });
       return;
     }
     const command = settled.value;
     if (command.type === "ALLOW") {
-      gatesOf(options, request, route, later, onStop, done);
+      gatesOf(options, scope, request, route, later, onStop, done);
     } else if (command.type === "REDIRECT") {
       done({ kind: "stop", stop: Redirect.of(request, command.payload.path) });
     } else {
@@ -118,15 +133,17 @@ function gatesOf(
 
 /**
  * The children of a route: its own, or, for a lazy route, the loaded ones. A lazy route that is not
- * loaded runs its canLoad gates, then loads.
+ * loaded runs its canLoad gates, then holds its load.
  *
  * @param options The injector the gates run in.
+ * @param scope The scope of the walk.
  * @param request The navigation being matched.
  * @param route The route whose children these are.
  * @param done Receives the children.
  */
 function childrenOf(
   options: MatchOptions,
+  scope: Scope,
   request: NavigationRequest,
   route: Route,
   done: (children: Children) => void,
@@ -145,16 +162,17 @@ function childrenOf(
     done({ kind: "routes", routes: known });
     return;
   }
-  gatesOf(options, request, route, route.canLoad ?? [], "reject", (verdict) => {
+  gatesOf(options, scope, request, route, route.canLoad ?? [], "reject", (verdict) => {
     if (verdict.kind === "stop") {
       done({ kind: "stop", stop: verdict.stop });
       return;
     }
-    loadChildrenOnce(route, loader)
-      .then(
-        (routes) => done({ kind: "routes", routes }),
-        (cause: unknown) => done({ kind: "stop", stop: failed(request, cause) }),
-      );
+    const hold = loadChildrenOnce(route, loader);
+    scope.releases.push(() => hold.release());
+    hold.promise.then(
+      (routes) => done({ kind: "routes", routes }),
+      (cause: unknown) => done({ kind: "stop", stop: failed(request, cause) }),
+    );
   });
 }
 
@@ -162,7 +180,8 @@ function childrenOf(
  * Walks `route` and its descendants against `segments`, and passes on the levels that match, no
  * match, or a stop.
  *
- * @param options The injector the gates run in.
+ * @param options The injector and the lazy routes.
+ * @param scope The scope of the walk.
  * @param request The navigation being matched.
  * @param route The route to walk.
  * @param segments The segments the route and its descendants must match.
@@ -170,6 +189,7 @@ function childrenOf(
  */
 function walk(
   options: MatchOptions,
+  scope: Scope,
   request: NavigationRequest,
   route: Route,
   segments: readonly string[],
@@ -184,7 +204,7 @@ function walk(
     done(MISS);
     return;
   }
-  gatesOf(options, request, route, route.canMatch ?? [], "skip", (verdict) => {
+  gatesOf(options, scope, request, route, route.canMatch ?? [], "skip", (verdict) => {
     if (verdict.kind === "stop") {
       done({ kind: "stop", stop: verdict.stop });
       return;
@@ -199,13 +219,13 @@ function walk(
       params: consumed.params,
       segments: segments.slice(0, consumed.count),
     };
-    childrenOf(options, request, route, (children) => {
+    childrenOf(options, scope, request, route, (children) => {
       if (children.kind === "stop") {
         done({ kind: "stop", stop: children.stop });
       } else if (children.kind === "none") {
         done(rest.length === 0 ? { kind: "found", levels: [own] } : MISS);
       } else {
-        walkEach(options, request, children.routes, rest, own, done);
+        walkEach(options, scope, request, children.routes, rest, own, done);
       }
     });
   });
@@ -214,7 +234,8 @@ function walk(
 /**
  * Walks the routes in order, and passes on the first that matches, or a stop.
  *
- * @param options The injector the gates run in.
+ * @param options The injector and the lazy routes.
+ * @param scope The scope of the walk.
  * @param request The navigation being matched.
  * @param routes The routes to try, in order.
  * @param segments The segments the routes must match.
@@ -223,51 +244,59 @@ function walk(
  */
 function walkEach(
   options: MatchOptions,
+  scope: Scope,
   request: NavigationRequest,
   routes: readonly Route[],
   segments: readonly string[],
   own: LevelMatch,
   done: (result: Walk) => void,
 ): void {
-  if (routes.length === 0) {
+  const [first, ...later] = routes;
+  if (first === undefined) {
     done(MISS);
     return;
   }
-  const [first, ...later] = routes;
-  walk(options, request, first as Route, segments, (below) => {
+  walk(options, scope, request, first, segments, (below) => {
     if (below.kind === "found") {
       done({ kind: "found", levels: [own, ...below.levels] });
     } else if (below.kind === "stop") {
       done(below);
     } else {
-      walkEach(options, request, later, segments, own, done);
+      walkEach(options, scope, request, later, segments, own, done);
     }
   });
 }
 
 /**
- * The match step for a tree with `root` at its top.
+ * The match step for a tree with `root` at its top. Cancelling its task cancels the gates that are
+ * running, and gives up the holds on the loads, so a superseded navigation stops downloading.
  *
  * @param root The root route of the tree.
- * @param options The injector the gates run in, and the lazy routes.
+ * @param options The injector the gates run in.
  * @returns A match step: a Task of the request with its levels, or a stop.
  */
 export function createMatchStep(root: Route, options: MatchOptions): MatchStep {
   return (request) =>
     fromComputation<MatchedRequest, Stop>((ok, error) => {
+      const scope: Scope = { releases: [] };
       if (request.redirectFrom.length > MAX_REDIRECTS) {
         error(failed(request, new Error(`more than ${MAX_REDIRECTS} redirects`)));
-        return;
+      } else {
+        const segments = request.destination.segments.map((part) => part.value);
+        walk(options, scope, request, root, segments, (result) => {
+          if (result.kind === "found") {
+            ok({ ...request, chain: result.levels });
+          } else if (result.kind === "miss") {
+            error(noRoute(request));
+          } else {
+            error(result.stop);
+          }
+        });
       }
-      const segments = request.destination.segments.map((part) => part.value);
-      walk(options, request, root, segments, (result) => {
-        if (result.kind === "found") {
-          ok({ ...request, chain: result.levels });
-        } else if (result.kind === "miss") {
-          error(noRoute(request));
-        } else {
-          error(result.stop);
+      return () => {
+        for (const release of scope.releases) {
+          release();
         }
-      });
+      };
     });
 }
