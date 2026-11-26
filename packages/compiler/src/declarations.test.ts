@@ -20,6 +20,7 @@ describe("readSource", () => {
         exportAs: undefined,
         exportAsIsDynamic: false,
         members: [],
+        extendsAnother: false,
         inputNames: {},
         statementEnd: expect.any(Number),
       }]);
@@ -31,6 +32,7 @@ describe("readSource", () => {
         exportAs: undefined,
         exportAsIsDynamic: false,
         members: [],
+        extendsAnother: false,
         inputNames: {},
         statementEnd: expect.any(Number),
       }]);

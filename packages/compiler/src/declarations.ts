@@ -34,6 +34,9 @@ export interface Declaration {
   readonly kind: "component" | "directive" | "templateFunction";
   /** The name a template calls a template function by, when it is a literal. */
   readonly templateFunctionName?: string;
+  /** Whether the class extends another: its inherited members are not read, so its names are not
+   *  checked. */
+  readonly extendsAnother: boolean;
   /** The names of the class's own (not static) properties and methods: a template name may
    *  hide one. */
   readonly members: readonly string[];
@@ -185,6 +188,7 @@ function declarationOf(
     name: declared.id.name,
     ...decorator,
     members: membersOf(declared),
+    extendsAnother: declared.superClass !== null && declared.superClass !== undefined,
     inputNames: inputNamesOf(declared, constants),
     statementEnd: statement.end as number,
   }];
@@ -206,7 +210,7 @@ function membersOf(declared: t.ClassDeclaration): readonly string[] {
 function templateFunctionInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name" | "members" | "inputNames" | "statementEnd"> | undefined {
+): Omit<Declaration, "name" | "members" | "extendsAnother" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)
     || call.callee.name !== "TemplateFunction") {
@@ -267,7 +271,7 @@ function nameOfInput(
 function decoratorInfo(
   decorator: t.Decorator,
   constants: ReadonlyMap<string, string>,
-): Omit<Declaration, "name" | "members" | "inputNames" | "statementEnd"> | undefined {
+): Omit<Declaration, "name" | "members" | "extendsAnother" | "inputNames" | "statementEnd"> | undefined {
   const call = decorator.expression;
   if (!t.isCallExpression(call) || !t.isIdentifier(call.callee)) {
     return undefined;
