@@ -206,18 +206,6 @@ point at the host root.
 
 **To do.** Decide whether production should also warn, or refuse signal reads in memoised calls.
 
-## The `tinker` command (`packages/cli`)
-
-### 1. A new app can only be created inside the monorepo
-
-**Problem.** `tinker new` writes an app whose dependencies are the workspace packages
-(`"@tinker/core": "*"`, `"@tinker/compiler": "*"`). The packages are private and not published,
-and the preset's aliases read the repository's `packages/` folder. So the new app only builds
-when it sits in a workspace folder (`examples/` or `packages/`).
-
-**To do.** Publish the packages, so an app outside the repository installs them from a
-registry. Until then, create the app with `--dir examples` or `--dir packages`.
-
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
 ### 1. Classes that extend another are not checked
