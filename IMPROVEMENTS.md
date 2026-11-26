@@ -142,8 +142,6 @@ Known deviations of `TinkerTemplateParser` from the browser:
 
 - The HTML 5 names beyond the HTML 4 list (such as `&check;`) are kept as written. The full table adds about 16 KB gzipped to the
   example's bundle, against about 2 KB for this one.
-- A reference without its semicolon (`&copy`) is kept as written; the browser decodes some
-  of them.
 
 ## Build-time template compiler (`packages/compiler`)
 
