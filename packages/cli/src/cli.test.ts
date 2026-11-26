@@ -12,7 +12,7 @@ vi.mock("./vite-commands.ts", () => ({
   serveApp: vi.fn(async () => undefined),
 }));
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
 
 describe("tinker command", () => {
   let parent: string;
@@ -368,6 +368,42 @@ describe("tinker command", () => {
         .toBe(0);
       expect(logged)
         .toEqual([manifest.version, manifest.version]);
+    });
+  });
+
+  describe("generate", () => {
+    test("writes the item into the current app, and prints the line that uses it", async () => {
+      const cwd = process.cwd();
+      const app = mkdtempSync(join(tmpdir(), "tinker-gen-cmd-"));
+      writeFileSync(join(app, "package.json"), JSON.stringify({ name: "shop", tinker: { prefix: "shop" } }));
+      process.chdir(app);
+      try {
+        expect(await run(["generate", "component", "cart"], output))
+          .toBe(0);
+        expect(readFileSync(join(app, "src", "cart", "cart.ts"), "utf8"))
+          .toContain(`selector: "shop-cart"`);
+        expect(logged[0])
+          .toContain("src/cart/cart.ts");
+        expect(logged.join("\n"))
+          .toContain("CartComponent");
+      } finally {
+        process.chdir(cwd);
+        rmSync(app, { recursive: true, force: true });
+      }
+    });
+
+    test("a wrong number of arguments fails with the usage", async () => {
+      expect(await run(["generate", "component"], output))
+        .toBe(2);
+      expect(errors)
+        .toEqual([USAGE]);
+    });
+
+    test("an error in the item fails with the reason", async () => {
+      expect(await run(["generate", "pipe", "cart"], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain(`"pipe" is not a kind to generate`);
     });
   });
 

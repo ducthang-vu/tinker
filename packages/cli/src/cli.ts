@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type ParseArgsOptionsConfig, parseArgs } from "node:util";
 import { createApp, DEFAULT_PREFIX } from "./new.ts";
+import { generateInto } from "./generate.ts";
 import { type AppOptions, buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 /** Where the command writes its messages. */
@@ -23,7 +24,7 @@ export interface Output {
   readonly error: (line: string) => void;
 }
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>]";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
 
 /** What `tinker --help` prints: each command, and what it does. */
 const HELP = `${USAGE.replace("Usage: ", "Usage:\n  ")
@@ -34,6 +35,8 @@ Commands:
   dev             serve the app in the current folder, until it is stopped
   build           build the app in the current folder into dist/
   preview         serve the built dist/ folder, until it is stopped (run build first)
+  generate <kind> <name>  write a component, directive, service or function (kinds: component,
+                          directive, service, function) into src/<name>/
 
 Options:
   -p, --port <n>  the port, a number from 1 to 65535 (dev and preview)
@@ -93,6 +96,9 @@ export async function run(args: readonly string[], output: Output): Promise<numb
     return appCommand(rest, output, { ...PORT_OPTION, ...BASE_OPTION }, (options) =>
       serveApp(process.cwd(), options));
   }
+  if (command === "generate") {
+    return generateCommand(rest, output);
+  }
   if (command === "preview") {
     return appCommand(rest, output, { ...PORT_OPTION, ...BASE_OPTION }, (options) =>
       previewApp(process.cwd(), options));
@@ -130,6 +136,25 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
  * Runs `dev` or `build`: its options are parsed and checked first (a bad one exits with 2), then
  * the command runs (a failure exits with 1). Nothing else may follow the options.
  */
+/** `tinker generate <kind> <name>`: writes the item, and prints the line that uses it. */
+function generateCommand(args: readonly string[], output: Output): number {
+  try {
+    const { positionals } = parseArgs({ args, allowPositionals: true, strict: true });
+    const [kind, name, ...extra] = positionals;
+    if (kind === undefined || name === undefined || extra.length > 0) {
+      output.error(USAGE);
+      return 2;
+    }
+    const file = generateInto(process.cwd(), kind, name);
+    output.log(`Created ${file.path}. To use it, add:`);
+    output.log(file.usage);
+    return 0;
+  } catch (error) {
+    output.error((error as Error).message);
+    return 2;
+  }
+}
+
 async function appCommand(
   args: readonly string[],
   output: Output,
