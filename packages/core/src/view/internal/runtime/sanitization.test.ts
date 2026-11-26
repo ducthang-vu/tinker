@@ -4,7 +4,7 @@ import { Component } from "../authoring/decorators.ts";
 import { inject } from "../../../di/index.ts";
 import { signal } from "../../../signals/index.ts";
 import { HostBindings } from "../factories/host-bindings.ts";
-import { attributeText, refusalOf, Sanitizer, styleText, TrustedHtml, TrustedStyle, TrustedUrl } from "./sanitization.ts";
+import { attributeText, propertyValue, refusalOf, Sanitizer, styleText, TrustedHtml, TrustedStyle, TrustedUrl } from "./sanitization.ts";
 
 const sanitizer = new Sanitizer();
 import { valueOrThrow } from "@tinker/functional";
@@ -210,5 +210,45 @@ describe("the Sanitizer service", () => {
     expect(el.querySelector("img")!.getAttribute("src"))
       .toBe("data:image/png;base64,AAAA");
     app.destroy();
+  });
+});
+
+describe("propertyValue", () => {
+  test("innerHTML, outerHTML and srcdoc take only a TrustedHtml; anything else is \"\"", () => {
+    expect(propertyValue("innerHTML", sanitizer.trustHtml("<b>ok</b>")))
+      .toBe("<b>ok</b>");
+    expect(propertyValue("outerHTML", "<img src=x>"))
+      .toBe("");
+    expect(propertyValue("srcdoc", null))
+      .toBe("");
+  });
+
+  test("style takes only a TrustedStyle", () => {
+    expect(propertyValue("style", sanitizer.trustStyle("color: red")))
+      .toBe("color: red");
+    expect(propertyValue("style", "background:url(https://evil.example/x)"))
+      .toBe("");
+  });
+
+  test("a URL property takes a trusted URL, a safe one, and nothing else", () => {
+    expect(propertyValue("href", sanitizer.trustUrl("javascript:void(0)")))
+      .toBe("javascript:void(0)");
+    expect(propertyValue("href", "https://example.com"))
+      .toBe("https://example.com");
+    expect(propertyValue("href", "javascript:alert(1)"))
+      .toBe("");
+    expect(propertyValue("src", undefined))
+      .toBe("");
+    expect(propertyValue("src", false))
+      .toBe("");
+  });
+
+  test("other properties are set as they are, a trusted value as its text", () => {
+    expect(propertyValue("value", "typed"))
+      .toBe("typed");
+    expect(propertyValue("disabled", true))
+      .toBe(true);
+    expect(propertyValue("textContent", sanitizer.trustUrl("https://a.example/")))
+      .toBe("https://a.example/");
   });
 });

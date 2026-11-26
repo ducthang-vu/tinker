@@ -137,3 +137,34 @@ export function styleText(value: unknown): string | undefined {
   const text = String(value);
   return CSS_LOADS.test(text) ? undefined : text;
 }
+
+/** DOM properties that take HTML: only a TrustedHtml may set them. */
+const HTML_PROPERTIES = new Set(["innerhtml", "outerhtml", "srcdoc"]);
+
+/**
+ * The value a DOM property bound to `value` is set to. A trusted value is set as its text.
+ * A value that is not allowed is set to "", as a missing one is: `innerHTML`, `outerHTML`
+ * and `srcdoc` take only a TrustedHtml, `style` only a TrustedStyle, and a URL property
+ * (`href`, `src`, …) takes what the attribute path allows, by the same check. Other
+ * properties are set as they are.
+ */
+export function propertyValue(name: string, value: unknown): unknown {
+  const lower = name.toLowerCase();
+  if (HTML_PROPERTIES.has(lower)) {
+    return value instanceof TrustedHtml ? value.html : "";
+  }
+  if (lower === "style") {
+    return value instanceof TrustedStyle ? value.css : "";
+  }
+  if (isUrlAttribute(lower)) {
+    if (value instanceof TrustedUrl) {
+      return value.url;
+    }
+    if (value === null || value === undefined || value === false) {
+      return "";
+    }
+    const text = String(value);
+    return isSafeUrlValue(lower, text) ? text : "";
+  }
+  return isTrusted(value) ? String(value) : value;
+}

@@ -63,16 +63,16 @@ safe scheme, and event attributes (`on…`) are refused.
 | F1 | `[src]="x"` on a component or directive that has an input named `src` | Passed to the input | Allow. The component decides; if it binds `[attr.src]` itself, A1 applies. |
 | F2 | `(output)="…"` and `(click)="…"` | Calls a method | Allow. |
 
-### G. Property bindings (not built yet)
+### G. Property bindings: `[name]` with no input of that name
 
-Planned in `IMPROVEMENTS.md`, Templates item 1. Each needs its rule before it ships.
+Built (`runtime/property-binding.ts`, through `propertyValue` in `sanitization.ts`).
 
 | # | Property | Proposed rule |
 |---|----------|---------------|
-| G1 | `innerHTML`, `outerHTML` | Only a `TrustedHtml`. Refuse anything else. |
-| G2 | `src`, `href`, `action`, `formAction` (as DOM properties) | The URL check of A1, same as the attribute. |
+| G1 | `innerHTML`, `outerHTML` (and `srcdoc`) | Built: only a `TrustedHtml`; anything else is set to `""`. |
+| G2 | `src`, `href`, `action`, `formAction`, `cite`, `poster` (as DOM properties) | Built: the URL check of A1, or a `TrustedUrl`; otherwise `""`. |
 | G3 | `value`, `checked`, `disabled`, `textContent` | Allow. These are not markup or URLs. |
-| G4 | `on…` (as DOM properties) | Refuse, as A8. |
+| G4 | `on…` (as DOM properties) | Built: refused when the element is built, as A8. Also methods, read-only properties, and `Object.prototype` members (`__proto__`). |
 
 ### H. Precompiled templates
 
@@ -105,6 +105,7 @@ These are the defaults the code now follows. Change one by changing the rule in
    one of them (B2).
 4. **Static markup (E):** not checked, and not warned about. The template is the author's code.
 5. **`xmlns` and `is`:** refused when the template or host metadata is read (A10).
+6. **A refused property value:** set to `""`, as a missing value is (G1, G2, B2). The property is written, not left as it was.
 
 ## What is built
 
@@ -116,6 +117,7 @@ These are the defaults the code now follows. Change one by changing the rule in
 - Event attributes are refused as before (A8).
 - Tests: `runtime/sanitization.test.ts`, `factories/url-attributes.test.ts`.
 
-Not built yet: property bindings (G, which need their own rules when they exist), and the
-router check (I1).
+Property bindings (G): built, as above.
+
+Not built yet: the router check (I1).
 

@@ -138,10 +138,9 @@ describe("compileTemplate", () => {
       .toThrow(`Bindings are not supported yet: "[a.b.c]" on <button>`);
     expect(() => compileTemplate([element("p", { "[a.b.c]": "c" })]))
       .toThrow(`Bindings are not supported yet: "[a.b.c]" on <p>`);
+    // Whether `[title]` is an input or a DOM property is decided when the element is built.
     expect(() => compileTemplate([element("p", { "[title]": "t" })]))
-      .toThrow(
-        "[title] on <p>: only inputs can be bound, and no imported directive or component matches this element",
-      );
+      .not.toThrow();
     expect(() => compileTemplate([element("p", { "[class.on]": "a(1 2)" })]))
       .toThrow(`Expected "," or ")", found "2" (at column 5 in "a(1 2)"), in [class.on] on <p>`);
   });

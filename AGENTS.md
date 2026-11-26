@@ -74,11 +74,28 @@ An AI agent must not change that API on its own.
   green, without a clear reason written next to it.
 - Document every new feature accurately: what it does, its syntax, and what it
   does not do. Check the docs against the code and the tests before reporting
-  the change as done, and fix any doc that the change makes wrong (README,
-  `docs/`, and the comment at the top of the module).
+  the change as done, and fix any doc that the change makes wrong.
+- Where the docs live, and what goes in each:
+  - `README.md`: the overview of the framework, with one bullet per feature.
+    Keep each bullet to what the feature does and how to write it.
+  - `docs/*.md`: one file per area (`architecture`, `change-detection`,
+    `control-flow`, `sanitization`, `testing`, and so on). A feature that belongs
+    to an area goes in that file. Add a new file only for a new area.
+  - The comment at the top of each module: what the module is for, and the
+    rules its code follows. Keep it true when the code changes.
+  - `IMPROVEMENTS.md`: open gaps only, as the rule above says.
+- Write docs in the present tense, describing the code as it is. A doc does not
+  record history, what changed, or who asked for it.
+- A doc that describes a rule (such as the sanitizer's cases) is updated in the
+  same commit as the code that changes the rule.
 - Record each known limitation of a new feature in `IMPROVEMENTS.md`, with the
   problem and what to do about it. A limitation left out of that file is one
   nobody will remember.
+- `IMPROVEMENTS.md` lists only what is still open: gaps, limitations and planned
+  work. Never write what is done, a changelog, or a status line such as "Done".
+  When a change finishes an entry, remove the entry in the same commit.
+- Before each commit, read `AGENTS.md` again and check the commit against it:
+  the dead-code search, the docs, and `IMPROVEMENTS.md`.
 - Do not open pull requests, or push to `main`, unless the user asks.
 - Before you open a pull request, rebase the branch onto the latest `main` (`git fetch origin main`, then `git rebase origin/main`), resolve any conflicts, and run the checks again. Open the pull request only after that. Regenerate generated files (the API reference, the repo maps) rather than picking a side in a conflict.
 - Before pushing, rebase the branch onto the latest `main` (`git fetch origin`, then

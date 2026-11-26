@@ -55,8 +55,7 @@ the manual ones agree on the DOM, and that a manual run with no change writes no
 
 **Problem.** The parent context still carries `adoptHostBindings`, which hands the child's host
 bindings back to the parent's watch, and the projected content and content queries. Those
-describe the parent's template, not how to build the component. The plain attributes and the
-input bindings now go through one `setInputs` callback, supplied by the template builder.
+describe the parent's template, not how to build the component.
 
 **To do.** Move the host bindings and the projection out of the factory the same way, or
 document them as the parent-to-child contract that the factory must hold.
@@ -73,16 +72,19 @@ root as the one case that renders into an existing element.
 
 ## Templates (`packages/core/src/view/internal/template/`, `factories/template-builder.ts`)
 
-### 1. Property bindings on plain elements
+### 1. Property bindings on plain elements: gaps
 
-**Problem.** `[name]` binds inputs only, so `[value]` on an `<input>` or
-`[textContent]` on a `<p>` is an error. Forms need the DOM property, and a
-two-way `[(value)]` needs it too.
-
-**To do.** Decide the syntax that separates a DOM property from an input (a
-prefix, or a check that the element has no directive with that input), then
-bind the property through the renderer. `[(value)]` is sugar for the property and
-its `(input)` handler, once this exists.
+- **The property is looked up when the element is built.** A property that an element
+  gains later (a custom element defined after the template is built) is an error at
+  build time, not a binding that waits for it.
+- **There is no `[(value)]`.** Two-way binding needs the property plus an `(input)`
+  handler; it is not sugar over the property yet.
+- **Reflected properties follow their attribute.** Setting `disabled` changes the
+  attribute too, because the browser reflects it. Nothing here guards that.
+- **No type checks.** A string bound to a number property is set as it is.
+- **A refused value is set to `""`.** `[href]` to `javascript:` and `[innerHTML]` without
+  a `TrustedHtml` are set to `""` (see `docs/sanitization.md`, G), so the property is
+  written, not left as it was.
 
 ### 2. Content queries see only direct element children
 
@@ -117,7 +119,7 @@ the `DEV_MODE` token.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
-### 2. A single argument is taken as options when it has a `name` or `adapter` key
+### 1. A single argument is taken as options when it has a `name` or `adapter` key
 
 **Problem.** `input(value)` treats an object default that has a `name` or `adapter` key
 as options. Such a default must be written `input(value, {})`. The rule is simple but
@@ -127,7 +129,7 @@ guessed from the keys, not from the type.
 instance built by a helper (`inputOptions({ … })`), or accept only the two-argument form
 for object defaults.
 
-### 3. Adapters apply to plain attributes only
+### 2. Adapters apply to plain attributes only
 
 **Problem.** `[size]="n()"` sets the input as the expression gives it, so a binding of the
 wrong type is not converted, and a string bound to a number input is not caught.
@@ -154,18 +156,8 @@ call with a known result (such as a `const` set from a pure function) should be 
 
 ### 2. The start-up gain of emitted trees is measured for one app
 
-**Problem.** The emitted templates are about 2.2 times the gzipped size of their template
-strings, but the whole bundle grows by much less. Measured on the example app, in headless
-Chromium on one machine, 40 loads of each build, alternating:
-
-- Time from navigation to all four components rendered: median 47 ms with template
-  strings, 39.1 ms with emitted trees (p90 58.4 ms and 44.9 ms).
-- Bundle: 193,704 bytes raw and 37,617 gzipped with strings; 221,593 raw and 38,436
-  gzipped with trees (about 0.8 KB more gzipped).
-
-So for this app the trees are worth their size, and the example app now uses them
-(`tinkerCompiler({ emit: true })`). The person running the compiler chooses per build:
-`--emit` writes the trees, and without it the output keeps the template strings.
+**Problem.** The start-up time and bundle size of emitted trees were measured on the example
+app only, in one headless browser on one machine.
 
 **To do.** Measure on a larger app and on slower hardware before making trees the default
 for libraries, since a library's consumers pay the bundle size, not the build.

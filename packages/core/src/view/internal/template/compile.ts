@@ -1057,12 +1057,8 @@ function elementAfterChecks(
   parts: ElementParts,
   candidates: readonly DirectiveCandidate[],
 ): Parsed<CompiledNode> {
-  if (parts.inputBindings.length > 0 && parts.directives.length === 0 && isNone(parts.component)) {
-    return Left.of(new Error(
-      `[${parts.inputBindings[0]!.name}] on <${node.name}>: only inputs can be bound, `
-      + "and no imported directive or component matches this element",
-    ));
-  }
+  // A `[name]` that no input matches is a DOM property, if the element has one: whether
+  // it has one is known only when the element is built (see TemplateBuilder).
   // A component's element has content too: the component shows it in its `<slot>`s.
   return map(compileTemplate(node.children, candidates), (children): CompiledNode => ({
     kind: "element",
