@@ -20,7 +20,7 @@ describe("createApp", () => {
 
     expect(folder)
       .toBe(join(parent, "my-app"));
-    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts"]) {
+    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", ".gitignore", "README.md"]) {
       expect(readFileSync(join(folder, file), "utf8")).not.toBe("");
     }
   });
@@ -35,6 +35,31 @@ describe("createApp", () => {
       .toBe("*");
     expect(manifest.devDependencies["@tinker/compiler"])
       .toBe("*");
+  });
+
+  test("the app ignores its packages and build, and documents its commands", () => {
+    const folder = createApp("my-app", parent);
+
+    expect(readFileSync(join(folder, ".gitignore"), "utf8"))
+      .toContain("node_modules/");
+    expect(readFileSync(join(folder, ".gitignore"), "utf8"))
+      .toContain("dist/");
+    expect(readFileSync(join(folder, "README.md"), "utf8"))
+      .toContain("# my-app");
+    expect(readFileSync(join(folder, "README.md"), "utf8"))
+      .toContain("npm run typecheck");
+  });
+
+  test("the compiler settings are strict, and allow the .ts import paths", () => {
+    const folder = createApp("my-app", parent);
+    const tsconfig = JSON.parse(readFileSync(join(folder, "tsconfig.json"), "utf8"));
+
+    expect(tsconfig.compilerOptions.strict)
+      .toBe(true);
+    expect(tsconfig.compilerOptions.allowImportingTsExtensions)
+      .toBe(true);
+    expect(tsconfig.include)
+      .toEqual(["src", "vite.config.ts"]);
   });
 
   test("the root component uses the app's name as its title", () => {

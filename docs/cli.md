@@ -17,6 +17,10 @@ The app has:
 - `vite.config.ts`, which takes its plugins and aliases from `tinkerConfig()` of `@tinker/compiler`
   (see `docs/compiler.md`).
 - `src/main.ts`, which bootstraps the root component, and `src/app.ts`, the root component.
+- `tsconfig.json`, strict TypeScript for the app's `src/` and its `vite.config.ts`, with the `.ts`
+  import paths the app uses. It has the `typecheck` script (`tsc --noEmit`).
+- `.gitignore`, which keeps `node_modules/`, `dist/` and logs out of git.
+- `README.md`, with the commands: install, dev, build, preview and typecheck.
 
 Then, in the app's folder:
 
