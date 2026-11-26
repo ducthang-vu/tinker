@@ -299,14 +299,22 @@ The types are `NavigationStarted`, `NavigationDone`, `NavigationCancelled` and
 
 ## Changing the routes while the app runs
 
-`Router.resetRoutes(routes)` replaces the top-level routes. The router matches
-the current URL against the new routes straight away, without changing the URL
-or adding a history entry. If no new route takes the URL, nothing is shown until
-the URL changes. Routes that were already loaded keep their children.
+`Router.resetRoutes(routes, options?)` replaces the top-level routes, and matches
+the current URL against them straight away. Routes that were already loaded keep
+their children.
+
+By default the current history entry is replaced, so no entry is added and the
+URL does not change. With `{ history: "push" }` the URL is navigated to as a new
+entry, so Back returns to it.
 
 ```ts
 inject(Router).resetRoutes([...ROUTES, { path: "beta", component: Beta }]);
+inject(Router).resetRoutes(NEW_ROUTES, { history: "push" });
 ```
+
+If no new route takes the URL, the router shows nothing. To show a page instead,
+keep a catch-all route, `{ path: "**", component: NotFound }`, last in the
+routes: it takes any URL that the other routes do not.
 
 ## The browser location
 
@@ -320,8 +328,6 @@ to replace it.
 - There are no resolvers: data is not loaded before a route is shown.
 - Lazy routes have no preloading and no retry policy. A failed load is retried
   only by the next navigation to it.
-- The trace of a navigation (`meta`) is `unknown[]`. It is for debugging, and
-  the app does not act on it.
 - `canMatch` skips a route, so a sibling with the same path can match. Only
   when every route the path could take is denied is the navigation rejected,
   with reason `GUARD` and source `MATCH`.

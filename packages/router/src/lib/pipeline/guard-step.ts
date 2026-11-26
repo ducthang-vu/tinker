@@ -9,6 +9,7 @@ import { fail, flatMap, fromComputation, run, succeed, type Task } from "@tinker
 import type { AppPath } from "../destination/app-path.ts";
 import type { ActivatedRoute } from "../state/activated-route.ts";
 import type { MatchedRequest, NavigationRequest } from "./request.ts";
+import type { GuardTrace, TraceEntry } from "./trace.ts";
 import type { DeactivateStep, GuardStep } from "./steps.ts";
 import { failed, guardRejected, Redirect, type Stop } from "./stop.ts";
 
@@ -124,7 +125,7 @@ function deactivateOf(
     (previous, guard) =>
       flatMap(previous, (current) =>
         flatMap(callGuard(injector, current, "DEACTIVATE_GUARD", () => guard(current, leaving)), (command) =>
-          decide(current, leaving.route.path, command, "deactivate"))),
+          decide(current, leaving.route.path, command, "DEACTIVATE_GUARD"))),
     succeed(matched),
   );
 }
@@ -164,7 +165,7 @@ function guardsOf(
     (previous, guard) =>
       flatMap(previous, (current) =>
         flatMap(callGuard(injector, current, "ACTIVATE_GUARD", () => guard(current)), (command) =>
-          decide(current, route, command, "guard"))),
+          decide(current, route, command, "ACTIVATE_GUARD"))),
     succeed(matched),
   );
 }
@@ -206,7 +207,7 @@ function callGuard(
  * @param entry What the step did.
  * @returns The navigation with the entry added.
  */
-function traced(matched: MatchedRequest, entry: unknown): MatchedRequest {
+function traced(matched: MatchedRequest, entry: TraceEntry): MatchedRequest {
   return { ...matched, trace: [...matched.trace, entry] };
 }
 
@@ -217,16 +218,16 @@ function traced(matched: MatchedRequest, entry: unknown): MatchedRequest {
  * @param route The path of the route whose guard returned the command.
  * @param command The command the guard returned.
  * @param step
+ * @param source
  * @returns The next step: the request when allowed, or a stop.
  */
 function decide(
   matched: MatchedRequest,
   route: string,
   command: RouteGuardCommand,
-  step: "guard" | "deactivate",
+  source: "ACTIVATE_GUARD" | "DEACTIVATE_GUARD",
 ): Task<MatchedRequest, Stop> {
-  const entry = { step, route, command: command.type };
-  const source = step === "guard" ? "ACTIVATE_GUARD" : "DEACTIVATE_GUARD";
+  const entry: GuardTrace = { step: source, route, command: command.type };
   switch (command.type) {
     case "ALLOW":
       return succeed(traced(matched, entry));

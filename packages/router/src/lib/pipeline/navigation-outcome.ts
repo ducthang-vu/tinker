@@ -5,6 +5,7 @@ import type { AppPath } from "../destination/app-path.ts";
 import type { StopCommand } from "./guard-step.ts";
 import type { MatchedRequest } from "./request.ts";
 
+import type { TraceEntry } from "./trace.ts";
 /** The navigation as the router knows it: enough to say which one an outcome is about. */
 export interface NavigationRef {
   /** The id of the navigation. */
@@ -12,7 +13,7 @@ export interface NavigationRef {
   /** The destination the navigation goes to. */
   readonly destination: AppPath;
   /** What each step did to the navigation, in order. For debugging. */
-  readonly trace: readonly unknown[];
+  readonly trace: readonly TraceEntry[];
 }
 
 /** The navigation committed. Its object is the one that came out of the guards, unchanged. */
@@ -22,7 +23,7 @@ export interface Done {
   /** The navigation, as it came out of the guards. */
   readonly navigation: MatchedRequest;
   /** What each step did to the navigation, in order. For debugging. */
-  readonly meta: readonly unknown[];
+  readonly meta: readonly TraceEntry[];
 }
 
 /** A newer navigation replaced this one before it committed. */
@@ -34,7 +35,7 @@ export interface Cancelled {
   /** The id of the newer navigation. */
   readonly by: number;
   /** What each step did to the navigation, in order. For debugging. */
-  readonly meta: readonly unknown[];
+  readonly meta: readonly TraceEntry[];
 }
 
 /**
@@ -59,7 +60,7 @@ export type Rejected
     /** The navigation that matched no route. */
     readonly navigation: NavigationRef;
     /** What each step did to the navigation, in order. For debugging. */
-    readonly meta: readonly unknown[];
+    readonly meta: readonly TraceEntry[];
   }
   | {
     /** The outcome kind: the navigation was rejected. */
@@ -75,7 +76,7 @@ export type Rejected
     /** The STOP command the guard returned. Its payload has the reason the guard gave. */
     readonly guard: StopCommand;
     /** What each step did to the navigation, in order. For debugging. */
-    readonly meta: readonly unknown[];
+    readonly meta: readonly TraceEntry[];
   }
   | {
     /** The outcome kind: the navigation was rejected. */
@@ -89,7 +90,7 @@ export type Rejected
     /** What went wrong. */
     readonly cause: unknown;
     /** What each step did to the navigation, in order. For debugging. */
-    readonly meta: readonly unknown[];
+    readonly meta: readonly TraceEntry[];
   };
 
 /** Every final result of a navigation. */

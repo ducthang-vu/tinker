@@ -202,7 +202,7 @@ describe("the guard step", () => {
       seen.push(value);
     } });
     expect(seen[0]?.trace)
-      .toEqual([{ step: "guard", route: "/todos", command: "ALLOW" }]);
+      .toEqual([{ step: "ACTIVATE_GUARD", route: "/todos", command: "ALLOW" }]);
     expect(matched.trace)
       .toEqual([]);
   });
@@ -269,7 +269,7 @@ describe("the deactivate step", () => {
       seen.push(value);
     } });
     expect(seen[0]?.trace)
-      .toEqual([{ step: "deactivate", route: "/todos", command: "ALLOW" }]);
+      .toEqual([{ step: "DEACTIVATE_GUARD", route: "/todos", command: "ALLOW" }]);
   });
 });
 

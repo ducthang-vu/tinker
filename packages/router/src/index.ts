@@ -9,7 +9,7 @@ export type {
   NavigationRejected,
   NavigationStarted,
 } from "./lib/router/navigation-event.ts";
-export type { NavigateOptions } from "./lib/router/router.ts";
+export type { NavigateOptions, ResetRoutesOptions } from "./lib/router/router.ts";
 export type { AppPath } from "./lib/destination/app-path.ts";
 export { ActivatedRoute } from "./lib/state/activated-route.ts";
 export { RouterOutlet } from "./lib/directives/router-outlet.ts";

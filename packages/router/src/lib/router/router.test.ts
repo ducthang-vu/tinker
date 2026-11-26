@@ -453,7 +453,7 @@ test("the outcome carries the trace of its navigation, for debugging", async () 
   const { router, urls, destroy } = routerWithGuard([allowGuard]);
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
-    .toMatchObject({ kind: "done", meta: [{ step: "guard", route: ":id", command: "ALLOW" }] });
+    .toMatchObject({ kind: "done", meta: [{ step: "ACTIVATE_GUARD", route: ":id", command: "ALLOW" }] });
   destroy();
 });
 
