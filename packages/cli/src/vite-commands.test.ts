@@ -17,11 +17,11 @@ describe("serveApp", () => {
       .mockResolvedValue(server as never);
   });
 
-  test("serves the app in its root on the default port, listens, and prints the URLs", async () => {
+  test("serves the app in its root on the default port and base, listens, and prints the URLs", async () => {
     await serveApp("/app");
 
     expect(createServer)
-      .toHaveBeenCalledWith({ root: "/app", server: { port: undefined } });
+      .toHaveBeenCalledWith({ root: "/app", base: undefined, server: { port: undefined } });
     expect(server.listen)
       .toHaveBeenCalled();
     expect(server.printUrls)
@@ -32,15 +32,33 @@ describe("serveApp", () => {
     await serveApp("/app", { port: 5000 });
 
     expect(createServer)
-      .toHaveBeenCalledWith({ root: "/app", server: { port: 5000 } });
+      .toHaveBeenCalledWith({ root: "/app", base: undefined, server: { port: 5000 } });
+  });
+
+  test("serves under the given base", async () => {
+    await serveApp("/app", { base: "/tinker/" });
+
+    expect(createServer)
+      .toHaveBeenCalledWith({ root: "/app", base: "/tinker/", server: { port: undefined } });
   });
 });
 
 describe("buildApp", () => {
-  test("builds the app in its root", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("builds the app in its root, at the default base", async () => {
     await buildApp("/app");
 
     expect(build)
-      .toHaveBeenCalledWith({ root: "/app" });
+      .toHaveBeenCalledWith({ root: "/app", base: undefined });
+  });
+
+  test("builds the app under the given base", async () => {
+    await buildApp("/app", { base: "/tinker/" });
+
+    expect(build)
+      .toHaveBeenCalledWith({ root: "/app", base: "/tinker/" });
   });
 });
