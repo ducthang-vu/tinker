@@ -176,24 +176,6 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 
 **To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
 point at the host root.
-### 2. The trace of a navigation is untyped
-
-**Problem.** `meta` on each outcome, and `trace` on the navigation, is `unknown[]`. Each step writes its own entry, so the app cannot read the trace without casting.
-
-**To do.** Give each step an entry type, with a discriminant for its source, and type `meta` with the union of those entries.
-
-### 3. A route change has no history option
-
-**Problem.** `Router.resetRoutes` replaces the current history entry, so Back never returns to the URL from before the change.
-
-**To do.** Add an option, `{ history: "replace" | "push" }`, that defaults to replace. Nothing in the framework needs it yet.
-
-### 4. A route change can leave nothing shown
-
-**Problem.** When the new routes take no URL the current URL matches, `resetRoutes` shows nothing until the URL changes. The app cannot tell that it has no route, except from the empty outlet.
-
-**To do.** Decide what the app should show in that case, such as a not-found route the router falls back to, and whether `resetRoutes` should report it.
-
 ## Functional helpers (`packages/functional/src/lib/function.ts`)
 
 ### 1. `memoise` cannot check that its function is pure
