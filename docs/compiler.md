@@ -30,7 +30,7 @@ Options:
 
 | Option | Default | What it does |
 |---|---|---|
-| `emit` | `false` | Replace each compiled template with its tree. Costs bundle size: see `IMPROVEMENTS.md`. |
+| `emit` | `false` | Replace each compiled template with its tree. Costs bundle size: see [The cost of `emit`](#the-cost-of-emit). |
 | `dev` | Vite's development mode | Whether the app runs in development mode: apps read it as the `DEV_MODE` token (`inject(DEV_MODE)`). The build defines `globalThis.__TINKER_DEV__`; without the plugin, `DEV_MODE` is `false`. |
 
 ## What is checked, and what is skipped
@@ -145,6 +145,23 @@ through `@tinker/cli`.
 The aliases read the `packages/` folder of this repository, so the preset works for an app
 inside the monorepo, as a workspace package. An app outside it needs the packages installed,
 and gets no aliases from the preset.
+
+## The cost of `emit`
+
+An emitted tree is about 2.2 times the gzipped size of its template string, but the whole
+bundle grows by much less. Measured on the example app, in headless Chromium on one
+machine, 40 loads of each build, alternating:
+
+- Time from navigation to all four components rendered: median 47 ms with template
+  strings, 39.1 ms with emitted trees (p90 58.4 ms and 44.9 ms).
+- Bundle: 193,704 bytes raw and 37,617 gzipped with strings; 221,593 raw and 38,436
+  gzipped with trees (about 0.8 KB more gzipped).
+
+For this app the trees are worth their size, and the example app uses them
+(`tinkerCompiler({ emit: true })`). Each build chooses: `--emit` writes the trees, and
+without it the output keeps the template strings. A library's consumers pay the bundle
+size, so the measurements above come from one app and do not decide the default for
+libraries.
 
 ## Errors
 
