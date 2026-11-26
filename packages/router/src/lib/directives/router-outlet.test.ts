@@ -47,6 +47,7 @@ const ROUTES = [
       { path: ":id", component: TodoDetail },
     ],
   },
+  { path: "group", children: [{ path: "", component: TodoList }] },
 ];
 
 /** An app with the router over ROOT, starting at `url`. */
@@ -102,6 +103,13 @@ test("a change of the query alone keeps the component", () => {
   fixture.detectChanges();
   expect(made.detail)
     .toBe(1);
+  fixture.destroy();
+});
+
+test("a route with no component is passed through: the outlet shows the route below it", () => {
+  const fixture = appAt("/group");
+  expect(fixture.root.text())
+    .toBe("Todos");
   fixture.destroy();
 });
 

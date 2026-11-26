@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { inject, Injector, runInInjectionContext } from "@tinker/core";
-import { ChildActivatedRoute } from "../state/child-activated-route.ts";
+import { NextRouteWithComponent } from "../state/next-route-with-component.ts";
 import { AppPathBuilder } from "../destination/app-path-builder.ts";
 import { provideRouter } from "./provide-router.ts";
 import { Router } from "./router.ts";
@@ -26,21 +26,19 @@ test("provideRouter gives a router over the browser's address bar", () => {
   window.history.replaceState(null, "", "/");
 });
 
-test("ChildActivatedRoute is the activated route after the root, as a signal", () => {
+test("NextRouteWithComponent is the first shown route after the root, as a signal", () => {
   window.history.replaceState(null, "", "/todos");
   const { injector, destroy } = Injector.create({ providers: provideRouter(ROUTES) });
-  const child = runInInjectionContext(injector, () => inject(ChildActivatedRoute));
+  const child = runInInjectionContext(injector, () => inject(NextRouteWithComponent));
   expect(getOrThrow(child(), () => new Error("no child")).route.component)
     .toBe(TodoList);
   destroy();
   window.history.replaceState(null, "", "/");
 });
 
-test("every route shows a component, the top-level ones too", () => {
-  expect(() => provideRouter([{ path: "/todos", component: TodoList }]))
-    .not.toThrow();
+test("a route with no component is allowed, at the top or below another route", () => {
   expect(() => provideRouter([{ path: "/todos" }]))
-    .toThrow("The route \"/todos\" needs a component");
+    .not.toThrow();
   expect(() => provideRouter([{ path: "/a", component: TodoList, children: [{ path: "b" }] }]))
-    .toThrow("The route \"b\" needs a component");
+    .not.toThrow();
 });
