@@ -1,10 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, test } from "vitest";
 import { EDGE_VALUES } from "../../testing.ts";
-import { Left, Right } from "./either.ts";
 import {
   filter,
-  fromEither,
   fromNullable,
   getOrElse,
   getOrThrow,
@@ -13,7 +11,6 @@ import {
   isSome,
   None,
   Some,
-  toEither,
   type Maybe,
 } from "./maybe.ts";
 import { flatMap, map } from "../functor/functor.ts";
@@ -54,27 +51,13 @@ describe("map and flatMap, data-first and data-last", () => {
   });
 });
 
-describe("filter, toEither, fromEither, isSome and isNone", () => {
+describe("filter, isSome and isNone", () => {
   test("filter keeps a value the predicate accepts", () => {
     expect(show(filter(Some.of(4), (n) => n > 3)))
       .toBe("some 4");
     expect(show(filter(Some.of(2), (n) => n > 3)))
       .toBe("none");
     expect(show(filter(None.of<number>(), () => true)))
-      .toBe("none");
-  });
-
-  test("toEither makes a Right of a Some and a Left of the error for a None", () => {
-    expect(match(toEither(Some.of(1), "missing"), { Right: (value) => value, Left: () => -1 }))
-      .toBe(1);
-    expect(match(toEither(None.of<number>(), "missing"), { Right: () => 0, Left: (error) => error.length }))
-      .toBe(7);
-  });
-
-  test("fromEither makes a Some of a Right and a None from a Left", () => {
-    expect(show(fromEither(Right.of<number, string>(3))))
-      .toBe("some 3");
-    expect(show(fromEither(Left.of<string, number>("e"))))
       .toBe("none");
   });
 
@@ -124,11 +107,6 @@ describe("Maybe on every edge value", () => {
   test.each(cases)("match picks the Some case of a Some of %s", (_, value) => {
     expect(match(Some.of(value), { Some: () => "Some", None: () => "None" }))
       .toBe("Some");
-  });
-
-  test.each(cases)("toEither of a Some of %s is a Right of it", (_, value) => {
-    expect(match(toEither(Some.of(value), "missing"), { Right: (x) => x, Left: () => NOT_A_VALUE }))
-      .toBe(value);
   });
 
   test.each(cases)("a Some of a Some of %s equals another, and not a None", (_, value) => {

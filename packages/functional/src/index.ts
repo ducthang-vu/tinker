@@ -15,8 +15,6 @@ export {
   getOrElse,
   getOrThrow,
   orElse,
-  toEither,
-  fromEither,
   isSome,
   isNone,
 } from "./lib/monad/maybe.ts";
