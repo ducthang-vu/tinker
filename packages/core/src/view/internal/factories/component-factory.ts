@@ -56,7 +56,7 @@ import { endOutputs } from "../authoring/output.ts";
 import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
-import { type ComponentView, ComponentViewFactory } from "../runtime/component-view.ts";
+import { type ComponentView, ComponentViewFactory, type RenderScope } from "../runtime/component-view.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
@@ -147,6 +147,20 @@ interface Staged {
   injector?: InjectorRef;
   /** Its view, once it is made: destroying it undoes the rest, its injector included. */
   view?: { destroy(): void };
+}
+
+/** What a render of a component's template needs to be bound again: see `bindRender`. */
+interface RenderParts<T extends object> {
+  readonly type: Class<T>;
+  readonly host: Element;
+  readonly instance: T;
+  readonly template: TemplateBuilder;
+  readonly hostDirectives: readonly Class<object>[];
+  readonly hostInstances: readonly object[];
+  readonly ownInjector: InjectorRef;
+  readonly node: ViewNode;
+  /** Where the host element's bindings go: the parent's template if the component is in one. */
+  readonly bindHost: (template: TemplateBuilder, bindings: Binding[]) => void;
 }
 
 @Injectable()
@@ -363,12 +377,13 @@ export class ComponentFactory {
       parent: child?.parentInjector ?? parentInjector ?? this.injector,
     });
     staged.injector = ownInjector;
-    const { instance, hostInstances, rendered, template } = this.createAndBuild(
+    const projected = child?.projected ?? new Map<string, Node[]>();
+    const { instance, hostInstances, rendered, template, queries } = this.createAndBuild(
       type,
       metadata,
       hostDirectives,
       ownInjector,
-      child?.projected ?? new Map(),
+      projected,
       node,
     );
     for (const node of rendered) {
@@ -390,30 +405,34 @@ export class ComponentFactory {
     view.addInputs(instance, inputsOf(instance));
     // In a template: the element's inputs are set (attributes, then bindings), before it renders.
     child?.setInputs(instance);
-    // Its host directives, on its host element (their host bindings: below).
-    const hostBindings = hostDirectives.flatMap((directive, i) =>
-      this.directives.attach(directive, hostInstances[i]!, host, render));
-    // In a template: its element's input bindings, then the directives and
-    // child components of its own template's elements, now that its view
-    // exists, and before the first render.
-    template.createDirectivesAndComponents(render, ownInjector.injector);
-    // Its own host bindings: listeners now. The class bindings (with its host
-    // directives') belong to whichever view contains its host element: the
-    // parent's for a component in a template, which updates them with its
-    // own bindings on that element; its own view for a root component.
-    hostBindings.push(...this.directives.applyHost(type, instance, host, render));
-    if (child) {
-      child.adoptHostBindings(hostBindings);
-    } else {
-      template.addBindings(hostBindings);
+    // What the template renders, bound in the render scope (see bindRender). A root component's
+    // view can render its template again, from the same instance.
+    const parts: RenderParts<T> = {
+      type,
+      host,
+      instance,
+      template,
+      hostDirectives,
+      hostInstances,
+      ownInjector,
+      node,
+      bindHost: (current, bindings) => {
+        if (child) {
+          child.adoptHostBindings(bindings);
+        } else {
+          current.addBindings(bindings);
+        }
+      },
+    };
+    this.bindRender(render, parts);
+    if (child === undefined) {
+      view.setRerender(() => {
+        view.destroyRender();
+        const current = this.builders.create(instance, this, queries, undefined, true, node);
+        view.replaceNodes(current.build(this.templateOf(type, metadata), projected));
+        this.bindRender(view.renderScope(), { ...parts, template: current });
+      });
     }
-    // The view's one watch: updates the bindings (the template's, then the
-    // host bindings of its template's directives, and its own if it is a
-    // root). Its first run happens now, so the view is complete when it is returned.
-    // The first render waits for the next tick, after the caller has bound the inputs
-    // (see `create`). Effects of that tick run before the views, so an effect sees them too.
-    const viewWatch = watch(() => template.update(), this.changeDetection.views.forNode(node));
-    render.addDestroyCallback(() => viewWatch.destroy());
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);
@@ -427,6 +446,29 @@ export class ComponentFactory {
   }
 
   /**
+   * Bind what a render of the template creates, into `scope`: the host directives on the host
+   * element, the template's directives and child components, and the bindings of the host element
+   * and of the template. The view's watch comes last: its first run makes the view complete.
+   */
+  private bindRender<T extends object>(scope: RenderScope, parts: RenderParts<T>): void {
+    const { host, instance, type, template } = parts;
+    const { hostDirectives, hostInstances, ownInjector, node } = parts;
+    const hostBindings = hostDirectives.flatMap((directive, i) =>
+      this.directives.attach(directive, hostInstances[i]!, host, scope));
+    // In a template: its element's input bindings, then the directives and child components of
+    // its own template's elements, now that its view exists, and before the first render.
+    template.createDirectivesAndComponents(scope, ownInjector.injector);
+    // Its own host bindings: listeners now. The class bindings belong to whichever view contains
+    // its host element (see `bindHost`).
+    hostBindings.push(...this.directives.applyHost(type, instance, host, scope));
+    parts.bindHost(template, hostBindings);
+    // The first render waits for the next tick, after the caller has bound the inputs (see
+    // `create`). Effects of that tick run before the views, so an effect sees them too.
+    const viewWatch = watch(() => template.update(), this.changeDetection.views.forNode(node));
+    scope.addDestroyCallback(() => viewWatch.destroy());
+  }
+
+  /**
    * Create the instance in `ownInjector`, and build its template. A failure is thrown: the
    * boundary in `createPrepared` undoes what was made.
    */
@@ -437,7 +479,13 @@ export class ComponentFactory {
     ownInjector: InjectorRef,
     projected: ReadonlyMap<string, Node[]>,
     node: ViewNode,
-  ): { instance: T; hostInstances: object[]; rendered: Node[]; template: TemplateBuilder } {
+  ): {
+    instance: T;
+    hostInstances: object[];
+    rendered: Node[];
+    template: TemplateBuilder;
+    queries: ViewQueries;
+  } {
     // Host directives first, in order, so the component can inject them.
     // The component is a provider of its injector too: created by it (so
     // its onDestroy() runs with the view), and injectable below it.
@@ -476,7 +524,7 @@ export class ComponentFactory {
     const queries = runInInjectionContext(ownInjector.injector, () => inject(ViewQueries));
     const template = this.builders.create(instance, this, queries, undefined, true, node);
     const rendered = template.build(this.templateOf(type, metadata), projected);
-    return { instance, hostInstances, rendered, template };
+    return { instance, hostInstances, rendered, template, queries };
   }
 
   /** Create the host element `plan` describes. */

@@ -86,6 +86,11 @@ export class RenderScope implements View {
 export class ComponentView<T> implements View {
   private readonly contexts: ElementContext[] = [];
   private readonly destroyCallbacks: (() => void)[] = [];
+  /** The top-level nodes rendered into the host: replaced when the template is rendered again. */
+  private current: readonly Node[];
+  /** The render scope of the current render of the template. */
+  private scope?: RenderScope;
+  private rerenderer?: () => void;
   /** The inputs of the directives in this view's template, per directive. */
   private readonly directiveInputs = new Map<object, ReadonlyMap<string, InputBinding<unknown>>>();
   private isDestroyed = false;
@@ -99,11 +104,18 @@ export class ComponentView<T> implements View {
   constructor(
     readonly host: Element,
     readonly component: T,
-    readonly nodes: readonly Node[],
+    nodes: readonly Node[],
     private readonly renderer: Renderer,
     /** The view's place in the view tree, for the order of its updates. */
     readonly node: ViewNode,
-  ) {}
+  ) {
+    this.current = nodes;
+  }
+
+  /** The top-level nodes of the current render, rendered into the host. */
+  get nodes(): readonly Node[] {
+    return this.current;
+  }
 
   /** Whether `destroy()` has been called. */
   get destroyed(): boolean {
@@ -152,13 +164,51 @@ export class ComponentView<T> implements View {
   }
 
   /**
-   * A render scope of this view, destroyed with it: what a render of the template creates goes in
-   * it. Create it where its destruction should run, among the other destroy callbacks.
+   * A render scope of this view: what a render of the template creates goes in it. The current one
+   * is destroyed with the view, and by `destroyRender` when the template is rendered again.
    */
   renderScope(): RenderScope {
     const scope = new RenderScope(this, this.node);
-    this.addDestroyCallback(() => scope.destroy());
+    if (this.scope === undefined) {
+      this.addDestroyCallback(() => this.scope?.destroy());
+    }
+    this.scope = scope;
     return scope;
+  }
+
+  /** Destroy the current render (its scope), so the template can be rendered again. */
+  destroyRender(): void {
+    this.scope?.destroy();
+  }
+
+  /** Replace the nodes rendered into the host with `nodes`: the old ones are removed. */
+  replaceNodes(nodes: readonly Node[]): void {
+    for (const node of this.current) {
+      this.renderer.removeChild(this.host, node);
+    }
+    this.current = nodes;
+    for (const node of nodes) {
+      this.renderer.appendChild(this.host, node);
+    }
+  }
+
+  /** Set how this view renders its template again: see `rerender`. */
+  setRerender(rerender: () => void): void {
+    this.rerenderer = rerender;
+  }
+
+  /**
+   * Render the template again, from the same component instance: its state is kept. The current
+   * render is destroyed, and the template is built again into the same host. A view that was not
+   * given a way to render again throws.
+   */
+  rerender(): void {
+    if (this.rerenderer === undefined) {
+      throw new Error("this view cannot render its template again");
+    }
+    if (!this.isDestroyed) {
+      this.rerenderer();
+    }
   }
 
   /** Run `callback` when the view is destroyed (right away if it already is). */
