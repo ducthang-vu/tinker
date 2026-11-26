@@ -27,6 +27,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Generate the API reference
+        run: npm run docs:api
+
       - name: Install Chromium and its system libraries
         run: npm exec --workspace=@tinker/example-basics -- playwright install --with-deps chromium
 
