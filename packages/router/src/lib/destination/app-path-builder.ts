@@ -34,10 +34,16 @@ interface Level {
 
 @Injectable()
 /**
- * A position in the route tree, with the segments written so far. It injects the router and the
- * activated route of the component it is in: `relativeTo()` with no argument starts there. Every
- * step returns a new builder, and `build` ends the chain with an AppPath. Provide it in a
- * component's `providers`, or inject it from the root.
+ * A position in the route tree, with the segments written so far. Every step returns a new builder,
+ * and `build` ends the chain with an AppPath. Provide it in a component's `providers` to start at
+ * the root, or inject it from the root.
+ *
+ * Each step checks its segments against the routes the router has loaded. Under a route whose
+ * routes have not loaded yet, the segments are accepted as written, and the navigation that follows
+ * rejects a path no route takes with `NO_ROUTE`. The builder never loads routes itself.
+ *
+ * It injects the router and the activated route of the component it is in: `relativeTo()` with no
+ * argument starts there.
  */
 export class AppPathBuilder {
   private readonly injector = inject(Injector);

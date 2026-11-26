@@ -160,8 +160,14 @@ on the last committed URL.
 ## Building paths
 
 `AppPathBuilder` builds an `AppPath`, the only value `navigate` takes. Each
-step checks the segments against the route tree, so a path that no route takes
-cannot be made by mistake:
+step checks its segments against the routes the router has loaded, so a
+path that no loaded route takes is an error when it is built.
+
+A route's routes are loaded the first time a navigation reaches that route. Until
+then, the builder accepts any segments under it, as written, and the navigation
+that follows checks them: a path no route takes is rejected with reason
+`NO_ROUTE`. So a typo under a lazy route is found when the link is followed,
+not when the path is built.
 
 - `to(...segments)`: adds segments. One string is split on `/`.
 - `parse(url)`: reads a URL. A leading `/` starts at the root. Without it, the
@@ -176,7 +182,25 @@ cannot be made by mistake:
   the whole path.
 
 A `ParseError` has a `reason` (`NO_ROUTE` or `MALFORMED`), the input, and the
-part that failed.
+part that failed. `MALFORMED` means a segment is not valid percent-encoding.
+
+A component gets a builder by listing `AppPathBuilder` in its `providers`, and
+injecting it:
+
+```ts
+@Component({
+  selector: "todo-list",
+  providers: [AppPathBuilder],
+  template: `<a [routerlink]="href(7)">Open 7</a>`,
+})
+export class TodoList {
+  private readonly builder = inject(AppPathBuilder);
+
+  href(id: number): string {
+    return this.builder.to("todos", String(id)).build().format();
+  }
+}
+```
 
 ## Guards and redirects
 
