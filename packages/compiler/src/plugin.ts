@@ -30,6 +30,7 @@ import MagicString from "magic-string";
 import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
 import {
+  type ClassInfo,
   type Declaration,
   identifiersIn,
   readSource,
@@ -419,14 +420,24 @@ async function replacementFor(
     return { selector: imported.selector, isComponent: imported.isComponent, type,
       ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }) };
   });
-  if (declaration.extendsAnother) {
-    unchecked(host, where, "it extends another class, so its inherited members are not read");
+  // A decorated class is always one of the file's classes.
+  const own = source.classes.find((cls) => cls.name === declaration.name)!;
+  const inherited = await inheritedMembers(
+    own,
+    source,
+    filename,
+    host,
+    new Set([declaration.name]),
+  );
+  if (!inherited.isRead) {
+    unchecked(host, where, inherited.reason);
   }
   return match(compileSource(template.text, list), {
     Left: (error) => host.error(`${where}: ${describe(error, template.text)}`),
     Right: (nodes) => {
-      if (!declaration.extendsAnother) {
-        checkNames(nodes, declaration, imports.functions, where, host);
+      if (inherited.isRead) {
+        const members = [...declaration.members, ...inherited.members];
+        checkNames(nodes, declaration, members, imports.functions, where, host);
       }
       return mode.emit
         ? emitted(template, emitCompiled(nodes, classes, HELPERS), where, host)
@@ -443,12 +454,13 @@ async function replacementFor(
 function checkNames(
   nodes: readonly CompiledNode[],
   declaration: Declaration,
+  members: readonly string[],
   functions: readonly ImportedFunction[],
   where: string,
   host: CheckHost,
 ): void {
   const known = new Set<string>([
-    ...declaration.members,
+    ...members,
     ...functions.map((fn) => fn.templateName),
     ...BUILT_IN_NAMES,
   ]);
@@ -457,7 +469,7 @@ function checkNames(
   }
   // A name declared in the template may not hide another name: the build refuses it.
   const hidden = new Map<string, string>([
-    ...declaration.members.map((member): [string, string] => [member, `a member of ${declaration.name}`]),
+    ...members.map((member): [string, string] => [member, `a member of ${declaration.name}`]),
     ...functions.map((fn): [string, string] => [fn.templateName, `the template function ${fn.name}`]),
   ]);
   for (const { name, hides } of shadowsIn(nodes as readonly CompiledNode[], hidden)) {
@@ -642,15 +654,41 @@ async function exportedDeclaration(
   host: CheckHost,
   seen: Set<string>,
 ): Promise<FoundDeclaration | undefined> {
+  const found = await findExported(exported, file, host, seen, (source, name) =>
+    source.declarations.find((candidate) => candidate.name === name));
+  return found === undefined
+    ? undefined
+    : { declaration: found.value, source: found.source, filename: found.filename };
+}
+
+/** A value found by its exported name, with the file that declares it. */
+interface Found<T> {
+  readonly value: T;
+  readonly source: SourceInfo;
+  readonly filename: string;
+}
+
+/**
+ * What `file` exports as `exported`, as `pick` finds it in a file: declared there, or re-exported
+ * from another file (`export { X } from "..."`, or `export * from "..."`). `seen` stops a cycle of
+ * re-exports.
+ */
+async function findExported<T>(
+  exported: string,
+  file: string,
+  host: CheckHost,
+  seen: Set<string>,
+  pick: (source: SourceInfo, exported: string) => T | undefined,
+): Promise<Found<T> | undefined> {
   const key = `${file}\0${exported}`;
   if (seen.has(key)) {
     return undefined;
   }
   seen.add(key);
   const source = readSource(readFileSync(file, "utf8"), file);
-  const declaration = source.declarations.find((candidate) => candidate.name === exported);
-  if (declaration !== undefined) {
-    return { declaration, source, filename: file };
+  const value = pick(source, exported);
+  if (value !== undefined) {
+    return { value, source, filename: file };
   }
   const named = source.reexports.find((reexport) => reexport.local === exported);
   const candidates = named === undefined
@@ -658,12 +696,80 @@ async function exportedDeclaration(
     : [{ from: named.source, name: named.imported }];
   for (const { from, name } of candidates) {
     const next = await host.resolve(from, file);
-    const found = next === null ? undefined : await exportedDeclaration(name, next, host, seen);
+    const found = next === null ? undefined : await findExported(name, next, host, seen, pick);
     if (found !== undefined) {
       return found;
     }
   }
   return undefined;
+}
+
+/** The class `name` refers to in this file: declared here, or imported from its exporting file. */
+async function classNamed(
+  name: string,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+): Promise<Found<ClassInfo> | undefined> {
+  const local = source.classes.find((cls) => cls.name === name);
+  if (local !== undefined) {
+    return { value: local, source, filename };
+  }
+  const binding = source.imports.find((imported) => imported.local === name);
+  if (binding === undefined) {
+    return undefined;
+  }
+  const file = await host.resolve(binding.source, filename);
+  if (file === null) {
+    return undefined;
+  }
+  return findExported(binding.imported, file, host, new Set(), (classes, exported) =>
+    classes.classes.find((cls) => cls.name === exported));
+}
+
+/** What a component inherits, read from the classes it extends, or why it cannot be read. */
+type InheritedRead
+  = | { readonly isRead: true; readonly members: readonly string[] }
+    | { readonly isRead: false; readonly reason: string };
+
+const NOTHING_INHERITED: InheritedRead = { isRead: true, members: [] };
+
+/**
+ * The members a class inherits: those of the class it extends, and of the classes that one
+ * extends. A base class the build cannot find, or a superclass that is not a plain name, is a
+ * reason it cannot be read.
+ */
+async function inheritedMembers(
+  cls: ClassInfo,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+  seen: ReadonlySet<string>,
+): Promise<InheritedRead> {
+  if (cls.extendsUnreadable) {
+    return { isRead: false, reason: `${cls.name} extends an expression, not a class` };
+  }
+  if (cls.superClass === undefined) {
+    return NOTHING_INHERITED;
+  }
+  const base = await classNamed(cls.superClass, source, filename, host);
+  if (base === undefined) {
+    return { isRead: false, reason: `its base class ${cls.superClass} is not found` };
+  }
+  if (seen.has(base.value.name)) {
+    return { isRead: false, reason: `${cls.name} extends itself through ${cls.superClass}` };
+  }
+  const beyond = await inheritedMembers(
+    base.value,
+    base.source,
+    base.filename,
+    host,
+    new Set([...seen, base.value.name]),
+  );
+  if (!beyond.isRead) {
+    return beyond;
+  }
+  return { isRead: true, members: [...base.value.members, ...beyond.members] };
 }
 
 /**
