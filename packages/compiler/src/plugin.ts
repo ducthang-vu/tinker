@@ -27,6 +27,7 @@ import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
 import { BUILT_IN_NAMES, compileSource, emitCompiled, type ImportedSelector, namesIn, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
+import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
 import {
   type Declaration,
@@ -89,11 +90,14 @@ export interface CompileMode {
 /** The plugin: compiles the templates of components in each source file it transforms. */
 export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
   const mode: CompileMode = { emit: options.emit ?? false, strict: options.strict ?? false };
+  // Vite's dev server (`vite`, not `vite build`): only then the hot reload code is added.
+  let serving = false;
   return {
     name: "tinker:compile-templates",
     enforce: "pre",
     // Defines the build constant that core reads for DEV_MODE.
     config(_config, env) {
+      serving = env.command === "serve";
       const dev = options.dev ?? env.mode === "development";
       return { define: { "globalThis.__TINKER_DEV__": JSON.stringify(dev) } };
     },
@@ -107,7 +111,12 @@ export function tinkerCompiler(options: CompilerOptions = {}): Plugin {
         warn: (message) => this.warn(message),
         watch: (file) => this.addWatchFile(file),
       }, mode);
-      return emitted ?? null;
+      const hot = serving ? hotCodeFor(code, id) : undefined;
+      if (hot === undefined) {
+        return emitted ?? null;
+      }
+      // Appended after the module's code, so the lines before it keep their source map.
+      return { code: `${emitted?.code ?? code}\n${hot}\n`, map: emitted?.map ?? null };
     },
   };
 }

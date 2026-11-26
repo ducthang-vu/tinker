@@ -90,7 +90,7 @@ export class ComponentView<T> implements View {
   private current: readonly Node[];
   /** The render scope of the current render of the template. */
   private scope?: RenderScope;
-  private rerenderer?: () => void;
+  private rerenderer?: (next?: object) => void;
   /** The inputs of the directives in this view's template, per directive. */
   private readonly directiveInputs = new Map<object, ReadonlyMap<string, InputBinding<unknown>>>();
   private isDestroyed = false;
@@ -192,8 +192,13 @@ export class ComponentView<T> implements View {
     }
   }
 
+  /** Whether this view can render its template again: see `rerender`. */
+  get renderable(): boolean {
+    return this.rerenderer !== undefined;
+  }
+
   /** Set how this view renders its template again: see `rerender`. */
-  setRerender(rerender: () => void): void {
+  setRerender(rerender: (next?: object) => void): void {
     this.rerenderer = rerender;
   }
 
@@ -202,12 +207,12 @@ export class ComponentView<T> implements View {
    * render is destroyed, and the template is built again into the same host. A view that was not
    * given a way to render again throws.
    */
-  rerender(): void {
+  rerender(next?: object): void {
     if (this.rerenderer === undefined) {
       throw new Error("this view cannot render its template again");
     }
     if (!this.isDestroyed) {
-      this.rerenderer();
+      this.rerenderer(next);
     }
   }
 

@@ -57,6 +57,7 @@ import { RenderHooks } from "../authoring/render-hooks.ts";
 import { ElementContexts } from "../runtime/element-contexts.ts";
 import { ElementRef } from "../runtime/element-ref.ts";
 import { type ComponentView, ComponentViewFactory, type RenderScope } from "../runtime/component-view.ts";
+import { currentClassOf, trackRoot } from "../hot-tracker.ts";
 import { ChangeDetection } from "../runtime/change-detection.ts";
 import type { Binding } from "../runtime/text-binding.ts";
 import type { AttributeNode } from "../template/ast.ts";
@@ -200,12 +201,14 @@ export class ComponentFactory {
    * directive (or is a component).
    */
   create<T extends object>(
-    type: Class<T>,
+    declared: Class<T>,
     host?: Element,
     child?: ParentContext,
     parentInjector?: Injector,
     owner?: ViewNode,
   ): Either<ComponentView<T>, Error> {
+    // After a hot update, the class a module declared is replaced by the new one.
+    const type = currentClassOf(declared);
     if (this.creating.length >= MAX_NESTING) {
       const path = [...this.creating.slice(-3), type].map((creating) => creating.name)
         .join(" → ");
@@ -426,13 +429,19 @@ export class ComponentFactory {
     };
     this.bindRender(render, parts);
     if (child === undefined) {
-      view.setRerender(() => {
+      // `next` is the class the instance's module now declares, after a hot update: its template
+      // is the one rendered, and the instance (and its state) is kept.
+      view.setRerender((next) => {
+        const target = (next ?? type) as Class<T>;
+        const targetMetadata = valueOrThrow(this.metadataOf(target));
         view.destroyRender();
         const current = this.builders.create(instance, this, queries, undefined, true, node);
-        view.replaceNodes(current.build(this.templateOf(type, metadata), projected));
+        view.replaceNodes(current.build(this.templateOf(target, targetMetadata), projected));
         this.bindRender(view.renderScope(), { ...parts, template: current });
       });
     }
+    // Every view is tracked: a component whose live views cannot render again is reloaded.
+    trackRoot(type, view);
     // Only now, so a failed create leaves no context behind.
     const context = this.contexts.getOrCreate(host);
     context.attachComponent(view);
