@@ -5,6 +5,7 @@
 import type { AppPath } from "../destination/app-path.ts";
 import type { LevelMatch } from "../router/match.ts";
 import type { ActivatedRoute } from "../state/activated-route.ts";
+import type { TraceEntry } from "./trace.ts";
 
 /** A request to go to a URL. */
 export interface NavigationRequest {
@@ -33,7 +34,7 @@ export interface NavigationRequest {
    * What each step did to this navigation, in order: the guards' commands and the redirects. For
    * debugging: the app does not act on it.
    */
-  readonly trace: readonly unknown[];
+  readonly trace: readonly TraceEntry[];
 }
 
 /** A request whose URL matched a route: the levels it matched, root first. */

@@ -48,7 +48,7 @@ function redirected(request: NavigationRequest, redirect: Redirect): NavigationR
     ...request,
     destination: redirect.target,
     redirectFrom: [...request.redirectFrom, request.destination],
-    trace: [...request.trace, { step: "redirect", to: redirect.target.format() }],
+    trace: [...request.trace, { step: "REDIRECT", to: redirect.target.format() }],
   };
 }
 

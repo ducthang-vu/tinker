@@ -22,6 +22,15 @@ import type { MatchedRequest, NavigationRequest } from "../pipeline/request.ts";
 import type { NavigationOutcome, NavigationRef, Rejected } from "../pipeline/navigation-outcome.ts";
 import type { Stop } from "../pipeline/stop.ts";
 
+/** How `resetRoutes` matches the current URL again. */
+export interface ResetRoutesOptions {
+  /**
+   * `replace` (the default) replaces the current history entry, so Back does not return to it.
+   * `push` navigates to the URL as a new entry, so Back returns to it.
+   */
+  readonly history?: "replace" | "push";
+}
+
 /** The options of `navigate`. */
 export interface NavigateOptions {
   /** The state of the new history entry, `null` when none is given. */
@@ -170,15 +179,28 @@ export class Router {
   }
 
   /**
-   * Replaces the routes the router matches, and matches the current URL against them again. The
-   * URL is not changed, and no history entry is added. If no new route takes the URL, nothing is
-   * shown until the URL changes.
+   * Replaces the routes the router matches, and matches the current URL against them again. By
+   * default the URL is kept and the current history entry replaced, so no entry is added. With
+   * `history: "push"` the URL is navigated to as a new entry, so Back returns to it. If no new
+   * route takes the URL, nothing is shown until the URL changes.
    *
    * @param routes The new top-level routes.
+   * @param options How the current URL is matched again.
    */
-  resetRoutes(routes: readonly Route[]): void {
+  resetRoutes(routes: readonly Route[], options: ResetRoutesOptions = {}): void {
     seedChildren(this.root, routes);
-    this.start(this.location.url(), this.location.state());
+    if (options.history !== "push") {
+      this.start(this.location.url(), this.location.state());
+      return;
+    }
+    let destination: AppPath;
+    try {
+      destination = parseAppPath(this.root, this.location.url());
+    } catch {
+      this.activate(undefined);
+      return;
+    }
+    void this.navigate(destination, { state: this.location.state() });
   }
 
   /** Stops routing navigations when the injector is destroyed. */
