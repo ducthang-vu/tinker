@@ -34,6 +34,7 @@ import type {
   TestBed as TestBedApi,
   Fixture,
   TestBedStatic,
+  TestingElement,
 } from "../api/api.ts";
 
 export type TestBed<T extends object = object> = TestBedApi<T>;
@@ -151,9 +152,6 @@ class Bed<T extends object> implements TestBedApi<T> {
 
   build(): Fixture<T> {
     const { component, replacements } = this.state;
-    if (!component) {
-      throw new Error("TestBed.build needs a component: call component(type) first");
-    }
     if (!this.state.manual) {
       requireTest();
     }
@@ -161,16 +159,26 @@ class Bed<T extends object> implements TestBedApi<T> {
       providers: [provide(CLASS_REPLACEMENTS, { useValue: replacements }), ...this.state.providers],
     });
     const host = this.state.host ?? document.createElement("div");
-    const ref = valueOrThrow(engine.bootstrap(component, host));
-    const scope: Scope = { engine, replacements };
-    const root = testingElementOf(ref.instance as T, host, scope);
-    for (const [name, value] of Object.entries(this.state.inputs)) {
-      root.setInput(name, value);
+    // A bed without a component is a service test: it has no root, and its services come from
+    // `get`.
+    let root: TestingElement<T> | undefined;
+    if (component !== undefined) {
+      const ref = valueOrThrow(engine.bootstrap(component, host));
+      const scope: Scope = { engine, replacements };
+      root = testingElementOf(ref.instance as T, host, scope);
+      for (const [name, value] of Object.entries(this.state.inputs)) {
+        root.setInput(name, value);
+      }
     }
     engine.flush();
     let destroyed = false;
     const fixture: Fixture<T> = {
-      root,
+      get root(): TestingElement<T> {
+        if (root === undefined) {
+          throw new Error("This fixture has no component, so it has no root: call component(type) before build()");
+        }
+        return root;
+      },
       detectChanges: () => engine.flush(),
       whenStable: async () => {
         // Writes made by promises and other microtasks request their ticks there, so one

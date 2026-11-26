@@ -57,10 +57,23 @@ class Titled {
 }
 
 describe("TestBed.build", () => {
-  test("needs a component", () => {
-    expect(() => TestBed.providers()
-      .build())
-      .toThrow("TestBed.build needs a component");
+  test("builds without a component, and reading root then throws: the test setup is wrong", () => {
+    const fixture = TestBed.providers()
+      .build();
+    expect(() => fixture.root)
+      .toThrow("This fixture has no component");
+    fixture.destroy();
+  });
+
+  test("a fixture without a component still gives its services", () => {
+    class Counter {
+      readonly count = 3;
+    }
+    const fixture = TestBed.providers(provide(Counter, { useClass: Counter }))
+      .build();
+    expect(fixture.get(Counter).count)
+      .toBe(3);
+    fixture.destroy();
   });
 
   test("renders the component as the root", () => {

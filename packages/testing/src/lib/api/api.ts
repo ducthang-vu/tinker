@@ -134,7 +134,12 @@ export type TestingElement<T extends object | void = void> = ElementMembers
  * `TestBed.build()` call returns one.
  */
 export interface Fixture<T extends object> {
-  /** The component under test. */
+  /**
+   * The component under test. Reading it throws when the bed was built without a component, since
+   * a service test has no root: that is a wrong test setup, and the test cannot go on.
+   *
+   * @throws Error when the fixture has no component.
+   */
   readonly root: TestingElement<T>;
   /** Run a change detection tick now: effects first, then views, until nothing is left. */
   detectChanges(): void;
