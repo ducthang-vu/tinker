@@ -8,13 +8,14 @@
 // anchors sit in order before the map's anchor. A row is created before it is
 // put in its place, and the rows are moved only when their order changes.
 
+import { patternNames } from "../template/template-shadows.ts";
 import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { Renderer } from "../renderer.ts";
 import type { ViewQueries } from "./view-queries.ts";
 import type { CompiledMap, CompiledNode } from "../template/compile.ts";
 import { evaluate } from "../template/evaluate.ts";
-import { Scope } from "../template/scope.ts";
+import { Scope, warnShadows } from "../template/scope.ts";
 import { type Context, scopeWith } from "./context.ts";
 import { match } from "./match-binding.ts";
 import { KeyMap } from "./key-map.ts";
@@ -65,7 +66,10 @@ export class MapBinding implements Binding {
     private readonly renderer: Renderer,
     private readonly render: RowRenderer,
     private readonly queries: ViewQueries,
-  ) {}
+  ) {
+    // The item's names are declared here, so they may not hide what is around the map.
+    warnShadows(this.scope.component, this.scope.checks, this.above, patternNames(node.item));
+  }
 
   /**
    * Set the injector the rows are created under, and remove the rows when

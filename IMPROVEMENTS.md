@@ -106,30 +106,30 @@ share the name), and a registry per row if a row variable is to be queried.
 
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 
-### 1. Warn the author about legitimate but suspicious templates
+### 1. Warn the author about suspicious templates that still work
 
-**Problem.** Some template code is allowed but usually a mistake. A `@let`
-that has the name of a field or method hides it, which is legitimate, but a
-reader can't tell which name is meant. A read of a name that the component
-doesn't have silently gives `undefined`. Neither breaks the app, so neither
-should be an error, and nothing tells the author today.
+**Problem.** A read of a name that the component doesn't have silently gives `undefined`. That
+breaks nothing, so it is not an error, and nothing tells the author today. Shadowing is now
+handled: a template may not declare a name that hides a member, a built-in or a name around it,
+so the build refuses it (`$flow` and the other built-ins included). The runtime warns about the
+shadowing the build could not see, such as a member inherited from a base class.
 
-**To do.** Add a developer mode, off in production:
+**What is done.**
 
-- **Turned on** by the compiler's `dev` option (`tinkerCompiler({ dev })`, which
-  defaults to Vite's development mode). The app reads it as the `DEV_MODE` token,
-  which is already built: the compiler defines `globalThis.__TINKER_DEV__`.
-- **Checks**: shadowing (a `@let`, or later a block's name, over a field or
-  method, or over an outer name), and an unknown name read from the component.
-  They are warnings. Declaring the same name twice in one scope stays an error
-  in both modes.
-- **Where warnings go**: `console.warn` by default, and an `onWarning` callback
-  on `bootstrap`, so tests can check them and apps can send them to their own
-  logging.
+- Shadowing is refused at build time (`shadowsIn`, in the template compiler's name check).
+- In development mode, the runtime warns about a `@let`, a `@map` item or a `@case` name that
+  hides a member or a name declared around it (`warnShadows`).
+
+**To do.**
+
+- **Warn about an unknown name** read from the component, in development mode, when the build
+  did not check the template.
+- **Where warnings go**: `console.warn` by default, and an `onWarning` callback on `bootstrap`, so
+  tests can check them and apps can send them to their own logging. Not built yet.
+- **Turned on** by the compiler's `dev` option (`tinkerCompiler({ dev })`, which defaults to
+  Vite's development mode). The app reads it as the `DEV_MODE` token, which is already built: the
+  compiler defines `globalThis.__TINKER_DEV__`.
 - **Production** skips every check, so developer mode has no cost there.
-
-Shadowing across scopes is allowed, as in most languages: this is a warning for
-the author, not a ban.
 
 ## Inputs: options (`packages/core/src/view/internal/authoring/input.ts`, `input-adapters.ts`)
 
@@ -260,7 +260,11 @@ registry. Until then, create the app with `--dir examples` or `--dir packages`.
 
 **Problem.** A name the template declares anywhere (a `@let`, a `@map` item, a binding, a reference) counts as known everywhere in the template. A name used outside the block that declares it therefore passes the build and fails at run time.
 
-**To do.** Check names against the scope they are used in, as the template compiler does for references.
+**What is done.** Declarations that shadow another are refused with scope (`shadowsIn`, in
+`template-shadows.ts`), so the same walk can check the reads.
+
+**To do.** Check each read against the scope it is in, using that walk, not against the names
+declared anywhere in the template.
 
 ### 2. Classes that extend another are not checked
 

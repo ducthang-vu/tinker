@@ -759,27 +759,67 @@ describe("template functions imported by a component", () => {
 describe("built-in template function names", () => {
   const files = { "./fns.ts": fixture("template-functions.ts") };
 
-  test("a member named flow fails the build", async () => {
+  test("a member named $flow fails the build", async () => {
     const { result } = transform(
-      `@Component({ template: "<p>{{ flow(1) }}</p>" }) class Page { flow(n: number) { return n; } }`,
+      `@Component({ template: "<p>{{ $flow(1) }}</p>" }) class Page { $flow(n: number) { return n; } }`,
       "/app/page.ts",
       files,
     );
     await expect(result)
       .rejects
-      .toThrow("the member \"flow\" has the name of a built-in template function");
+      .toThrow("the member \"$flow\" has the name of a built-in template function");
   });
 
-  test("an import named flow fails the build", async () => {
+  test("an import named $flow fails the build", async () => {
     const { result } = transform(
       `import { Flowed } from "./fns.ts";
-       @Component({ template: "<p>{{ flow() }}</p>", imports: [Flowed] }) class Page {}`,
+       @Component({ template: "<p>{{ $flow() }}</p>", imports: [Flowed] }) class Page {}`,
       "/app/page.ts",
       files,
     );
     await expect(result)
       .rejects
-      .toThrow("has the name of a built-in template function: \"flow\"");
+      .toThrow("has the name of a built-in template function: \"$flow\"");
+  });
+});
+
+describe("names a template declares may not shadow another", () => {
+  test("a @let with the name of a member fails the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "@let title = 1; <p>{{ title }}</p>" }) class Page { title = "x"; }`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .rejects
+      .toThrow(`"title" shadows a member of Page; a template may not declare a name that hides another, so rename it`);
+  });
+
+  test("a @let with the name of a built-in fails the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "@let $flow = 1; <p>{{ $flow }}</p>" }) class Page {}`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .rejects
+      .toThrow(`"$flow" shadows a built-in template function`);
+  });
+
+  test("a @map item with the name of a @let around it fails the build", async () => {
+    const { result } = transform(
+      `@Component({ template: "@let row = 1; @map rows(); let row { <p>{{ row }}</p> }" }) class Page { rows = [1]; }`,
+      "/app/page.ts",
+    );
+    await expect(result)
+      .rejects
+      .toThrow(`"row" shadows a name declared around it`);
+  });
+
+  test("a name that does not hide anything builds", async () => {
+    const { result } = transform(
+      `@Component({ template: "@let total = 1; @map rows(); let row { <p>{{ row }}{{ total }}</p> }" }) class Page { rows = [1]; }`,
+      "/app/page.ts",
+    );
+    await expect(result).resolves.toBeDefined();
   });
 });
 

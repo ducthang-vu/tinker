@@ -2,8 +2,8 @@
 // may not declare a member or import one with the same name: the build refuses it.
 
 /**
- * `flow(f, g, …)`: a function that applies `f` to its arguments, then `g` to the result, and so on,
- * from left to right, as `flow` in `@tinker/functional` does.
+ * `$flow(f, g, …)`: a function that applies `f` to its arguments, then `g` to the result, and so
+ * on, from left to right, as `flow` in `@tinker/functional` does.
  *
  * @param fns The functions to apply, in order; at least one.
  * @returns A function of the arguments of the first one, giving the result of the last one.
@@ -28,7 +28,7 @@ function flow(...fns: unknown[]): (...args: unknown[]) => unknown {
 
 /** The built-in template functions, by the name a template calls them by. */
 export const BUILT_IN_FUNCTIONS: Readonly<Record<string, (...args: unknown[]) => unknown>> = {
-  flow,
+  $flow: flow,
 };
 
 /** The names of the built-in template functions: a member or an import may not take one of them. */

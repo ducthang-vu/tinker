@@ -110,7 +110,7 @@ function importedFunction(callee: Expression, scope: Scope): TemplateFunctionCon
 }
 
 /**
- * The built-in template function a bare call such as `flow(f, g)` names. A member or an import of
+ * The built-in template function a bare call such as `$flow(f, g)` names. A member or an import of
  * the same name hides it (the build refuses one).
  */
 function builtInFunction(

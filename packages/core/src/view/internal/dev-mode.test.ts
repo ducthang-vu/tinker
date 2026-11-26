@@ -57,6 +57,41 @@ describe("dev-mode checks in templates", () => {
   });
 });
 
+describe("dev-mode warnings for names that shadow another", () => {
+  @Component({
+    selector: "tk-shadowing",
+    template: `@let row = 1;@map rows(); let row { <p>{{ row }}</p> }@map rows(); let title { <p>{{ title }}</p> }`,
+  })
+  class Shadowing {
+    readonly title = signal("x");
+    readonly rows = signal([1]);
+  }
+
+  test("in development mode, a block's name that hides a @let or a member is warned about", () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
+    valueOrThrow(engine.bootstrap(Shadowing, document.createElement("section")));
+    engine.flush();
+    expect(warn)
+      .toHaveBeenCalledWith("row shadows a name declared around it: rename one of them");
+    expect(warn)
+      .toHaveBeenCalledWith("title hides the Shadowing member of the same name");
+    warn.mockRestore();
+  });
+
+  test("outside development mode, a shadowing name is not warned about", () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const engine = Engine.create();
+    valueOrThrow(engine.bootstrap(Shadowing, document.createElement("section")));
+    engine.flush();
+    expect(warn)
+      .not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
 describe("plain attributes that an adapter cannot read", () => {
   @Component({ selector: "tk-sized", template: "" })
   class Sized {

@@ -322,21 +322,21 @@ describe("evaluate: pipes and the built-in flow", () => {
 
   test("flow builds a function that applies its functions in order", () => {
     const addOne = (n: number) => n + 1;
-    expect(run("flow(double, addOne)(4)", { double, addOne }))
+    expect(run("$flow(double, addOne)(4)", { double, addOne }))
       .toBe(9);
-    expect(run("flow(double)(4)", { double }))
+    expect(run("$flow(double)(4)", { double }))
       .toBe(8);
   });
 
   test("a member named flow hides the built-in", () => {
-    expect(run("flow(4)", { flow: (n: number) => `member ${n}` }))
+    expect(run("$flow(4)", { $flow: (n: number) => `member ${n}` }))
       .toBe("member 4");
   });
 
   test("flow refuses no functions, and a value that is not a function", () => {
-    expect(() => run("flow()(1)", {}))
+    expect(() => run("$flow()(1)", {}))
       .toThrow("flow needs at least one function");
-    expect(() => run("flow(1)(1)", {}))
+    expect(() => run("$flow(1)(1)", {}))
       .toThrow("flow takes functions only");
   });
 });

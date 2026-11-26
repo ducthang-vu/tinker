@@ -25,7 +25,7 @@ import { type Either, match, map, type Maybe, run } from "@tinker/functional";
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
-import { BUILT_IN_NAMES, compileSource, emitCompiled, type ImportedSelector, namesIn, TemplateCompileError } from "@tinker/core/compiler";
+import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError } from "@tinker/core/compiler";
 import MagicString from "magic-string";
 import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
@@ -470,6 +470,14 @@ function checkNames(
       host.error(`${where}: the template reads "${name}", which ${declaration.name} does not have`);
     }
   }
+  // A name declared in the template may not hide another name: the build refuses it.
+  const hidden = new Map<string, string>([
+    ...declaration.members.map((member): [string, string] => [member, `a member of ${declaration.name}`]),
+    ...functions.map((fn): [string, string] => [fn.templateName, `the template function ${fn.name}`]),
+  ]);
+  for (const { name, hides } of shadowsIn(nodes as readonly CompiledNode[], hidden)) {
+    host.error(`${where}: "${name}" shadows ${hides}; a template may not declare a name that hides another, so rename it`);
+  }
 }
 
 /**
@@ -580,7 +588,7 @@ function checkTemplateFunctions(
   where: string,
   host: CheckHost,
 ): void {
-  // The built-in names (`flow`) are reserved: no member or import may take one.
+  // The built-in names (`$flow`) are reserved: no member or import may take one.
   for (const builtIn of BUILT_IN_NAMES) {
     if (declaration.members.includes(builtIn)) {
       host.error(`${where}: the member "${builtIn}" has the name of a built-in template function`);

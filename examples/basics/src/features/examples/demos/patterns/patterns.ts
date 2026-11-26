@@ -57,7 +57,7 @@ function next<T>(values: readonly T[], current: T): T {
     <h3>Maybe and Either</h3>
     <p><button (click)="toggleFound()">Toggle found</button></p>
     @match found() {
-      @case some(name) { <p>Found {{ name }}</p> }
+      @case some(bound) { <p>Found {{ bound }}</p> }
       @case none { <p>Nobody found</p> }
     }
     <p><button (click)="toggleReply()">Toggle reply</button></p>
