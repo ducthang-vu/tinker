@@ -7524,7 +7524,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@7006",
+              "name": "__@APP_PATH_BRAND@7008",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
@@ -8408,13 +8408,13 @@
             {
               "name": "loadChildren",
               "kind": "property",
-              "source": "packages/router/src/lib/router/route.ts:66",
-              "description": "The children of the route, loaded the first time a navigation reaches it. A route that has\n`children` does not use this. Once loaded, the children are kept, so the route loads once.",
+              "source": "packages/router/src/lib/router/route.ts:68",
+              "description": "The children of the route, loaded the first time a navigation reaches it. The loader receives a\nsignal that is aborted when every navigation waiting for the load has been superseded, so the\ndownload can stop. A route that has `children` does not use this. Once loaded, the children are\nkept, so the route loads once.",
               "params": [],
               "examples": [],
               "see": [],
               "throws": [],
-              "type": "(() => Promise<readonly Route[]>) | undefined"
+              "type": "((signal: AbortSignal) => Promise<readonly Route[]>) | undefined"
             }
           ]
         },
@@ -8545,7 +8545,7 @@
             {
               "name": "events",
               "kind": "property",
-              "source": "packages/router/src/lib/router/router.ts:56",
+              "source": "packages/router/src/lib/router/router.ts:58",
               "description": "The navigation events: STARTED when a navigation begins, then DONE, CANCELLED, or REJECTED.",
               "params": [],
               "examples": [],
@@ -8556,7 +8556,7 @@
             {
               "name": "navigate",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:150",
+              "source": "packages/router/src/lib/router/router.ts:152",
               "description": "Go to `destination` as a new history entry, with `options.state`. The navigation runs through\nthe guards and redirects of the matched routes. It resolves with its outcome: `done` when it\ncommits; `cancelled` when a newer navigation replaces it first; and `rejected`, with the\nreason: `no-route` when no route takes the path, `guard` when a guard said no (naming the\nroute), or `failed` when a step threw (with the cause). A rejected or cancelled navigation\nchanges nothing.",
               "params": [
                 {
@@ -8579,7 +8579,7 @@
             {
               "name": "onDestroy",
               "kind": "method",
-              "source": "packages/router/src/lib/router/router.ts:170",
+              "source": "packages/router/src/lib/router/router.ts:172",
               "description": "Stops routing navigations when the injector is destroyed.",
               "params": [],
               "examples": [],
