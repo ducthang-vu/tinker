@@ -10,7 +10,7 @@ vi.mock("./vite-commands.ts", () => ({
   serveApp: vi.fn(async () => undefined),
 }));
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev | tinker build";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] | tinker dev [--port <n>] | tinker build";
 
 describe("tinker command", () => {
   let parent: string;
@@ -88,16 +88,83 @@ describe("tinker command", () => {
     });
   });
 
-  describe("dev and build", () => {
-    test("dev serves the app in the current folder", async () => {
+  describe("dev", () => {
+    test("serves the app in the current folder, on the default port", async () => {
       expect(await run(["dev"], output))
         .toBe(0);
       expect(serveApp)
-        .toHaveBeenCalledWith(process.cwd());
+        .toHaveBeenCalledWith(process.cwd(), { port: undefined });
       expect(buildApp).not.toHaveBeenCalled();
     });
 
-    test("build builds the app in the current folder", async () => {
+    test("takes --port, and -p as its short form", async () => {
+      expect(await run(["dev", "--port", "5000"], output))
+        .toBe(0);
+      expect(await run(["dev", "-p", "5001"], output))
+        .toBe(0);
+      expect(await run(["dev", "--port=5002"], output))
+        .toBe(0);
+      expect(serveApp)
+        .toHaveBeenNthCalledWith(1, process.cwd(), { port: 5000 });
+      expect(serveApp)
+        .toHaveBeenNthCalledWith(2, process.cwd(), { port: 5001 });
+      expect(serveApp)
+        .toHaveBeenNthCalledWith(3, process.cwd(), { port: 5002 });
+    });
+
+    test.each(["abc", "0", "65536", "80.5", ""])("refuses the port %j", async (port) => {
+      expect(await run(["dev", "--port", port], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain("--port must be a number from 1 to 65535");
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("a negative port is refused", async () => {
+      expect(await run(["dev", "--port=-1"], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain("--port must be a number from 1 to 65535");
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("--port with no value fails with the parser's message", async () => {
+      expect(await run(["dev", "--port"], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain("--port");
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("an unknown option fails", async () => {
+      expect(await run(["dev", "--host", "0.0.0.0"], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain("--host");
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("a positional argument fails with the usage", async () => {
+      expect(await run(["dev", "extra"], output))
+        .toBe(2);
+      expect(errors)
+        .toEqual([USAGE]);
+      expect(serveApp).not.toHaveBeenCalled();
+    });
+
+    test("a failure is reported, with exit code 1", async () => {
+      vi.mocked(serveApp)
+        .mockRejectedValueOnce(new Error("Port 5000 is in use"));
+
+      expect(await run(["dev", "--port", "5000"], output))
+        .toBe(1);
+      expect(errors)
+        .toEqual(["Port 5000 is in use"]);
+    });
+  });
+
+  describe("build", () => {
+    test("builds the app in the current folder", async () => {
       expect(await run(["build"], output))
         .toBe(0);
       expect(buildApp)
@@ -105,7 +172,15 @@ describe("tinker command", () => {
       expect(serveApp).not.toHaveBeenCalled();
     });
 
-    test("a failure of dev or build is reported, with exit code 1", async () => {
+    test("refuses any argument, with the usage", async () => {
+      expect(await run(["build", "--outDir", "x"], output))
+        .toBe(2);
+      expect(errors)
+        .toEqual([USAGE]);
+      expect(buildApp).not.toHaveBeenCalled();
+    });
+
+    test("a failure is reported, with exit code 1", async () => {
       vi.mocked(buildApp)
         .mockRejectedValueOnce(new Error("Failed to load config"));
 
@@ -113,14 +188,6 @@ describe("tinker command", () => {
         .toBe(1);
       expect(errors)
         .toEqual(["Failed to load config"]);
-    });
-
-    test("dev with an argument fails with the usage", async () => {
-      expect(await run(["dev", "extra"], output))
-        .toBe(2);
-      expect(errors)
-        .toEqual([USAGE]);
-      expect(serveApp).not.toHaveBeenCalled();
     });
   });
 

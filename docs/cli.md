@@ -29,14 +29,17 @@ npm run dev
 Run in the app's folder. They use Vite, which is a dependency of `@tinker/cli`, so the app does
 not name it.
 
-- `tinker dev` serves the app with Vite's dev server, and keeps running until it is stopped.
-- `tinker build` builds the app into its `dist/` folder.
+- `tinker dev [--port <n> | -p <n>]` serves the app with Vite's dev server, and keeps running
+  until it is stopped. The port is a number from 1 to 65535; without `--port` Vite picks its
+  default. `--port=<n>` works too.
+- `tinker build` builds the app into its `dist/` folder. It takes no arguments.
 
 ## Exit codes
 
 - 0: the command succeeded.
 - 1: `dev` or `build` failed. The message is on stderr.
-- 2: a usage or input error, such as a missing name, an invalid name, or an unknown command.
+- 2: a usage or input error, such as a missing name, an invalid name, an invalid port, an
+  unknown option, or an unknown command.
   The message is on stderr.
 
 ## What it does not do

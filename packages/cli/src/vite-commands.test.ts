@@ -11,20 +11,28 @@ describe("serveApp", () => {
   let server: { listen: ReturnType<typeof vi.fn>; printUrls: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    vi.clearAllMocks();
     server = { listen: vi.fn(async () => undefined), printUrls: vi.fn() };
     vi.mocked(createServer)
       .mockResolvedValue(server as never);
   });
 
-  test("serves the app in its root, listens, and prints the URLs", async () => {
+  test("serves the app in its root on the default port, listens, and prints the URLs", async () => {
     await serveApp("/app");
 
     expect(createServer)
-      .toHaveBeenCalledWith({ root: "/app" });
+      .toHaveBeenCalledWith({ root: "/app", server: { port: undefined } });
     expect(server.listen)
       .toHaveBeenCalled();
     expect(server.printUrls)
       .toHaveBeenCalled();
+  });
+
+  test("serves on the given port", async () => {
+    await serveApp("/app", { port: 5000 });
+
+    expect(createServer)
+      .toHaveBeenCalledWith({ root: "/app", server: { port: 5000 } });
   });
 });
 
