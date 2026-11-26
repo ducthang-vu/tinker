@@ -22,10 +22,11 @@
     "vite": "*"
   },
   "scripts": {
-    "build": "vite build && chmod +x dist/tinker-check.js dist/tinker-compile.js"
+    "build": "vite build && chmod +x dist/tinker-check.js dist/tinker-compile.js dist/tinker-types.js"
   },
   "bin": {
     "tinker-check": "./dist/tinker-check.js",
-    "tinker-compile": "./dist/tinker-compile.js"
+    "tinker-compile": "./dist/tinker-compile.js",
+    "tinker-types": "./dist/tinker-types.js"
   }
 }

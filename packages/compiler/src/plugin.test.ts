@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { describe, expect, test, vi } from "vitest";
 import type { Plugin } from "vite";
-import { compileComponents, type CheckHost, type CompilerOptions, tinkerCompiler } from "./plugin.ts";
+import { checkedTemplatesOf, compileComponents, type CheckHost, type CompilerOptions, tinkerCompiler } from "./plugin.ts";
 import { map, type Maybe, fail } from "@tinker/functional";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
@@ -991,5 +991,55 @@ describe("members a component inherits", () => {
         .rejects
         .toThrow("the template reads \"constructor\", which a template may not do");
     });
+  });
+});
+
+describe("checkedTemplatesOf", () => {
+  const host: CheckHost = {
+    resolve: async () => null,
+    error: (message) => {
+      throw new Error(message);
+    },
+    warn: () => undefined,
+  };
+
+  test("a template that does not compile is not checked, and is left to the build", async () => {
+    const code = `@Component({ selector: "tk-a", template: "<p>{{ a( }}</p>" }) export class A {}\n`;
+    expect(await checkedTemplatesOf(code, "/app/a.ts", host))
+      .toEqual([]);
+  });
+
+  test("a component whose template or imports are not literals is not checked", async () => {
+    const code = `
+const list = [];
+@Component({ selector: "tk-a", template: build() }) export class A {}
+@Component({ selector: "tk-b", template: "<p>x</p>", imports: list }) export class B {}
+`;
+    expect(await checkedTemplatesOf(code, "/app/a.ts", host))
+      .toEqual([]);
+  });
+
+  test("a directive imported with exportAs is passed on to its template", async () => {
+    const code = `
+@Directive({ selector: "[tkNamed]", exportAs: "named" })
+export class Named {}
+@Component({ selector: "tk-a", template: '<p>x</p>', imports: [Named] })
+export class A {}
+`;
+    const [checked] = await checkedTemplatesOf(code, "/app/a.ts", host);
+    expect(checked?.name)
+      .toBe("A");
+  });
+
+  test("a directive imported without exportAs is passed on too", async () => {
+    const code = `
+@Directive({ selector: "[tkPlain]" })
+export class Plain {}
+@Component({ selector: "tk-a", template: '<p>x</p>', imports: [Plain] })
+export class A {}
+`;
+    const [checked] = await checkedTemplatesOf(code, "/app/a.ts", host);
+    expect(checked?.name)
+      .toBe("A");
   });
 });

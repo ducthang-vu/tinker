@@ -16,7 +16,7 @@ import tseslint from "typescript-eslint";
 const DOCUMENTED_PACKAGES = ["packages/functional/src", "packages/router/src"];
 
 export default [
-  { ignores: ["**/dist/", "coverage/", "**/node_modules/"] },
+  { ignores: ["**/dist/", "coverage/", "**/node_modules/", "**/*.template-check.ts"] },
   // A disable comment that no longer disables anything is an error too.
   { linterOptions: { reportUnusedDisableDirectives: "error" } },
   {
