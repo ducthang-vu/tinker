@@ -7,6 +7,7 @@ test("the compiler's public API exports exactly these values", () => {
       "compileSource",
       "emitCompiled",
       "BUILT_IN_NAMES",
+      "forbiddenMembersIn",
       "namesIn",
       "unknownReads",
       "shadowsIn",

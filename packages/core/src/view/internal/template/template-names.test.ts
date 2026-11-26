@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ExpressionParser } from "./expression.ts";
-import { namesIn, unknownReads } from "./template-names.ts";
+import { forbiddenMembersIn, namesIn, unknownReads } from "./template-names.ts";
 import { valueOrThrow } from "@tinker/functional";
 
 const parse = (source: string) => valueOrThrow(ExpressionParser.parse(source));
@@ -138,5 +138,20 @@ describe("unknownReads", () => {
   test("a name read twice is reported once", () => {
     expect(unknownReads(nodes([text("gone"), text("gone")]), known))
       .toEqual(["gone"]);
+  });
+
+  describe("forbiddenMembersIn", () => {
+    test("finds the forbidden members a template reads, once each", () => {
+      expect(forbiddenMembersIn([
+        { kind: "value", expression: parse("title.constructor") },
+        { kind: "value", expression: parse("items.constructor.prototype") },
+      ]))
+        .toEqual(["constructor", "prototype"]);
+    });
+
+    test("finds none in a template that reads ordinary members", () => {
+      expect(forbiddenMembersIn([{ kind: "value", expression: parse("title.length") }]))
+        .toEqual([]);
+    });
   });
 });
