@@ -50,6 +50,20 @@ not name it.
 the page's `<base>` element, which the router reads, so the app routes correctly under that
 folder. A path that does not start and end with `/` is refused.
 
+## `tinker generate <kind> <name>`
+
+Run in an app's folder (its `package.json` has `tinker.prefix`). It writes one new file,
+`src/<name>/<name>.ts`, and prints the line that uses the item, which the user pastes where it is
+needed. Nothing that exists is changed. The kinds:
+
+- `component`: `@Component` with the selector `<prefix>-<name>`, and a class `<Name>Component`.
+- `directive`: `@Directive` with the attribute selector `[<prefix>-<name>]`, and a class `<Name>Directive`.
+- `service`: `@Injectable({ providedIn: "root" })`, and a class `<Name>Service`.
+- `function`: a template function named in camel case (`format-price` is `formatPrice`), with a
+  `call()` method, and a class `<Name>Function`.
+
+The name is lower case letters, digits and dashes. An item that already exists is refused.
+
 ## `--help` and `--version`
 
 - `tinker` with no command, `tinker --help`, `tinker -h` and `tinker help` print the list of
