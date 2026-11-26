@@ -9,6 +9,9 @@ export function appFiles(name: string): Map<string, string> {
     ["vite.config.ts", viteConfig()],
     ["src/main.ts", mainTs()],
     ["src/app.ts", appTs(name)],
+    ["tsconfig.json", tsconfig()],
+    [".gitignore", gitignore()],
+    ["README.md", readme(name)],
   ]);
 }
 
@@ -22,6 +25,7 @@ function packageJson(name: string): string {
       dev: "tinker dev",
       build: "tinker build",
       preview: "tinker preview",
+      typecheck: "tsc --noEmit",
     },
     dependencies: {
       "@tinker/core": "*",
@@ -29,6 +33,7 @@ function packageJson(name: string): string {
     devDependencies: {
       "@tinker/cli": "*",
       "@tinker/compiler": "*",
+      "typescript": "npm:@typescript/typescript6@6.0.2",
     },
   }, null, 2)}\n`;
 }
@@ -81,5 +86,53 @@ function appTs(name: string): string {
 export class App {
   readonly title = "${name}";
 }
+`;
+}
+
+/** The compiler settings: strict TypeScript, with the `.ts` import paths the app uses. */
+function tsconfig(): string {
+  return `${JSON.stringify({
+    compilerOptions: {
+      target: "ES2022",
+      module: "ESNext",
+      moduleResolution: "bundler",
+      lib: ["ES2022", "DOM", "DOM.Iterable"],
+      strict: true,
+      noUncheckedIndexedAccess: true,
+      noImplicitOverride: true,
+      verbatimModuleSyntax: true,
+      isolatedModules: true,
+      allowImportingTsExtensions: true,
+      skipLibCheck: true,
+      noEmit: true,
+      customConditions: ["development"],
+    },
+    include: ["src", "vite.config.ts"],
+  }, null, 2)}\n`;
+}
+
+/** What git should not keep: the installed packages, the build, and logs. */
+function gitignore(): string {
+  return `node_modules/
+dist/
+*.log
+`;
+}
+
+/** How to run the app, for whoever opens it next. */
+function readme(name: string): string {
+  return `# ${name}
+
+A Tinker app.
+
+## Commands
+
+\`\`\`bash
+npm install        # install the packages
+npm run dev        # serve the app, until it is stopped
+npm run build      # build the app into dist/
+npm run preview    # serve the built app (run build first)
+npm run typecheck  # check the types
+\`\`\`
 `;
 }
