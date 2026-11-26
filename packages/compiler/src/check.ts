@@ -15,14 +15,10 @@ export interface CheckOutput {
 
 /**
  * Checks each of `files`. Returns 0 when every template compiles and nothing was
- * skipped with a warning (in strict mode, nothing that cannot be checked); 1 otherwise.
+ * skipped with a warning; 1 otherwise.
  */
-export async function checkFiles(
-  files: readonly string[],
-  options: { readonly strict: boolean },
-  output: CheckOutput,
-): Promise<number> {
-  const mode: CompileMode = { emit: false, strict: options.strict };
+export async function checkFiles(files: readonly string[], output: CheckOutput): Promise<number> {
+  const mode: CompileMode = { emit: false };
   let failed = false;
   for (const file of files) {
     const path = resolve(file);

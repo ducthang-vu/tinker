@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The command: `tinker-compile --out <dir> [--strict] <file.ts>...`. See src/emit-files.ts.
+// The command: `tinker-compile --out <dir> <file.ts>...`. See src/emit-files.ts.
 // It lives outside src/ for the same reason as tinker-check (see bin/tinker-check.ts).
 
 import { emitFiles, parseArguments } from "../src/emit-files.ts";

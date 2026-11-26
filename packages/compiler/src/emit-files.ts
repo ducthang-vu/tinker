@@ -18,7 +18,6 @@ import { resolveImport } from "./resolve.ts";
 export interface EmitOptions {
   readonly outDir: string;
   readonly files: readonly string[];
-  readonly strict: boolean;
   /** Whether the output carries the emitted trees, or the template strings as they are. */
   readonly emit: boolean;
   /** The library's manifest, which must declare the packages the compiled files import. */
@@ -29,19 +28,16 @@ export interface EmitOptions {
 const REQUIRED_PACKAGES = ["@tinker/functional", "@tinker/core"];
 
 /**
- * The options from the command line: `--out <dir> [--package <package.json>] [--strict]
+ * The options from the command line: `--out <dir> [--package <package.json>] [--emit]
  * <file.ts>...`. Throws when the output directory or a file is missing.
  */
 export function parseArguments(args: readonly string[]): EmitOptions {
   const values = new Map<string, string>();
   const files: string[] = [];
-  let strict = false;
   let emit = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
-    if (arg === "--strict") {
-      strict = true;
-    } else if (arg === "--emit") {
+    if (arg === "--emit") {
       emit = true;
     } else if (arg === "--out" || arg === "--package") {
       const value = args[++index];
@@ -54,9 +50,9 @@ export function parseArguments(args: readonly string[]): EmitOptions {
   }
   const outDir = values.get("--out");
   if (outDir === undefined || files.length === 0) {
-    throw new Error("Usage: tinker-compile --out <dir> [--package <package.json>] [--strict] [--emit] <file.ts>...");
+    throw new Error("Usage: tinker-compile --out <dir> [--package <package.json>] [--emit] <file.ts>...");
   }
-  return { outDir, files, strict, emit, packagePath: values.get("--package") ?? "package.json" };
+  return { outDir, files, emit, packagePath: values.get("--package") ?? "package.json" };
 }
 
 /** The required packages that the manifest at `packagePath` does not declare. */
@@ -109,7 +105,6 @@ export async function emitFiles(options: EmitOptions, output: CheckOutput): Prom
       const code = readFileSync(path, "utf8");
       const emitted = await emitFile(code, path, host, {
         emit: options.emit,
-        strict: options.strict,
       });
       const target = join(options.outDir, placeInOutput(path));
       mkdirSync(dirname(target), { recursive: true });

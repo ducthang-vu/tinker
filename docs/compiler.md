@@ -31,7 +31,6 @@ Options:
 | Option | Default | What it does |
 |---|---|---|
 | `emit` | `false` | Replace each compiled template with its tree. Costs bundle size: see `IMPROVEMENTS.md`. |
-| `strict` | `false` | Fail the build for a component that cannot be checked. By default it is skipped with a warning. |
 | `dev` | Vite's development mode | Whether the app runs in development mode: apps read it as the `DEV_MODE` token (`inject(DEV_MODE)`). The build defines `globalThis.__TINKER_DEV__`; without the plugin, `DEV_MODE` is `false`. |
 
 ## What is checked, and what is skipped
@@ -80,8 +79,7 @@ run time. The plugin watches the files: an edit rebuilds the component that read
   A missing file fails the build and names the file.
 - An inline option and its file together (`template` with `templateUrl`, `styles` with
   `styleUrls`) fail the build: give one of them.
-- A file option that is not a string literal is skipped with a warning, as a template is
-  (an error in strict mode).
+- A file option that is not a string literal is skipped with a warning, as a template is.
 - Without the plugin, `@Component` throws, since nothing would read the files.
 - `tinker-compile` inlines the files too, so a built library needs neither file.
 
@@ -98,16 +96,15 @@ import, each read as TypeScript source:
 ### `tinker-check`
 
 ```bash
-tinker-check [--strict] <file.ts>...
+tinker-check <file.ts>...
 ```
 
-Checks each file and changes nothing. It exits with 1 when a template does not compile,
-or, in strict mode, when a component cannot be checked.
+Checks each file and changes nothing. It exits with 1 when a template does not compile.
 
 ### `tinker-compile`
 
 ```bash
-tinker-compile --out <dir> [--package <package.json>] [--strict] [--emit] <file.ts>...
+tinker-compile --out <dir> [--package <package.json>] [--emit] <file.ts>...
 ```
 
 Writes each file into `<dir>`, at its path relative to the working directory:
