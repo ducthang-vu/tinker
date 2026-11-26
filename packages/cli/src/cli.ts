@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type ParseArgsOptionsConfig, parseArgs } from "node:util";
 import { createApp, DEFAULT_PREFIX } from "./new.ts";
-import { generateInto } from "./generate.ts";
+import { apply, plan } from "./generate.ts";
 import { type AppOptions, buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 /** Where the command writes its messages. */
@@ -35,8 +35,8 @@ Commands:
   dev             serve the app in the current folder, until it is stopped
   build           build the app in the current folder into dist/
   preview         serve the built dist/ folder, until it is stopped (run build first)
-  generate <kind> <name>  write a component, directive, service or function (kinds: component,
-                          directive, service, function) into src/<name>/
+  generate <kind> <name>  write a component, directive, service or function into src/<name>/, and
+                          register it in src/app.ts (--dry-run plans it without writing)
 
 Options:
   -p, --port <n>  the port, a number from 1 to 65535 (dev and preview)
@@ -136,18 +136,34 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
  * Runs `dev` or `build`: its options are parsed and checked first (a bad one exits with 2), then
  * the command runs (a failure exits with 1). Nothing else may follow the options.
  */
-/** `tinker generate <kind> <name>`: writes the item, and prints the line that uses it. */
+/** `tinker generate <kind> <name> [--dry-run]`: writes the item and registers it, or plans it. */
 function generateCommand(args: readonly string[], output: Output): number {
   try {
-    const { positionals } = parseArgs({ args, allowPositionals: true, strict: true });
+    const { values, positionals } = parseArgs({
+      args,
+      options: { "dry-run": { type: "boolean" } },
+      allowPositionals: true,
+      strict: true,
+    });
     const [kind, name, ...extra] = positionals;
     if (kind === undefined || name === undefined || extra.length > 0) {
       output.error(USAGE);
       return 2;
     }
-    const file = generateInto(process.cwd(), kind, name);
-    output.log(`Created ${file.path}. To use it, add:`);
-    output.log(file.usage);
+    const planned = plan(process.cwd(), kind, name);
+    const created = planned.files.map((file) => `  ${file.path}`);
+    if (values["dry-run"]) {
+      output.log(`Dry run: nothing is written. It would create:\n${created.join("\n")}`);
+      if (planned.app !== undefined) {
+        output.log(`and change ${planned.app.path} to:\n${planned.app.content}`);
+      }
+      return 0;
+    }
+    apply(process.cwd(), planned);
+    output.log(`Created:\n${created.join("\n")}`);
+    if (planned.app !== undefined) {
+      output.log(`Registered it in ${planned.app.path}.`);
+    }
     return 0;
   } catch (error) {
     output.error((error as Error).message);

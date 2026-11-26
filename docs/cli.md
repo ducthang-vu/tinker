@@ -50,19 +50,25 @@ not name it.
 the page's `<base>` element, which the router reads, so the app routes correctly under that
 folder. A path that does not start and end with `/` is refused.
 
-## `tinker generate <kind> <name>`
+## `tinker generate <kind> <name> [--dry-run]`
 
-Run in an app's folder (its `package.json` has `tinker.prefix`). It writes one new file,
-`src/<name>/<name>.ts`, and prints the line that uses the item, which the user pastes where it is
-needed. Nothing that exists is changed. The kinds:
+Run in an app's folder (its `package.json` has `tinker.prefix`). It writes the new item's files (see the kinds below),
+and registers the item in the root component, `src/app.ts`: an import,
+and an entry in the component's `imports`. A service is not registered, since it is provided in
+the root injector. The kinds:
 
-- `component`: `@Component` with the selector `<prefix>-<name>`, and a class `<Name>Component`.
+- `component`: a folder `src/<name>/` with `<name>.ts`, a `@Component` with the selector `<prefix>-<name>`
+  and a class `<Name>Component`, and `<name>.test.ts`, a test file that imports it.
 - `directive`: `@Directive` with the attribute selector `[<prefix>-<name>]`, and a class `<Name>Directive`.
 - `service`: `@Injectable({ providedIn: "root" })`, and a class `<Name>Service`.
 - `function`: a template function named in camel case (`format-price` is `formatPrice`), with a
   `call()` method, and a class `<Name>Function`.
 
-The name is lower case letters, digits and dashes. An item that already exists is refused.
+Everything is checked before anything is written: an app without a root component file, an
+imports list over several lines, or an existing item stops the command with nothing changed.
+`--dry-run` shows the files to create and the new `src/app.ts`, and writes nothing.
+
+The name is lower case letters, digits and dashes.
 
 ## `--help` and `--version`
 
