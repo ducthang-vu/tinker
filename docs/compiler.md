@@ -124,20 +124,26 @@ Writes each file into `<dir>`, at its path relative to the working directory:
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.
 
-## The Vite preset
+## The build settings: `tinkerConfig()`
 
-`tinkerVite()` is the Vite setup a Tinker app needs, as one call: the compile step with
-`emit: true`, the standard decorators step, and the aliases that read each workspace package
-from its source. An app's `vite.config.ts` exports it, as `tinker new` writes it:
+`tinkerConfig()` gives the build settings of a Tinker app, as one call: its `plugins` (the
+compile step with `emit: true`, the standard decorators step, and the `<base>` element) and its
+`aliases` (the workspace packages, read from their source). `tinker new` writes the app's
+`vite.config.ts` from it:
 
 ```ts
-import { tinkerVite } from "@tinker/compiler";
+import { tinkerConfig } from "@tinker/compiler";
 
-export default tinkerVite();
+const config = tinkerConfig();
+
+export default {
+  plugins: [...config.plugins],
+  resolve: { alias: [...config.aliases] },
+};
 ```
 
-The app does not import Vite. `tinker dev` and `tinker build` (see `docs/cli.md`) run Vite,
-which is a dependency of `@tinker/cli`.
+The app does not name the build tool. `tinker dev` and `tinker build` (see `docs/cli.md`) run it,
+through `@tinker/cli`.
 
 The aliases read the `packages/` folder of this repository, so the preset works for an app
 inside the monorepo, as a workspace package. An app outside it needs the packages installed,

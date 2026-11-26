@@ -49,10 +49,16 @@ function indexHtml(name: string): string {
 }
 
 function viteConfig(): string {
-  return `// The app's build settings: the Tinker preset (the compiler, the decorators, the aliases).
-import { tinkerVite } from "@tinker/compiler";
+  return `// The app's build settings: the Tinker config (the compiler, the decorators, the aliases, and
+// the base element the router reads).
+import { tinkerConfig } from "@tinker/compiler";
 
-export default tinkerVite();
+const config = tinkerConfig();
+
+export default {
+  plugins: [...config.plugins],
+  resolve: { alias: [...config.aliases] },
+};
 `;
 }
 

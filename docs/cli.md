@@ -13,7 +13,7 @@ The app has:
 - `package.json`: the scripts `dev` (`tinker dev`) and `build` (`tinker build`), the Tinker
   packages as dependencies, and `@tinker/cli`.
 - `index.html`, which holds the root element `<tk-app>`.
-- `vite.config.ts`, which exports the Tinker preset, `tinkerVite()` from `@tinker/compiler`
+- `vite.config.ts`, which takes its plugins and aliases from `tinkerConfig()` of `@tinker/compiler`
   (see `docs/compiler.md`).
 - `src/main.ts`, which bootstraps the root component, and `src/app.ts`, the root component.
 

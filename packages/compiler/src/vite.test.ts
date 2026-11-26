@@ -1,12 +1,16 @@
 // @vitest-environment node
+import type { Plugin } from "vite";
 import { describe, expect, test } from "vitest";
-import { tinkerVite } from "./vite.ts";
+import { tinkerConfig } from "./vite.ts";
 
-describe("tinkerVite", () => {
+/** The name of each plugin of a config, as Vite reads it. */
+function namesOf(plugins: readonly object[]): string[] {
+  return plugins.map((plugin) => (plugin as Plugin).name);
+}
+
+describe("tinkerConfig", () => {
   test("gives the compiler, the decorators and the base tag, in that order", () => {
-    const preset = tinkerVite();
-
-    expect(preset.plugins.map((plugin) => plugin.name))
+    expect(namesOf(tinkerConfig().plugins))
       .toEqual([
         "tinker:compile-templates",
         "tinker:standard-decorators",
@@ -15,22 +19,20 @@ describe("tinkerVite", () => {
   });
 
   test("gives the workspace aliases, one per exported subpath of each package", () => {
-    const aliases = tinkerVite().resolve?.alias;
+    const aliases = tinkerConfig().aliases;
 
-    expect(Array.isArray(aliases))
-      .toBe(true);
     expect(aliases)
       .toContainEqual(expect.objectContaining({ replacement: expect.stringContaining("core") }));
   });
 });
 
 describe("the base tag", () => {
-  /** The base-tag plugin of the preset, with its hooks as Vite calls them. */
+  /** The base-tag plugin of the config, with its hooks as Vite calls them. */
   function baseTagHooks() {
-    const plugin = tinkerVite().plugins.find(({ name }) => name === "tinker:base-tag");
+    const plugin = tinkerConfig().plugins.find((p) => (p as Plugin).name === "tinker:base-tag") as Plugin;
     return {
-      configResolved: plugin?.configResolved as unknown as (config: { base: string }) => void,
-      transformIndexHtml: plugin?.transformIndexHtml as unknown as (html: string) => string,
+      configResolved: plugin.configResolved as unknown as (config: { base: string }) => void,
+      transformIndexHtml: plugin.transformIndexHtml as unknown as (html: string) => string,
     };
   }
 

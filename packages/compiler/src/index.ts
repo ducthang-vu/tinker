@@ -4,4 +4,4 @@
 // It only checks by default; `emit: true` also replaces templates with their trees.
 
 export { tinkerCompiler } from "./plugin.ts";
-export { tinkerVite } from "./vite.ts";
+export { type TinkerAlias, type TinkerConfig, tinkerConfig } from "./vite.ts";
