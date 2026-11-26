@@ -5,6 +5,7 @@ import {
   isTemplateFunction,
   TemplateFunction,
   type TemplateFunctionContract,
+  templateFunctionMemoised,
   templateFunctionName,
 } from "./template-function.ts";
 
@@ -49,4 +50,31 @@ describe("@TemplateFunction", () => {
     expect(() => TemplateFunction("broken")(NoCall as never, {} as never))
       .toThrow("needs a call() method");
   });
+});
+
+describe("@TemplateFunction memoise option", () => {
+  test("calls are memoised by default, and memoise: false opts out", () => {
+    @TemplateFunction("plain")
+    class Plain implements TemplateFunctionContract<[], number> {
+      call(): number {
+        return 1;
+      }
+    }
+    @TemplateFunction("fresh", { memoise: false })
+    class Fresh implements TemplateFunctionContract<[], number> {
+      call(): number {
+        return 1;
+      }
+    }
+    expect(templateFunctionMemoised(Plain))
+      .toBe(true);
+    expect(templateFunctionMemoised(Fresh))
+      .toBe(false);
+  });
+});
+
+test("a class that is not a template function is not memoised", () => {
+  class Plain {}
+  expect(templateFunctionMemoised(Plain))
+    .toBe(false);
 });

@@ -63,7 +63,8 @@ import type { AttributeNode } from "../template/ast.ts";
 import { type CompiledNode, compileTemplate, type DirectiveCandidate } from "../template/compile.ts";
 import { classesIn } from "../template/classes-in.ts";
 import { registerTemplateFunctions } from "../template/template-functions.ts";
-import { isTemplateFunction, templateFunctionName, type TemplateFunctionContract } from "../authoring/template-function.ts";
+import { isTemplateFunction, templateFunctionMemoised, templateFunctionName, type TemplateFunctionContract } from "../authoring/template-function.ts";
+import { memoisedCall } from "../template/template-memo.ts";
 import { replaceClasses } from "../template/replace-classes.ts";
 import { Selector } from "../template/selector.ts";
 import { CLASS_REPLACEMENTS, DEV_MODE, RENDERER, TEMPLATE_PARSER } from "../tokens.ts";
@@ -443,9 +444,15 @@ export class ComponentFactory {
       () => ({
         hostInstances: hostDirectives.map((directive) => inject(directive)),
         instance: inject(type),
-        templateFunctions: [...this.templateFunctionTypesOf(metadata)].map(
-          ([name, fnType]) => [name, inject(fnType) as TemplateFunctionContract] as const,
-        ),
+        templateFunctions: [...this.templateFunctionTypesOf(metadata)].map(([name, fnType]) => {
+          const fn = inject(fnType) as TemplateFunctionContract;
+          const contract: TemplateFunctionContract = templateFunctionMemoised(fnType)
+            ? {
+                call: memoisedCall((...args) => fn.call(...args), this.checks, `${type.name}.${name}`),
+              }
+            : fn;
+          return [name, contract] as const;
+        }),
       }),
     );
     registerTemplateFunctions(instance, new Map(templateFunctions));

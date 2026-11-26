@@ -1422,7 +1422,7 @@
               "type": "boolean"
             },
             {
-              "name": "__@TOKEN_TYPE@494",
+              "name": "__@TOKEN_TYPE@496",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:59",
               "description": "Type-only (`declare`): no such property exists at runtime.",
@@ -1584,7 +1584,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@INPUT_TYPE@911",
+              "name": "__@INPUT_TYPE@916",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -1762,7 +1762,7 @@
               ]
             },
             {
-              "name": "__@INPUT_TYPE@911",
+              "name": "__@INPUT_TYPE@916",
               "kind": "property",
               "source": "packages/core/src/view/internal/authoring/input.ts:40",
               "description": "Type-only marker, telling an input apart from other signals. Never set at runtime.",
@@ -2969,7 +2969,7 @@
         {
           "name": "TemplateFunction",
           "kind": "function",
-          "source": "packages/core/src/view/internal/authoring/template-function.ts:46",
+          "source": "packages/core/src/view/internal/authoring/template-function.ts:62",
           "description": "Class decorator: makes the class a template function, which a template calls by `name`. It is\nalso injectable, so it is created through DI, once per component that imports it.",
           "params": [
             {
@@ -2984,7 +2984,7 @@
           ],
           "returns": "The class decorator. The class must have a `call()` method.",
           "signatures": [
-            "TemplateFunction(name: string): <C extends Class<TemplateFunctionContract>>(target: C, context: ClassDecoratorContext<C>) => void"
+            "TemplateFunction(name: string, options?: TemplateFunctionOptions): <C extends Class<TemplateFunctionContract>>(target: C, context: ClassDecoratorContext<C>) => void"
           ]
         },
         {
@@ -3280,7 +3280,7 @@
               "type": "boolean | undefined"
             },
             {
-              "name": "__@TOKEN_TYPE@494",
+              "name": "__@TOKEN_TYPE@496",
               "kind": "property",
               "source": "packages/core/src/di/internal/inject.ts:33",
               "description": "Type-only marker, never set at runtime. It makes `T` part of the type\n(so `Token<string>` and `Token<number>` differ), and it is required, so\nneither a plain `{ name }` object nor a class can pass for a token.",
@@ -4358,7 +4358,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@CHAIN@1074",
+              "name": "__@CHAIN@1079",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:63",
               "description": "The chain of `f`: the flatMap of a chain, under the CHAIN symbol.",
@@ -4367,7 +4367,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@CHAIN@1074<U>(f: (value: T) => Chain<U>): Chain<U>"
+                "__@CHAIN@1079<U>(f: (value: T) => Chain<U>): Chain<U>"
               ]
             }
           ]
@@ -4669,7 +4669,7 @@
           "throws": [],
           "members": [
             {
-              "name": "__@MAP@1072",
+              "name": "__@MAP@1077",
               "kind": "method",
               "source": "packages/functional/src/lib/functor/functor.ts:25",
               "description": "The value mapped with `f`: the map of a functor, under the MAP symbol.",
@@ -4678,7 +4678,7 @@
               "see": [],
               "throws": [],
               "signatures": [
-                "__@MAP@1072<U>(f: (value: T) => U): Functor<U>"
+                "__@MAP@1077<U>(f: (value: T) => U): Functor<U>"
               ]
             }
           ]
@@ -5228,7 +5228,7 @@
           ],
           "members": [
             {
-              "name": "__@MAP@1072",
+              "name": "__@MAP@1077",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:216",
               "description": "Map what the stream ends with. Items and a failure pass through. A throw fails the stream.",
@@ -5243,11 +5243,11 @@
               "throws": [],
               "returns": "A stream with the same items, that ends with `f`'s result, or with the failure.",
               "signatures": [
-                "__@MAP@1072<U>(f: (result: R) => U): Stream<T, U, E | Error>"
+                "__@MAP@1077<U>(f: (result: R) => U): Stream<T, U, E | Error>"
               ]
             },
             {
-              "name": "__@CHAIN@1074",
+              "name": "__@CHAIN@1079",
               "kind": "method",
               "source": "packages/functional/src/lib/stream/stream.ts:236",
               "description": "Chain another stream (the monad's bind): run this one, delivering its items; when it ends with\na Right `r`, run `f(r)`, delivering its items, and end with its end. If it ends with a Left,\n`f` never runs. A throw in `f` ends the stream with a failure. Cancelling cancels whichever\nstream is running.",
@@ -5262,7 +5262,7 @@
               "throws": [],
               "returns": "A stream of this stream's items, then the next stream's, ending with its end.",
               "signatures": [
-                "__@CHAIN@1074<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
+                "__@CHAIN@1079<T2, R2, F>(f: (result: R) => Stream<T2, R2, F>): Stream<T | T2, R2, E | F | Error>"
               ]
             },
             {
@@ -7505,7 +7505,7 @@
               ]
             },
             {
-              "name": "__@APP_PATH_BRAND@6963",
+              "name": "__@APP_PATH_BRAND@6969",
               "kind": "property",
               "source": "packages/router/src/lib/destination/app-path.ts:32",
               "description": "The brand that only this module sets.",
