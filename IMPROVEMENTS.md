@@ -202,20 +202,6 @@ point at the host root.
 
 **To do.** Read the base class when the build can resolve it, or make the run-time check an error in strict production builds.
 
-## Memoised template functions (`packages/core/src/view/internal/template/template-memo.ts`, `packages/core/src/signals/internal/context/active-consumer.ts`)
-
-### 1. A development-mode memo check adds a reader on each miss
-
-**Problem.** To find signal reads inside a memoised call, `countReads` links a counting consumer to each read. That consumer stays in the producer's consumer list until the producer changes, so a development build keeps a small object per miss. Production builds don't run the check.
-
-**To do.** Remove the counting consumer from the producers after the call, which needs a removal API on the consumers container.
-
-### 2. Reads inside a memoised call don't reach the surrounding watch
-
-**Problem.** A memoised call runs with the counting consumer active, so a signal it reads doesn't make the template re-run. That's correct only because the development-mode warning tells the author to opt out. In production nothing warns about it.
-
-**To do.** Decide whether production should also warn, or refuse signal reads in memoised calls.
-
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
 ### 1. Expressions are not type checked

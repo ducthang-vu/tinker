@@ -8,7 +8,7 @@ export type { OnCleanup, Runnable, WatchFn, WatchScheduler } from "./internal/wa
 
 // Functions
 export { computed, signal, watch } from "./signals.ts";
-export { countReads, untracked } from "./internal/context/active-consumer.ts";
+export { untracked } from "./internal/context/active-consumer.ts";
 
 // Errors
 export { SignalCycleError, SignalWriteError, WatchLoopError } from "./internal/errors.ts";

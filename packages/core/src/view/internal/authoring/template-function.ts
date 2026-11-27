@@ -2,12 +2,17 @@
 //
 //   @TemplateFunction("format")
 //   class DateFormat implements TemplateFunctionContract<[Date], string> {
-//     private readonly clock = inject(Clock);
+//     private readonly formatter = inject(DateFormatter);
 //
-//     call(date: Date): string { /* reads this.clock() */ }
+//     call(date: Date): string { return this.formatter.format(date); }
 //   }
 //
 //   @Component({ selector: "tk-price", template: "{{ format(date()) }}", imports: [DateFormat] })
+//
+// A call sees only its arguments. It runs untracked: a signal read inside `call()` is not a
+// dependency of the view, so it never makes the view re-run, and a memoised call is not run again
+// when it changes. The template reads the signals and passes their values in, as `date()` above.
+// Calls are memoised unless the decorator sets `memoise: false`.
 //
 // A component lists its template functions in `imports`, as it lists directives. Each one is
 // created once per component, in the component's injector, so its inject() calls and onDestroy()
@@ -34,9 +39,12 @@ export interface TemplateFunctionContract<A extends unknown[] = unknown[], R = u
 export interface TemplateFunctionOptions {
   /**
    * Whether a call with the same arguments as last time gives the last result, without running
-   * `call()` again. On by default; a function that reads anything but its arguments (a signal, the
-   * clock, the locale) sets `false`, or its result is not updated when that changes. In development
-   * mode a memoised call that reads a signal is warned about.
+   * `call()` again. On by default. With `false`, `call()` runs each time the view re-runs: for a
+   * function that reads something the view cannot track, such as the clock or the locale.
+   *
+   * Either way, a call runs untracked: a signal read inside `call()` does not make the view re-run,
+   * and `memoise: false` does not change that. Read the signal in the template and pass its value
+   * as an argument: `{{ scaled(2, factor()) }}`, not a `scaled(2)` that reads `factor()` itself.
    */
   readonly memoise?: boolean;
 }
@@ -53,7 +61,9 @@ const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
 /**
  * Class decorator: makes the class a template function, which a template calls by `name`. It is
- * also injectable, so it is created through DI, once per component that imports it.
+ * also injectable, so it is created through DI, once per component that imports it. Its `call()`
+ * depends only on its arguments: it runs untracked, so a signal read inside it does not make the
+ * view re-run.
  *
  * @param name The name a template calls it by: an identifier, such as `format`.
  * @returns The class decorator. The class must have a `call()` method.
