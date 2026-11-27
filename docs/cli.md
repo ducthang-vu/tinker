@@ -16,7 +16,8 @@ the prefix is stored in `tinker.json`, for the generators.
 
 The app has:
 
-- `tinker.json`, the app's settings: its selector `prefix` and its `testRunner`. Apps made before
+- `tinker.json`, the app's settings: its selector `prefix`, and its `testRunner` when that is not
+  the default `vitest` (a node app records `"testRunner": "node"`). Apps made before
   this file had them under the `tinker` key of `package.json`, which is still read.
 - `package.json`: the scripts `dev` (`tinker dev`), `build` (`tinker build`) and `preview`
   (`tinker preview`), the Tinker

@@ -72,9 +72,13 @@ function packageJson(name: string, prefix: string, testRunner: TestRunner): stri
   }, null, 2)}\n`;
 }
 
-/** The settings of the app, in tinker.json: read by the generators, (the generators read them). */
+/**
+ * The settings of the app, in tinker.json: its prefix, and its test runner only when it is not the
+ * default (the generators read the same default when the file has none).
+ */
 function tinkerJson(prefix: string, testRunner: TestRunner): string {
-  return `${JSON.stringify({ prefix, testRunner }, null, 2)}\n`;
+  const settings = testRunner === DEFAULT_TEST_RUNNER ? { prefix } : { prefix, testRunner };
+  return `${JSON.stringify(settings, null, 2)}\n`;
 }
 
 function indexHtml(name: string, prefix: string): string {

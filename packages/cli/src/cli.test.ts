@@ -99,7 +99,7 @@ describe("tinker command", () => {
       expect(JSON.parse(readFileSync(join(parent, "node-app", "tinker.json"), "utf8")).testRunner)
         .toBe("node");
       expect(JSON.parse(readFileSync(join(parent, "vitest-app", "tinker.json"), "utf8")).testRunner)
-        .toBe("vitest");
+        .toBeUndefined();
       expect(existsSync(join(parent, "node-app", "register.mjs")))
         .toBe(true);
       expect(existsSync(join(parent, "vitest-app", "register.mjs")))
