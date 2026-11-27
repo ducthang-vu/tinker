@@ -95,12 +95,12 @@ function letOf(
 }
 
 /**
- * The template function a bare call such as `format(x)` names, when the component has no member
- * of that name: a member wins over an imported function.
+ * The template function a bare name such as `format` in `format(x)` names. An imported function
+ * wins over a member of the component with the same name, own or inherited: the template cannot
+ * reach that member by its bare name.
  */
 function importedFunction(callee: Expression, scope: Scope): TemplateFunctionContract | undefined {
-  if (callee.kind !== "property" || callee.receiver.kind !== "component"
-    || callee.name in scope.component) {
+  if (callee.kind !== "property" || callee.receiver.kind !== "component") {
     return undefined;
   }
   return match(templateFunctionOf(scope.component, callee.name), {

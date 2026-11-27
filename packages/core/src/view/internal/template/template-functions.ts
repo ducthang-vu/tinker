@@ -1,5 +1,5 @@
 // The template functions of each component instance, by name. A bare call such as `format(x)` in
-// a template reads one of these when the component has no member of that name. Recorded per
+// a template reads one of these, even when the component has a member of that name. Recorded per
 // instance, so the evaluator reaches them through the scope's component alone.
 
 import type { TemplateFunctionContract } from "../authoring/template-function.ts";

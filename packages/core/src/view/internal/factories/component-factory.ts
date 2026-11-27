@@ -510,8 +510,9 @@ export class ComponentFactory {
       }),
     );
     registerTemplateFunctions(instance, new Map(templateFunctions));
-    // The build stops a member that hides an imported template function when it can read the
-    // class. Here, in development mode, a member that got past the build is only a warning.
+    // In development mode, a member named like a built-in template function, or like an imported
+    // one, is a warning. The build stops the first when it can read the class. The second is
+    // allowed: the imported function wins, and the template cannot reach the member by its name.
     if (this.devMode) {
       for (const name of BUILT_IN_NAMES) {
         if (name in instance) {
@@ -521,7 +522,7 @@ export class ComponentFactory {
     }
     for (const [name] of templateFunctions) {
       if (name in instance) {
-        this.checks?.warn(`${type.name} has a member named "${name}", which hides the template function imported as "${name}"`);
+        this.checks?.warn(`${type.name} has a member named "${name}", which its template cannot reach: "${name}" is the template function it imports under that name`);
       }
     }
     // The builder creates the template's child components with this factory.

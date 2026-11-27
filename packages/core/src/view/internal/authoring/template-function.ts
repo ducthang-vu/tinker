@@ -18,12 +18,13 @@
 // created once per component, in the component's injector, so its inject() calls and onDestroy()
 // work as they do for any injectable: the decorator makes the class injectable. The name is what
 // the template calls, so it must be an identifier. A bare name, such as `format` in `format(x)` or
-// `filter(isOpen)`, reads the function when the component has no member of that name. Read on its
-// own, the function is a value that can be passed as an argument.
+// `filter(isOpen)`, reads the imported function. Read on its own, the function is a value that can
+// be passed as an argument.
 //
-// A member with the same name as an imported function is an error at build time (when the build
-// can read the class), and a warning in development mode at run time. Two imports with one name
-// are an error both at build time and at run time.
+// An imported function wins over a member of the component with the same name, declared in its
+// own body or inherited from a base class: the template cannot reach that member by its bare name.
+// A component cannot rename a base class's members, so this is allowed, and only warned about in
+// development mode. Two imports with one name are an error both at build time and at run time.
 
 import { Injectable } from "../../../di/index.ts";
 import { defineMetadata, ownMetadata } from "../../../utils/metadata.ts";

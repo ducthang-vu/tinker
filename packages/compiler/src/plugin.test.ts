@@ -676,7 +676,7 @@ describe("template functions imported by a component", () => {
       .toThrow("two imports are template functions named \"format\"");
   });
 
-  test("a member with the name of an imported template function fails the build", async () => {
+  test("a member with the name of an imported template function compiles: the import wins", async () => {
     const { result } = transform(
       `import { Shout } from "./fns.ts";
        @Component({ template: "<p>{{ shout() }}</p>", imports: [Shout] }) class Page { shout = () => "x"; }`,
@@ -684,8 +684,8 @@ describe("template functions imported by a component", () => {
       files,
     );
     await expect(result)
-      .rejects
-      .toThrow("the member \"shout\" hides the template function Shout");
+      .resolves
+      .toBeDefined();
   });
 
   test("imports with different names compile", async () => {

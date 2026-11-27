@@ -176,14 +176,6 @@ point at the host root.
 
 **To do.** Decide whether purity can be enforced (for example, in dev mode, by running the function untracked and warning on a signal read), or whether the doc comment is the only guard. Also decide whether `memoise` should keep more than the last call.
 
-## Template functions (`packages/core/src/view/internal/authoring/template-function.ts`, `template/evaluate.ts`)
-
-### 1. A member named like an imported template function is only read on the class's own body
-
-**Problem.** The build stops a component whose own class body has a member named like an imported template function. A member inherited from a base class is not read at build time, so in production the member silently hides the function. In development mode it is a warning at run time.
-
-**To do.** Read the base class when the build can resolve it, or make the run-time check an error in strict production builds.
-
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
 ### 1. Expressions are not type checked
