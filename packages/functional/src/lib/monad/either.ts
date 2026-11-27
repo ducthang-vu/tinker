@@ -187,33 +187,6 @@ export function mapLeft(...args: readonly unknown[]): unknown {
   });
 }
 
-// Passes an error the caller did not expect through: the description says so, so there is no
-// @throws for it.
-// eslint-disable-next-line jsdoc/require-throws -- a pass-through, documented in the description
-/**
- * Run `fn`: a Right of its result, or a Left of what it throws when `isExpected` accepts it.
- * Any other throw is a bug, and it propagates.
- *
- * @param fn The function to run.
- * @param isExpected Tells the errors the caller expects, which become a Left.
- * @returns A Right of `fn`'s result, or a Left of the expected error it threw.
- * @deprecated Internal functions return an Either themselves, so nothing needs to wrap a throw.
- *   Use the function's own Either instead of catching what it throws.
- */
-export function attempt<T, E>(
-  fn: () => T,
-  isExpected: (error: unknown) => error is E,
-): Either<T, E> {
-  try {
-    return Right.of<T, E>(fn());
-  } catch (error) {
-    if (isExpected(error)) {
-      return Left.of<E, T>(error);
-    }
-    throw error;
-  }
-}
-
 /**
  * `value` as an Error: an Error as is, anything else wrapped (kept as its `cause`).
  *

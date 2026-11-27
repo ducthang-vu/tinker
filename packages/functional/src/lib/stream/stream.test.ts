@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Left, Right, type Either } from "../monad/either.ts";
 import { flatMap, map } from "../functor/functor.ts";
-import { mapErrors, run, Stream, subscribe, type StreamObserver } from "./stream.ts";
+import { run, Stream, subscribe, type StreamObserver } from "./stream.ts";
 
 /** Everything a subscriber is told, in order, as a readable log. */
 const log = <T, R, E>(stream: Stream<T, R, E>): string[] => {
@@ -310,26 +310,5 @@ describe("flatMap on the end", () => {
     });
     expect(seen)
       .toEqual([Right.of(2)]);
-  });
-});
-
-describe("mapErrors", () => {
-  test("it changes the errors of items and of the end, and keeps successes", () => {
-    const stream = Stream.from<number, void, string>((sink) => {
-      sink.next(Left.of("bad"));
-      sink.end(Left.of("gone"));
-    });
-    expect(log(mapErrors(stream, (error: string) => error.length)))
-      .toEqual(["item fail", "end fail"]);
-  });
-
-  test("the data-last mapErrors applies to a stream", () => {
-    const seen: unknown[] = [];
-    const stream = Stream.fail("abc");
-    subscribe(mapErrors((error: string) => error.length)(stream), {
-      end: (result) => seen.push(result),
-    });
-    expect(seen)
-      .toEqual([Left.of(3)]);
   });
 });

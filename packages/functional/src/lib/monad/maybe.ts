@@ -11,10 +11,7 @@
 //   const plan = flatMap(user, (u) => planOf(u));    // planOf returns a Maybe, so it joins
 //
 //   const none = map(None.of<User>(), (u) => u.name); // None: the step was skipped
-//
-// `toEither` turns a missing value into a failure, which says why it is missing.
 
-import { Right, Left, type Either } from "./either.ts";
 import { Continue, OUTCOME, type Outcome } from "./outcome.ts";
 import {
   EQUALS,
@@ -150,33 +147,6 @@ export function filter<T>(self: Maybe<T>, predicate: (value: T) => boolean): May
   return match<T, Maybe<T>>(self, {
     Some: (value) => (predicate(value) ? self : None.of<T>()),
     None: () => self,
-  });
-}
-
-/**
- * `Right(value)` for a Some, `Left(error)` for a None.
- *
- * @param self The Maybe to convert.
- * @param error The error the Left holds, for a None.
- * @returns A Right of the value, or a Left of `error`.
- */
-export function toEither<T, E>(self: Maybe<T>, error: E): Either<T, E> {
-  return match<T, Either<T, E>>(self, {
-    Some: (value) => Right.of<T, E>(value),
-    None: () => Left.of<E, T>(error),
-  });
-}
-
-/**
- * `Some(value)` for a Right, `None` for a Left (its content is dropped).
- *
- * @param self The Either to convert.
- * @returns A Some of the Right's value, or a None.
- */
-export function fromEither<T, E>(self: Either<T, E>): Maybe<T> {
-  return match<T, E, Maybe<T>>(self, {
-    Right: (value) => Some.of(value),
-    Left: () => None.of<T>(),
   });
 }
 

@@ -17,7 +17,7 @@
 //   const upload = Stream.from<number, Response>((sink) => { ... });
 //   run(upload, { next: showProgress, ok: showResult, error: showError });
 
-import { attempt, Left, mapLeft as mapLeftEither, Right, toError, type Either } from "../monad/either.ts";
+import { Left, Right, toError, type Either } from "../monad/either.ts";
 import { type Chain, CHAIN, flatMap, type Functor, MAP } from "../functor/functor.ts";
 import { match, use } from "../monad/monad.ts";
 
@@ -263,8 +263,13 @@ export class Stream<T, R = void, E = Error> implements Functor<R>, Chain<R> {
  * @param f The function to call.
  * @returns A Right of `f`'s result, or a Left of what it threw, as an Error.
  */
-const attemptAsError = <U>(f: () => U): Either<U, Error> =>
-  mapLeftEither(attempt(f, (error): error is Error => true), toError);
+function attemptAsError<U>(f: () => U): Either<U, Error> {
+  try {
+    return Right.of<U, Error>(f());
+  } catch (error) {
+    return Left.of<Error, U>(toError(error));
+  }
+}
 
 /**
  * Start the stream (each call is a new run) and tell `observer` its items and its end. Returns how
@@ -305,34 +310,4 @@ export function run<T, R, E>(
     next: (item) => use(item, { Left: fail, Right: (value) => handlers.next?.(value) }),
     end: (result) => use(result, { Left: fail, Right: (value) => handlers.ok?.(value) }),
   });
-}
-
-/**
- * Transform the errors, of the items and of the end. Successes pass through.
- *
- * @param stream The stream whose errors to transform.
- * @param f The function applied to each error.
- * @returns A stream with the same values, and the errors transformed by `f`.
- */
-export function mapErrors<T, R, E, F>(stream: Stream<T, R, E>, f: (error: E) => F): Stream<T, R, F>;
-/**
- * Transform the errors, of the items and of the end. Successes pass through.
- *
- * @param f The function applied to each error.
- * @returns A function that takes a stream and transforms its errors with `f`.
- */
-export function mapErrors<E, F>(
-  f: (error: E) => F,
-): <T, R>(stream: Stream<T, R, E>) => Stream<T, R, F>;
-export function mapErrors(...args: readonly unknown[]): unknown {
-  if (args.length === 1) {
-    const [f] = args as [(error: unknown) => unknown];
-    return (stream: Stream<unknown, unknown, unknown>) => mapErrors(stream, f);
-  }
-  const [stream, f] = args as [Stream<unknown, unknown, unknown>, (error: unknown) => unknown];
-  return Stream.from<unknown, unknown, unknown>((sink) =>
-    subscribe(stream, {
-      next: (item) => sink.next(mapLeftEither(item, f)),
-      end: (result) => sink.end(mapLeftEither(result, f)),
-    })) as Stream<unknown, unknown, unknown>;
 }
