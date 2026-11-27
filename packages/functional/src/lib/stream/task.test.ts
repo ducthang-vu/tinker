@@ -123,6 +123,86 @@ describe("Task", () => {
       .toBe("e");
   });
 
+  describe("toPromise with an AbortSignal", () => {
+    /** A task that never settles on its own, and counts its starts and its cancels. */
+    function pending() {
+      const counts = { started: 0, cancelled: 0 };
+      const task = fromComputation<number, Error>(() => {
+        counts.started++;
+        return () => {
+          counts.cancelled++;
+        };
+      });
+      return { task, counts };
+    }
+
+    test("aborting cancels the task and rejects with the reason", async () => {
+      const { task, counts } = pending();
+      const controller = new AbortController();
+      const promise = toPromise(task, controller.signal);
+      controller.abort("stop");
+      await expect(promise)
+        .rejects
+        .toBe("stop");
+      expect(counts)
+        .toEqual({ started: 1, cancelled: 1 });
+    });
+
+    test("a signal already aborted rejects without running the task", async () => {
+      const { task, counts } = pending();
+      await expect(toPromise(task, AbortSignal.abort("early")))
+        .rejects
+        .toBe("early");
+      expect(counts.started)
+        .toBe(0);
+    });
+
+    test("aborting after the task settled does nothing", async () => {
+      const controller = new AbortController();
+      let cancelled = 0;
+      const task = fromComputation<number, Error>((ok) => {
+        queueMicrotask(() => ok(1));
+        return () => {
+          cancelled++;
+        };
+      });
+      const promise = toPromise(task, controller.signal);
+      await expect(promise)
+        .resolves
+        .toBe(1);
+      controller.abort("late");
+      expect(cancelled)
+        .toBe(0);
+    });
+
+    test("a task that settles as it starts leaves no listener on the signal", async () => {
+      const controller = new AbortController();
+      const added = vi.spyOn(controller.signal, "addEventListener");
+      await expect(toPromise(fail("e"), controller.signal))
+        .rejects
+        .toBe("e");
+      expect(added)
+        .not
+        .toHaveBeenCalled();
+    });
+
+    test("a task that aborts the signal as it starts is cancelled and rejects", async () => {
+      const controller = new AbortController();
+      let cancelled = 0;
+      const task = fromComputation<number, Error>(() => {
+        controller.abort("from inside");
+        return () => {
+          cancelled++;
+        };
+      });
+      await expect(toPromise(task, controller.signal))
+        .rejects
+        .toBe("from inside");
+      expect(cancelled)
+        .toBe(1);
+    });
+  });
+
   describe("monad laws", () => {
     const f = (n: number): Task<number, string> =>
       n > 0 ? succeed(n * 2) : fail("not positive");
