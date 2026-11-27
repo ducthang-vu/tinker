@@ -10,6 +10,8 @@ export function appFiles(name: string, prefix: string): Map<string, string> {
     ["src/main.ts", mainTs()],
     ["src/app.ts", appTs(name, prefix)],
     ["tsconfig.json", tsconfig()],
+    ["register.mjs", registerLoader()],
+    ["hooks.mjs", loaderHooks()],
     [".gitignore", gitignore()],
     ["README.md", readme(name)],
   ]);
@@ -26,6 +28,7 @@ function packageJson(name: string, prefix: string): string {
       build: "tinker build",
       preview: "tinker preview",
       typecheck: "tsc --noEmit",
+      test: "node --experimental-strip-types --conditions=development --import ./register.mjs --test \"src/**/*.test.ts\"",
     },
     dependencies: {
       "@tinker/core": "*",
@@ -34,6 +37,10 @@ function packageJson(name: string, prefix: string): string {
       "@tinker/cli": "*",
       "@tinker/compiler": "*",
       "typescript": "npm:@typescript/typescript6@6.0.2",
+      "@types/node": "^22.10.2",
+      "@babel/core": "^8.1.2",
+      "@babel/plugin-proposal-decorators": "^8.0.2",
+      "@babel/plugin-transform-typescript": "^8.1.3",
     },
     tinker: { prefix },
   }, null, 2)}\n`;
@@ -134,6 +141,49 @@ npm run dev        # serve the app, until it is stopped
 npm run build      # build the app into dist/
 npm run preview    # serve the built app (run build first)
 npm run typecheck  # check the types
+npm test           # run the tests (Node's built-in test runner; see docs/cli.md)
 \`\`\`
+`;
+}
+
+/** The loader's registration: Node runs the hooks of hooks.mjs for every module the tests load. */
+function registerLoader(): string {
+  return `// Registers the hooks of hooks.mjs with Node, for \`npm test\`. See README.md.
+import { register } from "node:module";
+
+register("./hooks.mjs", import.meta.url);
+`;
+}
+
+/**
+ * The loader's hooks: each .ts file the tests load gets Tinker's decorators and its TypeScript
+ * types removed, the same steps the build of the app takes. Node then runs the result.
+ */
+function loaderHooks(): string {
+  return `// The load hook for the tests: it transforms each .ts module (not a dependency) with Babel,
+// for the decorators and the TypeScript types. Node strips nothing from source a hook gives it.
+import { transformAsync } from "@babel/core";
+import transformTypescript from "@babel/plugin-transform-typescript";
+import proposalDecorators from "@babel/plugin-proposal-decorators";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+export async function load(url, context, nextLoad) {
+  if (!url.endsWith(".ts") || url.includes("/node_modules/")) {
+    return nextLoad(url, context);
+  }
+  const filename = fileURLToPath(url);
+  const source = await readFile(filename, "utf8");
+  const result = await transformAsync(source, {
+    filename,
+    babelrc: false,
+    configFile: false,
+    plugins: [
+      [proposalDecorators, { version: "2023-11" }],
+      [transformTypescript, { isTSX: false }],
+    ],
+  });
+  return { format: "module", source: result.code, shortCircuit: true };
+}
 `;
 }

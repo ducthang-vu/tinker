@@ -70,6 +70,94 @@ imports list over several lines, or an existing item stops the command with noth
 
 The name is lower case letters, digits and dashes.
 
+## Tests of a generated app
+
+A new app has `npm test`, which runs the tests with Node's built-in test runner (`node:test`), so
+the app needs no test framework. A vitest route is also described below. Both work with the
+components `tinker generate component` writes, which come with a test file.
+
+### With Node's test runner (the default)
+
+Requirements: Node 22.6 or later, for `--experimental-strip-types`.
+
+```bash
+npm install
+npm test
+```
+
+`npm test` runs:
+
+```bash
+node --experimental-strip-types --conditions=development --import ./register.mjs --test "src/**/*.test.ts"
+```
+
+- `--experimental-strip-types` lets Node run TypeScript, after the loader has transformed it.
+- `--conditions=development` makes `@tinker/*` resolve to their source in this repository. Outside
+  it, the packages are built, and the flag does nothing.
+- `--import ./register.mjs` loads the **loader**, the file `hooks.mjs`. For each `.ts` file the tests
+  load (not a dependency), it runs Babel: the decorators of Tinker (`@Component`, `@Injectable`, …),
+  then the removal of the TypeScript types. This is the transform the build of the app takes, so
+  a decorated component loads in a test as it does in the app. There is no build step for the tests:
+  the transform runs as each module loads.
+- `--test "src/**/*.test.ts"` runs each test file under `src/`.
+
+A test is written with `node:test` and `node:assert/strict`:
+
+```ts
+import { describe, test } from "node:test";
+import assert from "node:assert/strict";
+import { CartComponent } from "./cart.ts";
+
+describe("CartComponent", () => {
+  test("is created", () => {
+    assert.ok(new CartComponent() instanceof CartComponent);
+  });
+});
+```
+
+The script does not add a coverage report or a watch mode. Node's runner has options for both,
+which can be added to the script, but they are not set up here.
+
+### With vitest
+
+vitest reads the app's `vite.config.ts`, which carries the same Tinker settings as the build, so a
+decorated component loads in it with no loader.
+
+1. Install vitest, in the app:
+
+   ```bash
+   npm install --save-dev vitest
+   ```
+
+2. Add a script to `package.json`:
+
+   ```json
+   "test:vitest": "vitest run"
+   ```
+
+3. Change the imports of each test file to vitest's. For the component above:
+
+   ```ts
+   import { describe, expect, test } from "vitest";
+   import { CartComponent } from "./cart.ts";
+
+   describe("CartComponent", () => {
+     test("is created", () => {
+       expect(new CartComponent()).toBeInstanceOf(CartComponent);
+     });
+   });
+   ```
+
+4. Run it:
+
+   ```bash
+   npm run test:vitest
+   ```
+
+vitest does not use `register.mjs` or `hooks.mjs`, so they can be deleted in a vitest-only app.
+In this repository, vitest is already installed, so `npx vitest run` works in a generated app
+inside the workspace (checked with `tinker generate component` and the change above).
+
 ## `--help` and `--version`
 
 - `tinker` with no command, `tinker --help`, `tinker -h` and `tinker help` print the list of

@@ -62,12 +62,13 @@ export class ${Class}Component {}
           },
           {
             path: `src/${name}/${name}.test.ts`,
-            content: `import { describe, expect, test } from "vitest";
+            content: `import { describe, test } from "node:test";
+import assert from "node:assert/strict";
 import { ${Class}Component } from "./${name}.ts";
 
 describe("${Class}Component", () => {
   test("is created", () => {
-    expect(new ${Class}Component()).toBeInstanceOf(${Class}Component);
+    assert.ok(new ${Class}Component() instanceof ${Class}Component);
   });
 });
 `,
