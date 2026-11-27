@@ -66,25 +66,6 @@ describe("template functions in templates", () => {
       .toEqual(["created", "destroyed"]);
   });
 
-  test("a member of the component with the same name is called instead", async () => {
-    @TemplateFunction("double")
-    class Double implements TemplateFunctionContract<[number], number> {
-      call(n: number): number {
-        return n * 2;
-      }
-    }
-    @Component({ selector: "tk-shadow", template: "<p>{{ double(2) }}</p>", imports: [Double] })
-    class Shadow {
-      double(n: number): string {
-        return `member ${n}`;
-      }
-    }
-    const view = valueOrThrow(renderComponent(Engine.create(), Shadow));
-    await tick();
-    expect(view.host.nativeElement.querySelector("p")!.textContent)
-      .toBe("member 2");
-  });
-
   test("an imported template function can be passed as an argument", async () => {
     @TemplateFunction("isOpen")
     class IsOpen implements TemplateFunctionContract<[{ done: boolean }], boolean> {
@@ -106,7 +87,54 @@ describe("template functions in templates", () => {
       .toBe("2");
   });
 
-  test("in development mode, a member that hides an imported template function is warned about", async () => {
+  test("an imported template function wins over a member of the same name", async () => {
+    @TemplateFunction("double")
+    class Double implements TemplateFunctionContract<[number], number> {
+      call(n: number): number {
+        return n * 2;
+      }
+    }
+    @Component({ selector: "tk-own", template: "<p>{{ double(2) }}</p>", imports: [Double] })
+    class Own {
+      double(n: number): string {
+        return `member ${n}`;
+      }
+    }
+    const view = valueOrThrow(renderComponent(Engine.create(), Own));
+    await tick();
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("4");
+  });
+
+  test("an imported template function wins over an inherited member, and is a value when read alone", async () => {
+    @TemplateFunction("double")
+    class Double implements TemplateFunctionContract<[number], number> {
+      call(n: number): number {
+        return n * 2;
+      }
+    }
+    class Base {
+      double(n: number): string {
+        return `member ${n}`;
+      }
+    }
+    @Component({
+      selector: "tk-inherited",
+      template: "<p>{{ double(2) }}-{{ twice(double) }}</p>",
+      imports: [Double],
+    })
+    class Inherited extends Base {
+      twice(fn: (n: number) => unknown): unknown {
+        return fn(5);
+      }
+    }
+    const view = valueOrThrow(renderComponent(Engine.create(), Inherited));
+    await tick();
+    expect(view.host.nativeElement.querySelector("p")!.textContent)
+      .toBe("4-10");
+  });
+
+  test("in development mode, a member named like an imported template function is warned about", async () => {
     const warn = vi.spyOn(console, "warn")
       .mockImplementation(() => undefined);
     @TemplateFunction("double")
@@ -115,19 +143,20 @@ describe("template functions in templates", () => {
         return n * 2;
       }
     }
-    @Component({ selector: "tk-hidden", template: "<p>{{ double(2) }}</p>", imports: [Double] })
-    class Hidden {
+    class Base {
       double(n: number): string {
         return `member ${n}`;
       }
     }
+    @Component({ selector: "tk-hidden", template: "<p>{{ double(2) }}</p>", imports: [Double] })
+    class Hidden extends Base {}
     const engine = Engine.create({ providers: [provide(DEV_MODE, { useValue: true })] });
     const view = valueOrThrow(renderComponent(engine, Hidden));
     await tick();
     expect(warn)
-      .toHaveBeenCalledWith("Hidden has a member named \"double\", which hides the template function imported as \"double\"");
+      .toHaveBeenCalledWith("Hidden has a member named \"double\", which its template cannot reach: \"double\" is the template function it imports under that name");
     expect(view.host.nativeElement.querySelector("p")!.textContent)
-      .toBe("member 2");
+      .toBe("4");
     warn.mockRestore();
   });
 

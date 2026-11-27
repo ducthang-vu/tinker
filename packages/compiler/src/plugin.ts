@@ -571,10 +571,10 @@ async function importedSelectors(
 }
 
 /**
- * The build-time checks of a component's template functions: two imports with one template name
- * are an error, and so is a member of the component with that name, which would hide the function.
- * Both stop the build. A member inherited from a base class is not read here: development mode
- * warns about it at run time.
+ * The build-time checks of a component's template functions: two imports with one template name,
+ * and a member or an import with the name of a built-in template function, stop the build. A member
+ * named like an imported function is allowed: the imported function wins in the template, and
+ * development mode warns about the member at run time.
  */
 function checkTemplateFunctions(
   functions: readonly ImportedFunction[],
@@ -597,9 +597,6 @@ function checkTemplateFunctions(
       host.error(`${where}: two imports are template functions named "${templateName}"`);
     }
     names.add(templateName);
-    if (declaration.members.includes(templateName)) {
-      host.error(`${where}: the member "${templateName}" hides the template function ${name}, imported as "${templateName}"`);
-    }
   }
 }
 
