@@ -2,8 +2,7 @@ import { describe, expect, test } from "vitest";
 import { Computed } from "../computed.ts";
 import { Signal } from "../signal.ts";
 import type { Consumer } from "../types.ts";
-import { activeConsumer, countReads, tracked, untracked } from "./active-consumer.ts";
-import { signal } from "../../signals.ts";
+import { activeConsumer, tracked, untracked } from "./active-consumer.ts";
 
 const fakeConsumer = (): Consumer => ({
   allowWrites: true,
@@ -101,30 +100,5 @@ describe("untracked", () => {
     } finally {
       activeConsumer.set(null);
     }
-  });
-});
-
-describe("countReads", () => {
-  test("counts the signals a function reads, and gives its result", () => {
-    const a = signal(1);
-    const b = signal(2);
-    const { value, reads } = countReads(() => a() + b());
-    expect(value)
-      .toBe(3);
-    expect(reads)
-      .toBe(2);
-  });
-
-  test("a function that reads nothing counts no reads", () => {
-    expect(countReads(() => "text"))
-      .toEqual({ value: "text", reads: 0 });
-  });
-
-  test("the counter is told when a signal it read changes, and then keeps counting nothing", () => {
-    const a = signal(1);
-    countReads(() => a());
-    a.set(2);
-    expect(a())
-      .toBe(2);
   });
 });

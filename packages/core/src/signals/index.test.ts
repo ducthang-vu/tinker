@@ -19,7 +19,6 @@ test("exports exactly the public runtime symbols", () => {
       "SignalWriteError",
       "WatchLoopError",
       "computed",
-      "countReads",
       "signal",
       "untracked",
       "watch",

@@ -27,6 +27,12 @@ one place when we know more about its costs.
    destroyed.
 6. **Values are written only when they change.** A binding writes the DOM only
    when its value differs from the last one it wrote.
+7. **Template functions see only their arguments.** A call such as
+   `{{ format(price()) }}` runs untracked: the view depends on `price`, which the
+   template reads, and not on any signal that `format` reads inside `call()`.
+   Such a read never makes the view re-run, whether or not the function is
+   memoised (`memoise: false` does not change it). Pass the signal's value in as
+   an argument instead.
 
 ## When the DOM is ready
 

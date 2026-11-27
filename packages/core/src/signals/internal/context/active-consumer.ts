@@ -19,29 +19,6 @@ export function untracked<T>(fn: () => T): T {
 }
 
 /**
- * Run `fn`, and count the producers it reads (signals and computed values) directly from it. Each
- * read that links to the counting consumer is one. The surrounding consumer does not see those
- * reads, as with `untracked`.
- *
- * @privateAPI For the view's memoised template functions, to warn about a read the memo would miss.
- *
- * @param fn The function to run.
- * @returns What `fn` returned, and how many reads it made.
- */
-export function countReads<T>(fn: () => T): { value: T; reads: number } {
-  let reads = 0;
-  const counter: Consumer = {
-    allowWrites: true,
-    addDependency: () => {
-      reads++;
-    },
-    markDirty: () => undefined,
-  };
-  const value = activeConsumer.run(counter, fn);
-  return { value, reads };
-}
-
-/**
  * Method decorator: while the method runs, `this` is the active consumer.
  * The previous one is restored afterwards, even if the method throws.
  */
