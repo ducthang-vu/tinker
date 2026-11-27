@@ -27,7 +27,7 @@ import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
 import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, forbiddenMembersIn, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError, unknownReads } from "@tinker/core/compiler";
 import MagicString from "magic-string";
-import type { CheckedTemplate } from "./types/template-check.ts";
+import type { CheckedDirective, CheckedTemplate } from "./types/template-check.ts";
 import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
 import {
@@ -541,6 +541,7 @@ export async function checkedTemplatesOf(
       type: placeholderFor(imported.name),
       ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }),
     }));
+    const directives = await checkedDirectivesOf(imports.selectors, code, source, filename, host);
     match(compileSource(template.text, list), {
       Left: () => undefined,
       Right: (nodes) => {
@@ -553,11 +554,57 @@ export async function checkedTemplatesOf(
             className: fn.className,
             file: fn.file,
           })),
+          directives,
         });
       },
     });
   }
   return checked;
+}
+
+/**
+ * The directives and components a component imports that a check file can type: those exported
+ * by their file whose base classes can be read, with their own and inherited members.
+ */
+async function checkedDirectivesOf(
+  selectors: readonly NamedSelector[],
+  code: string,
+  source: SourceInfo,
+  filename: string,
+  host: CheckHost,
+): Promise<CheckedDirective[]> {
+  const directives: CheckedDirective[] = [];
+  for (const imported of selectors) {
+    const found = (await declarationNamed(imported.name, source, filename, host))!;
+    const { declaration } = found;
+    // One declared in this file is imported from it, so it must be exported.
+    const local = found.filename === filename;
+    if (local && !new RegExp(`export\\s+(abstract\\s+)?class\\s+${declaration.name}\\b`)
+      .test(code)) {
+      continue;
+    }
+    const own = found.source.classes.find((cls) => cls.name === declaration.name)!;
+    const inherited = await inheritedMembers(
+      own,
+      found.source,
+      found.filename,
+      host,
+      new Set([declaration.name]),
+    );
+    // Without all its members its outputs are not known: it is left untyped (any).
+    if (!inherited.isRead) {
+      continue;
+    }
+    directives.push({
+      name: imported.name,
+      className: declaration.name,
+      file: found.filename,
+      selector: imported.selector,
+      ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }),
+      members: [...declaration.members, ...inherited.members],
+    });
+  }
+  return directives;
 }
 
 function placeholderFor(name: string): Class<object> {

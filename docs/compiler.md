@@ -141,8 +141,24 @@ are git-ignored and rewritten each run.
   of an alternative (`ok(v) | error(v)`) is the union of its types in the options; a regex
   group is `string | undefined`. The `track` expression is checked in the row's scope, and
   `track { id }` checks that the items have `id`.
-- Handlers, `@case` bindings, `let-` names and element references are not checked: they
-  are typed `any`.
+- `@case`: each name a case binds is typed from the subject, narrowed by the case's
+  pattern as the run time matches it. A literal field picks the cases of a union that have
+  it (`@case { kind: "circle", radius }` reads `radius` on the circle), a `typeof` test
+  (`number`) its type, `present` drops `null` and `undefined`, and an object pattern keeps
+  the cases that have every key it reads and none of its `absent` keys. The guard is
+  checked with those names. A field the narrowed cases do not have is a type error.
+- References: `#name` is its element (`HTMLInputElement` for an `<input>`, `HTMLElement`
+  for a tag the DOM does not type), `##name` the element's component, and
+  `#name="exportAs"` the directive or component with that exportAs.
+- Handlers are checked as calls, with `$event` typed. When a directive or the component on
+  the element has an output of that name (or a model whose `<name>Change` it is), `$event`
+  is its value; otherwise it is the DOM event (`PointerEvent` for `click`, `Event` for one
+  the DOM does not type). `(owner.name)` reads only that owner's output, or the DOM event
+  it falls back to. At run time both the output and a DOM event of that name call the
+  handler; the check takes the output's value.
+- A directive whose class is not exported, or whose base classes cannot be read, is not
+  typed: references to it and `$event` on its element are `any`. `let-` names are `any`:
+  the context that gives them is a value of the run time.
 
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.
