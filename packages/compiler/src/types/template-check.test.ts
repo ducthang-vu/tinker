@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import ts from "typescript";
 import { compileSource, type CompiledNode } from "@tinker/core/compiler";
 import { valueOrThrow } from "@tinker/functional";
 import { checkFileOf, type CheckedTemplate } from "./template-check.ts";
@@ -70,14 +71,65 @@ describe("checkFileOf", () => {
       .toContain("void (total);");
   });
 
-  test("the items of a @map are any, and so are the specials of its body", () => {
+  test("a @map's list must be an array, and its item is typed from the list", () => {
     const text = checkFileOf([page("@map todos(); let todo { <p>{{ todo }}{{ $index }}</p> }")], outputFile);
     expect(text)
-      .toContain("const todo: any = undefined;");
+      .toContain("const $list = (($c[\"todos\"])()) satisfies readonly unknown[];");
+    expect(text)
+      .toContain("const todo: (typeof $list)[number] = null as never;");
     expect(text)
       .toContain("const $index: number = 0;");
     expect(text)
       .toContain("const $first: boolean = false;");
+  });
+
+  test("an object pattern types each name from its field, and an array pattern from its index", () => {
+    const text = checkFileOf(
+      [page("@map rows(); let { id, tags: [first, ...others] } { <p>{{ id }}{{ first }}{{ others }}</p> }")],
+      outputFile,
+    );
+    expect(text)
+      .toContain("const id: ((typeof $list)[number])[\"id\"] = null as never;");
+    expect(text)
+      .toContain("const first: (((typeof $list)[number])[\"tags\"])[0] = null as never;");
+    expect(text)
+      .toContain("const others: (((typeof $list)[number])[\"tags\"])[number][] = null as never;");
+  });
+
+  test("an array pattern with no rest binds only its items", () => {
+    const text = checkFileOf([page("@map pairs(); let [a, b] { <p>{{ a }}{{ b }}</p> }")], outputFile);
+    expect(text)
+      .toContain("const b: ((typeof $list)[number])[1] = null as never;");
+  });
+
+  test("a name given with as has the type of what it names, and so does the inner pattern's", () => {
+    const text = checkFileOf([page("@map rows(); let { id } as row { <p>{{ id }}{{ row }}</p> }")], outputFile);
+    expect(text)
+      .toContain("const row: (typeof $list)[number] = null as never;");
+    expect(text)
+      .toContain("const id: ((typeof $list)[number])[\"id\"] = null as never;");
+  });
+
+  test("a regex group is a string or undefined, and a name inside another pattern is any", () => {
+    const text = checkFileOf(
+      [page("@map rows(); let { code: /(?<digits>\\d+)/, found: some(inner), kind: \"a\" } { <p>{{ digits }}{{ inner }}</p> }")],
+      outputFile,
+    );
+    expect(text)
+      .toContain("const digits: string | undefined = null as never;");
+    expect(text)
+      .toContain("const inner: any = null as never;");
+  });
+
+  test("a @map's track expression is checked in the row's scope, and its fields on the item", () => {
+    const byValue = checkFileOf([page("@map todos(); let todo; track todo.id { <p></p> }")], outputFile);
+    expect(byValue)
+      .toContain("void ((todo)[\"id\"]);");
+    const byFields = checkFileOf([page("@map todos(); let todo; track { id, kind } { <p></p> }")], outputFile);
+    expect(byFields)
+      .toContain("void (null as never as (typeof $list)[number])[\"id\"];");
+    expect(byFields)
+      .toContain("void (null as never as (typeof $list)[number])[\"kind\"];");
   });
 
   test("a template function is called through its class instance, imported from its file", () => {
@@ -216,5 +268,87 @@ describe("checkFileOf", () => {
     expect(text)
       .not
       .toContain("void (");
+  });
+});
+
+/** TypeScript's own library files, read once for all the programs below. */
+const libraryFiles = new Map<string, ts.SourceFile | undefined>();
+
+/**
+ * The errors TypeScript reports for a component's file and the check of its template, both kept
+ * in memory: the component is `Page`, in `/app/page.ts`.
+ */
+function typeErrorsOf(component: string, template: string): string[] {
+  const files = new Map([
+    ["/app/page.ts", component],
+    [outputFile, checkFileOf([page(template)], outputFile)],
+  ]);
+  const options: ts.CompilerOptions = {
+    strict: true,
+    noEmit: true,
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    allowImportingTsExtensions: true,
+    lib: ["lib.es2022.d.ts"],
+    types: [],
+  };
+  const host = ts.createCompilerHost(options);
+  const getSourceFile = host.getSourceFile.bind(host);
+  host.getSourceFile = (name, version) => {
+    const text = files.get(name);
+    if (text !== undefined) {
+      return ts.createSourceFile(name, text, version);
+    }
+    if (!libraryFiles.has(name)) {
+      libraryFiles.set(name, getSourceFile(name, version));
+    }
+    return libraryFiles.get(name);
+  };
+  const fileExists = host.fileExists.bind(host);
+  host.fileExists = (name) => files.has(name) || fileExists(name);
+  const readFile = host.readFile.bind(host);
+  host.readFile = (name) => files.get(name) ?? readFile(name);
+  host.directoryExists = (name) => name === "/app" || ts.sys.directoryExists(name);
+  const program = ts.createProgram([outputFile], options, host);
+  return ts.getPreEmitDiagnostics(program)
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+}
+
+describe("the check of a @map, compiled by TypeScript", () => {
+  const component = `export class Page {
+    todos(): readonly { id: number; title: string; tags: string[] }[] { return []; }
+    count(): number { return 0; }
+    upper(text: string): string { return text; }
+  }`;
+
+  test("a template that reads what the items have compiles", () => {
+    expect(typeErrorsOf(
+      component,
+      "@map todos(); let { title, tags: [first] }; track { id } { <p>{{ upper(title) }}{{ first }}</p> }",
+    ))
+      .toEqual([]);
+  });
+
+  test("a field the items do not have is an error, read or destructured", () => {
+    expect(typeErrorsOf(component, "@map todos(); let todo { <p>{{ todo.nope }}</p> }"))
+      .toEqual([expect.stringContaining("Property 'nope' does not exist")]);
+    expect(typeErrorsOf(component, "@map todos(); let { nope } { <p>{{ nope }}</p> }"))
+      .toEqual([expect.stringContaining("Property 'nope' does not exist")]);
+  });
+
+  test("an item passed where its type does not fit is an error", () => {
+    expect(typeErrorsOf(component, "@map todos(); let { id } { <p>{{ upper(id) }}</p> }"))
+      .toEqual([expect.stringContaining("'number' is not assignable to parameter of type 'string'")]);
+  });
+
+  test("a list that is not an array is an error", () => {
+    expect(typeErrorsOf(component, "@map count(); let n { <p>{{ n }}</p> }"))
+      .toContainEqual(expect.stringContaining("does not satisfy the expected type"));
+  });
+
+  test("a track field the items do not have is an error", () => {
+    expect(typeErrorsOf(component, "@map todos(); let todo; track { nope } { <p>{{ todo.id }}</p> }"))
+      .toEqual([expect.stringContaining("Property 'nope' does not exist")]);
   });
 });

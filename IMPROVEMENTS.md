@@ -180,6 +180,6 @@ point at the host root.
 
 ### 1. Some template expressions are not type checked
 
-**Problem.** `tinker-types` checks the template's expressions against the component's class, so a wrong argument type or a call of a non-function is a type error. Some parts are still typed `any`: handlers, `track` expressions, `@map` items, `@case` bindings, `let-` names and element references.
+**Problem.** `tinker-types` checks the template's expressions against the component's class, so a wrong argument type or a call of a non-function is a type error. Some parts are still typed `any`: handlers, `@case` bindings, `let-` names and element references. In a `@map`'s `let`, a name inside an alternative, `some`, `ok` or `error` is `any` too.
 
-**To do.** Type the `@map` items, `@case` bindings and element references from their source, and check handlers and `track` against their event types and item types.
+**To do.** Type the `@case` bindings from the subject, narrowed by each case's pattern, and the element references from their element or directive, and check handlers against their event types.

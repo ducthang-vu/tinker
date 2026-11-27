@@ -133,8 +133,15 @@ are git-ignored and rewritten each run.
 
 - A component whose class is not exported gets a warning and no file.
 - A template that does not compile, a computed template, or a `templateUrl` is not checked.
-- Handlers, `track` expressions, `@map` items, `@case` bindings, `let-` names and element
-  references are not checked: they are typed `any`.
+- `@map`: the list must be an array, and each name its `let` binds is typed from the
+  list's items. `let todo` is an item, `let { id }` its `id` field, `let [first, ...rest]`
+  its first item and the rest. A field the items do not have, or an index past a tuple's
+  end, is a type error, as the run time would throw. A regex group is `string | undefined`,
+  and a name inside an alternative, `some`, `ok` or `error` is `any`. The `track`
+  expression is checked in the row's scope, and `track { id }` checks that the items have
+  `id`.
+- Handlers, `@case` bindings, `let-` names and element references are not checked: they
+  are typed `any`.
 
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.

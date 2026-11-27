@@ -5,9 +5,11 @@
 // The check is a function per component, taking the component as `$c`. Each expression is a
 // statement in it, and the template's blocks are blocks of the function, so a name is in scope
 // where the template makes it visible. Typed: the component's members (read as `$c["name"]`, so a
-// private member still resolves), `@let` values, pipes, and imported template functions (through
-// the class instance). Left as `any`: `@map` items, `@case` bindings, `let-` names and references,
-// and the `$`-specials of a `@map`. Not checked yet: event handlers and `track`.
+// private member still resolves), `@let` values, pipes, imported template functions (through the
+// class instance), the `$`-specials of a `@map`, and its items: the list must be an array, and each
+// name its `let` binds is typed from the list's item type, as the run time binds it. A `track` is
+// checked in the row's scope. Left as `any`: `@case` bindings, `let-` names and references. Not
+// checked yet: event handlers.
 
 import { posix } from "node:path";
 import type { CompiledNode, Expression } from "@tinker/core/compiler";
@@ -32,6 +34,11 @@ export interface CheckedTemplate {
   readonly nodes: readonly CompiledNode[];
   readonly functions: readonly CheckedFunction[];
 }
+
+/** A `@map` node, and what its item is matched with, and its `track`. */
+type MapNode = Extract<CompiledNode, { kind: "map" }>;
+type Pattern = MapNode["item"];
+type Track = MapNode["track"];
 
 /** The local names of a scope: what the template makes visible at a point. */
 type Scope = ReadonlySet<string>;
@@ -146,9 +153,21 @@ function emitNode(
     case "map": {
       const item = namesIn(node.item).declared;
       const inItem = withNames(scope, [...item, ...SPECIALS.map(([name]) => name)]);
-      const lines = [statement(node.list, scope, fns)];
+      // The list must be an array, as at run time; each name the item binds is typed from it.
+      const row = "(typeof $list)[number]";
+      const names = typesOf(node.item, row)
+        .map(([name, type]) => `const ${name}: ${type} = null as never;`);
       const specials = SPECIALS.map(([, declaration]) => declaration);
-      lines.push(...blockOf(item, [...specials, ...emitNodes(node.body, inItem, fns)]));
+      const inner = [
+        ...names,
+        ...specials,
+        ...trackOf(node.track, row, inItem, fns),
+        ...emitNodes(node.body, inItem, fns),
+      ];
+      const lines = blockOf([], [
+        `const $list = (${expressionOf(node.list, scope, fns)}) satisfies readonly unknown[];`,
+        ...blockOf([], inner),
+      ]);
       return { lines, visible: scope };
     }
     case "declaration": {
@@ -177,6 +196,53 @@ function emitNode(
     case "slot":
       return { lines: [], visible: scope };
   }
+}
+
+/**
+ * The names `pattern` binds, each with the TypeScript type of what it binds when it matches a
+ * value of type `type`. A name, `as`, object and array patterns read their part of the type, so a
+ * field the type does not have, or an index past a tuple's end, is a type error, as the run time
+ * would throw. A regex group is a string, or undefined when the group did not take part. Names
+ * inside the other patterns (alternatives, `some`, `ok`, `error`) are `any`.
+ */
+function typesOf(pattern: Pattern, type: string): (readonly [string, string])[] {
+  switch (pattern.kind) {
+    case "bind":
+      return [[pattern.name, type]];
+    case "as":
+      return [...typesOf(pattern.pattern, type), [pattern.name, type]];
+    case "object":
+      return pattern.fields.flatMap((field) =>
+        typesOf(field.pattern, `(${type})[${JSON.stringify(field.key)}]`));
+    case "array":
+      return [
+        ...pattern.items.flatMap((item, index) => typesOf(item, `(${type})[${index}]`)),
+        ...(pattern.rest === undefined ? [] : [[pattern.rest, `(${type})[number][]`] as const]),
+      ];
+    case "regex":
+      return pattern.names.map((name) => [name, "string | undefined"] as const);
+    default:
+      return namesIn(pattern).declared.map((name) => [name, "any"] as const);
+  }
+}
+
+/**
+ * The lines checking a `@map`'s `track`: its expression, read in the row's scope, or each field it
+ * names, read on the item, which must have it.
+ */
+function trackOf(
+  track: Track,
+  row: string,
+  scope: Scope,
+  fns: ReadonlySet<string>,
+): string[] {
+  if (track === undefined) {
+    return [];
+  }
+  if (track.kind === "value") {
+    return [statement(track.expression, scope, fns)];
+  }
+  return track.names.map((name) => `void (null as never as ${row})[${JSON.stringify(name)}];`);
 }
 
 /** The `$`-specials of a `@map` and their types, each declared at the top of the item's block. */
