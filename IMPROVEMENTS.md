@@ -168,14 +168,6 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 
 **To do.** Warn when a page has no `<base>` but the build set a folder, since the links would then
 point at the host root.
-## Functional helpers (`packages/functional/src/lib/function.ts`)
-
-### 1. `memoise` cannot check that its function is pure
-
-**Problem.** `memoise` returns the last result for the same arguments, but nothing checks that the function reads only its arguments. A function that reads the clock, the locale or a signal gives a stale result, and the compiler cannot warn about it.
-
-**To do.** Decide whether purity can be enforced (for example, in dev mode, by running the function untracked and warning on a signal read), or whether the doc comment is the only guard. Also decide whether `memoise` should keep more than the last call.
-
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
 ### 1. Some template expressions are not type checked
