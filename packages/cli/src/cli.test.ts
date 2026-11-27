@@ -1,9 +1,10 @@
 // @vitest-environment node
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { findVersion, run } from "./cli.ts";
+import { createApp } from "./new.ts";
 import { buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
 vi.mock("./vite-commands.ts", () => ({
@@ -372,23 +373,83 @@ describe("tinker command", () => {
   });
 
   describe("generate", () => {
-    test("writes the item into the current app, and prints the line that uses it", async () => {
+    test("writes the item, and registers it in the root component", async () => {
       const cwd = process.cwd();
-      const app = mkdtempSync(join(tmpdir(), "tinker-gen-cmd-"));
-      writeFileSync(join(app, "package.json"), JSON.stringify({ name: "shop", tinker: { prefix: "shop" } }));
+      const parent = mkdtempSync(join(tmpdir(), "tinker-gen-cmd-"));
+      const app = createApp("shop", parent, "shop");
       process.chdir(app);
       try {
         expect(await run(["generate", "component", "cart"], output))
           .toBe(0);
         expect(readFileSync(join(app, "src", "cart", "cart.ts"), "utf8"))
           .toContain(`selector: "shop-cart"`);
-        expect(logged[0])
-          .toContain("src/cart/cart.ts");
+        expect(readFileSync(join(app, "src", "app.ts"), "utf8"))
+          .toContain("imports: [CartComponent],");
+        expect(logged.join("\n"))
+          .toContain("Registered it in src/app.ts");
+      } finally {
+        process.chdir(cwd);
+        rmSync(parent, { recursive: true, force: true });
+      }
+    });
+
+    test("--dry-run writes nothing, and shows what it would do", async () => {
+      const cwd = process.cwd();
+      const parent = mkdtempSync(join(tmpdir(), "tinker-gen-dry-"));
+      const app = createApp("shop", parent, "shop");
+      const before = readFileSync(join(app, "src", "app.ts"), "utf8");
+      process.chdir(app);
+      try {
+        expect(await run(["generate", "component", "cart", "--dry-run"], output))
+          .toBe(0);
+        expect(existsSync(join(app, "src", "cart")))
+          .toBe(false);
+        expect(readFileSync(join(app, "src", "app.ts"), "utf8"))
+          .toBe(before);
+        expect(logged.join("\n"))
+          .toContain("Dry run: nothing is written");
         expect(logged.join("\n"))
           .toContain("CartComponent");
       } finally {
         process.chdir(cwd);
-        rmSync(app, { recursive: true, force: true });
+        rmSync(parent, { recursive: true, force: true });
+      }
+    });
+
+    test("a service is written, and the root component is left as it was", async () => {
+      const cwd = process.cwd();
+      const parent = mkdtempSync(join(tmpdir(), "tinker-gen-svc-"));
+      const app = createApp("shop", parent, "shop");
+      const before = readFileSync(join(app, "src", "app.ts"), "utf8");
+      process.chdir(app);
+      try {
+        expect(await run(["generate", "service", "cart"], output))
+          .toBe(0);
+        expect(existsSync(join(app, "src", "cart", "cart.ts")))
+          .toBe(true);
+        expect(readFileSync(join(app, "src", "app.ts"), "utf8"))
+          .toBe(before);
+        expect(logged.join("\n")).not.toContain("Registered");
+      } finally {
+        process.chdir(cwd);
+        rmSync(parent, { recursive: true, force: true });
+      }
+    });
+
+    test("a dry run of a service plans its file, and no change to the root component", async () => {
+      const cwd = process.cwd();
+      const parent = mkdtempSync(join(tmpdir(), "tinker-gen-svc-dry-"));
+      const app = createApp("shop", parent, "shop");
+      process.chdir(app);
+      try {
+        expect(await run(["generate", "service", "cart", "--dry-run"], output))
+          .toBe(0);
+        expect(existsSync(join(app, "src", "cart")))
+          .toBe(false);
+        expect(logged.join("\n")).not.toContain("and change");
+      } finally {
+        process.chdir(cwd);
+        rmSync(parent, { recursive: true, force: true });
       }
     });
 

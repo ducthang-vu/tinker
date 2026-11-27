@@ -20,7 +20,7 @@ describe("createApp", () => {
 
     expect(folder)
       .toBe(join(parent, "my-app"));
-    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", ".gitignore", "README.md"]) {
+    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", ".gitignore", "README.md", "register.mjs", "hooks.mjs"]) {
       expect(readFileSync(join(folder, file), "utf8")).not.toBe("");
     }
   });
@@ -48,6 +48,20 @@ describe("createApp", () => {
       .toContain("# my-app");
     expect(readFileSync(join(folder, "README.md"), "utf8"))
       .toContain("npm run typecheck");
+  });
+
+  test("the tests run with Node's built-in runner, through the loader of the app", () => {
+    const folder = createApp("my-app", parent);
+    const manifest = JSON.parse(readFileSync(join(folder, "package.json"), "utf8"));
+
+    expect(manifest.scripts.test)
+      .toContain("--import ./register.mjs --test");
+    expect(manifest.devDependencies["@babel/plugin-transform-typescript"])
+      .toBeDefined();
+    expect(manifest.devDependencies["@types/node"])
+      .toBeDefined();
+    expect(readFileSync(join(folder, "hooks.mjs"), "utf8"))
+      .toContain("export async function load");
   });
 
   test("the compiler settings are strict, and allow the .ts import paths", () => {
