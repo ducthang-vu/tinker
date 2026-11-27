@@ -3,7 +3,7 @@
 
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { appFiles } from "./templates.ts";
+import { appFiles, DEFAULT_TEST_RUNNER, TEST_RUNNERS, type TestRunner } from "./templates.ts";
 
 /** A name is a package name: lower case letters, digits and dashes, starting with a letter. */
 export const NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
@@ -18,9 +18,17 @@ export const PREFIX_PATTERN = /^[a-z][a-z0-9]*$/;
  * Writes the app into `<parent>/<name>` and returns that folder. Throws when the name is not a
  * valid package name, or the folder exists and is not empty.
  */
-export function createApp(name: string, parent: string, prefix: string = DEFAULT_PREFIX): string {
+export function createApp(
+  name: string,
+  parent: string,
+  prefix: string = DEFAULT_PREFIX,
+  testRunner: TestRunner = DEFAULT_TEST_RUNNER,
+): string {
   if (!NAME_PATTERN.test(name)) {
     throw new Error(`"${name}" is not a valid app name: use lower case letters, digits and dashes`);
+  }
+  if (!(TEST_RUNNERS as readonly string[]).includes(testRunner)) {
+    throw new Error(`"${testRunner}" is not a test runner: use ${TEST_RUNNERS.join(" or ")}`);
   }
   if (!PREFIX_PATTERN.test(prefix)) {
     throw new Error(`"${prefix}" is not a valid prefix: use lower case letters and digits, starting with a letter`);
@@ -29,7 +37,7 @@ export function createApp(name: string, parent: string, prefix: string = DEFAULT
   if (existsSync(folder) && readdirSync(folder).length > 0) {
     throw new Error(`${folder} already exists and is not empty`);
   }
-  for (const [path, content] of appFiles(name, prefix)) {
+  for (const [path, content] of appFiles(name, prefix, testRunner)) {
     const file = join(folder, path);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, content);

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { apply, generated, plan, prefixOf, register } from "./generate.ts";
+import { apply, generated, plan, prefixOf, register, settingsOf } from "./generate.ts";
 import { createApp } from "./new.ts";
 
 describe("generated", () => {
@@ -188,6 +188,34 @@ describe("plan and apply", () => {
       .toThrow("There is no src/app.ts");
     expect(existsSync(join(appFolder, "src", "cart")))
       .toBe(false);
+  });
+
+  test("a component's test follows the runner of the app: vitest, or node", () => {
+    const vitest = generated("component", "cart", "app", "vitest").files[1]!.content;
+    const node = generated("component", "cart", "app", "node").files[1]!.content;
+
+    expect(vitest)
+      .toContain(`from "vitest"`);
+    expect(node)
+      .toContain(`from "node:test"`);
+  });
+
+  test("an app with no runner in package.json uses vitest", () => {
+    mkdirSync(join(parent, "no-runner"));
+    writeFileSync(join(parent, "no-runner", "package.json"), JSON.stringify({ tinker: { prefix: "shop" } }));
+
+    expect(settingsOf(join(parent, "no-runner")))
+      .toEqual({ prefix: "shop", testRunner: "vitest" });
+  });
+
+  test("the runner of the app is read from package.json, and an unknown one is refused", () => {
+    mkdirSync(join(parent, "runner"));
+    writeFileSync(join(parent, "runner", "package.json"), JSON.stringify({ tinker: { prefix: "shop", testRunner: "node" } }));
+    expect(settingsOf(join(parent, "runner")))
+      .toEqual({ prefix: "shop", testRunner: "node" });
+    writeFileSync(join(parent, "runner", "package.json"), JSON.stringify({ tinker: { prefix: "shop", testRunner: "jest" } }));
+    expect(() => settingsOf(join(parent, "runner")))
+      .toThrow(`"jest" is not a test runner of this app`);
   });
 
   test("a folder with no package.json is not a Tinker app", () => {

@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NAME_PATTERN } from "./new.ts";
+import { DEFAULT_TEST_RUNNER, type TestRunner } from "./templates.ts";
 
 /** What can be generated. */
 export const KINDS = ["component", "directive", "service", "function"] as const;
@@ -42,7 +43,12 @@ function camel(name: string): string {
 }
 
 /** The file of an item of each kind, for a name and the app's prefix. */
-export function generated(kind: Kind, name: string, prefix: string): Generated {
+export function generated(
+  kind: Kind,
+  name: string,
+  prefix: string,
+  testRunner: TestRunner = DEFAULT_TEST_RUNNER,
+): Generated {
   const path = `src/${name}/${name}.ts`;
   const Class = pascal(name);
   switch (kind) {
@@ -62,13 +68,23 @@ export class ${Class}Component {}
           },
           {
             path: `src/${name}/${name}.test.ts`,
-            content: `import { describe, test } from "node:test";
+            content: testRunner === "node"
+              ? `import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { ${Class}Component } from "./${name}.ts";
 
 describe("${Class}Component", () => {
   test("is created", () => {
     assert.ok(new ${Class}Component() instanceof ${Class}Component);
+  });
+});
+`
+              : `import { describe, expect, test } from "vitest";
+import { ${Class}Component } from "./${name}.ts";
+
+describe("${Class}Component", () => {
+  test("is created", () => {
+    expect(new ${Class}Component()).toBeInstanceOf(${Class}Component);
   });
 });
 `,
@@ -109,17 +125,29 @@ export class ${Class}Function implements TemplateFunctionContract<[unknown], str
   }
 }
 
-/** The prefix of the app in `root`, from its package.json. Throws when it is not a Tinker app. */
-export function prefixOf(root: string): string {
+/**
+ * The settings of the app in `root`, from its package.json: its selector prefix, and its test
+ * runner (vitest when the app says none). Throws when the folder is not a Tinker app.
+ */
+export function settingsOf(root: string): { prefix: string; testRunner: TestRunner } {
   const file = join(root, "package.json");
   const manifest = existsSync(file)
-    ? (JSON.parse(readFileSync(file, "utf8")) as { tinker?: { prefix?: unknown } })
+    ? (JSON.parse(readFileSync(file, "utf8")) as { tinker?: { prefix?: unknown; testRunner?: unknown } })
     : {};
   const prefix = manifest.tinker?.prefix;
   if (typeof prefix !== "string") {
     throw new Error("This is not a Tinker app: its package.json has no tinker.prefix. Run tinker generate in an app folder");
   }
-  return prefix;
+  const testRunner = manifest.tinker?.testRunner ?? DEFAULT_TEST_RUNNER;
+  if (testRunner !== "vitest" && testRunner !== "node") {
+    throw new Error(`"${String(testRunner)}" is not a test runner of this app: use vitest or node`);
+  }
+  return { prefix, testRunner };
+}
+
+/** The prefix of the app in `root`, from its package.json. Throws when it is not a Tinker app. */
+export function prefixOf(root: string): string {
+  return settingsOf(root).prefix;
 }
 
 /**
@@ -175,7 +203,8 @@ export function plan(root: string, kind: string, name: string): Plan {
   if (existsSync(folder)) {
     throw new Error(`${folder} already exists`);
   }
-  const item = generated(kind as Kind, name, prefixOf(root));
+  const settings = settingsOf(root);
+  const item = generated(kind as Kind, name, settings.prefix, settings.testRunner);
   if (item.className === undefined) {
     return { files: item.files };
   }
