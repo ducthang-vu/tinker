@@ -16,6 +16,7 @@ const page = (template: string, functions: CheckedTemplate["functions"] = []): C
   nodes: nodesOf(template),
   functions,
   directives: [],
+  queried: [],
 });
 
 const outputFile = "/app/page.template-check.ts";
@@ -86,6 +87,7 @@ describe("checkFileOf", () => {
       nodes: [{ kind: "text", interpolation: { strings: ["", ""], expressions: [{ kind: "component" }] } }],
       functions: [],
       directives: [],
+      queried: [],
     };
     const text = checkFileOf([template], outputFile);
     expect(text)
@@ -450,6 +452,49 @@ describe("checkFileOf", () => {
       .toBe("$Narrow<typeof $subject, object>");
   });
 
+  describe("the let- names of a template", () => {
+    const outlet = directive("Outlet", "[outlet]", ["outlet", "context"]);
+    const declared = "<template #row let-item let-i><p>{{ item }}{{ i }}</p></template>";
+
+    test("are typed from the contexts of the outlets that render it", () => {
+      const text = checkFileOf([pageWith(
+        `${declared}<tk-container [outlet]="row" [context]="{ item: 1, i: 2 }"></tk-container>`
+        + "<tk-container [outlet]=\"row\" [context]=\"pair\"></tk-container>",
+        [outlet],
+      )], outputFile);
+      expect(text)
+        .toContain("var $context_0 = ({ \"item\": 1, \"i\": 2 });");
+      expect(text)
+        .toContain("var $context_1 = $c[\"pair\"];");
+      expect(typeOf(text, "item"))
+        .toBe("(typeof $context_0)[\"item\"] | (typeof $context_1)[\"item\"]");
+    });
+
+    test("an outlet with no context gives an empty one", () => {
+      const text = checkFileOf([pageWith(`${declared}<tk-container [outlet]="row"></tk-container>`, [outlet])], outputFile);
+      expect(text)
+        .toContain("var $context_0 = {};");
+    });
+
+    test("are any when the template is read elsewhere, queried, rendered in itself, or not rendered", () => {
+      const untyped = (template: string, queried: CheckedTemplate["queried"] = []) => {
+        const text = checkFileOf([{ ...pageWith(template, [outlet]), queried }], outputFile);
+        return text.includes("const item: any = undefined;") && !text.includes("$context_");
+      };
+      const rendered = `${declared}<tk-container [outlet]="row"></tk-container>`;
+      expect(untyped(`${rendered}{{ row }}`))
+        .toBe(true);
+      expect(untyped(rendered, ["row"]))
+        .toBe(true);
+      expect(untyped(rendered, "any"))
+        .toBe(true);
+      expect(untyped("<template #row let-item><tk-container [outlet]=\"row\"></tk-container></template>"))
+        .toBe(true);
+      expect(untyped(declared))
+        .toBe(true);
+    });
+  });
+
   test("a slot checks nothing", () => {
     const text = checkFileOf([page("<slot></slot>")], outputFile);
     expect(text)
@@ -710,5 +755,32 @@ describe("the check of references and handlers, compiled by TypeScript", () => {
       .toEqual([]);
     expect(typeErrorsOf(component, pageWith("<b pick #p=\"picker\"></b>{{ p.nope }}", [pick]), dirs))
       .toEqual([expect.stringContaining("Property 'nope' does not exist")]);
+  });
+});
+
+describe("the check of a template's let- names, compiled by TypeScript", () => {
+  const component = `export class Page {
+    upper(text: string): string { return text; }
+  }`;
+  const outlet = directive("Outlet", "[outlet]", ["outlet", "context"]);
+  const dirs = {
+    "/app/dirs.ts": `export class Outlet {
+      readonly outlet: unknown = undefined;
+      readonly context: unknown = undefined;
+    }`,
+  };
+
+  test("a let- name has the type its outlets give it", () => {
+    const template = (context: string) => pageWith(
+      `<template #row let-item><p>{{ upper(item) }}</p></template>`
+      + `<tk-container [outlet]="row" [context]="${context}"></tk-container>`,
+      [outlet],
+    );
+    expect(typeErrorsOf(component, template("{ item: 'a' }"), dirs))
+      .toEqual([]);
+    expect(typeErrorsOf(component, template("{ item: 1 }"), dirs))
+      .toEqual([expect.stringContaining("'number' is not assignable to parameter of type 'string'")]);
+    expect(typeErrorsOf(component, template("{ other: 'a' }"), dirs))
+      .toEqual([expect.stringContaining("Property 'item' does not exist")]);
   });
 });
