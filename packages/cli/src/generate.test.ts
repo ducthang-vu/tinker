@@ -54,7 +54,7 @@ describe("register", () => {
 import { Header } from "./header/header.ts";
 
 @Component({
-  selector: "shop-app",
+  selector: "shop-root",
   template: \`<shop-header></shop-header>\`,
   imports: [Header],
 })
@@ -76,7 +76,7 @@ export class App {}
     const bare = `import { Component } from "@tinker/core";
 
 @Component({
-  selector: "shop-app",
+  selector: "shop-root",
   template: \`<p>x</p>\`,
 })
 export class App {}
@@ -91,7 +91,7 @@ export class App {}
     const empty = `import { Component } from "@tinker/core";
 
 @Component({
-  selector: "shop-app",
+  selector: "shop-root",
   imports: [],
 })
 export class App {}
@@ -232,7 +232,15 @@ describe("plan and apply", () => {
       .toEqual({ prefix: "shop", testRunner: "node" });
     writeFileSync(join(parent, "runner", "package.json"), JSON.stringify({ tinker: { prefix: "shop", testRunner: "jest" } }));
     expect(() => settingsOf(join(parent, "runner")))
-      .toThrow(`"jest" is not a test runner of this app`);
+      .toThrow(`"testRunner" is "jest", but it must be vitest or node`);
+  });
+
+  test("a prefix that is not valid is refused, and the error names the file", () => {
+    mkdirSync(join(parent, "badprefix"));
+    writeFileSync(join(parent, "badprefix", "tinker.json"), JSON.stringify({ prefix: "My-Shop" }));
+
+    expect(() => settingsOf(join(parent, "badprefix")))
+      .toThrow(`tinker.json: "prefix" is "My-Shop"`);
   });
 
   test("a folder with no package.json is not a Tinker app", () => {

@@ -3,9 +3,14 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { spawnSync } from "node:child_process";
 import { findVersion, run } from "./cli.ts";
 import { createApp } from "./new.ts";
 import { buildApp, previewApp, serveApp } from "./vite-commands.ts";
+
+vi.mock("node:child_process", () => ({
+  spawnSync: vi.fn(() => ({ status: 0 })),
+}));
 
 vi.mock("./vite-commands.ts", () => ({
   buildApp: vi.fn(async () => undefined),
@@ -13,7 +18,7 @@ vi.mock("./vite-commands.ts", () => ({
   serveApp: vi.fn(async () => undefined),
 }));
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] [--test-runner <vitest|node>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] [--test-runner <vitest|node>] [--install] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
 
 describe("tinker command", () => {
   let parent: string;
@@ -82,13 +87,13 @@ describe("tinker command", () => {
       expect(await run(["new", "other-app", "--dir", parent], output))
         .toBe(0);
       expect(readFileSync(join(parent, "my-app", "index.html"), "utf8"))
-        .toContain("<shop-app></shop-app>");
+        .toContain("<shop-root></shop-root>");
       expect(readFileSync(join(parent, "my-app", "src", "app.ts"), "utf8"))
-        .toContain(`selector: "shop-app"`);
+        .toContain(`selector: "shop-root"`);
       expect(JSON.parse(readFileSync(join(parent, "my-app", "tinker.json"), "utf8")))
         .toMatchObject({ prefix: "shop" });
       expect(readFileSync(join(parent, "other-app", "index.html"), "utf8"))
-        .toContain("<app-app></app-app>");
+        .toContain("<app-root></app-root>");
     });
 
     test("--test-runner sets the runner, and vitest is the default", async () => {
@@ -104,6 +109,25 @@ describe("tinker command", () => {
         .toBe(true);
       expect(existsSync(join(parent, "vitest-app", "register.mjs")))
         .toBe(false);
+    });
+
+    test("--install runs npm install in the new app", async () => {
+      expect(await run(["new", "inst-app", "--dir", parent, "--install"], output))
+        .toBe(0);
+      expect(spawnSync)
+        .toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ cwd: join(parent, "inst-app") }));
+      expect(logged.join("\n"))
+        .toContain("Installed.");
+    });
+
+    test("a failed npm install exits with 1, and says where to run it", async () => {
+      vi.mocked(spawnSync)
+        .mockReturnValueOnce({ status: 1 } as never);
+
+      expect(await run(["new", "fail-app", "--dir", parent, "--install"], output))
+        .toBe(1);
+      expect(errors[0])
+        .toContain("npm install failed");
     });
 
     test("an unknown test runner fails with the reason, and writes nothing", async () => {

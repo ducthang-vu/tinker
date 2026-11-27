@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { NAME_PATTERN } from "./new.ts";
+import { NAME_PATTERN, PREFIX_PATTERN } from "./new.ts";
 import { DEFAULT_TEST_RUNNER, type TestRunner } from "./templates.ts";
 
 /** What can be generated. */
@@ -131,6 +131,7 @@ export class ${Class}Function implements TemplateFunctionContract<[unknown], str
  * `tinker` key of its package.json, which is still read. Throws when it is not a Tinker app.
  */
 export function settingsOf(root: string): { prefix: string; testRunner: TestRunner } {
+  const file = existsSync(join(root, "tinker.json")) ? "tinker.json" : "package.json";
   const config = readSettings(join(root, "tinker.json"))
     ?? readSettings(join(root, "package.json"))?.tinker;
   const prefix = config?.prefix;
@@ -139,9 +140,12 @@ export function settingsOf(root: string): { prefix: string; testRunner: TestRunn
       "This is not a Tinker app: it has no tinker.json with a prefix. Run tinker generate in an app folder",
     );
   }
+  if (!PREFIX_PATTERN.test(prefix)) {
+    throw new Error(`${file}: "prefix" is "${prefix}", but it must be lower case letters and digits, starting with a letter`);
+  }
   const testRunner = config?.testRunner ?? DEFAULT_TEST_RUNNER;
   if (testRunner !== "vitest" && testRunner !== "node") {
-    throw new Error(`"${String(testRunner)}" is not a test runner of this app: use vitest or node`);
+    throw new Error(`${file}: "testRunner" is "${String(testRunner)}", but it must be vitest or node`);
   }
   return { prefix, testRunner };
 }
