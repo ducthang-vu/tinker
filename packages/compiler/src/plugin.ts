@@ -27,6 +27,7 @@ import { basename, dirname, resolve } from "node:path";
 import type { Class } from "@tinker/core";
 import { BUILT_IN_NAMES, type CompiledNode, compileSource, emitCompiled, forbiddenMembersIn, type ImportedSelector, namesIn, shadowsIn, TemplateCompileError, unknownReads } from "@tinker/core/compiler";
 import MagicString from "magic-string";
+import type { CheckedTemplate } from "./types/template-check.ts";
 import { hotCodeFor } from "./hot-code.ts";
 import type { Plugin } from "vite";
 import {
@@ -513,6 +514,52 @@ function describe(error: Error, text: string): string {
   return `${error.message}, at line ${line}, column ${column} of the template`;
 }
 
+/**
+ * The components of a source file whose templates can be type checked: each with its compiled
+ * template and the template functions it imports. A component whose template or imports are not
+ * readable is left out (the build warns about it).
+ */
+export async function checkedTemplatesOf(
+  code: string,
+  filename: string,
+  host: CheckHost,
+): Promise<CheckedTemplate[]> {
+  const source = readSource(code, filename);
+  const checked: CheckedTemplate[] = [];
+  for (const declaration of source.declarations) {
+    if (declaration.kind !== "component" || declaration.templateUrl !== undefined) {
+      continue;
+    }
+    const template = await templateOf(declaration, source, filename, host);
+    const imports = await importedSelectors(declaration.imports, source, filename, host);
+    if (template === undefined || !imports.isRead) {
+      continue;
+    }
+    const list: ImportedSelector[] = imports.selectors.map((imported) => ({
+      selector: imported.selector,
+      isComponent: imported.isComponent,
+      type: placeholderFor(imported.name),
+      ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }),
+    }));
+    match(compileSource(template.text, list), {
+      Left: () => undefined,
+      Right: (nodes) => {
+        checked.push({
+          name: declaration.name,
+          file: filename,
+          nodes,
+          functions: imports.functions.map((fn) => ({
+            name: fn.templateName,
+            className: fn.className,
+            file: fn.file,
+          })),
+        });
+      },
+    });
+  }
+  return checked;
+}
+
 function placeholderFor(name: string): Class<object> {
   return Object.defineProperty(class {}, "name", { value: name }) as Class<object>;
 }
@@ -526,9 +573,12 @@ interface NamedSelector {
 }
 
 /** A template function a component imports: the name in the importing file, and the template's. */
-interface ImportedFunction {
+export interface ImportedFunction {
   readonly name: string;
   readonly templateName: string;
+  /** The class's name, as its file exports it, and the absolute path of that file. */
+  readonly className: string;
+  readonly file: string;
 }
 
 /** The directives and template functions a component imports, or why they cannot be read. */
@@ -558,7 +608,12 @@ async function importedSelectors(
       if (templateName === undefined) {
         return { isRead: false, reason: `${name} has no literal name` };
       }
-      functions.push({ name, templateName });
+      functions.push({
+        name,
+        templateName,
+        className: found.declaration.name,
+        file: found.filename,
+      });
       continue;
     }
     const selector = await selectorOf(name, source, filename, host);

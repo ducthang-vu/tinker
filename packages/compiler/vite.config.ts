@@ -22,6 +22,7 @@ export default defineConfig({
         "index": "src/index.ts",
         "tinker-check": "bin/tinker-check.ts",
         "tinker-compile": "bin/tinker-compile.ts",
+        "tinker-types": "bin/tinker-types.ts",
       },
       output: {
         format: "es",

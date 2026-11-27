@@ -9,4 +9,5 @@ export { forbiddenMembersIn, namesIn, unknownReads } from "../internal/template/
 export { shadowsIn } from "../internal/template/template-shadows.ts";
 export { Selector } from "../internal/template/selector.ts";
 export type { CompiledNode } from "../internal/template/compile.ts";
+export type { Expression } from "../internal/template/expression.ts";
 export { TemplateCompileError } from "../internal/template/compile-error.ts";

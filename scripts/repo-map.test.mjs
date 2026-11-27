@@ -34,6 +34,10 @@ test("builds a deterministic graph of files, imports, and exported symbols", () 
       path.join(rootDir, "src", "math.test.ts"),
       "export const testOnly = true;\n",
     );
+    writeFileSync(
+      path.join(rootDir, "src", "math.template-check.ts"),
+      "export const generated = true;\n",
+    );
 
     const graph = buildRepoMap(rootDir);
     const indexId = "file:src/index.ts";
@@ -46,6 +50,7 @@ test("builds a deterministic graph of files, imports, and exported symbols", () 
       [...graph.nodes.map((node) => node.id)].sort(),
     );
     assert.equal(graph.nodes.some((node) => node.id === "file:src/math.test.ts"), false);
+    assert.equal(graph.nodes.some((node) => node.id === "file:src/math.template-check.ts"), false);
     assert.deepEqual(
       graph.nodes.find((node) => node.id === symbolId),
       {

@@ -118,6 +118,24 @@ Writes each file into `<dir>`, at its path relative to the working directory:
 - A file that does not compile is reported, and nothing is written for it. A file outside
   the working directory is an error.
 
+### `tinker-types`
+
+```bash
+tinker-types <path>...
+```
+
+Writes a type-check file next to each source file that has an exported component with
+a checkable template: `page.ts` gets `page.template-check.ts`. The file has one function
+per component, `check_<Name>($c: <Name>)`, whose body is the template's expressions as
+TypeScript, so `tsc` reports a wrong argument type, or a call of a field that is not a
+function. The root `npm run typecheck` runs it over `packages` and `examples`; the files
+are git-ignored and rewritten each run.
+
+- A component whose class is not exported gets a warning and no file.
+- A template that does not compile, a computed template, or a `templateUrl` is not checked.
+- Handlers, `track` expressions, `@map` items, `@case` bindings, `let-` names and element
+  references are not checked: they are typed `any`.
+
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.
 

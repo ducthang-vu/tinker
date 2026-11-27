@@ -178,8 +178,8 @@ point at the host root.
 
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
-### 1. Expressions are not type checked
+### 1. Some template expressions are not type checked
 
-**Problem.** The build checks that a name exists, not what it is. A wrong argument type, or calling a field that is not a function, fails only at run time.
+**Problem.** `tinker-types` checks the template's expressions against the component's class, so a wrong argument type or a call of a non-function is a type error. Some parts are still typed `any`: handlers, `track` expressions, `@map` items, `@case` bindings, `let-` names and element references.
 
-**To do.** Generate a type-check file for each template, with the component typed as its class, so `npm run typecheck` reports them.
+**To do.** Type the `@map` items, `@case` bindings and element references from their source, and check handlers and `track` against their event types and item types.
