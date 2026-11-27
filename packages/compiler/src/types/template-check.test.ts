@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { resolve } from "node:path";
 import ts from "typescript";
 import { compileSource, type CompiledNode } from "@tinker/core/compiler";
 import { valueOrThrow } from "@tinker/functional";
@@ -76,7 +77,7 @@ describe("checkFileOf", () => {
     expect(text)
       .toContain("const $list = (($c[\"todos\"])()) satisfies readonly unknown[];");
     expect(text)
-      .toContain("const todo: (typeof $list)[number] = null as never;");
+      .toContain("const todo = null as never as (typeof $list)[number];");
     expect(text)
       .toContain("const $index: number = 0;");
     expect(text)
@@ -89,36 +90,66 @@ describe("checkFileOf", () => {
       outputFile,
     );
     expect(text)
-      .toContain("const id: ((typeof $list)[number])[\"id\"] = null as never;");
+      .toContain("const id = null as never as ((typeof $list)[number])[\"id\"];");
     expect(text)
-      .toContain("const first: (((typeof $list)[number])[\"tags\"])[0] = null as never;");
+      .toContain("const first = null as never as (((typeof $list)[number])[\"tags\"])[0];");
     expect(text)
-      .toContain("const others: (((typeof $list)[number])[\"tags\"])[number][] = null as never;");
+      .toContain("const others = null as never as (((typeof $list)[number])[\"tags\"])[number][];");
   });
 
   test("an array pattern with no rest binds only its items", () => {
     const text = checkFileOf([page("@map pairs(); let [a, b] { <p>{{ a }}{{ b }}</p> }")], outputFile);
     expect(text)
-      .toContain("const b: ((typeof $list)[number])[1] = null as never;");
+      .toContain("const b = null as never as ((typeof $list)[number])[1];");
   });
 
   test("a name given with as has the type of what it names, and so does the inner pattern's", () => {
     const text = checkFileOf([page("@map rows(); let { id } as row { <p>{{ id }}{{ row }}</p> }")], outputFile);
     expect(text)
-      .toContain("const row: (typeof $list)[number] = null as never;");
+      .toContain("const row = null as never as (typeof $list)[number];");
     expect(text)
-      .toContain("const id: ((typeof $list)[number])[\"id\"] = null as never;");
+      .toContain("const id = null as never as ((typeof $list)[number])[\"id\"];");
   });
 
-  test("a regex group is a string or undefined, and a name inside another pattern is any", () => {
+  test("a regex group is a string or undefined, and a literal field binds nothing", () => {
     const text = checkFileOf(
-      [page("@map rows(); let { code: /(?<digits>\\d+)/, found: some(inner), kind: \"a\" } { <p>{{ digits }}{{ inner }}</p> }")],
+      [page("@map rows(); let { code: /(?<digits>\\d+)/, kind: \"a\" } { <p>{{ digits }}</p> }")],
       outputFile,
     );
     expect(text)
-      .toContain("const digits: string | undefined = null as never;");
+      .toContain("const digits = null as never as string | undefined;");
     expect(text)
-      .toContain("const inner: any = null as never;");
+      .not
+      .toContain("const kind");
+    expect(text)
+      .not
+      .toContain("@tinker/functional");
+  });
+
+  test("some, ok and error read the value of a Some, a Right and a Left, through helpers", () => {
+    const text = checkFileOf(
+      [page("@map rows(); let { a: some(x), b: ok(y), c: error(z) } { <p>{{ x }}{{ y }}{{ z }}</p> }")],
+      outputFile,
+    );
+    expect(text)
+      .toContain("const x = null as never as $Some<((typeof $list)[number])[\"a\"]>;");
+    expect(text)
+      .toContain("const y = null as never as $Ok<((typeof $list)[number])[\"b\"]>;");
+    expect(text)
+      .toContain("const z = null as never as $Error<((typeof $list)[number])[\"c\"]>;");
+    expect(text)
+      .toContain("import type { Left as $LeftCase, Right as $RightCase, Some as $SomeCase } from \"@tinker/functional\";");
+    expect(text)
+      .toContain("type $Some<T> = T extends $SomeCase<infer V> ? V : never;");
+  });
+
+  test("a name of an alternative is the union of what each option binds it to", () => {
+    const text = checkFileOf(
+      [page("@map rows(); let { value: ok(v) | error(v) } { <p>{{ v }}</p> }")],
+      outputFile,
+    );
+    expect(text)
+      .toContain("const v = null as never as ($Ok<((typeof $list)[number])[\"value\"]>) | ($Error<((typeof $list)[number])[\"value\"]>);");
   });
 
   test("a @map's track expression is checked in the row's scope, and its fields on the item", () => {
@@ -271,6 +302,9 @@ describe("checkFileOf", () => {
   });
 });
 
+/** The source of `@tinker/functional`, which a check reads `Maybe` and `Either` from. */
+const functionalEntry = resolve("packages/functional/src/index.ts");
+
 /** TypeScript's own library files, read once for all the programs below. */
 const libraryFiles = new Map<string, ts.SourceFile | undefined>();
 
@@ -290,8 +324,9 @@ function typeErrorsOf(component: string, template: string): string[] {
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
     allowImportingTsExtensions: true,
-    lib: ["lib.es2022.d.ts"],
+    lib: ["lib.es2022.d.ts", "lib.dom.d.ts"],
     types: [],
+    paths: { "@tinker/functional": [functionalEntry] },
   };
   const host = ts.createCompilerHost(options);
   const getSourceFile = host.getSourceFile.bind(host);
@@ -311,7 +346,15 @@ function typeErrorsOf(component: string, template: string): string[] {
   host.readFile = (name) => files.get(name) ?? readFile(name);
   host.directoryExists = (name) => name === "/app" || ts.sys.directoryExists(name);
   const program = ts.createProgram([outputFile], options, host);
-  return ts.getPreEmitDiagnostics(program)
+  // Only the two files are checked: the libraries they import are read, not checked.
+  return [...files.keys()]
+    .flatMap((name) => {
+      const source = program.getSourceFile(name);
+      return [
+        ...program.getSyntacticDiagnostics(source),
+        ...program.getSemanticDiagnostics(source),
+      ];
+    })
     .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
 }
 
@@ -342,6 +385,15 @@ describe("the check of a @map, compiled by TypeScript", () => {
       .toEqual([expect.stringContaining("'number' is not assignable to parameter of type 'string'")]);
   });
 
+  test("an item whose type is a union keeps the whole union", () => {
+    const mixed = `export class Page {
+      values(): readonly (string | number)[] { return []; }
+      upper(text: string): string { return text; }
+    }`;
+    expect(typeErrorsOf(mixed, "@map values(); let value { <p>{{ upper(value) }}</p> }"))
+      .toEqual([expect.stringContaining("'string | number' is not assignable to parameter of type 'string'")]);
+  });
+
   test("a list that is not an array is an error", () => {
     expect(typeErrorsOf(component, "@map count(); let n { <p>{{ n }}</p> }"))
       .toContainEqual(expect.stringContaining("does not satisfy the expected type"));
@@ -349,6 +401,37 @@ describe("the check of a @map, compiled by TypeScript", () => {
 
   test("a track field the items do not have is an error", () => {
     expect(typeErrorsOf(component, "@map todos(); let todo; track { nope } { <p>{{ todo.id }}</p> }"))
+      .toEqual([expect.stringContaining("Property 'nope' does not exist")]);
+  });
+});
+
+describe("the check of Maybe and Either items, compiled by TypeScript", () => {
+  const component = `import type { Either, Maybe } from "@tinker/functional";
+  export class Page {
+    rows(): readonly { owner: Maybe<{ name: string }>; result: Either<number, Error> }[] { return []; }
+    upper(text: string): string { return text; }
+  }`;
+
+  test("some, ok and error give the values of the cases, and an alternative their union", () => {
+    expect(typeErrorsOf(
+      component,
+      "@map rows(); let { owner: some({ name }), result: ok(n) } { <p>{{ upper(name) }}{{ n + 1 }}</p> }",
+    ))
+      .toEqual([]);
+    expect(typeErrorsOf(
+      component,
+      "@map rows(); let { result: error(e) } { <p>{{ e.message }}</p> }",
+    ))
+      .toEqual([]);
+    expect(typeErrorsOf(
+      component,
+      "@map rows(); let { result: ok(v) | error(v) } { <p>{{ upper(v) }}</p> }",
+    ))
+      .toEqual([expect.stringContaining("'number | Error' is not assignable to parameter of type 'string'")]);
+  });
+
+  test("a field the Some's value does not have is an error", () => {
+    expect(typeErrorsOf(component, "@map rows(); let { owner: some({ nope }) } { <p>{{ nope }}</p> }"))
       .toEqual([expect.stringContaining("Property 'nope' does not exist")]);
   });
 });
