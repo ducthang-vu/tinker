@@ -149,6 +149,71 @@ export class Page {}
       .toContain("$fn_format.call(1)");
   });
 
+  test("a directive is imported by the check, its outputs typing the handlers that listen to them", async () => {
+    const folder = folderWith({
+      "pick.ts": `import { Directive, output } from "@tinker/core";
+class Base {
+  readonly cleared = output<void>();
+}
+@Directive({ selector: "[pick]", exportAs: "picker" })
+export class Pick extends Base {
+  readonly picked = output<number>();
+}
+`,
+      "page.ts": `import { Component } from "@tinker/core";
+import { Pick } from "./pick.ts";
+@Component({
+  selector: "tk-page",
+  template: "<b pick #p=\\"picker\\" (picked)=\\"go($event)\\" (cleared)=\\"go(1)\\"></b>",
+  imports: [Pick],
+})
+export class Page {
+  go(n: number): void {}
+}
+`,
+    });
+    expect(await writeChecks([join(folder, "page.ts")], output()))
+      .toBe(0);
+    const written = readFileSync(join(folder, "page.template-check.ts"), "utf8");
+    expect(written)
+      .toContain("import { Pick as $cls_0 } from \"./pick.ts\";");
+    expect(written)
+      .toContain("const p = null as never as typeof $dir_0;");
+    expect(written)
+      .toContain("const $output_0 = $emitted($dir_0[\"picked\"]);");
+    expect(written)
+      .toContain("const $output_0 = $emitted($dir_0[\"cleared\"]);");
+  });
+
+  test("a directive the check cannot import or read is not typed: its references and events are any", async () => {
+    const folder = folderWith({
+      "page.ts": `import { Component, Directive } from "@tinker/core";
+@Directive({ selector: "[local]", exportAs: "local" })
+class Local {}
+@Directive({ selector: "[mixed]" })
+export class Mixed extends mixin(Object) {}
+@Component({
+  selector: "tk-page",
+  template: "<b local #l=\\"local\\" (x)=\\"go()\\"></b><i mixed (y)=\\"go()\\"></i>",
+  imports: [Local, Mixed],
+})
+export class Page {
+  go(): void {}
+}
+`,
+    });
+    expect(await writeChecks([join(folder, "page.ts")], output()))
+      .toBe(0);
+    const written = readFileSync(join(folder, "page.template-check.ts"), "utf8");
+    expect(written)
+      .not
+      .toContain("$dir_");
+    expect(written)
+      .toContain("const l = null as never as any;");
+    expect(written)
+      .toContain("const $event: any = undefined;");
+  });
+
   test("a file that cannot be read fails the command, with its message", async () => {
     const out = output();
     const folder = folderWith({});
