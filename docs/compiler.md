@@ -136,10 +136,11 @@ are git-ignored and rewritten each run.
 - `@map`: the list must be an array, and each name its `let` binds is typed from the
   list's items. `let todo` is an item, `let { id }` its `id` field, `let [first, ...rest]`
   its first item and the rest. A field the items do not have, or an index past a tuple's
-  end, is a type error, as the run time would throw. A regex group is `string | undefined`,
-  and a name inside an alternative, `some`, `ok` or `error` is `any`. The `track`
-  expression is checked in the row's scope, and `track { id }` checks that the items have
-  `id`.
+  end, is a type error, as the run time would throw. `some(x)`, `ok(x)` and `error(x)` type
+  `x` as the value of a `Maybe`'s `Some`, or of an `Either`'s `Right` or `Left`; a name
+  of an alternative (`ok(v) | error(v)`) is the union of its types in the options; a regex
+  group is `string | undefined`. The `track` expression is checked in the row's scope, and
+  `track { id }` checks that the items have `id`.
 - Handlers, `@case` bindings, `let-` names and element references are not checked: they
   are typed `any`.
 
