@@ -152,14 +152,44 @@ export function timeout<T, E>(task: Task<T, E>, milliseconds: number): Task<T, E
 }
 
 /**
- * Run the task as a Promise (which cannot be cancelled).
+ * Run the task as a Promise. A Promise itself cannot be cancelled, so `signal` stands in for the
+ * cancel function: aborting it cancels the task and rejects the promise with the signal's reason.
+ * A signal that is already aborted rejects the promise without running the task. Aborting after the
+ * task has settled does nothing.
  *
  * @param task The task to run.
- * @returns A promise of the task's value, rejected with its failure.
+ * @param signal Cancels the task when it is aborted. Without one, the task cannot be cancelled.
+ * @returns A promise of the task's value, rejected with its failure or with the abort's reason.
  */
-export function toPromise<T, E>(task: Task<T, E>): Promise<T> {
+export function toPromise<T, E>(
+  task: Task<T, E>,
+  signal: AbortSignal = new AbortController().signal,
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    run(task, { ok: resolve, error: reject });
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    let settled = false;
+    const abort = () => {
+      cancel();
+      reject(signal.reason);
+    };
+    const settle = <A>(done: (value: A) => void) => (value: A) => {
+      settled = true;
+      signal.removeEventListener("abort", abort);
+      done(value);
+    };
+    const cancel = run(task, { ok: settle(resolve), error: settle(reject) });
+    if (settled) {
+      return;
+    }
+    // The task aborted the signal while it started, before there was a listener.
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
   });
 }
 
