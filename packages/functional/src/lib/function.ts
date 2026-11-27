@@ -86,8 +86,9 @@ export function partial<A extends unknown[], B extends unknown[], R>(
  * Arguments match when each one is `Object.is` the one before. An object matches only itself, so an
  * equal object that is a new one calls `fn` again.
  *
- * Use it only for a pure `fn`, whose result depends on its arguments alone. `memoise` does not
- * check this: a function that reads the clock, the locale or other state gives a stale result.
+ * Use it only for a pure `fn`, whose result depends on its arguments alone. TypeScript cannot
+ * check this, and `memoise` cannot either: it does not see the clock, randomness, the locale,
+ * globals, mutable fields or signals that `fn` reads. Such a function gives a stale result.
  * The last arguments and result stay in memory until the next call.
  *
  * @example
