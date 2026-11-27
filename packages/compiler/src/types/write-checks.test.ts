@@ -185,7 +185,7 @@ export class Page {
       .toContain("const $output_0 = $emitted($dir_0[\"cleared\"]);");
   });
 
-  test("a directive the check cannot import or read is not typed: its references and events are any", async () => {
+  test("a directive not exported is not typed, and one with an unread base types only its own outputs", async () => {
     const folder = folderWith({
       "page.ts": `import { Component, Directive } from "@tinker/core";
 @Directive({ selector: "[local]", exportAs: "local" })
@@ -202,14 +202,17 @@ export class Page {
 }
 `,
     });
-    expect(await writeChecks([join(folder, "page.ts")], output()))
+    const out = output();
+    expect(await writeChecks([join(folder, "page.ts")], out))
       .toBe(0);
+    expect(out.errors)
+      .toContain("warning: Local is not exported, so references to it and $event on its elements are not type checked");
     const written = readFileSync(join(folder, "page.template-check.ts"), "utf8");
     expect(written)
-      .not
-      .toContain("$dir_");
-    expect(written)
       .toContain("const l = null as never as any;");
+    // Mixed's base class is not read: it is typed, but an output it may inherit is not.
+    expect(written)
+      .toContain("const $dir_0 = null as never as InstanceType<typeof $cls_0>;");
     expect(written)
       .toContain("const $event: any = undefined;");
   });

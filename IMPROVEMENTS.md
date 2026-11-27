@@ -170,8 +170,8 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 point at the host root.
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
-### 1. Some names in templates are typed `any`
+### 1. The `let-` names of a `<template>` are typed `any`
 
-**Problem.** `tinker-types` types a template's expressions, `@map` items, `@case` bindings, references and handlers. Still `any`: the `let-` names of a `<template>` (their values come from the context its renderer passes), a reference to a directive the check cannot import (its class is not exported) or whose base classes it cannot read, and `$event` on that directive's element. When a directive has an output with the name of a DOM event, the check types `$event` as the output's value, though a DOM event of that name calls the handler too.
+**Problem.** `tinker-types` types every name a template reads but the `let-` names of a `<template>`: their values come from the context its renderer passes (an outlet's `context` input, or `createEmbeddedView`), and a template reference can be passed anywhere, so the template alone does not say what they are.
 
-**To do.** Type the context of a `<template>` (for example with a type argument on its reference), and decide whether `$event` should be the union of an output's value and the DOM event when both exist.
+**To do.** Let a template declare the type of its context, and check each outlet's `context` against it.

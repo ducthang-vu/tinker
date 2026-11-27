@@ -564,7 +564,8 @@ export async function checkedTemplatesOf(
 
 /**
  * The directives and components a component imports that a check file can type: those exported
- * by their file whose base classes can be read, with their own and inherited members.
+ * by their file, with their own members and the ones they inherit from base classes it can read.
+ * One declared in the component's file and not exported cannot be imported: a warning.
  */
 async function checkedDirectivesOf(
   selectors: readonly NamedSelector[],
@@ -581,6 +582,7 @@ async function checkedDirectivesOf(
     const local = found.filename === filename;
     if (local && !new RegExp(`export\\s+(abstract\\s+)?class\\s+${declaration.name}\\b`)
       .test(code)) {
+      host.warn(`${declaration.name} is not exported, so references to it and $event on its elements are not type checked`);
       continue;
     }
     const own = found.source.classes.find((cls) => cls.name === declaration.name)!;
@@ -591,17 +593,16 @@ async function checkedDirectivesOf(
       host,
       new Set([declaration.name]),
     );
-    // Without all its members its outputs are not known: it is left untyped (any).
-    if (!inherited.isRead) {
-      continue;
-    }
+    // When its base classes cannot be read, only its own members are known: an output it may
+    // inherit is not, so `$event` of a name none of them has is untyped.
     directives.push({
       name: imported.name,
       className: declaration.name,
       file: found.filename,
       selector: imported.selector,
       ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }),
-      members: [...declaration.members, ...inherited.members],
+      members: [...declaration.members, ...(inherited.isRead ? inherited.members : [])],
+      allMembers: inherited.isRead,
     });
   }
   return directives;
