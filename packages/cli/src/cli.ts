@@ -13,6 +13,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import { type ParseArgsOptionsConfig, parseArgs } from "node:util";
 import { createApp, DEFAULT_PREFIX } from "./new.ts";
 import { DEFAULT_TEST_RUNNER, type TestRunner } from "./templates.ts";
@@ -25,7 +26,7 @@ export interface Output {
   readonly error: (line: string) => void;
 }
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] [--test-runner <vitest|node>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] [--test-runner <vitest|node>] [--install] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
 
 /** What `tinker --help` prints: each command, and what it does. */
 const HELP = `${USAGE.replace("Usage: ", "Usage:\n  ")
@@ -45,6 +46,7 @@ Options:
   --dir <parent>  the folder to write the new app into (new)
   --prefix <p>    the prefix of the app's component selectors, default app (new)
   --test-runner <r>  the test runner: vitest (the default) or node (new)
+  --install       run npm install in the new app (new)
   -h, --help      print this help
   -v, --version   print the version`;
 
@@ -116,7 +118,12 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
   try {
     const { values, positionals } = parseArgs({
       args,
-      options: { "dir": { type: "string" }, "prefix": { type: "string" }, "test-runner": { type: "string" } },
+      options: {
+        "dir": { type: "string" },
+        "prefix": { type: "string" },
+        "test-runner": { type: "string" },
+        "install": { type: "boolean" },
+      },
       allowPositionals: true,
       strict: true,
     });
@@ -131,6 +138,16 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
       values.prefix ?? DEFAULT_PREFIX,
       (values["test-runner"] ?? DEFAULT_TEST_RUNNER) as TestRunner,
     );
+    if (values.install) {
+      output.log(`Created ${folder}. Installing its packages...`);
+      const install = spawnSync("npm", ["install"], { cwd: folder, stdio: "inherit" });
+      if (install.status !== 0) {
+        output.error(`npm install failed in ${folder}: run it there, then npm run dev`);
+        return 1;
+      }
+      output.log(`Installed. Run \`npm run dev\` in ${folder}.`);
+      return 0;
+    }
     output.log(`Created ${folder}. Run \`npm install\` there, then \`npm run dev\`.`);
     return 0;
   } catch (error) {

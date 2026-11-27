@@ -50,6 +50,7 @@ function packageJson(name: string, prefix: string, testRunner: TestRunner): stri
       typecheck: "tsc --noEmit",
       test: node ? NODE_TEST : "vitest run",
     },
+    ...(node ? { engines: { node: ">=22.6" } } : {}),
     dependencies: {
       "@tinker/core": "*",
     },
@@ -90,7 +91,7 @@ function indexHtml(name: string, prefix: string): string {
     <title>${name}</title>
   </head>
   <body>
-    <${prefix}-app></${prefix}-app>
+    <${prefix}-root></${prefix}-root>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>
@@ -123,7 +124,7 @@ function appTs(name: string, prefix: string): string {
   return `import { Component } from "@tinker/core";
 
 @Component({
-  selector: "${prefix}-app",
+  selector: "${prefix}-root",
   template: \`<h1>{{ title }}</h1>\`,
 })
 export class App {

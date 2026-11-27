@@ -9,10 +9,13 @@ one. The name is a package name: lower case letters, digits and dashes, starting
 The folder must not exist yet, or must be empty, so nothing is overwritten.
 
 `--prefix <prefix>` sets the prefix of the app's component selectors, default `app`: lower case
-letters and digits, starting with a letter. The root component's selector is `<prefix>-app`, and
+letters and digits, starting with a letter. The root component's selector is `<prefix>-root`, and
 the prefix is stored in `tinker.json`, for the generators.
 
 `--test-runner <vitest|node>` sets the test runner, default `vitest` (see the tests section below).
+
+`--install` runs `npm install` in the new app, after it is written. If the install fails, the
+command exits with 1 and says where to run it.
 
 The app has:
 
@@ -22,7 +25,7 @@ The app has:
 - `package.json`: the scripts `dev` (`tinker dev`), `build` (`tinker build`) and `preview`
   (`tinker preview`), the Tinker
   packages as dependencies, and `@tinker/cli`.
-- `index.html`, which holds the root element `<tk-app>`.
+- `index.html`, which holds the root element `<prefix>-root`.
 - `vite.config.ts`, which takes its plugins and aliases from `tinkerConfig()` of `@tinker/compiler`
   (see `docs/compiler.md`).
 - `src/main.ts`, which bootstraps the root component, and `src/app.ts`, the root component.
@@ -80,7 +83,7 @@ The name is lower case letters, digits and dashes.
 A new app runs its tests with **vitest** by default: `npm test` runs `vitest run`, and vitest is a
 dev dependency of the app, so there is nothing to install. Pass `--test-runner node` to
 `tinker new` for Node's built-in test runner (`node:test`) instead; the app then needs no test
-framework. The runner is stored in `tinker.json`, and
+framework. A node app declares `"engines": { "node": ">=22.6" }` in its `package.json`. The runner is stored in `tinker.json`, and
 `tinker generate component` writes the test file of that runner.
 
 ```bash

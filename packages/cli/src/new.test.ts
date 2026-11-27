@@ -85,6 +85,22 @@ describe("createApp", () => {
       .toBe(false);
   });
 
+  test("the node runner declares the Node version it needs", () => {
+    const folder = createApp("my-app", parent, "app", "node");
+    const manifest = JSON.parse(readFileSync(join(folder, "package.json"), "utf8"));
+
+    expect(manifest.engines)
+      .toEqual({ node: ">=22.6" });
+  });
+
+  test("the vitest app does not declare an engine", () => {
+    const folder = createApp("my-app", parent);
+    const manifest = JSON.parse(readFileSync(join(folder, "package.json"), "utf8"));
+
+    expect(manifest.engines)
+      .toBeUndefined();
+  });
+
   test("the compiler settings are strict, and allow the .ts import paths", () => {
     const folder = createApp("my-app", parent);
     const tsconfig = JSON.parse(readFileSync(join(folder, "tsconfig.json"), "utf8"));
