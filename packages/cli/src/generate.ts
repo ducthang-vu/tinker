@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NAME_PATTERN } from "./new.ts";
+import { DEFAULT_TEST_RUNNER, type TestRunner } from "./templates.ts";
 
 /** What can be generated. */
 export const KINDS = ["component", "directive", "service", "function"] as const;
@@ -42,7 +43,12 @@ function camel(name: string): string {
 }
 
 /** The file of an item of each kind, for a name and the app's prefix. */
-export function generated(kind: Kind, name: string, prefix: string): Generated {
+export function generated(
+  kind: Kind,
+  name: string,
+  prefix: string,
+  testRunner: TestRunner = DEFAULT_TEST_RUNNER,
+): Generated {
   const path = `src/${name}/${name}.ts`;
   const Class = pascal(name);
   switch (kind) {
@@ -62,13 +68,23 @@ export class ${Class}Component {}
           },
           {
             path: `src/${name}/${name}.test.ts`,
-            content: `import { describe, test } from "node:test";
+            content: testRunner === "node"
+              ? `import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { ${Class}Component } from "./${name}.ts";
 
 describe("${Class}Component", () => {
   test("is created", () => {
     assert.ok(new ${Class}Component() instanceof ${Class}Component);
+  });
+});
+`
+              : `import { describe, expect, test } from "vitest";
+import { ${Class}Component } from "./${name}.ts";
+
+describe("${Class}Component", () => {
+  test("is created", () => {
+    expect(new ${Class}Component()).toBeInstanceOf(${Class}Component);
   });
 });
 `,
@@ -109,17 +125,42 @@ export class ${Class}Function implements TemplateFunctionContract<[unknown], str
   }
 }
 
+/**
+ * The settings of the app in `root`: its selector prefix, and its test runner (vitest when the app
+ * says none). They are in its tinker.json. An app made before tinker.json had them under the
+ * `tinker` key of its package.json, which is still read. Throws when it is not a Tinker app.
+ */
+export function settingsOf(root: string): { prefix: string; testRunner: TestRunner } {
+  const config = readSettings(join(root, "tinker.json"))
+    ?? readSettings(join(root, "package.json"))?.tinker;
+  const prefix = config?.prefix;
+  if (typeof prefix !== "string") {
+    throw new Error(
+      "This is not a Tinker app: it has no tinker.json with a prefix. Run tinker generate in an app folder",
+    );
+  }
+  const testRunner = config?.testRunner ?? DEFAULT_TEST_RUNNER;
+  if (testRunner !== "vitest" && testRunner !== "node") {
+    throw new Error(`"${String(testRunner)}" is not a test runner of this app: use vitest or node`);
+  }
+  return { prefix, testRunner };
+}
+
+/** The settings in a JSON file, as an object: `tinker` holds the old settings of package.json. */
+interface Settings {
+  readonly prefix?: unknown;
+  readonly testRunner?: unknown;
+  readonly tinker?: { readonly prefix?: unknown; readonly testRunner?: unknown };
+}
+
+/** The settings in a JSON file; undefined when the file is not there. */
+function readSettings(file: string): Settings | undefined {
+  return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as Settings) : undefined;
+}
+
 /** The prefix of the app in `root`, from its package.json. Throws when it is not a Tinker app. */
 export function prefixOf(root: string): string {
-  const file = join(root, "package.json");
-  const manifest = existsSync(file)
-    ? (JSON.parse(readFileSync(file, "utf8")) as { tinker?: { prefix?: unknown } })
-    : {};
-  const prefix = manifest.tinker?.prefix;
-  if (typeof prefix !== "string") {
-    throw new Error("This is not a Tinker app: its package.json has no tinker.prefix. Run tinker generate in an app folder");
-  }
-  return prefix;
+  return settingsOf(root).prefix;
 }
 
 /**
@@ -175,7 +216,8 @@ export function plan(root: string, kind: string, name: string): Plan {
   if (existsSync(folder)) {
     throw new Error(`${folder} already exists`);
   }
-  const item = generated(kind as Kind, name, prefixOf(root));
+  const settings = settingsOf(root);
+  const item = generated(kind as Kind, name, settings.prefix, settings.testRunner);
   if (item.className === undefined) {
     return { files: item.files };
   }

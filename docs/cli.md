@@ -10,10 +10,15 @@ The folder must not exist yet, or must be empty, so nothing is overwritten.
 
 `--prefix <prefix>` sets the prefix of the app's component selectors, default `app`: lower case
 letters and digits, starting with a letter. The root component's selector is `<prefix>-app`, and
-the prefix is stored in `package.json` under `tinker.prefix`, for the generators.
+the prefix is stored in `tinker.json`, for the generators.
+
+`--test-runner <vitest|node>` sets the test runner, default `vitest` (see the tests section below).
 
 The app has:
 
+- `tinker.json`, the app's settings: its selector `prefix`, and its `testRunner` when that is not
+  the default `vitest` (a node app records `"testRunner": "node"`). Apps made before
+  this file had them under the `tinker` key of `package.json`, which is still read.
 - `package.json`: the scripts `dev` (`tinker dev`), `build` (`tinker build`) and `preview`
   (`tinker preview`), the Tinker
   packages as dependencies, and `@tinker/cli`.
@@ -24,7 +29,7 @@ The app has:
 - `tsconfig.json`, strict TypeScript for the app's `src/` and its `vite.config.ts`, with the `.ts`
   import paths the app uses. It has the `typecheck` script (`tsc --noEmit`).
 - `.gitignore`, which keeps `node_modules/`, `dist/` and logs out of git.
-- `README.md`, with the commands: install, dev, build, preview and typecheck.
+- `README.md`, with the commands: install, dev, build, preview, typecheck and test.
 
 Then, in the app's folder:
 
@@ -52,7 +57,7 @@ folder. A path that does not start and end with `/` is refused.
 
 ## `tinker generate <kind> <name> [--dry-run]`
 
-Run in an app's folder (its `package.json` has `tinker.prefix`). It writes the new item's files (see the kinds below),
+Run in an app's folder (its `tinker.json` has the prefix). It writes the new item's files (see the kinds below),
 and registers the item in the root component, `src/app.ts`: an import,
 and an entry in the component's `imports`. A service is not registered, since it is provided in
 the root injector. The kinds:
@@ -72,11 +77,42 @@ The name is lower case letters, digits and dashes.
 
 ## Tests of a generated app
 
-A new app has `npm test`, which runs the tests with Node's built-in test runner (`node:test`), so
-the app needs no test framework. A vitest route is also described below. Both work with the
-components `tinker generate component` writes, which come with a test file.
+A new app runs its tests with **vitest** by default: `npm test` runs `vitest run`, and vitest is a
+dev dependency of the app, so there is nothing to install. Pass `--test-runner node` to
+`tinker new` for Node's built-in test runner (`node:test`) instead; the app then needs no test
+framework. The runner is stored in `tinker.json`, and
+`tinker generate component` writes the test file of that runner.
 
-### With Node's test runner (the default)
+```bash
+tinker new shop                          # vitest (the default)
+tinker new shop --test-runner node       # Node's built-in runner
+```
+
+Both runners load the same Tinker code, decorators included, and both test a component the same way.
+
+### With vitest (the default)
+
+vitest reads the app's `vite.config.ts`, which carries the same Tinker settings as the build, so a
+decorated component loads in a test with no extra setup. A generated component's test:
+
+```ts
+import { describe, expect, test } from "vitest";
+import { CartComponent } from "./cart.ts";
+
+describe("CartComponent", () => {
+  test("is created", () => {
+    expect(new CartComponent()).toBeInstanceOf(CartComponent);
+  });
+});
+```
+
+```bash
+npm install
+npm test          # runs vitest run
+npx vitest        # watch mode, and the rest of vitest's options
+```
+
+### With Node's test runner (`--test-runner node`)
 
 Requirements: Node 22.6 or later, for `--experimental-strip-types`.
 
@@ -101,7 +137,7 @@ node --experimental-strip-types --conditions=development --import ./register.mjs
   the transform runs as each module loads.
 - `--test "src/**/*.test.ts"` runs each test file under `src/`.
 
-A test is written with `node:test` and `node:assert/strict`:
+A generated component's test:
 
 ```ts
 import { describe, test } from "node:test";
@@ -117,46 +153,6 @@ describe("CartComponent", () => {
 
 The script does not add a coverage report or a watch mode. Node's runner has options for both,
 which can be added to the script, but they are not set up here.
-
-### With vitest
-
-vitest reads the app's `vite.config.ts`, which carries the same Tinker settings as the build, so a
-decorated component loads in it with no loader.
-
-1. Install vitest, in the app:
-
-   ```bash
-   npm install --save-dev vitest
-   ```
-
-2. Add a script to `package.json`:
-
-   ```json
-   "test:vitest": "vitest run"
-   ```
-
-3. Change the imports of each test file to vitest's. For the component above:
-
-   ```ts
-   import { describe, expect, test } from "vitest";
-   import { CartComponent } from "./cart.ts";
-
-   describe("CartComponent", () => {
-     test("is created", () => {
-       expect(new CartComponent()).toBeInstanceOf(CartComponent);
-     });
-   });
-   ```
-
-4. Run it:
-
-   ```bash
-   npm run test:vitest
-   ```
-
-vitest does not use `register.mjs` or `hooks.mjs`, so they can be deleted in a vitest-only app.
-In this repository, vitest is already installed, so `npx vitest run` works in a generated app
-inside the workspace (checked with `tinker generate component` and the change above).
 
 ## `--help` and `--version`
 

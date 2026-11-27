@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type ParseArgsOptionsConfig, parseArgs } from "node:util";
 import { createApp, DEFAULT_PREFIX } from "./new.ts";
+import { DEFAULT_TEST_RUNNER, type TestRunner } from "./templates.ts";
 import { apply, plan } from "./generate.ts";
 import { type AppOptions, buildApp, previewApp, serveApp } from "./vite-commands.ts";
 
@@ -24,7 +25,7 @@ export interface Output {
   readonly error: (line: string) => void;
 }
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] [--test-runner <vitest|node>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
 
 /** What `tinker --help` prints: each command, and what it does. */
 const HELP = `${USAGE.replace("Usage: ", "Usage:\n  ")
@@ -43,6 +44,7 @@ Options:
   --base <path>   the folder the app is served under, such as /tinker/ (dev, build, preview)
   --dir <parent>  the folder to write the new app into (new)
   --prefix <p>    the prefix of the app's component selectors, default app (new)
+  --test-runner <r>  the test runner: vitest (the default) or node (new)
   -h, --help      print this help
   -v, --version   print the version`;
 
@@ -114,7 +116,7 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
   try {
     const { values, positionals } = parseArgs({
       args,
-      options: { dir: { type: "string" }, prefix: { type: "string" } },
+      options: { "dir": { type: "string" }, "prefix": { type: "string" }, "test-runner": { type: "string" } },
       allowPositionals: true,
       strict: true,
     });
@@ -123,7 +125,12 @@ async function newApp(args: readonly string[], output: Output): Promise<number> 
       output.error(USAGE);
       return 2;
     }
-    const folder = createApp(name, values.dir ?? ".", values.prefix ?? DEFAULT_PREFIX);
+    const folder = createApp(
+      name,
+      values.dir ?? ".",
+      values.prefix ?? DEFAULT_PREFIX,
+      (values["test-runner"] ?? DEFAULT_TEST_RUNNER) as TestRunner,
+    );
     output.log(`Created ${folder}. Run \`npm install\` there, then \`npm run dev\`.`);
     return 0;
   } catch (error) {

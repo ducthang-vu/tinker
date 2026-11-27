@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -20,7 +20,7 @@ describe("createApp", () => {
 
     expect(folder)
       .toBe(join(parent, "my-app"));
-    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", ".gitignore", "README.md", "register.mjs", "hooks.mjs"]) {
+    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", "tinker.json", ".gitignore", "README.md"]) {
       expect(readFileSync(join(folder, file), "utf8")).not.toBe("");
     }
   });
@@ -51,7 +51,7 @@ describe("createApp", () => {
   });
 
   test("the tests run with Node's built-in runner, through the loader of the app", () => {
-    const folder = createApp("my-app", parent);
+    const folder = createApp("my-app", parent, "app", "node");
     const manifest = JSON.parse(readFileSync(join(folder, "package.json"), "utf8"));
 
     expect(manifest.scripts.test)
@@ -62,6 +62,27 @@ describe("createApp", () => {
       .toBeDefined();
     expect(readFileSync(join(folder, "hooks.mjs"), "utf8"))
       .toContain("export async function load");
+  });
+
+  test("vitest is the default runner: its script, its dependency, and no loader", () => {
+    const folder = createApp("my-app", parent);
+    const manifest = JSON.parse(readFileSync(join(folder, "package.json"), "utf8"));
+
+    expect(manifest.scripts.test)
+      .toBe("vitest run");
+    expect(manifest.devDependencies.vitest)
+      .toBeDefined();
+    expect(manifest.devDependencies["@babel/core"])
+      .toBeUndefined();
+    expect(existsSync(join(folder, "hooks.mjs")))
+      .toBe(false);
+  });
+
+  test("an unknown runner is refused, and nothing is written", () => {
+    expect(() => createApp("my-app", parent, "app", "jest" as never))
+      .toThrow(`"jest" is not a test runner`);
+    expect(existsSync(join(parent, "my-app")))
+      .toBe(false);
   });
 
   test("the compiler settings are strict, and allow the .ts import paths", () => {

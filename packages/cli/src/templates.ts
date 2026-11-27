@@ -1,23 +1,43 @@
 // The files of a new app, by their path in the app's folder. Each is what `tinker new` writes.
 // The app is a root component (`App`) in src/app.ts, bootstrapped by src/main.ts.
 
+/** The test runners a new app can use. */
+export const TEST_RUNNERS = ["vitest", "node"] as const;
+export type TestRunner = (typeof TEST_RUNNERS)[number];
+
+/** The test runner of a new app when `--test-runner` gives none. */
+export const DEFAULT_TEST_RUNNER: TestRunner = "vitest";
+
+/** The script of the Node test runner: it loads the loader, and runs the test files under src/. */
+const NODE_TEST = "node --experimental-strip-types "
+  + "--conditions=development --import ./register.mjs --test \"src/**/*.test.ts\"";
+
 /** The files of a new app named `name`, by their path relative to the app's folder. */
-export function appFiles(name: string, prefix: string): Map<string, string> {
-  return new Map([
-    ["package.json", packageJson(name, prefix)],
+export function appFiles(
+  name: string,
+  prefix: string,
+  testRunner: TestRunner,
+): Map<string, string> {
+  const files = new Map([
+    ["package.json", packageJson(name, prefix, testRunner)],
+    ["tinker.json", tinkerJson(prefix, testRunner)],
     ["index.html", indexHtml(name, prefix)],
     ["vite.config.ts", viteConfig()],
     ["src/main.ts", mainTs()],
     ["src/app.ts", appTs(name, prefix)],
     ["tsconfig.json", tsconfig()],
-    ["register.mjs", registerLoader()],
-    ["hooks.mjs", loaderHooks()],
     [".gitignore", gitignore()],
-    ["README.md", readme(name)],
+    ["README.md", readme(name, testRunner)],
   ]);
+  if (testRunner === "node") {
+    files.set("register.mjs", registerLoader());
+    files.set("hooks.mjs", loaderHooks());
+  }
+  return files;
 }
 
-function packageJson(name: string, prefix: string): string {
+function packageJson(name: string, prefix: string, testRunner: TestRunner): string {
+  const node = testRunner === "node";
   return `${JSON.stringify({
     name,
     version: "0.0.1",
@@ -28,22 +48,37 @@ function packageJson(name: string, prefix: string): string {
       build: "tinker build",
       preview: "tinker preview",
       typecheck: "tsc --noEmit",
-      test: "node --experimental-strip-types --conditions=development --import ./register.mjs --test \"src/**/*.test.ts\"",
+      test: node ? NODE_TEST : "vitest run",
     },
     dependencies: {
       "@tinker/core": "*",
     },
-    devDependencies: {
-      "@tinker/cli": "*",
-      "@tinker/compiler": "*",
-      "typescript": "npm:@typescript/typescript6@6.0.2",
-      "@types/node": "^22.10.2",
-      "@babel/core": "^8.1.2",
-      "@babel/plugin-proposal-decorators": "^8.0.2",
-      "@babel/plugin-transform-typescript": "^8.1.3",
-    },
-    tinker: { prefix },
+    devDependencies: node
+      ? {
+          "@tinker/cli": "*",
+          "@tinker/compiler": "*",
+          "typescript": "npm:@typescript/typescript6@6.0.2",
+          "@types/node": "^22.10.2",
+          "@babel/core": "^8.1.2",
+          "@babel/plugin-proposal-decorators": "^8.0.2",
+          "@babel/plugin-transform-typescript": "^8.1.3",
+        }
+      : {
+          "@tinker/cli": "*",
+          "@tinker/compiler": "*",
+          "typescript": "npm:@typescript/typescript6@6.0.2",
+          "vitest": "^5.1.0",
+        },
   }, null, 2)}\n`;
+}
+
+/**
+ * The settings of the app, in tinker.json: its prefix, and its test runner only when it is not the
+ * default (the generators read the same default when the file has none).
+ */
+function tinkerJson(prefix: string, testRunner: TestRunner): string {
+  const settings = testRunner === DEFAULT_TEST_RUNNER ? { prefix } : { prefix, testRunner };
+  return `${JSON.stringify(settings, null, 2)}\n`;
 }
 
 function indexHtml(name: string, prefix: string): string {
@@ -128,7 +163,10 @@ dist/
 }
 
 /** How to run the app, for whoever opens it next. */
-function readme(name: string): string {
+function readme(name: string, testRunner: TestRunner): string {
+  const tests = testRunner === "node"
+    ? "npm test           # run the tests (Node's built-in test runner; see docs/cli.md)"
+    : "npm test           # run the tests (vitest; see docs/cli.md)";
   return `# ${name}
 
 A Tinker app.
@@ -141,7 +179,7 @@ npm run dev        # serve the app, until it is stopped
 npm run build      # build the app into dist/
 npm run preview    # serve the built app (run build first)
 npm run typecheck  # check the types
-npm test           # run the tests (Node's built-in test runner; see docs/cli.md)
+${tests}
 \`\`\`
 `;
 }

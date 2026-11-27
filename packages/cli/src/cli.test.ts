@@ -13,7 +13,7 @@ vi.mock("./vite-commands.ts", () => ({
   serveApp: vi.fn(async () => undefined),
 }));
 
-const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
+const USAGE = "Usage: tinker new <name> [--dir <parent>] [--prefix <prefix>] [--test-runner <vitest|node>] | tinker dev [--port <n>] [--base <path>] | tinker build [--base <path>] | tinker preview [--port <n>] [--base <path>] | tinker generate <kind> <name>";
 
 describe("tinker command", () => {
   let parent: string;
@@ -85,10 +85,32 @@ describe("tinker command", () => {
         .toContain("<shop-app></shop-app>");
       expect(readFileSync(join(parent, "my-app", "src", "app.ts"), "utf8"))
         .toContain(`selector: "shop-app"`);
-      expect(JSON.parse(readFileSync(join(parent, "my-app", "package.json"), "utf8")).tinker)
-        .toEqual({ prefix: "shop" });
+      expect(JSON.parse(readFileSync(join(parent, "my-app", "tinker.json"), "utf8")))
+        .toMatchObject({ prefix: "shop" });
       expect(readFileSync(join(parent, "other-app", "index.html"), "utf8"))
         .toContain("<app-app></app-app>");
+    });
+
+    test("--test-runner sets the runner, and vitest is the default", async () => {
+      expect(await run(["new", "node-app", "--dir", parent, "--test-runner", "node"], output))
+        .toBe(0);
+      expect(await run(["new", "vitest-app", "--dir", parent], output))
+        .toBe(0);
+      expect(JSON.parse(readFileSync(join(parent, "node-app", "tinker.json"), "utf8")).testRunner)
+        .toBe("node");
+      expect(JSON.parse(readFileSync(join(parent, "vitest-app", "tinker.json"), "utf8")).testRunner)
+        .toBeUndefined();
+      expect(existsSync(join(parent, "node-app", "register.mjs")))
+        .toBe(true);
+      expect(existsSync(join(parent, "vitest-app", "register.mjs")))
+        .toBe(false);
+    });
+
+    test("an unknown test runner fails with the reason, and writes nothing", async () => {
+      expect(await run(["new", "my-app", "--dir", parent, "--test-runner", "jest"], output))
+        .toBe(2);
+      expect(errors[0])
+        .toContain(`"jest" is not a test runner`);
     });
 
     test("an invalid prefix fails with the reason, and writes nothing", async () => {
