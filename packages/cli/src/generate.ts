@@ -126,23 +126,36 @@ export class ${Class}Function implements TemplateFunctionContract<[unknown], str
 }
 
 /**
- * The settings of the app in `root`, from its package.json: its selector prefix, and its test
- * runner (vitest when the app says none). Throws when the folder is not a Tinker app.
+ * The settings of the app in `root`: its selector prefix, and its test runner (vitest when the app
+ * says none). They are in its tinker.json. An app made before tinker.json had them under the
+ * `tinker` key of its package.json, which is still read. Throws when it is not a Tinker app.
  */
 export function settingsOf(root: string): { prefix: string; testRunner: TestRunner } {
-  const file = join(root, "package.json");
-  const manifest = existsSync(file)
-    ? (JSON.parse(readFileSync(file, "utf8")) as { tinker?: { prefix?: unknown; testRunner?: unknown } })
-    : {};
-  const prefix = manifest.tinker?.prefix;
+  const config = readSettings(join(root, "tinker.json"))
+    ?? readSettings(join(root, "package.json"))?.tinker;
+  const prefix = config?.prefix;
   if (typeof prefix !== "string") {
-    throw new Error("This is not a Tinker app: its package.json has no tinker.prefix. Run tinker generate in an app folder");
+    throw new Error(
+      "This is not a Tinker app: it has no tinker.json with a prefix. Run tinker generate in an app folder",
+    );
   }
-  const testRunner = manifest.tinker?.testRunner ?? DEFAULT_TEST_RUNNER;
+  const testRunner = config?.testRunner ?? DEFAULT_TEST_RUNNER;
   if (testRunner !== "vitest" && testRunner !== "node") {
     throw new Error(`"${String(testRunner)}" is not a test runner of this app: use vitest or node`);
   }
   return { prefix, testRunner };
+}
+
+/** The settings in a JSON file, as an object: `tinker` holds the old settings of package.json. */
+interface Settings {
+  readonly prefix?: unknown;
+  readonly testRunner?: unknown;
+  readonly tinker?: { readonly prefix?: unknown; readonly testRunner?: unknown };
+}
+
+/** The settings in a JSON file; undefined when the file is not there. */
+function readSettings(file: string): Settings | undefined {
+  return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as Settings) : undefined;
 }
 
 /** The prefix of the app in `root`, from its package.json. Throws when it is not a Tinker app. */

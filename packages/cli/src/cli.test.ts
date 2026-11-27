@@ -85,7 +85,7 @@ describe("tinker command", () => {
         .toContain("<shop-app></shop-app>");
       expect(readFileSync(join(parent, "my-app", "src", "app.ts"), "utf8"))
         .toContain(`selector: "shop-app"`);
-      expect(JSON.parse(readFileSync(join(parent, "my-app", "package.json"), "utf8")).tinker)
+      expect(JSON.parse(readFileSync(join(parent, "my-app", "tinker.json"), "utf8")))
         .toMatchObject({ prefix: "shop" });
       expect(readFileSync(join(parent, "other-app", "index.html"), "utf8"))
         .toContain("<app-app></app-app>");
@@ -96,9 +96,9 @@ describe("tinker command", () => {
         .toBe(0);
       expect(await run(["new", "vitest-app", "--dir", parent], output))
         .toBe(0);
-      expect(JSON.parse(readFileSync(join(parent, "node-app", "package.json"), "utf8")).tinker.testRunner)
+      expect(JSON.parse(readFileSync(join(parent, "node-app", "tinker.json"), "utf8")).testRunner)
         .toBe("node");
-      expect(JSON.parse(readFileSync(join(parent, "vitest-app", "package.json"), "utf8")).tinker.testRunner)
+      expect(JSON.parse(readFileSync(join(parent, "vitest-app", "tinker.json"), "utf8")).testRunner)
         .toBe("vitest");
       expect(existsSync(join(parent, "node-app", "register.mjs")))
         .toBe(true);

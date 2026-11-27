@@ -10,12 +10,14 @@ The folder must not exist yet, or must be empty, so nothing is overwritten.
 
 `--prefix <prefix>` sets the prefix of the app's component selectors, default `app`: lower case
 letters and digits, starting with a letter. The root component's selector is `<prefix>-app`, and
-the prefix is stored in `package.json` under `tinker.prefix`, for the generators.
+the prefix is stored in `tinker.json`, for the generators.
 
 `--test-runner <vitest|node>` sets the test runner, default `vitest` (see the tests section below).
 
 The app has:
 
+- `tinker.json`, the app's settings: its selector `prefix` and its `testRunner`. Apps made before
+  this file had them under the `tinker` key of `package.json`, which is still read.
 - `package.json`: the scripts `dev` (`tinker dev`), `build` (`tinker build`) and `preview`
   (`tinker preview`), the Tinker
   packages as dependencies, and `@tinker/cli`.
@@ -54,7 +56,7 @@ folder. A path that does not start and end with `/` is refused.
 
 ## `tinker generate <kind> <name> [--dry-run]`
 
-Run in an app's folder (its `package.json` has `tinker.prefix`). It writes the new item's files (see the kinds below),
+Run in an app's folder (its `tinker.json` has the prefix). It writes the new item's files (see the kinds below),
 and registers the item in the root component, `src/app.ts`: an import,
 and an entry in the component's `imports`. A service is not registered, since it is provided in
 the root injector. The kinds:
@@ -77,7 +79,7 @@ The name is lower case letters, digits and dashes.
 A new app runs its tests with **vitest** by default: `npm test` runs `vitest run`, and vitest is a
 dev dependency of the app, so there is nothing to install. Pass `--test-runner node` to
 `tinker new` for Node's built-in test runner (`node:test`) instead; the app then needs no test
-framework. The runner is stored in `package.json` under `tinker.testRunner`, and
+framework. The runner is stored in `tinker.json`, and
 `tinker generate component` writes the test file of that runner.
 
 ```bash

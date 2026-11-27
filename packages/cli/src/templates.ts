@@ -20,6 +20,7 @@ export function appFiles(
 ): Map<string, string> {
   const files = new Map([
     ["package.json", packageJson(name, prefix, testRunner)],
+    ["tinker.json", tinkerJson(prefix, testRunner)],
     ["index.html", indexHtml(name, prefix)],
     ["vite.config.ts", viteConfig()],
     ["src/main.ts", mainTs()],
@@ -68,8 +69,12 @@ function packageJson(name: string, prefix: string, testRunner: TestRunner): stri
           "typescript": "npm:@typescript/typescript6@6.0.2",
           "vitest": "^5.1.0",
         },
-    tinker: { prefix, testRunner },
   }, null, 2)}\n`;
+}
+
+/** The settings of the app, in tinker.json: read by the generators, (the generators read them). */
+function tinkerJson(prefix: string, testRunner: TestRunner): string {
+  return `${JSON.stringify({ prefix, testRunner }, null, 2)}\n`;
 }
 
 function indexHtml(name: string, prefix: string): string {

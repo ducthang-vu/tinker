@@ -200,6 +200,23 @@ describe("plan and apply", () => {
       .toContain(`from "node:test"`);
   });
 
+  test("tinker.json holds the settings, and wins over the old key of package.json", () => {
+    mkdirSync(join(parent, "both"));
+    writeFileSync(join(parent, "both", "tinker.json"), JSON.stringify({ prefix: "new", testRunner: "node" }));
+    writeFileSync(join(parent, "both", "package.json"), JSON.stringify({ tinker: { prefix: "old" } }));
+
+    expect(settingsOf(join(parent, "both")))
+      .toEqual({ prefix: "new", testRunner: "node" });
+  });
+
+  test("a folder with no settings in either file is not a Tinker app", () => {
+    mkdirSync(join(parent, "none"));
+    writeFileSync(join(parent, "none", "package.json"), JSON.stringify({ name: "none" }));
+
+    expect(() => settingsOf(join(parent, "none")))
+      .toThrow("it has no tinker.json with a prefix");
+  });
+
   test("an app with no runner in package.json uses vitest", () => {
     mkdirSync(join(parent, "no-runner"));
     writeFileSync(join(parent, "no-runner", "package.json"), JSON.stringify({ tinker: { prefix: "shop" } }));

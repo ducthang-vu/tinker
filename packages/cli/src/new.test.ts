@@ -20,7 +20,7 @@ describe("createApp", () => {
 
     expect(folder)
       .toBe(join(parent, "my-app"));
-    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", ".gitignore", "README.md"]) {
+    for (const file of ["package.json", "index.html", "vite.config.ts", "src/main.ts", "src/app.ts", "tsconfig.json", "tinker.json", ".gitignore", "README.md"]) {
       expect(readFileSync(join(folder, file), "utf8")).not.toBe("");
     }
   });
