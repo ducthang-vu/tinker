@@ -83,7 +83,9 @@ An AI agent must not change that API on its own.
     to an area goes in that file. Add a new file only for a new area.
   - The comment at the top of each module: what the module is for, and the
     rules its code follows. Keep it true when the code changes.
-  - `IMPROVEMENTS.md`: open gaps only, as the rule above says.
+  - `IMPROVEMENTS.md`: open gaps only, as the rule above says. A package that
+    has its own `IMPROVEMENTS.md` (such as `packages/functional`) lists its gaps
+    there, and the root file links to it.
 - Write docs in the present tense, describing the code as it is. A doc does not
   record history, what changed, or who asked for it.
 - A doc that describes a rule (such as the sanitizer's cases) is updated in the
