@@ -60,3 +60,6 @@ export {
 } from "./lib/stream/task.ts";
 export { switchMap, Superseded } from "./lib/stream/switch-map.ts";
 export type { Switched } from "./lib/stream/switch-map.ts";
+export { Iso, Lens, Optional, compose } from "./lib/optics/optics.ts";
+export type { Optic } from "./lib/optics/optics.ts";
+export { prop, at, byKey } from "./lib/optics/accessors.ts";

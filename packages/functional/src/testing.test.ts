@@ -3,11 +3,16 @@ import { describe, expect, test } from "vitest";
 import { flatMap as maybeFlatMap, map as maybeMap } from "./lib/functor/functor.ts";
 import { None, Some, type Maybe } from "./lib/monad/maybe.ts";
 import { match } from "./lib/monad/monad.ts";
+import { at, prop } from "./lib/optics/accessors.ts";
+import { Iso, Lens, Optional } from "./lib/optics/optics.ts";
 import {
   type ChainUnderTest,
   chainLaws,
   type FunctorUnderTest,
   functorLaws,
+  isoLaws,
+  lensLaws,
+  optionalLaws,
   type LawCheck,
   monadLaws,
   type MonadUnderTest,
@@ -284,5 +289,134 @@ describe("chainLaws", () => {
     const noEqual: ChainUnderTest<Id, unknown> = { ...lawfulChain, equal: undefined };
     expect(find(chainLaws(noEqual), "right identity")[1])
       .toThrow("flatMap right identity fails");
+  });
+});
+
+describe("the optic law checkers", () => {
+  const texts = ["", "a", "ab"];
+  const upper = Iso.of((text: string) => text.toUpperCase(), (text: string) => text.toLowerCase());
+  const first = prop<{ readonly a: string }>()("a");
+  type Rec = { readonly a: string };
+  const records: readonly Rec[] = texts.map((a) => ({ a }));
+
+  test("name each law", () => {
+    expect(isoLaws({ name: "I", optic: upper, samples: texts, values: texts })
+      .map(([description]) => description))
+      .toEqual(["I: from(to(s)) is s", "I: to(from(a)) is a"]);
+    expect(lensLaws({ name: "L", optic: first, samples: records, values: texts }))
+      .toHaveLength(3);
+    expect(optionalLaws({ name: "O", optic: at<string>(0), samples: [texts], values: texts }))
+      .toHaveLength(4);
+  });
+
+  test("isoLaws catches an Iso whose conversions do not undo each other", () => {
+    const checks = isoLaws({ name: "upper", optic: upper, samples: ["A"], values: ["A"] });
+    expect(find(checks, "from(to(s))")[1])
+      .toThrow("from(to(s)) changed a whole");
+    expect(find(checks, "to(from(a))")[1])
+      .not.toThrow();
+    const lossy = Iso.of((text: string) => text, (text: string) => text.trim());
+    expect(find(isoLaws({ name: "trim", optic: lossy, samples: [], values: [" a"] }), "to(from(a))")[1])
+      .toThrow("to(from(a)) changed a part");
+  });
+
+  test("lensLaws catches a set that copies an unchanged whole", () => {
+    const copying = Lens.of((r: Rec) => r.a, (a: string, r: Rec) => ({ ...r, a }));
+    const checks = lensLaws({
+      name: "copying",
+      optic: copying,
+      samples: records,
+      values: texts,
+      equal: isDeepStrictEqual,
+    });
+    expect(find(checks, "get-set")[1])
+      .toThrow("set(get(s), s) did not return the same whole");
+    expect(find(checks, "set-get")[1])
+      .not.toThrow();
+    expect(find(checks, "set-set")[1])
+      .not.toThrow();
+  });
+
+  test("lensLaws catches a set that loses or remembers what was set", () => {
+    const losing = Lens.of((r: Rec) => r.a, (_: string, r: Rec) => r);
+    const losingChecks = lensLaws({ name: "losing", optic: losing, samples: records, values: texts });
+    expect(find(losingChecks, "set-get")[1])
+      .toThrow("get(set(a, s)) is not a");
+    const appending = Lens.of(
+      (r: Rec) => r.a,
+      (a: string, r: Rec) => (r.a === a ? r : { a: r.a + a }),
+    );
+    expect(find(lensLaws({
+      name: "appending",
+      optic: appending,
+      samples: [{ a: "" }],
+      values: ["x", "y"],
+      equal: isDeepStrictEqual,
+    }), "set-set")[1])
+      .toThrow("set(b, set(a, s)) is not set(b, s)");
+  });
+
+  test("lensLaws uses isEqual by default, so a structural copy is not equal", () => {
+    const checks = lensLaws({ name: "first", optic: first, samples: records, values: ["z"] });
+    expect(find(checks, "set-set")[1])
+      .toThrow("set(b, set(a, s)) is not set(b, s)");
+  });
+
+  test("optionalLaws catches each broken law", () => {
+    const lists = [[], ["a"]] as const;
+    const adding = Optional.of(
+      (list: readonly string[]) => at<string>(0)
+        .preview(list),
+      (item: string, list: readonly string[]) => (list.length === 0
+        ? [item]
+        : at<string>(0)
+            .set(item, list)),
+    );
+    expect(find(optionalLaws({ name: "adding", optic: adding, samples: lists, values: ["b"] }), "no part")[1])
+      .toThrow("set(a, s) changed a whole that has no part");
+
+    const copying = Optional.of(
+      (list: readonly string[]) => at<string>(0)
+        .preview(list),
+      (item: string, list: readonly string[]) => (list.length === 0
+        ? list
+        : [item, ...list.slice(1)]),
+    );
+    const copyingChecks = optionalLaws({ name: "copying", optic: copying, samples: lists, values: ["b"] });
+    expect(find(copyingChecks, "preview-set")[1])
+      .toThrow("setting the part a whole holds did not return the same whole");
+
+    const ignoring = Optional.of(
+      (list: readonly string[]) => at<string>(0)
+        .preview(list),
+      (_: string, list: readonly string[]) => list,
+    );
+    expect(find(optionalLaws({ name: "ignoring", optic: ignoring, samples: lists, values: ["b"] }), "set-preview")[1])
+      .toThrow("preview(set(a, s)) is not Some(a)");
+
+    const removing = Optional.of(
+      (list: readonly string[]) => at<string>(0)
+        .preview(list),
+      (item: string, list: readonly string[]) => (list[0] === item ? list : []),
+    );
+    const removingChecks = optionalLaws({ name: "removing", optic: removing, samples: lists, values: ["b"] });
+    expect(find(removingChecks, "set-preview")[1])
+      .toThrow("preview(set(a, s)) is not Some(a)");
+
+    const appending = Optional.of(
+      (list: readonly string[]) => at<string>(0)
+        .preview(list),
+      (item: string, list: readonly string[]) => (list.length === 0 || list[0] === item
+        ? list
+        : [list[0] + item]),
+    );
+    expect(find(optionalLaws({
+      name: "appending",
+      optic: appending,
+      samples: lists,
+      values: ["b", "c"],
+      equal: isDeepStrictEqual,
+    }), "set-set")[1])
+      .toThrow("set(b, set(a, s)) is not set(b, s)");
   });
 });

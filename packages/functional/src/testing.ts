@@ -1,8 +1,11 @@
-// The testing helpers for functors, chains and monads, and the edge values they are run on. Import
-// them as `@tinker/functional/testing`. Each checker returns its law checks as [description,
-// check] pairs, so any test framework can run them: see `functorLaws`, `chainLaws` and `monadLaws`.
+// The testing helpers for functors, chains, monads and optics, and the edge values they are run
+// on. Import them as `@tinker/functional/testing`. Each checker returns its law checks as
+// [description, check] pairs, so any test framework can run them: see `functorLaws`, `chainLaws`,
+// `monadLaws`, `isoLaws`, `lensLaws` and `optionalLaws`.
 
-import { isEqual } from "./lib/monad/monad.ts";
+import { isEqual, match } from "./lib/monad/monad.ts";
+import { isSome, type Maybe } from "./lib/monad/maybe.ts";
+import type { Iso, Lens, Optional } from "./lib/optics/optics.ts";
 
 // Normal values and edge cases. Every interaction of a monad is tested on each one.
 export const EDGE_VALUES: readonly unknown[] = [
@@ -225,3 +228,204 @@ export function monadLaws<M, A>(monad: MonadUnderTest<M, A>): LawCheck[] {
     ],
   ];
 }
+
+/** An optic to check: the optic, the wholes it reads, and the parts it writes. */
+interface OpticUnderTest<S, A, O> {
+  /** The name shown in each description, e.g. "prop(name)". */
+  readonly name: string;
+  /** The optic to check. */
+  readonly optic: O;
+  /** Wholes to test the laws on. For an Optional, include wholes with the part and without. */
+  readonly samples: readonly S[];
+  /** Parts to write into each whole. */
+  readonly values: readonly A[];
+  /**
+   * Whether two wholes, or two parts, are equal. Defaults to `isEqual`, under which two objects
+   * are equal only when they are the same object: give a structural equality for records.
+   */
+  readonly equal?: (a: unknown, b: unknown) => boolean;
+}
+
+/** An Iso to check. */
+export type IsoUnderTest<S, A> = OpticUnderTest<S, A, Iso<S, A>>;
+/** A Lens to check. */
+export type LensUnderTest<S, A> = OpticUnderTest<S, A, Lens<S, A>>;
+/** An Optional to check. */
+export type OptionalUnderTest<S, A> = OpticUnderTest<S, A, Optional<S, A>>;
+
+/**
+ * Every pair of a whole and a part, and of a whole and two parts.
+ *
+ * @param samples The wholes.
+ * @param values The parts.
+ * @returns The pairs `[whole, part]`, and the triples `[whole, first, second]`.
+ */
+const combinations = <S, A>(samples: readonly S[], values: readonly A[]): {
+  readonly pairs: readonly (readonly [S, A])[];
+  readonly triples: readonly (readonly [S, A, A])[];
+} => {
+  const pairs = samples.flatMap((whole) => values.map((part) => [whole, part] as const));
+  const triples = pairs.flatMap(([whole, first]) =>
+    values.map((second) => [whole, first, second] as const));
+  return { pairs, triples };
+};
+
+/**
+ * The iso laws, as checks: `to` and `from` undo each other, both ways. Each check is a
+ * `[description, check]` pair: `check` throws when its law fails.
+ *
+ * @param under The Iso to check: the Iso, its wholes, and its parts.
+ * @returns One `[description, check]` pair per law.
+ * @example
+ * ```ts
+ * import { test } from "vitest";
+ * import { isoLaws } from "@tinker/functional/testing";
+ *
+ * for (const [description, check] of isoLaws({ name: "cents", optic, samples, values })) {
+ *   test(description, check);
+ * }
+ * ```
+ */
+export function isoLaws<S, A>(under: IsoUnderTest<S, A>): LawCheck[] {
+  const { name, optic, samples, values } = under;
+  const equal = under.equal ?? isEqual;
+  return [
+    [`${name}: from(to(s)) is s`, () =>
+      holdsForAll(
+        samples,
+        (whole) => equal(optic.from(optic.to(whole)), whole),
+        `${name}: from(to(s)) changed a whole`,
+      ),
+    ],
+    [`${name}: to(from(a)) is a`, () =>
+      holdsForAll(
+        values,
+        (part) => equal(optic.to(optic.from(part)), part),
+        `${name}: to(from(a)) changed a part`,
+      ),
+    ],
+  ];
+}
+
+/**
+ * The lens laws, as checks. get-set: setting the part a whole holds returns that same whole (the
+ * same object, so a signal holding it sees no change). set-get: reading after a set gives the
+ * part that was set. set-set: a second set replaces the first. Each check is a
+ * `[description, check]` pair: `check` throws when its law fails.
+ *
+ * @param under The Lens to check: the Lens, its wholes, and its parts.
+ * @returns One `[description, check]` pair per law.
+ * @example
+ * ```ts
+ * import { test } from "vitest";
+ * import { isDeepStrictEqual } from "node:util";
+ * import { lensLaws } from "@tinker/functional/testing";
+ *
+ * const laws = lensLaws({ name: "name", optic, samples, values, equal: isDeepStrictEqual });
+ * for (const [description, check] of laws) {
+ *   test(description, check);
+ * }
+ * ```
+ */
+export function lensLaws<S, A>(under: LensUnderTest<S, A>): LawCheck[] {
+  const { name, optic, samples, values } = under;
+  const equal = under.equal ?? isEqual;
+  const { pairs, triples } = combinations(samples, values);
+  return [
+    [`${name}: get-set: set(get(s), s) is the same s`, () =>
+      holdsForAll(
+        samples,
+        (whole) => optic.set(optic.get(whole), whole) === whole,
+        `${name}: set(get(s), s) did not return the same whole`,
+      ),
+    ],
+    [`${name}: set-get: get(set(a, s)) is a`, () =>
+      holdsForAll(
+        pairs,
+        ([whole, part]) => equal(optic.get(optic.set(part, whole)), part),
+        `${name}: get(set(a, s)) is not a`,
+      ),
+    ],
+    [`${name}: set-set: set(b, set(a, s)) is set(b, s)`, () =>
+      holdsForAll(
+        triples,
+        ([whole, first, second]) =>
+          equal(optic.set(second, optic.set(first, whole)), optic.set(second, whole)),
+        `${name}: set(b, set(a, s)) is not set(b, s)`,
+      ),
+    ],
+  ];
+}
+
+/**
+ * The optional laws, as checks. preview-set: setting the part a whole holds returns that same
+ * whole. no part: setting a part into a whole that has none returns that same whole. set-preview:
+ * when the whole has the part, previewing after a set gives the part that was set. set-set: a
+ * second set replaces the first. Each check is a `[description, check]` pair: `check` throws when
+ * its law fails.
+ *
+ * @param under The Optional to check: the Optional, its wholes (with the part and without), and
+ * its parts.
+ * @returns One `[description, check]` pair per law.
+ * @example
+ * ```ts
+ * import { test } from "vitest";
+ * import { optionalLaws } from "@tinker/functional/testing";
+ *
+ * for (const [description, check] of optionalLaws({ name: "at(1)", optic, samples, values })) {
+ *   test(description, check);
+ * }
+ * ```
+ */
+export function optionalLaws<S, A>(under: OptionalUnderTest<S, A>): LawCheck[] {
+  const { name, optic, samples, values } = under;
+  const equal = under.equal ?? isEqual;
+  const { pairs, triples } = combinations(samples, values);
+  const holding = pairs.filter(([whole]) => isSome(optic.preview(whole)));
+  const empty = pairs.filter(([whole]) => !isSome(optic.preview(whole)));
+  return [
+    [`${name}: preview-set: setting the part s holds is the same s`, () =>
+      holdsForAll(
+        samples,
+        (whole) => optic.modify((part) => part, whole) === whole,
+        `${name}: setting the part a whole holds did not return the same whole`,
+      ),
+    ],
+    [`${name}: no part: set(a, s) is the same s when s has no part`, () =>
+      holdsForAll(
+        empty,
+        ([whole, part]) => optic.set(part, whole) === whole,
+        `${name}: set(a, s) changed a whole that has no part`,
+      ),
+    ],
+    [`${name}: set-preview: preview(set(a, s)) is Some(a) when s has a part`, () =>
+      holdsForAll(
+        holding,
+        ([whole, part]) => isSameSome(optic.preview(optic.set(part, whole)), part, equal),
+        `${name}: preview(set(a, s)) is not Some(a)`,
+      ),
+    ],
+    [`${name}: set-set: set(b, set(a, s)) is set(b, s)`, () =>
+      holdsForAll(
+        triples,
+        ([whole, first, second]) =>
+          equal(optic.set(second, optic.set(first, whole)), optic.set(second, whole)),
+        `${name}: set(b, set(a, s)) is not set(b, s)`,
+      ),
+    ],
+  ];
+}
+
+/**
+ * Whether `maybe` is a Some holding a value equal to `part`.
+ *
+ * @param maybe The Maybe to read.
+ * @param part The value it should hold.
+ * @param equal Whether two parts are equal.
+ * @returns `true` when `maybe` is a Some holding a part equal to `part`.
+ */
+const isSameSome = <A>(
+  maybe: Maybe<A>,
+  part: A,
+  equal: (a: unknown, b: unknown) => boolean,
+): boolean => match(maybe, { Some: (value) => equal(value, part), None: () => false });

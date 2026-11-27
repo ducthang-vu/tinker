@@ -3,6 +3,10 @@
 Known limitations, written down so they are not forgotten. Each entry says
 what the problem is, why it matters, and what to do.
 
+A package with its own file lists its gaps there:
+
+- [`@tinker/functional`](packages/functional/IMPROVEMENTS.md): the functional library.
+
 ## Change detection (`packages/core/src/view/internal/runtime/change-detection.ts`, its schedulers)
 
 A change detection cycle runs on the next animation frame or timer, whichever comes first:
