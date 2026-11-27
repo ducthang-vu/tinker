@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { describe, expect, test, vi } from "vitest";
 import type { Plugin } from "vite";
-import { checkedTemplatesOf, compileComponents, type CheckHost, type CompilerOptions, tinkerCompiler } from "./plugin.ts";
+import { checkedTemplatesOf, compileComponents, type CheckHost, type CompilerOptions, queriedIn, tinkerCompiler } from "./plugin.ts";
 import { map, type Maybe, fail } from "@tinker/functional";
 
 const fixture = (name: string) => resolve("packages/compiler/test/fixtures", name);
@@ -1041,5 +1041,17 @@ export class A {}
     const [checked] = await checkedTemplatesOf(code, "/app/a.ts", host);
     expect(checked?.name)
       .toBe("A");
+  });
+});
+
+describe("queriedIn", () => {
+  test("lists the template names queried by a literal, and skips the queries of a class", () => {
+    expect(queriedIn("query(\"row\"); query.required('cell'); query(Child); queryAll(Item);"))
+      .toEqual(["row", "cell"]);
+  });
+
+  test("is any when a query names its target with a value", () => {
+    expect(queriedIn("query(name)"))
+      .toBe("any");
   });
 });

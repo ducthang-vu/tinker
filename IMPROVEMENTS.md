@@ -174,8 +174,8 @@ for libraries, since a library's consumers pay the bundle size, not the build.
 point at the host root.
 ## Names in templates at build time (`packages/compiler/src/plugin.ts`, `packages/core/src/view/internal/template/template-names.ts`)
 
-### 1. The `let-` names of a `<template>` are typed `any`
+### 1. Some `let-` names of a `<template>` are typed `any`
 
-**Problem.** `tinker-types` types every name a template reads but the `let-` names of a `<template>`: their values come from the context its renderer passes (an outlet's `context` input, or `createEmbeddedView`), and a template reference can be passed anywhere, so the template alone does not say what they are.
+**Problem.** `tinker-types` types the `let-` names of a template that only outlets of the same template render, from their contexts. When the template is read anywhere else (passed to an input, used in an expression), queried by the component's code, or rendered by an outlet in its own body, the contexts it may get are not known, and its names are `any`.
 
-**To do.** Let a template declare the type of its context, and check each outlet's `context` against it.
+**To do.** Let a template declare the type of its context, so its names are typed wherever it is rendered, and each outlet's `context` is checked against it.

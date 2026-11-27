@@ -17,8 +17,9 @@
 //   directives and component, or else its DOM event.
 // A directive the check cannot import (one not exported) is not typed: references to it and
 // `$event` on its element are `any`. Of a directive whose base classes it cannot read, only its
-// own outputs are known: `$event` of another name is `any`. `let-` names are `any`: the context
-// that gives them is a value of the run time, which the template does not type.
+// own outputs are known: `$event` of another name is `any`. The `let-` names of a template that
+// only outlets of the template render are typed from the contexts they give; those of a template
+// the code or another expression may render with any context are `any`.
 
 import { posix } from "node:path";
 import type { CompiledNode, Expression } from "@tinker/core/compiler";
@@ -64,6 +65,11 @@ export interface CheckedTemplate {
   readonly functions: readonly CheckedFunction[];
   /** The directives and components it imports whose class the check can import. */
   readonly directives: readonly CheckedDirective[];
+  /**
+   * The template names its file's code queries (`query("row")`), whose templates the code may
+   * render with any context; `"any"` when a query's name is not a literal.
+   */
+  readonly queried: readonly string[] | "any";
 }
 
 /** A `@map` node, and what its item is matched with, and its `track`. */
@@ -80,6 +86,17 @@ interface CheckContext {
   readonly fns: ReadonlySet<string>;
   /** The directives and components it imports that are typed, by the name its elements use. */
   readonly directives: ReadonlyMap<string, TypedDirective>;
+  /** The outlets that render a template whose `let-` names are typed from them. */
+  readonly outlets: Outlets;
+}
+
+/**
+ * The templates rendered only by outlets of the template: for each, the constants holding the
+ * contexts its outlets give; and for each such outlet's element, its constant.
+ */
+interface Outlets {
+  readonly contexts: ReadonlyMap<string, readonly string[]>;
+  readonly elements: ReadonlyMap<ElementNode, string>;
 }
 
 /** A directive or component the check can type: what it reads of it, and its instance. */
@@ -129,6 +146,7 @@ export function checkFileOf(templates: readonly CheckedTemplate[], outputFile: s
     const body = emitNodes(template.nodes, new Set(), {
       fns: new Set(template.functions.map((fn) => fn.name)),
       directives,
+      outlets: outletsOf(template.nodes, template.queried),
     });
     return [
       `export function check_${template.name}($c: ${template.name}): void {`,
@@ -253,7 +271,17 @@ function emitNode(
       const visible = withNames(scope, [node.name]);
       const lines = [`const ${node.name}: any = undefined;`];
       const body = emitNodes(node.body, withNames(visible, node.names), context);
-      lines.push(...blockOf(node.names, body));
+      const contexts = context.outlets.contexts.get(node.name);
+      lines.push(...(contexts === undefined
+        ? blockOf(node.names, body)
+        : blockOf([], [
+            ...declarationsOf(node.names.map((name) => [
+              name,
+              contexts.map((constant) => `(typeof ${constant})[${JSON.stringify(name)}]`)
+                .join(" | "),
+            ] as const)),
+            ...body,
+          ])));
       return { lines, visible };
     }
     case "element": {
@@ -268,8 +296,14 @@ function emitNode(
         ...node.styleBindings,
         ...node.inputBindings,
       ];
+      const outlet = context.outlets.elements.get(node);
       for (const binding of bindings) {
-        lines.push(statement(binding.expression, visible, context.fns));
+        lines.push(outlet !== undefined && binding === contextOf(node)
+          ? `var ${outlet} = ${expressionOf(binding.expression, visible, context.fns)};`
+          : statement(binding.expression, visible, context.fns));
+      }
+      if (outlet !== undefined && contextOf(node) === undefined) {
+        lines.push(`var ${outlet} = {};`);
       }
       for (const output of node.outputBindings) {
         lines.push(...blockOf([], [
@@ -595,6 +629,98 @@ function eventOf(
     ...reads.map((read, index) => `const $output_${index} = ${read};`),
     `const $event = null as never as ${values.length === 0 ? dom : `$Or<${values.join(" | ")}, ${dom}>`};`,
   ];
+}
+
+/**
+ * The `[context]` binding of an outlet's element, if it has one.
+ *
+ * @param node The element.
+ * @returns Its input binding `context`.
+ */
+function contextOf(node: ElementNode): ElementNode["inputBindings"][number] | undefined {
+  return node.inputBindings.find((binding) => binding.name === "context");
+}
+
+/**
+ * The templates of `nodes` whose `let-` names are typed from the outlets that render them: those
+ * read only as an outlet's template (`[outlet]="row"`), and not queried by the component's code.
+ * A template read anywhere else may be rendered with any context, and its names stay `any`.
+ *
+ * @param nodes The template's nodes.
+ * @param queried The template names the component's code queries, or `"any"`.
+ * @returns The constants of the outlets' contexts, by template and by element.
+ */
+function outletsOf(nodes: readonly CompiledNode[], queried: readonly string[] | "any"): Outlets {
+  const uses = new Map<string, ElementNode[]>();
+  const escaped = new Set<string>();
+  // `inside` is the templates around the value: an outlet of a template in its own body (a tree)
+  // would type its context from itself, so that template is left untyped.
+  const visit = (value: unknown, inside: ReadonlySet<string>): void => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, inside));
+      return;
+    }
+    if (typeof value !== "object" || value === null) {
+      return;
+    }
+    const item = value as Record<string, unknown>;
+    if (item.kind === "property" && (item.receiver as { kind?: unknown }).kind === "component") {
+      escaped.add(item.name as string);
+    }
+    const within = item.kind === "declaration" ? new Set([...inside, item.name as string]) : inside;
+    // A reference's target (`{ kind: "element" }`) is not an element: an element has bindings.
+    const isElement = item.kind === "element" && Array.isArray(item.inputBindings);
+    if (isElement) {
+      const element = value as ElementNode;
+      for (const binding of element.inputBindings) {
+        const read = binding.expression;
+        const isOutlet = binding.name === "outlet" && read.kind === "property"
+          && read.receiver.kind === "component" && !inside.has(read.name);
+        if (isOutlet) {
+          uses.set(read.name, [...(uses.get(read.name) ?? []), element]);
+        } else {
+          visit(binding, inside);
+        }
+      }
+    }
+    Object.entries(item)
+      .filter(([key]) => !isElement || key !== "inputBindings")
+      .forEach(([, child]) => visit(child, within));
+  };
+  visit(nodes, new Set());
+  const declared = new Set(declarationsIn(nodes));
+  const contexts = new Map<string, string[]>();
+  const elements = new Map<ElementNode, string>();
+  for (const [name, outlets] of uses) {
+    if (!declared.has(name) || escaped.has(name) || queried === "any" || queried.includes(name)) {
+      continue;
+    }
+    contexts.set(name, outlets.map((outlet) => {
+      const constant = `$context_${elements.size}`;
+      elements.set(outlet, constant);
+      return constant;
+    }));
+  }
+  return { contexts, elements };
+}
+
+/**
+ * The names of the templates `nodes` declare (`<template #name>`), wherever they are.
+ *
+ * @param nodes The template's nodes.
+ * @returns The names.
+ */
+function declarationsIn(nodes: unknown): string[] {
+  if (Array.isArray(nodes)) {
+    return nodes.flatMap(declarationsIn);
+  }
+  if (typeof nodes !== "object" || nodes === null) {
+    return [];
+  }
+  const item = nodes as Record<string, unknown>;
+  const own = item.kind === "declaration" ? [item.name as string] : [];
+  return [...own, ...Object.values(item)
+    .flatMap(declarationsIn)];
 }
 
 /** The `$`-specials of a `@map` and their types, each declared at the top of the item's block. */

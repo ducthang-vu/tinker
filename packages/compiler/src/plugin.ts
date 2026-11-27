@@ -555,6 +555,7 @@ export async function checkedTemplatesOf(
             file: fn.file,
           })),
           directives,
+          queried: queriedIn(code),
         });
       },
     });
@@ -606,6 +607,27 @@ async function checkedDirectivesOf(
     });
   }
   return directives;
+}
+
+/**
+ * The template names `code` queries with `query("name")` or `query.required("name")`, which its
+ * code may render with any context; `"any"` when a query names its target with a value the build
+ * cannot read (a class, whose name starts with a capital, is not a template).
+ *
+ * @param code The source file's code.
+ * @returns The names, or `"any"`.
+ */
+export function queriedIn(code: string): readonly string[] | "any" {
+  const names: string[] = [];
+  for (const [, argument] of code.matchAll(/\bquery(?:\.required)?\(\s*([^,)\s]*)/g)) {
+    const literal = /^(["'`])([\w$]+)\1$/.exec(argument!);
+    if (literal !== null) {
+      names.push(literal[2]!);
+    } else if (!/^[A-Z]/.test(argument!)) {
+      return "any";
+    }
+  }
+  return names;
 }
 
 function placeholderFor(name: string): Class<object> {

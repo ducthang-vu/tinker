@@ -160,8 +160,13 @@ are git-ignored and rewritten each run.
   check: references to it and `$event` on its element are `any`, with a warning. Of a
   directive whose base classes cannot be read, only its own outputs are known: `$event` of
   another name on its element is `any`.
-- `let-` names are `any`: the context that gives them is passed when the template is
-  rendered (an outlet's `context`, or `createEmbeddedView`), which the template does not type.
+- `let-` names: when a `<template #row let-item>` is rendered only by outlets of the same
+  template (`<tk-container [outlet]="row" [context]="{ item: todo }">`), each name is typed
+  from their contexts (the union, when there are several), and a context without the name is
+  a type error, as the run time throws. When the template is read anywhere else (passed to
+  an input, used in an expression), queried by the component's code (`query("row")`), or
+  rendered by an outlet inside its own body, its context is not known, and its names are
+  `any`.
 
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.
