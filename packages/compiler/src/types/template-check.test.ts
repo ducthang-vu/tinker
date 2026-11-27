@@ -114,10 +114,19 @@ describe("checkFileOf", () => {
       .toContain("((...args: any[]) => $fn_isOpen.call(...args))");
   });
 
-  test("the built-in flow is typed loosely", () => {
-    const text = checkFileOf([page("<p>{{ flow(double, add)(1) }}</p>")], outputFile);
+  test("the built-in $flow is typed loosely", () => {
+    const text = checkFileOf([page("<p>{{ $flow(double, add)(1) }}</p>")], outputFile);
     expect(text)
-      .toContain("$flow(");
+      .toContain("$flow($c[\"double\"], $c[\"add\"])");
+    expect(text)
+      .not
+      .toContain("$c[\"$flow\"]");
+  });
+
+  test("a bare flow, without $, is a member of the component", () => {
+    const text = checkFileOf([page("<p>{{ flow(1) }}</p>")], outputFile);
+    expect(text)
+      .toContain("($c[\"flow\"])(1)");
   });
 
   test("a property of a value (not the component) is read as written, optionally", () => {

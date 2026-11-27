@@ -19,6 +19,9 @@ const TEST_SUFFIXES = [
   ".spec.mts",
   ".spec.cts",
 ];
+// Files that a command generates and git ignores, such as tinker-types' template checks. They are
+// not in a fresh checkout, so a map that listed them would depend on whether they were generated.
+const GENERATED_SUFFIXES = [".template-check.ts"];
 
 function toRepoPath(rootDir, fileName) {
   return path.relative(rootDir, fileName)
@@ -43,7 +46,7 @@ function isIncludedSourceFile(rootDir, sourceFile) {
     && !sourceFile.isDeclarationFile
     && !repoPath.split("/")
       .includes("node_modules")
-      && !TEST_SUFFIXES.some((suffix) => repoPath.endsWith(suffix));
+      && ![...TEST_SUFFIXES, ...GENERATED_SUFFIXES].some((suffix) => repoPath.endsWith(suffix));
 }
 
 function truncate(value, limit) {

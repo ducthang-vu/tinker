@@ -242,7 +242,7 @@ function expressionOf(expression: Expression, scope: Scope, fns: ReadonlySet<str
 }
 
 /**
- * A call. A template function is called through its class instance; `flow` is the built-in, typed
+ * A call. A template function is called through its class instance; `$flow` is the built-in, typed
  * loosely; anything else is called as written, so `this` is the receiver as at run time.
  */
 function callOf(
@@ -257,7 +257,7 @@ function callOf(
     if (fns.has(callee.name)) {
       return `$fn_${callee.name}.call(${args})`;
     }
-    if (callee.name === "flow") {
+    if (callee.name === "$flow") {
       return `$flow(${args})`;
     }
   }
