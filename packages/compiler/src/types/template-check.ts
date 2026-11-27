@@ -15,9 +15,10 @@
 // - references: `#name` is its element, `##name` the component, `#name="exportAs"` the directive;
 // - handlers: called with `$event`, the value of the outputs of that name of the element's
 //   directives and component, or else its DOM event.
-// A directive the check cannot import (not exported) or whose base classes it cannot read is not
-// typed: references to it and `$event` on its element are `any`. `let-` names are `any`: the
-// context that gives them is a value of the run time, which the template does not type.
+// A directive the check cannot import (one not exported) is not typed: references to it and
+// `$event` on its element are `any`. Of a directive whose base classes it cannot read, only its
+// own outputs are known: `$event` of another name is `any`. `let-` names are `any`: the context
+// that gives them is a value of the run time, which the template does not type.
 
 import { posix } from "node:path";
 import type { CompiledNode, Expression } from "@tinker/core/compiler";
@@ -49,6 +50,8 @@ export interface CheckedDirective {
   readonly exportAs?: string;
   /** Its own and inherited properties and methods: its outputs are among them. */
   readonly members: readonly string[];
+  /** Whether `members` has them all: false when its base classes could not be read. */
+  readonly allMembers: boolean;
 }
 
 /** A component's compiled template, with what it imports: what the check needs. */
@@ -499,7 +502,7 @@ function trackOf(
 
 /**
  * The directives and the component on an element, each typed, or undefined when the check cannot
- * type it (its class is not exported, or its base classes cannot be read).
+ * type it (its class is not exported).
  *
  * @param node The element.
  * @param context What the check knows of the component's imports.
@@ -548,7 +551,8 @@ function referenceType(
  * The declaration of `$event` in a handler, after the outputs it reads. The outputs of that name of
  * the element's directives and component (or of the one `(owner.name)` names) give their values;
  * with none, the DOM event of that name gives its event (`Event` for one the DOM does not type).
- * When a directive or the component on the element is not typed, `$event` is `any`.
+ * When a directive or the component on the element is not typed, or one whose base classes could
+ * not be read has no member of that name (it may inherit the output), `$event` is `any`.
  *
  * @param output The event binding.
  * @param owned The directives and component on the element.
@@ -566,13 +570,20 @@ function eventOf(
     owner === undefined || [owner, `[${owner}]`].includes(directive.info.selector));
   const lower = name.toLowerCase();
   // Each output is read as a value, so a private one reads as it does at run time.
-  const reads = candidates.flatMap(({ info, instance }) => info.members.flatMap((member) => {
+  const readsOf = ({ info, instance }: TypedDirective) => info.members.flatMap((member) => {
     const read = `${instance}[${JSON.stringify(member)}]`;
     if (member.toLowerCase() === lower) {
       return [`$emitted(${read})`];
     }
     return `${member}Change`.toLowerCase() === lower ? [`$changed(${read})`] : [];
-  }));
+  });
+  // A directive whose members are not all known may inherit an output of that name.
+  const mayInherit = (candidate: TypedDirective) =>
+    !candidate.info.allMembers && readsOf(candidate).length === 0;
+  if (candidates.some(mayInherit)) {
+    return ["const $event: any = undefined;"];
+  }
+  const reads = candidates.flatMap(readsOf);
   let dom = "never";
   if (owner === undefined) {
     dom = `$DomEvent<${JSON.stringify(name)}>`;

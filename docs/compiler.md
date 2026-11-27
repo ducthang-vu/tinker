@@ -156,9 +156,12 @@ are git-ignored and rewritten each run.
   the DOM does not type). `(owner.name)` reads only that owner's output, or the DOM event
   it falls back to. At run time both the output and a DOM event of that name call the
   handler; the check takes the output's value.
-- A directive whose class is not exported, or whose base classes cannot be read, is not
-  typed: references to it and `$event` on its element are `any`. `let-` names are `any`:
-  the context that gives them is a value of the run time.
+- A directive declared in the component's file and not exported cannot be imported by the
+  check: references to it and `$event` on its element are `any`, with a warning. Of a
+  directive whose base classes cannot be read, only its own outputs are known: `$event` of
+  another name on its element is `any`.
+- `let-` names are `any`: the context that gives them is passed when the template is
+  rendered (an outlet's `context`, or `createEmbeddedView`), which the template does not type.
 
 `examples/library` is a sample library built this way (`--emit`), with its
 `package.json` and `tsconfig.build.json` as a reference.

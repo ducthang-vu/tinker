@@ -25,7 +25,7 @@ const directive = (
   className: string,
   selector: string,
   members: readonly string[],
-  options: { exportAs?: string; isComponent?: boolean } = {},
+  options: { exportAs?: string; isComponent?: boolean; allMembers?: boolean } = {},
 ) => ({ className, selector, members, ...options });
 
 /**
@@ -51,6 +51,7 @@ function pageWith(
       file: "/app/dirs.ts",
       selector: info.selector,
       members: info.members,
+      allMembers: info.allMembers ?? true,
       ...(info.exportAs === undefined ? {} : { exportAs: info.exportAs }),
     })),
   };
@@ -403,6 +404,21 @@ describe("checkFileOf", () => {
     expect(text)
       .not
       .toContain("$dir_1[\"picked\"]");
+  });
+
+  test("a directive whose base classes are not read types its own outputs, and leaves the others any", () => {
+    const text = checkFileOf([pageWith(
+      "<b pick (picked)=\"go($event)\" (inherited)=\"go($event)\"></b>",
+      [directive("Pick", "[pick]", ["picked"], { allMembers: false })],
+    )], outputFile);
+    const events = text.split("\n")
+      .filter((line) => line.includes("const $event"))
+      .map((line) => line.trim());
+    expect(events)
+      .toEqual([
+        "const $event = null as never as $Or<typeof $output_0, $DomEvent<\"picked\">>;",
+        "const $event: any = undefined;",
+      ]);
   });
 
   test("a reference to the component, or to an exportAs, is its instance", () => {
