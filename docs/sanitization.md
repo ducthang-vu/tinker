@@ -84,7 +84,7 @@ Built (`runtime/property-binding.ts`, through `propertyValue` in `sanitization.t
 
 | # | Case | Proposed rule |
 |---|------|---------------|
-| I1 | The router sets links or URLs | **To check**: read `packages/router` for any attribute it writes. |
+| I1 | The router sets links or URLs | Checked. `RouterLink` writes `href`, `target` and `aria-current` through host attribute bindings, so `href` goes through the URL check (A–D) like any other. Its URL is a path of the app's own origin: the router's parser joins empty segments (`//evil.example` is `/evil.example`) and encodes a backslash and a scheme's colon (`/\evil` is `/%5Cevil`, `https://x` is `/https%3A/x`), and `pushState`/`replaceState` get those paths only. Tests: `destination/app-path-builder.test.ts`. |
 | I2 | The framework's own scope attributes (`tk-cN`, `tk-hN`) | Internal. Not user input. |
 
 ### J. Developer mode
@@ -119,5 +119,5 @@ These are the defaults the code now follows. Change one by changing the rule in
 
 Property bindings (G): built, as above.
 
-Not built yet: the router check (I1).
+The router (I1): checked, as above.
 
