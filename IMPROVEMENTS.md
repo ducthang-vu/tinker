@@ -85,30 +85,9 @@ root as the one case that renders into an existing element.
   handler; it is not sugar over the property yet.
 - **Reflected properties follow their attribute.** Setting `disabled` changes the
   attribute too, because the browser reflects it. Nothing here guards that.
-- **No type checks.** A string bound to a number property is set as it is.
 - **A refused value is set to `""`.** `[href]` to `javascript:` and `[innerHTML]` without
   a `TrustedHtml` are set to `""` (see `docs/sanitization.md`, G), so the property is
   written, not left as it was.
-
-### 2. Content queries see only direct element children
-
-**Problem.** `query(…, { from: "content" })` lists the elements the parent passes
-in directly. Items inside `@if`, `@map` or `<tk-container>` children, and items
-nested in a plain element, are not in the list.
-
-**To do.** Record every match of the parent's template that lands in the
-component's slot, not only direct children, behind an option (`descendants`), and
-include the blocks' rows. The rule is settled in the query code, so this is a
-change in `projectChildren` and the block builders.
-
-### 3. A template variable is a query target only in `query`
-
-**Problem.** `query("name")` reads a top-level `#name`, but `queryAll` takes only
-a class, and a variable inside `@if` or `@map` is not in the registry, since one
-name can appear many times.
-
-**To do.** `queryAll` with a variable (a list of the one value, or of the rows that
-share the name), and a registry per row if a row variable is to be queried.
 
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 

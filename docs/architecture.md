@@ -14,7 +14,7 @@ Client code sees a few objects. Everything else is internal.
 | `ComponentRef` | The handle of a component: `instance`, `host`, `setInput`, `subscribe`, `emit`, `destroy()`. |
 | `ViewContainerRef` | Adds, moves and removes components at runtime. |
 | `ElementRef` | The element a component or directive is on (`host`, `nativeElement`). |
-| `queryAll` | A signal of the instances of a type, in document order. `{ from: "content" }` reads the children the parent passes in instead of the component's own template; `{ read: ElementRef }` gives their elements. |
+| `queryAll` | A signal of the instances of a type, in document order. `{ from: "content" }` reads the children the parent passes in instead of the component's own template, and `{ descendants: true }` with it the ones nested in them too; `{ read: ElementRef }` gives their elements. A string target (`queryAll("row")`) lists the values of every template variable `#row`, in blocks too. |
 | `query` | A signal of the first of those, as a `Maybe` (none when there is none). The same options apply. A string target (`query<Tab>("tab")`) reads the top-level template variable `#tab`, `#tab="exportAs"` or `##tab`: the element or instance it names. |
 | `query.required` | The same, as the instance itself. Reading it when there is no match throws `QueryMissingError`. |
 | replaced classes | A query for a class matches its replacement when one is set (`CLASS_REPLACEMENTS`), so a mock of a child is found by the child's class. |
@@ -131,20 +131,23 @@ views (`@if` branches, `@map` rows) record into the same registry, since they
 belong to the component's template. A child component's template records into its
 own registry, so `queryAll` never lists the items inside a child.
 
-Top-level template variables are also in the registry, by name, so `query("name")`
-finds them. A variable inside an `@if` branch or a `@map` row is not, since one name
-can appear many times; query those by a class instead.
+Template variables are also in the registry, by name. `query("name")` reads the one
+declared at the top level of the template. `queryAll("name")` lists every one, those in
+`@if` branches and `@map` rows too (a block may declare a name its siblings use), in
+document order, as their views come and go.
 
 Content is a second registry per component. A parent that builds a component's
-element records its direct element children into it, as well as into its own
-registry, so `queryAll(Type, { from: "content" })` in the component lists the
-children the parent passed in (only the direct ones; a child nested in a plain
-element or in a block is not in it).
+element records what it passes in into it, as well as into its own registry: the
+matches on the direct element children as direct, and those nested deeper (in a plain
+element, an `@if` branch, a `@map` row, a `<tk-container>`, or a template rendered there)
+as descendants. `queryAll(Type, { from: "content" })` in the component lists the direct
+ones; `{ from: "content", descendants: true }` lists both, in document order. Content
+passed on to a nested component is content of both components: a direct match of the
+inner one, a descendant of the outer one. A child component's own template is in
+neither.
 
 `queryAll(type)` reads the registry in document order. A `@map` that moves
 its rows tells the registry, which then sorts again.
-
-Not built yet: a template variable as the target of `queryAll` (only `query` takes one).
 
 ## Template references
 

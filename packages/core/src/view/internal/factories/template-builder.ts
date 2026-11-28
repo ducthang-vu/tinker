@@ -78,6 +78,7 @@ export class TemplateBuilderFactory {
     scope = new Scope(component, new Map(), this.checks),
     root = true,
     node: ViewNode = {},
+    contents: readonly ContentQueries[] = [],
   ): TemplateBuilder {
     return new TemplateBuilder(
       component,
@@ -92,6 +93,7 @@ export class TemplateBuilderFactory {
       root,
       node,
       this.devMode,
+      contents,
     );
   }
 }
@@ -107,8 +109,11 @@ interface ElementWithDirectives {
   readonly projected: ReadonlyMap<string, Node[]>;
   /** The nearest enclosing element with directives (its index), if any. */
   readonly parent: Maybe<number>;
-  /** The content registry of the component this element is a direct child of, if any. */
-  readonly sink?: ViewQueries;
+  /**
+   * The content registries of the components whose content this element is in: as a direct
+   * match for the component it is a direct child of, as a descendant for the others.
+   */
+  readonly contents: readonly { readonly registry: ContentQueries; readonly direct: boolean }[];
   /** The content registry of this element's component, handed to the component. */
   readonly content?: ContentQueries;
 }
@@ -139,8 +144,12 @@ export class TemplateBuilder {
 
   /** The content this template's `<slot>`s show, by name; a slot takes its content once. */
   private projected = new Map<string, Node[]>();
-  /** Set while a component's element children are built: the registry their elements go to. */
-  private contentSink: ViewQueries | undefined;
+  /** The template variables built, recorded in the component's registry once the view exists. */
+  private readonly variables: { name: string; value: Signal<unknown>; node: Node }[] = [];
+  /** Set while a component's element children are built: the registry of their direct matches. */
+  private contentSink: ContentQueries | undefined;
+  /** The content registries of the components whose content is being built: see `contents`. */
+  private readonly contentStack: ContentQueries[] = [];
 
   /**
    * @param component The instance whose fields the template's expressions read.
@@ -170,6 +179,12 @@ export class TemplateBuilder {
     readonly node: ViewNode,
     /** In development mode, a failed child leaves a comment naming it in its element. */
     private readonly devMode: boolean,
+    /**
+     * The content registries of the components whose content is being built (the innermost
+     * last): the elements built are their content. An embedded view starts with those of the
+     * place its block is in.
+     */
+    private readonly contents: readonly ContentQueries[] = [],
   ) {
     this.scope = scope;
     this.styleScope = scopeOfComponent(component.constructor as Class<object>);
@@ -202,9 +217,12 @@ export class TemplateBuilder {
    */
   createDirectivesAndComponents(view: View, componentInjector: Injector): void {
     const injectors: Injector[] = [];
+    for (const { name, value, node } of this.variables) {
+      view.addDestroyCallback(this.queries.addVariable(name, value, node));
+    }
     this.attachMatches(undefined, view, componentInjector);
     for (const [index, entry] of this.withDirectives.entries()) {
-      const { placement, node, parent, projected, references, sink, content } = entry;
+      const { placement, node, parent, projected, references, contents, content } = entry;
       // A component is only on an element; the node the instances are view queries of.
       const element = placement.kind === "element" ? placement.element : undefined;
       const queried: Node = element ?? (placement as ContainerPlacement).anchor;
@@ -302,12 +320,12 @@ export class TemplateBuilder {
           ...(owner === undefined ? [] : this.ownedOf([owner.type], [owner.instance])),
         ], view);
       }
-      // The instances are view queries of this component, and of the component they
-      // are projected into: removed with their view.
+      // The instances are view queries of this component, and content queries of the
+      // components they are projected into: removed with their view.
       for (const instance of instances) {
         view.addDestroyCallback(this.queries.add(instance, queried));
-        if (sink !== undefined) {
-          view.addDestroyCallback(sink.add(instance, queried));
+        for (const { registry, direct } of contents) {
+          view.addDestroyCallback(registry.add(instance, queried, direct));
         }
       }
       injectors.push(injector);
@@ -322,8 +340,10 @@ export class TemplateBuilder {
   private declareReferences(node: CompiledElement, element: Node): PendingReference[] {
     const pending: PendingReference[] = [];
     for (const { name, target } of node.references) {
-      // A top-level name is also in the component's registry, so a query can name it.
+      // A top-level name is also in the component's registry, so `query` can name it; every
+      // one is recorded once the view exists, so `queryAll` can.
       const value = this.root ? this.queries.reference(name) : signal<unknown>(undefined);
+      this.variables.push({ name, value, node: element });
       this.scope.lets.set(name, value);
       if (target.kind === "element") {
         value.set(element);
@@ -366,13 +386,16 @@ export class TemplateBuilder {
     groups: Map<string, Node[]>,
     content: ContentQueries,
   ): void {
+    // Everything built here is content of the component: a direct element child is a direct
+    // match, and what is nested in it, or in a block or a container, is a descendant.
+    this.contentStack.push(content);
     for (const child of children) {
       const name = slotOf(child);
-      // A direct element child is content of the component: its directives are recorded there.
       this.contentSink = child.kind === "element" ? content : undefined;
       groups.set(name, [...(groups.get(name) ?? []), ...this.buildNode(child)]);
     }
     this.contentSink = undefined;
+    this.contentStack.pop();
   }
 
   /**
@@ -486,11 +509,12 @@ export class TemplateBuilder {
    */
   private buildMatch(node: CompiledMatch): Node {
     const anchor = this.renderer.createComment("");
+    const contents = this.contentsHere();
     const binding = new MatchBinding(
       node,
       this.scope,
       new Map(this.scope.lets),
-      (body, scope, injector) => this.renderBranch(body, scope, anchor, injector),
+      (body, scope, injector) => this.renderBranch(body, scope, anchor, injector, contents),
     );
     this.bindings.push(binding);
     this.matches.push({ binding, parent: this.enclosing.at(-1) });
@@ -499,11 +523,12 @@ export class TemplateBuilder {
 
   /** A template declared here: a value under its name, rendering nothing in place. */
   private declareTemplate(node: CompiledDeclaration): void {
+    const contents = this.contentsHere();
     const template = new TemplateRef(
       node.body,
       node.names,
       this.scope,
-      (body, scope, anchor, injector) => this.renderBranch(body, scope, anchor, injector),
+      (body, scope, anchor, injector) => this.renderBranch(body, scope, anchor, injector, contents),
     );
     this.scope.lets.set(node.name, signal(template));
   }
@@ -514,14 +539,17 @@ export class TemplateBuilder {
    */
   private buildMap(node: CompiledMap): Node {
     const anchor = this.renderer.createComment("");
+    const contents = this.contentsHere();
+    const registries = [this.queries, ...contents];
     const binding = new MapBinding(
       node,
       this.scope,
       new Map(this.scope.lets),
       anchor,
       this.renderer,
-      (body, scope, rowAnchor, injector) => this.renderBranch(body, scope, rowAnchor, injector),
-      this.queries,
+      (body, scope, rowAnchor, injector) =>
+        this.renderBranch(body, scope, rowAnchor, injector, contents),
+      { reordered: () => registries.forEach((registry) => registry.reordered()) },
     );
     this.bindings.push(binding);
     this.matches.push({ binding, parent: this.enclosing.at(-1) });
@@ -534,6 +562,7 @@ export class TemplateBuilder {
     scope: Scope,
     anchor: Node,
     injector: Injector,
+    contents: readonly ContentQueries[],
   ): EmbeddedView {
     const builder = this.factory.create(
       this.component,
@@ -542,8 +571,17 @@ export class TemplateBuilder {
       scope,
       false,
       { owner: this.node },
+      contents,
     );
     return this.embedded.create(builder, body, anchor, injector);
+  }
+
+  /**
+   * The content registries of the components whose content is being built here: those of the
+   * place this view is in, then those of the components being built around this point.
+   */
+  private contentsHere(): readonly ContentQueries[] {
+    return [...this.contents, ...this.contentStack];
   }
 
   /** Attach the matches in `parent` (undefined: the template's root), with `injector`. */
@@ -556,7 +594,7 @@ export class TemplateBuilder {
   }
 
   /** A text with `{{ }}` starts empty and gets a binding, filled by `update`. */
-  private buildTextOrElement(node: CompiledText | CompiledElement, sink?: ViewQueries): Node {
+  private buildTextOrElement(node: CompiledText | CompiledElement, sink?: ContentQueries): Node {
     if (node.kind === "text") {
       const { strings, expressions } = node.interpolation;
       if (expressions.length === 0) {
@@ -632,7 +670,7 @@ export class TemplateBuilder {
     node: CompiledElement,
     projected: Map<string, Node[]>,
     references: readonly PendingReference[],
-    links: { readonly sink?: ViewQueries; readonly content?: ContentQueries },
+    links: { readonly sink?: ContentQueries; readonly content?: ContentQueries },
   ): Maybe<number> {
     const hasEvents = node.outputBindings.length > 0;
     // A `[name]` on a plain element sets a DOM property, so the element needs its entry too.
@@ -642,13 +680,16 @@ export class TemplateBuilder {
       return None.of();
     }
     const parent = fromNullable(this.enclosing.at(-1));
+    const contents = this.contentsHere()
+      .map((registry) => ({ registry, direct: registry === links.sink }));
     const index = this.withDirectives.push({
       placement,
       node,
       parent,
       projected,
       references,
-      ...links,
+      contents,
+      ...(links.content === undefined ? {} : { content: links.content }),
     }) - 1;
     this.enclosing.push(index);
     return Some.of(index);

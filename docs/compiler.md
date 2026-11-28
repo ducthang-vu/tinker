@@ -147,6 +147,12 @@ are git-ignored and rewritten each run.
   (`number`) its type, `present` drops `null` and `undefined`, and an object pattern keeps
   the cases that have every key it reads and none of its `absent` keys. The guard is
   checked with those names. A field the narrowed cases do not have is a type error.
+- Property bindings: `[value]="name()"` on an element of a tag the DOM types checks the value
+  against the property (`string` for an `<input>`'s `value`), found ignoring case as the
+  run time finds it; a trusted value (`TrustedHtml`, `TrustedStyle`, `TrustedUrl`) is taken
+  for any property, as the sanitizer takes it. A property the element does not have is a
+  type error. A binding that a directive's or component's input takes is not a property
+  binding, and a custom element's properties are not typed.
 - References: `#name` is its element (`HTMLInputElement` for an `<input>`, `HTMLElement`
   for a tag the DOM does not type), `##name` the element's component, and
   `#name="exportAs"` the directive or component with that exportAs.

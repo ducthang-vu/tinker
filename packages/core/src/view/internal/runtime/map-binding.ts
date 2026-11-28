@@ -12,7 +12,6 @@ import { patternNames } from "../template/template-shadows.ts";
 import type { Injector } from "../../../di/index.ts";
 import { computed, type ReadonlySignal, signal, type Signal } from "../../../signals/index.ts";
 import type { Renderer } from "../renderer.ts";
-import type { ViewQueries } from "./view-queries.ts";
 import type { CompiledMap, CompiledNode } from "../template/compile.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { Scope, warnShadows } from "../template/scope.ts";
@@ -56,7 +55,8 @@ export class MapBinding implements Binding {
    * @param anchor The map's comment, after which the rows are placed.
    * @param renderer Creates the anchors and moves the rows.
    * @param render Renders a row.
-   * @param queries The component's view queries, told when the rows move.
+   * @param queries The registries the rows' matches are in (the component's view queries, and the
+   *   content queries the rows are content of), told when the rows move.
    */
   constructor(
     private readonly node: CompiledMap,
@@ -65,7 +65,7 @@ export class MapBinding implements Binding {
     private readonly anchor: Comment,
     private readonly renderer: Renderer,
     private readonly render: RowRenderer,
-    private readonly queries: ViewQueries,
+    private readonly queries: { reordered(): void },
   ) {
     // The item's names are declared here, so they may not hide what is around the map.
     warnShadows(this.scope.component, this.scope.checks, this.above, patternNames(node.item));

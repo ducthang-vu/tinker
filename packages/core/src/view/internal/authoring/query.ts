@@ -1,8 +1,10 @@
 // query and queryAll: the instances of a type, as signals. The target is a directive
 // or component class, or the name of a template variable (`#name`, `#name="exportAs"`,
-// `##name`) declared at the top level of the component's template. The source is the
+// `##name`): `query` reads the one declared at the top level of the component's template,
+// `queryAll` every one, in blocks too. The source is the
 // component's own template (the default) or its content, the children its parent's
-// template passes in. `query` is the first match, as a Maybe; `query.required` is the
+// template passes in: the direct ones, or with `descendants: true` the nested ones too.
+// `query` is the first match, as a Maybe; `query.required` is the
 // match itself and throws when there is none; `queryAll` is every match, in document
 // order. `{ read: ElementRef }` gives the elements the instances sit on instead.
 
@@ -17,9 +19,14 @@ import { fromNullable, getOrThrow, map, match, use, type Maybe } from "@tinker/f
 /** Where a query looks: the component's own template, or the content it was given. */
 export type QuerySource = "view" | "content";
 
-/** Options of query and queryAll. `from` is the source, "view" by default. */
+/**
+ * Options of query and queryAll. `from` is the source, "view" by default. With `from: "content"`,
+ * `descendants: true` also lists the matches nested in the content (inside a plain element, a
+ * `@if` branch, a `@map` row or a `<tk-container>`), not only the direct children.
+ */
 export interface QueryOptions {
   readonly from?: QuerySource;
+  readonly descendants?: boolean;
 }
 
 /** Options with `read: ElementRef`: the elements the instances sit on, not the instances. */
@@ -50,6 +57,11 @@ function matchedBy<T extends object>(type: Class<T>): Class<T> {
 
 function registryOf(options: QueryOptions | undefined): ViewQueries {
   return options?.from === "content" ? inject(ContentQueries) : inject(ViewQueries);
+}
+
+/** Whether the options ask for the matches nested in the content too (`descendants: true`). */
+function descendantsOf(options: QueryOptions | undefined): boolean {
+  return options?.descendants === true;
 }
 
 /** Whether the options ask for elements (`read: ElementRef`). */
@@ -87,8 +99,8 @@ function optionalQuery(
   }
   const queries = registryOf(options);
   return readsElements(options)
-    ? queries.firstElement(matchedBy(target))
-    : queries.first(matchedBy(target));
+    ? queries.firstElement(matchedBy(target), descendantsOf(options))
+    : queries.first(matchedBy(target), descendantsOf(options));
 }
 
 /**
@@ -114,9 +126,9 @@ function requiredQuery(
     ? namedOf(target)
     : readsElements(options)
       ? registryOf(options)
-          .firstElement(matchedBy(target))
+          .firstElement(matchedBy(target), descendantsOf(options))
       : registryOf(options)
-          .first(matchedBy(target));
+          .first(matchedBy(target), descendantsOf(options));
   return computed(() => getOrThrow(first(), () => new QueryMissingError(written)));
 }
 
@@ -126,7 +138,9 @@ export const query = Object.assign(optionalQuery, { required: requiredQuery });
 /**
  * Every match of `type`, in document order: child components and directives, including
  * those in `@if` branches and `@map` rows. It is a signal, so it follows the template as
- * it changes. To pick from the list, use its array methods.
+ * it changes. To pick from the list, use its array methods. Given the name of a template
+ * variable (`queryAll("row")`), it is the value of every `#row` of the component's template,
+ * at the top level and in `@if` branches and `@map` rows, in document order.
  */
 export function queryAll<T extends object>(type: Class<T>): ReadonlySignal<readonly T[]>;
 export function queryAll<T extends object>(
@@ -137,10 +151,17 @@ export function queryAll<T extends object>(
   type: Class<T>,
   options?: QueryOptions,
 ): ReadonlySignal<readonly T[]>;
+export function queryAll<T = unknown>(name: string): ReadonlySignal<readonly T[]>;
 export function queryAll<T extends object>(
-  type: Class<T>,
+  type: Class<T> | string,
   options?: QueryOptions,
-): ReadonlySignal<readonly T[] | readonly ElementRef[]> {
+): ReadonlySignal<readonly unknown[]> {
+  if (typeof type === "string") {
+    return inject(ViewQueries)
+      .named(type);
+  }
   const queries = registryOf(options);
-  return readsElements(options) ? queries.elementsOf(matchedBy(type)) : queries.of(matchedBy(type));
+  return readsElements(options)
+    ? queries.elementsOf(matchedBy(type), descendantsOf(options))
+    : queries.of(matchedBy(type), descendantsOf(options));
 }
