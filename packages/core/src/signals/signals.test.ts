@@ -1,6 +1,10 @@
 import { describe, expect, expectTypeOf, test } from "vitest";
 import {
   computed,
+  isSignal,
+  SIGNAL,
+  type SignalTag,
+  tagSignal,
   type ReadonlySignal,
   type Runnable,
   type Signal,
@@ -221,5 +225,51 @@ describe("exports", () => {
     expectTypeOf(w).not.toHaveProperty("markDirty");
     expectTypeOf(w).not.toHaveProperty("run");
     expectTypeOf(s.asReadonly()).not.toHaveProperty("set");
+  });
+});
+
+describe("the signal tag", () => {
+  const idOf = (value: unknown): number => (value as { readonly [SIGNAL]: SignalTag })[SIGNAL].id;
+
+  test("every signal is tagged; a plain function, even with a set method, is not", () => {
+    const count = signal(1);
+    const double = computed(() => count() * 2);
+    expect([count, count.asReadonly(), double].every(isSignal))
+      .toBe(true);
+    expect(isSignal(Object.assign(() => 1, { set: () => undefined })))
+      .toBe(false);
+    expect(isSignal({ [SIGNAL]: { id: 0 } }))
+      .toBe(false);
+  });
+
+  test("a read-only view has the id of its signal, and another signal its own", () => {
+    const count = signal(1);
+    expect(idOf(count.asReadonly()))
+      .toBe(idOf(count));
+    expect(idOf(computed(() => count())))
+      .not
+      .toBe(idOf(count));
+  });
+
+  test("the tag is not enumerable, and cannot be replaced", () => {
+    const count = signal(1);
+    expect(Object.keys(count))
+      .not
+      .toContain(SIGNAL.toString());
+    expect(Object.getOwnPropertySymbols({ ...count }))
+      .toEqual([]);
+    expect(() => {
+      (count as unknown as Record<symbol, unknown>)[SIGNAL] = { id: -1 };
+    })
+      .toThrow(TypeError);
+  });
+
+  test("tagSignal tags a function with the id of the signal it reads", () => {
+    const count = signal(1);
+    const wrapper = tagSignal(() => count(), count);
+    expect(isSignal(wrapper))
+      .toBe(true);
+    expect(idOf(wrapper))
+      .toBe(idOf(count));
   });
 });

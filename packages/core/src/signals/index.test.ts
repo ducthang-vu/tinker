@@ -15,11 +15,14 @@ test("exports exactly the public runtime symbols", () => {
   expect(Object.keys(api)
     .sort())
     .toEqual([
+      "SIGNAL",
       "SignalCycleError",
       "SignalWriteError",
       "WatchLoopError",
       "computed",
+      "isSignal",
       "signal",
+      "tagSignal",
       "untracked",
       "watch",
     ]);

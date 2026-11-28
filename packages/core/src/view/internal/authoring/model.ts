@@ -23,7 +23,7 @@
 // The owner keeps the model private. Anyone else that needs to read the value
 // uses `asReadonly()`, which has no way to set it or to emit.
 
-import type { ReadonlySignal } from "../../../signals/index.ts";
+import { type ReadonlySignal, tagSignal } from "../../../signals/index.ts";
 import { InputBinding, type InputSignal, registerInput } from "./input.ts";
 import { registerChangeOutput } from "./output.ts";
 import { Some, None, isSome, filter, Emitter } from "@tinker/functional";
@@ -57,11 +57,12 @@ export function model<T>(...defaultValue: [] | [T]): ModelSignal<T> {
   };
 
   const readable = binding.signal;
-  const handle = Object.assign(() => readable(), {
+  // The handle is a signal of its own, writable by the owner: tagged with its read side's id.
+  const handle = tagSignal(Object.assign(() => readable(), {
     set,
     update: (fn: (current: T) => T) => set(fn(readable())),
     asReadonly: (): ReadonlySignal<T> => readable,
-  }) as unknown as ModelSignal<T>;
+  }), readable) as unknown as ModelSignal<T>;
 
   // The template sees the model as an input (`[value]`) and as an output
   // (`(valueChange)`), both through the owner's instance.

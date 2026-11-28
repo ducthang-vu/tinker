@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { signal } from "../../../signals/index.ts";
+import { isSignal, SIGNAL, signal, type SignalTag } from "../../../signals/index.ts";
 import { Component, Directive } from "./decorators.ts";
-import { InputNotBoundError, inputsOf } from "./input.ts";
+import { input, InputNotBoundError, inputsOf } from "./input.ts";
 import { model } from "./model.ts";
 import { outputsOf } from "./output.ts";
 import { Engine } from "../engine.ts";
@@ -197,4 +197,17 @@ describe("two-way binding in templates", () => {
     expect(changes)
       .toEqual(["second"]);
   });
+});
+
+test("a model and an input are signals; a model has the id of its read-only side", () => {
+  const idOf = (value: unknown): number => (value as { readonly [SIGNAL]: SignalTag })[SIGNAL].id;
+  class Owner {
+    readonly value = model("a");
+    readonly label = input("x");
+  }
+  const owner = new Owner();
+  expect(isSignal(owner.value) && isSignal(owner.label))
+    .toBe(true);
+  expect(idOf(owner.value))
+    .toBe(idOf(owner.value.asReadonly()));
 });
