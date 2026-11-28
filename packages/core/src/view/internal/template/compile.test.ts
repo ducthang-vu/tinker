@@ -45,6 +45,7 @@ describe("compileTemplate", () => {
           styleBindings: [],
           attributeBindings: [],
           outputBindings: [],
+          twoWayBindings: [],
         },
         { kind: "text", interpolation: { strings: ["plain"], expressions: [] } },
       ]);

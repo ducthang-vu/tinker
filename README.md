@@ -171,6 +171,13 @@ it is on purpose.
   comes from the template changes it without emitting, so the template's
   handler never hears its own update. Other code that needs every change
   reads the signal in an effect.
+- **`[(name)]="signal"` binds two ways, and only a writable signal.** It sets the
+  input or property `name` from `signal()`, and writes the signal back: from a
+  component's or directive's model (its `nameChange` output), or, on a plain
+  element, after the DOM event that changes the property (`input` for `value`,
+  `change` for `checked`). The expression names the signal (`[(value)]="name"`,
+  not `name()`); a computed, an input or a read-only view is refused, and so is
+  any function that is not a signal (signals carry a private tag).
 - **Inputs are required unless they have a default.** `input<string>()`
   throws if read before it is bound, and `input("top")` is optional: the
   reverse of Angular's `input()` and `input.required()`.
