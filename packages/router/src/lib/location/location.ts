@@ -19,7 +19,16 @@ export class Location implements OnDestroy {
   private readonly stopListening: () => void;
   private readonly popListeners = new Set<(url: string, state: unknown) => void>();
 
-  /** The path, query and hash of the current entry. */
+  /**
+   * The path, query and hash of the current entry, relative to the app: the folder the app is
+   * served under is not in it. The browser's own URL, with that folder, is `buildBrowserUrl`.
+   *
+   * @example
+   * ```ts
+   * location.url();                       // "/todos/7", served from "/tinker/"
+   * location.buildBrowserUrl("/todos/7"); // "/tinker/todos/7"
+   * ```
+   */
   readonly url: ReadonlySignal<string> = computed(() => this.entry().url);
   /** The state of the current entry, `null` when it was given none. */
   readonly state: ReadonlySignal<unknown> = computed(() => this.entry().state);

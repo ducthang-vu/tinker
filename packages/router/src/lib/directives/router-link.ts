@@ -176,7 +176,7 @@ export class RouterLink {
   /** `page` while the link's path is the current one, for assistive technology. */
   private readonly ariaCurrent = computed(() => {
     const href = this.href();
-    return href !== undefined && pathOf(href) === pathOf(this.router.url()) ? "page" : undefined;
+    return href !== undefined && pathOf(href) === pathOf(this.location.url()) ? "page" : undefined;
   });
 
   /**
