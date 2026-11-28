@@ -1,6 +1,7 @@
 // query and queryAll: the instances of a type, as signals. The target is a directive
 // or component class, or the name of a template variable (`#name`, `#name="exportAs"`,
-// `##name`) declared at the top level of the component's template. The source is the
+// `##name`): `query` reads the one declared at the top level of the component's template,
+// `queryAll` every one, in blocks too. The source is the
 // component's own template (the default) or its content, the children its parent's
 // template passes in: the direct ones, or with `descendants: true` the nested ones too.
 // `query` is the first match, as a Maybe; `query.required` is the
@@ -137,7 +138,9 @@ export const query = Object.assign(optionalQuery, { required: requiredQuery });
 /**
  * Every match of `type`, in document order: child components and directives, including
  * those in `@if` branches and `@map` rows. It is a signal, so it follows the template as
- * it changes. To pick from the list, use its array methods.
+ * it changes. To pick from the list, use its array methods. Given the name of a template
+ * variable (`queryAll("row")`), it is the value of every `#row` of the component's template,
+ * at the top level and in `@if` branches and `@map` rows, in document order.
  */
 export function queryAll<T extends object>(type: Class<T>): ReadonlySignal<readonly T[]>;
 export function queryAll<T extends object>(
@@ -148,10 +151,15 @@ export function queryAll<T extends object>(
   type: Class<T>,
   options?: QueryOptions,
 ): ReadonlySignal<readonly T[]>;
+export function queryAll<T = unknown>(name: string): ReadonlySignal<readonly T[]>;
 export function queryAll<T extends object>(
-  type: Class<T>,
+  type: Class<T> | string,
   options?: QueryOptions,
-): ReadonlySignal<readonly T[] | readonly ElementRef[]> {
+): ReadonlySignal<readonly unknown[]> {
+  if (typeof type === "string") {
+    return inject(ViewQueries)
+      .named(type);
+  }
   const queries = registryOf(options);
   return readsElements(options)
     ? queries.elementsOf(matchedBy(type), descendantsOf(options))

@@ -90,15 +90,6 @@ root as the one case that renders into an existing element.
   a `TrustedHtml` are set to `""` (see `docs/sanitization.md`, G), so the property is
   written, not left as it was.
 
-### 2. A template variable is a query target only in `query`
-
-**Problem.** `query("name")` reads a top-level `#name`, but `queryAll` takes only
-a class, and a variable inside `@if` or `@map` is not in the registry, since one
-name can appear many times.
-
-**To do.** `queryAll` with a variable (a list of the one value, or of the rows that
-share the name), and a registry per row if a row variable is to be queried.
-
 ## Developer mode (`packages/core/src/view/internal/`, `packages/core/src/view/bootstrap.ts`)
 
 ### 1. Warn about unknown names and add `onWarning`

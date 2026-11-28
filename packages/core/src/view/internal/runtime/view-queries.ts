@@ -19,12 +19,21 @@ interface Match {
   readonly direct: boolean;
 }
 
+/** A template variable: its name, its value, and the node it is declared on. */
+interface Variable {
+  readonly name: string;
+  readonly value: ReadonlySignal<unknown>;
+  readonly node: Node;
+}
+
 @Injectable()
 export class ViewQueries {
   private readonly matches = signal<readonly Match[]>([]);
   /** Bumped when the DOM is reordered, since the order of the matches may have changed. */
   private readonly order = signal(0);
   private readonly references = new Map<string, Signal<unknown>>();
+  /** Every template variable of the template, in blocks too, with the node it is declared on. */
+  private readonly variables = signal<readonly Variable[]>([]);
 
   /**
    * The value of the template variable `name` declared at the top level of this
@@ -55,6 +64,41 @@ export class ViewQueries {
     return () => {
       this.matches.update((matches) => matches.filter((other) => other !== match));
     };
+  }
+
+  /**
+   * Record the template variable `name`, declared on `node`, whose value is `value`. Returns
+   * what removes it again.
+   *
+   * @param name The variable's name.
+   * @param value Its value: the element, or the directive or component, once set.
+   * @param node The element (or container anchor) it is declared on, for the document order.
+   * @returns What removes the record.
+   */
+  addVariable(name: string, value: ReadonlySignal<unknown>, node: Node): () => void {
+    const variable: Variable = { name, value, node };
+    this.variables.update((variables) => [...variables, variable]);
+    return () => {
+      this.variables.update((variables) => variables.filter((other) => other !== variable));
+    };
+  }
+
+  /**
+   * The values of every template variable `name`, in document order: one for each place the
+   * template declares it that is rendered, once its value is set.
+   *
+   * @param name The variable's name.
+   * @returns The values, as a signal.
+   */
+  named<T>(name: string): ReadonlySignal<readonly T[]> {
+    return computed(() => {
+      this.order();
+      return this.variables()
+        .filter((variable) => variable.name === name)
+        .sort((left, right) => documentOrder(left.node, right.node))
+        .map((variable) => variable.value())
+        .filter((value) => value !== undefined) as T[];
+    });
   }
 
   /** The DOM was reordered: the matches may now be in another order. */

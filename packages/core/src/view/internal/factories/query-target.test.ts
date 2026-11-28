@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { tick } from "../test-support.ts";
 import { Component, Directive } from "../authoring/decorators.ts";
-import { query } from "../authoring/query.ts";
+import { query, queryAll } from "../authoring/query.ts";
+import { signal } from "../../../signals/index.ts";
 import { QueryMissingError } from "../authoring/query.ts";
 import { Engine } from "../engine.ts";
 import { valueOrThrow, isNone, getOrElse } from "@tinker/functional";
@@ -88,5 +89,45 @@ describe("query with a template variable as the target", () => {
       .toThrow(QueryMissingError);
     expect(() => view.instance.missing())
       .toThrow(`No "missing" found, which query.required("missing") needs`);
+  });
+});
+
+describe("queryAll with a template variable as the target", () => {
+  test("lists every value of the name, at the top level and in blocks, in document order", async () => {
+    @Component({
+      selector: "tk-rows",
+      template: `@if (shown()) { <p #cell id="branch"></p> }
+        @map rows(); let row; track row { <p #cell [id]="row"></p> }
+        <p marker #cell="marker"></p>`,
+      imports: [Marker],
+    })
+    class Rows {
+      readonly shown = signal(true);
+      readonly rows = signal(["a", "b"]);
+      readonly cells = queryAll<HTMLElement | Marker>("cell");
+    }
+    const engine = Engine.create();
+    const view = valueOrThrow(renderComponent(engine, Rows));
+    await tick();
+    const ids = () => view.instance.cells()
+      .map((cell) => (cell instanceof Marker ? "marker" : cell.id));
+    expect(ids())
+      .toEqual(["branch", "a", "b", "marker"]);
+    view.instance.shown.set(false);
+    view.instance.rows.set(["b", "a"]);
+    engine.flush();
+    await tick();
+    expect(ids())
+      .toEqual(["b", "a", "marker"]);
+  });
+
+  test("a name the template does not declare lists nothing", () => {
+    @Component({ selector: "tk-none", template: "<p></p>" })
+    class None {
+      readonly cells = queryAll("cell");
+    }
+    const view = valueOrThrow(renderComponent(Engine.create(), None));
+    expect(view.instance.cells())
+      .toEqual([]);
   });
 });

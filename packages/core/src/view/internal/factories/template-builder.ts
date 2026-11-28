@@ -144,6 +144,8 @@ export class TemplateBuilder {
 
   /** The content this template's `<slot>`s show, by name; a slot takes its content once. */
   private projected = new Map<string, Node[]>();
+  /** The template variables built, recorded in the component's registry once the view exists. */
+  private readonly variables: { name: string; value: Signal<unknown>; node: Node }[] = [];
   /** Set while a component's element children are built: the registry of their direct matches. */
   private contentSink: ContentQueries | undefined;
   /** The content registries of the components whose content is being built: see `contents`. */
@@ -215,6 +217,9 @@ export class TemplateBuilder {
    */
   createDirectivesAndComponents(view: View, componentInjector: Injector): void {
     const injectors: Injector[] = [];
+    for (const { name, value, node } of this.variables) {
+      view.addDestroyCallback(this.queries.addVariable(name, value, node));
+    }
     this.attachMatches(undefined, view, componentInjector);
     for (const [index, entry] of this.withDirectives.entries()) {
       const { placement, node, parent, projected, references, contents, content } = entry;
@@ -335,8 +340,10 @@ export class TemplateBuilder {
   private declareReferences(node: CompiledElement, element: Node): PendingReference[] {
     const pending: PendingReference[] = [];
     for (const { name, target } of node.references) {
-      // A top-level name is also in the component's registry, so a query can name it.
+      // A top-level name is also in the component's registry, so `query` can name it; every
+      // one is recorded once the view exists, so `queryAll` can.
       const value = this.root ? this.queries.reference(name) : signal<unknown>(undefined);
+      this.variables.push({ name, value, node: element });
       this.scope.lets.set(name, value);
       if (target.kind === "element") {
         value.set(element);
