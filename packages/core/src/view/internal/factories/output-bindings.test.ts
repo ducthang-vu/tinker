@@ -267,4 +267,30 @@ describe("output bindings in templates", () => {
     expect(relay.pick)
       .toBe(pick);
   });
+
+  test("an output of a component is heard by the template that uses it", async () => {
+    @Component({ selector: "tk-picker", template: `<button (click)="pick()">x</button>` })
+    class Picker {
+      readonly picked = output<number>();
+      pick() {
+        this.picked.emit(7);
+      }
+    }
+    const seen: number[] = [];
+    @Component({
+      selector: "tk-a",
+      template: `<tk-picker (picked)="log($event)"></tk-picker>`,
+      imports: [Picker],
+    })
+    class A {
+      log(value: number) {
+        seen.push(value);
+      }
+    }
+    const view = valueOrThrow(renderComponent(Engine.create(), A));
+    await tick();
+    view.host.nativeElement.querySelector("button")!.click();
+    expect(seen)
+      .toEqual([7]);
+  });
 });

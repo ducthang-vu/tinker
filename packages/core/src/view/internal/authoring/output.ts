@@ -16,7 +16,7 @@
 // directive is destroyed, its outputs complete, which ends every subscription.
 //
 // Output names match case-insensitively, since the browser's parser lowercases
-// attribute names. Outputs of components are not supported yet.
+// attribute names. A component's outputs are heard the same way, on its element.
 
 import { Some, None, fromNullable, match, use, Emitter } from "@tinker/functional";
 

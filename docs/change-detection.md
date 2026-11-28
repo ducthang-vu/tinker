@@ -10,7 +10,14 @@ one place when we know more about its costs.
 
 1. **Signals are the only trigger.** A view is updated because a signal it read
    changed. Nothing else causes an update: no zone, no re-run after an event
-   listener, no manual check.
+   listener, no manual check. A signal changes only when it gets a new value, and
+   for an object or an array that is a new reference: one changed in place
+   (`push`, `sort`, a field) and set again is the same value, so nothing that reads
+   the signal is told. Build a new one instead (`[...list, item]`,
+   `{ ...todo, done: true }`), and type the state as read-only
+   (`signal<readonly Todo[]>`) so TypeScript refuses the in-place change. In a
+   development build, `set` warns, once per signal, when it gets the object it
+   already holds.
 2. **Each view has its own watch.** A view is a component's template, or an
    embedded view such as a branch of `@if` or a row of `@map`. Its watch runs
    that view's bindings, and tracks the signals they read, so it is the only

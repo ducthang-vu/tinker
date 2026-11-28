@@ -8,6 +8,9 @@
 // internal node in a function and keeps the node in a closure, so users
 // cannot reach the internals, not even with a cast.
 //
+// A signal changes only when it gets a new value: an object or an array changed in place and
+// set again is the same value, and in a development build `set` warns about it.
+//
 // Every signal carries a tag under the private symbol SIGNAL: `{ id }`, the id of the
 // node it reads, so a signal and its read-only view share one. The tag tells a signal
 // from any other function; a signal is writable when it also has a `set` method.

@@ -435,3 +435,23 @@ describe("an empty-path route that is a layout", () => {
       .toBe("nope");
   });
 });
+
+describe("a URL from outside the app stays in the app (docs/sanitization.md, I1)", () => {
+  test.each([
+    ["//evil.example/x", "/evil.example/x"],
+    ["/\\evil.example", "/%5Cevil.example"],
+    ["\\\\evil.example", "/%5C%5Cevil.example"],
+    ["https://evil.example/", "/https%3A/evil.example"],
+    ["javascript:alert(1)", "/javascript%3Aalert(1)"],
+    ["/\t/evil.example", "/%09/evil.example"],
+  ])("%j is the path %j of this origin", (raw, path) => {
+    const href = builderOver([{ path: "**", component: Page }])
+      .parse(raw)
+      .build()
+      .format();
+    expect(href)
+      .toBe(path);
+    expect(new URL(href, "https://app.example/").origin)
+      .toBe("https://app.example");
+  });
+});

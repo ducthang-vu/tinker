@@ -162,7 +162,9 @@ it is on purpose.
 - **Signals are the only trigger.** No zone, and no re-render after an event
   listener runs (Angular's zoneless mode still marks a view dirty then). A
   plain field changed in a click handler does not update the view: make it a
-  signal.
+  signal. A signal changes only with a new value, a new reference for an
+  object or an array: build a new one rather than changing it in place (a
+  development build warns when `set` gets the object a signal already holds).
 - **No `ngOnInit` or `ngOnChanges`.** Inputs are signals, so what depends on
   them is a `computed`. Components, directives and services clean up in an
   `onDestroy()` method, called by the injector that created them.
