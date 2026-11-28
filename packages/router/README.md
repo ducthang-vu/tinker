@@ -316,6 +316,31 @@ If no new route takes the URL, the router shows nothing. To show a page instead,
 keep a catch-all route, `{ path: "**", component: NotFound }`, last in the
 routes: it takes any URL that the other routes do not.
 
+## Testing routes
+
+`@tinker/router/testing` has what an app's tests need. `provideTestRoutes` gives the
+routes over an in-memory location, so tests never touch the browser's history.
+It goes into `TestBed.providers(...)`, and `TestBed.build()` returns the fixture.
+
+```ts
+const fixture = TestBed.providers(...provideTestRoutes(ROUTES, { url: "/todos/7" }))
+  .component(App)
+  .build();
+const harness = new RouterTestingHarness(fixture);
+
+expect(harness.currentAppPath.format()).toBe("/todos/7");
+await harness.navigate(fixture.get(AppPathBuilder).parse("/todos").build());
+expect(getOrThrow(harness.currentRoutedComponent, () => new Error("no page")).text())
+  .toBe("Todos");
+```
+
+`RouterTestingHarness` navigates, waits for the navigation and any loads, and
+re-renders. Its getters are `router`, `currentAppPath` (an `AppPath`),
+and `currentRoutedComponent` (a `Maybe`, `None` when no component is shown).
+A test of a back move calls `moveTo(url)` on the location, which
+`fixture.get(PLATFORM_LOCATION)` returns. `nested(route, children)` builds a route
+whose children are already loaded, so a test tree needs no loader.
+
 ## The browser location
 
 The router reads and writes the browser through `Location`. The app is served
