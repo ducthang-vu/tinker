@@ -5,11 +5,12 @@
 // matches (among those the component imports). Done once per component
 // class; errors are reported here, before anything is rendered.
 //
-// Attributes are classified here too: plain ones, class bindings
-// (`[class.done]="todo.done()"`) and input bindings (`[label]="name()"`,
-// which set an input of the directives or component on the element), their
-// expressions parsed. Other binding syntax (`[style.x]`, `[attr.x]`,
-// `(event)`) is reported as not supported yet.
+// Attributes are classified here too, their expressions parsed: plain ones,
+// references (`#name`), class bindings (`[class.done]`, `[class]`), style and
+// attribute bindings (`[style.x]`, `[attr.x]`), input bindings (`[label]`, an
+// input of the directives or component on the element, or else a DOM property),
+// two-way bindings (`[(value)]`) and event bindings (`(event)`). Any other
+// bracketed name is reported as not supported.
 
 import type { AttributeNode, ElementNode, Span, TemplateNode } from "./ast.ts";
 import { located, type Parsed } from "./compile-error.ts";
@@ -215,8 +216,7 @@ export interface CompiledText {
 
 /**
  * Compile parsed nodes, matching their elements against `candidates`. The first invalid `{{ }}`,
- * an element matching two components, or content inside a component's element (projection is
- * not supported yet) is the error.
+ * an element matching two components, or another error of a node is the error.
  */
 export function compileTemplate(
   nodes: readonly TemplateNode[],
