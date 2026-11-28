@@ -4,6 +4,7 @@
 // provider, e.g. `provide(RENDERER, { useClass: ServerRenderer })`.
 
 import { InjectionToken } from "../../di/index.ts";
+import { isDevBuild } from "../../utils/dev-build.ts";
 import type { Class } from "../../utils/types.ts";
 import type { Renderer } from "./renderer.ts";
 import type { TemplateParser } from "./template/parser.ts";
@@ -13,8 +14,7 @@ import type { TemplateParser } from "./template/parser.ts";
  * `globalThis.__TINKER_DEV__` at build time; without it, the app is not in development mode.
  */
 export const DEV_MODE = new InjectionToken<boolean>("DEV_MODE");
-export const BUILD_DEV_MODE: boolean
-  = (globalThis as { __TINKER_DEV__?: boolean }).__TINKER_DEV__ === true;
+export const BUILD_DEV_MODE: boolean = isDevBuild();
 
 /** The document the app runs in (default: the global one). */
 export const DOCUMENT = new InjectionToken<Document>("DOCUMENT");

@@ -1,3 +1,4 @@
+import { isDevBuild } from "../../utils/dev-build.ts";
 import { activeConsumer } from "./context/active-consumer.ts";
 import { SignalWriteError } from "./errors.ts";
 import { ConsumersContainer } from "./graph/consumers-container.ts";
@@ -13,6 +14,9 @@ export class Signal<T> implements Readable<T>, Producer {
   }
 
   private readonlyView: ReadonlySignal<T> | undefined;
+
+  /** Whether `set` has warned about getting the object it holds: once per signal. */
+  private warned = false;
 
   /**
    * @param value The initial value.
@@ -56,11 +60,29 @@ export class Signal<T> implements Readable<T>, Producer {
       throw new SignalWriteError();
     }
     if (this.equal(this.value, value)) {
+      this.warnIfSameObject(value);
       return;
     }
     this.value = value;
     this.consumers.bumpVersion();
     this.consumers.markAllDirty();
+  }
+
+  /**
+   * In a development build, warn (once per signal) when `set` gets the object or array the
+   * signal already holds: nothing that reads the signal is told, which is a bug when the object
+   * was changed in place. A signal changes only with a new value, a new reference for an object.
+   */
+  private warnIfSameObject(value: T): void {
+    const sameObject = typeof value === "object" && value !== null && Object.is(this.value, value);
+    if (sameObject && !this.warned && isDevBuild()) {
+      this.warned = true;
+      console.warn(
+        "A signal was set to the object it already holds, so nothing that reads it is told. "
+        + "If it was changed in place (push, sort, a field), set a new one instead, "
+        + "e.g. [...list, item] or { ...item, done: true }.",
+      );
+    }
   }
 
   /** Set a new value computed from the current one. */

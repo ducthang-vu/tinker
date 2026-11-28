@@ -224,10 +224,12 @@ These rules hold for any list a template reads, and the `@map` block above follo
 1. **A list is a value and is never mutated.** A change is a new list, set on
    its signal (`todos.set([...todos(), next])`). Changing a list in place
    (`push`, `splice`, `sort`) does not notify anything, because the signal still
-   holds the same array, so the author gets stale rows. The framework cannot
-   stop mutation in JavaScript. Mutating an item in place and setting the list
-   again is the same bug: the item is the same reference, so its row is not
-   updated. A dev-mode check for both is planned, not built.
+   holds the same array, so the author gets stale rows. Mutating an item in place
+   and setting the list again is the same bug: the item is the same reference, so
+   its row is not updated. This is the rule of every signal, not of `@map` alone
+   (see [change-detection.md](change-detection.md), rule 1): a development build
+   warns when a signal is set to the array it already holds, and a read-only type
+   (`signal<readonly Todo[]>`) refuses the change at build time.
 2. **Equality is `===`.** A row's item changed when it is a different reference.
    Objects are not compared by content. An author who rebuilds equal objects
    causes their rows to update, which costs binding work but not wrong output.

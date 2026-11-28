@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { Computed } from "./computed.ts";
 import { SignalWriteError } from "./errors.ts";
 import { ReadonlySignal, Signal } from "./signal.ts";
@@ -125,5 +125,52 @@ describe("ReadonlySignal", () => {
       .toBe(2);
     expect(c.get())
       .toBe(20);
+  });
+});
+
+describe("setting the object a signal holds", () => {
+  const dev = globalThis as { __TINKER_DEV__?: boolean };
+  afterEach(() => {
+    delete dev.__TINKER_DEV__;
+    vi.restoreAllMocks();
+  });
+
+  test("in a development build, warns once per signal: what reads it is not told", () => {
+    dev.__TINKER_DEV__ = true;
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const list = new Signal<number[]>([1]);
+    list.update((current) => {
+      current.push(2);
+      return current;
+    });
+    list.set(list.get());
+    expect(warn)
+      .toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0])
+      .toContain("A signal was set to the object it already holds");
+  });
+
+  test("a new array, or the same primitive, is not warned about", () => {
+    dev.__TINKER_DEV__ = true;
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const list = new Signal<number[]>([1]);
+    list.set([...list.get(), 2]);
+    const count = new Signal(1);
+    count.set(1);
+    expect(warn)
+      .not
+      .toHaveBeenCalled();
+  });
+
+  test("outside a development build, nothing is warned", () => {
+    const warn = vi.spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const list = new Signal<number[]>([1]);
+    list.set(list.get());
+    expect(warn)
+      .not
+      .toHaveBeenCalled();
   });
 });
