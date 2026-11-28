@@ -85,7 +85,6 @@ root as the one case that renders into an existing element.
   handler; it is not sugar over the property yet.
 - **Reflected properties follow their attribute.** Setting `disabled` changes the
   attribute too, because the browser reflects it. Nothing here guards that.
-- **No type checks.** A string bound to a number property is set as it is.
 - **A refused value is set to `""`.** `[href]` to `javascript:` and `[innerHTML]` without
   a `TrustedHtml` are set to `""` (see `docs/sanitization.md`, G), so the property is
   written, not left as it was.

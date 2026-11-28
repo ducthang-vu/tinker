@@ -53,6 +53,8 @@ export interface CheckedDirective {
   readonly members: readonly string[];
   /** Whether `members` has them all: false when its base classes could not be read. */
   readonly allMembers: boolean;
+  /** The template names its own inputs are given (`input(…, { name })`), besides its members. */
+  readonly inputs: readonly string[];
 }
 
 /** A component's compiled template, with what it imports: what the check needs. */
@@ -297,10 +299,18 @@ function emitNode(
         ...node.inputBindings,
       ];
       const outlet = context.outlets.elements.get(node);
+      const properties: ReadonlySet<unknown> = new Set(node.inputBindings
+        .filter((binding) => isProperty(binding, owned)));
       for (const binding of bindings) {
-        lines.push(outlet !== undefined && binding === contextOf(node)
-          ? `var ${outlet} = ${expressionOf(binding.expression, visible, context.fns)};`
-          : statement(binding.expression, visible, context.fns));
+        const read = expressionOf(binding.expression, visible, context.fns);
+        if (outlet !== undefined && binding === contextOf(node)) {
+          lines.push(`var ${outlet} = ${read};`);
+        } else if (properties.has(binding)) {
+          const type = `$Property<${JSON.stringify(node.name)}, ${JSON.stringify(binding.name)}>`;
+          lines.push(...blockOf([], [`const $property: ${type} | $Trusted = ${read};`]));
+        } else {
+          lines.push(`void (${read});`);
+        }
       }
       if (outlet !== undefined && contextOf(node) === undefined) {
         lines.push(`var ${outlet} = {};`);
@@ -479,6 +489,18 @@ function unionOf(
 const ELEMENT_HELPER = "type $Element<N> = N extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[N] : N extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[N] : HTMLElement;";
 const DOM_EVENT_HELPER = "type $DomEvent<N> = N extends keyof HTMLElementEventMap ? HTMLElementEventMap[N] : Event;";
 const OR_HELPER = "type $Or<A, B> = [A] extends [never] ? B : A;";
+
+/**
+ * What a check file declares for a DOM property binding: the type of the property of a tag the
+ * DOM types, found as the run time finds it (ignoring case), and `any` for another tag (a custom
+ * element); and the trusted values the sanitizer takes for any property.
+ */
+const PROPERTY_HELPERS: readonly string[] = [
+  "type $PropertyOf<E, P extends string> = { [K in keyof E & string]: Lowercase<K> extends Lowercase<P> ? E[K] : never }[keyof E & string];",
+  "type $Property<N, P extends string> = N extends keyof HTMLElementTagNameMap ? $PropertyOf<HTMLElementTagNameMap[N], P> : N extends keyof SVGElementTagNameMap ? $PropertyOf<SVGElementTagNameMap[N], P> : any;",
+  "import type { TrustedHtml as $TrustedHtml, TrustedStyle as $TrustedStyle, TrustedUrl as $TrustedUrl } from \"@tinker/core\";",
+  "type $Trusted = $TrustedHtml | $TrustedStyle | $TrustedUrl;",
+];
 const OUTPUT_HELPERS: readonly string[] = [
   "import type { ModelSignal as $ModelSignal, Output as $Output } from \"@tinker/core\";",
   "declare function $emitted<V>(output: V): V extends $Output<infer T> ? T : never;",
@@ -629,6 +651,26 @@ function eventOf(
     ...reads.map((read, index) => `const $output_${index} = ${read};`),
     `const $event = null as never as ${values.length === 0 ? dom : `$Or<${values.join(" | ")}, ${dom}>`};`,
   ];
+}
+
+/**
+ * Whether an input binding sets a DOM property: it names no owner, and no directive or component
+ * on the element has an input of that name (as a member, or by the name its options give). When
+ * one of them is not typed, or does not have all its members known, it may have one: not checked.
+ *
+ * @param binding The input binding.
+ * @param owned The directives and component on the element.
+ * @returns Whether it is checked as a DOM property.
+ */
+function isProperty(
+  binding: ElementNode["inputBindings"][number],
+  owned: readonly (TypedDirective | undefined)[],
+): boolean {
+  const lower = binding.name.toLowerCase();
+  return binding.owner === undefined && owned.every((directive) => directive !== undefined
+    && directive.info.allMembers
+    && ![...directive.info.members, ...directive.info.inputs]
+      .some((name) => name.toLowerCase() === lower));
 }
 
 /**
@@ -815,6 +857,7 @@ const HELPERS: readonly (readonly [string, readonly string[]])[] = [
   ["$Element<", [ELEMENT_HELPER]],
   ["$DomEvent<", [DOM_EVENT_HELPER]],
   ["$Or<", [OR_HELPER]],
+  ["$Property<", PROPERTY_HELPERS],
   ["$emitted(", OUTPUT_HELPERS.slice(0, 2)],
   ["$changed(", [OUTPUT_HELPERS[0]!, OUTPUT_HELPERS[2]!]],
 ];

@@ -26,7 +26,12 @@ const directive = (
   className: string,
   selector: string,
   members: readonly string[],
-  options: { exportAs?: string; isComponent?: boolean; allMembers?: boolean } = {},
+  options: {
+    exportAs?: string;
+    isComponent?: boolean;
+    allMembers?: boolean;
+    inputs?: readonly string[];
+  } = {},
 ) => ({ className, selector, members, ...options });
 
 /**
@@ -53,6 +58,7 @@ function pageWith(
       selector: info.selector,
       members: info.members,
       allMembers: info.allMembers ?? true,
+      inputs: info.inputs ?? [],
       ...(info.exportAs === undefined ? {} : { exportAs: info.exportAs }),
     })),
   };
@@ -495,6 +501,33 @@ describe("checkFileOf", () => {
     });
   });
 
+  test("a binding of a DOM property is checked against the property, one of an input is not", () => {
+    const text = checkFileOf([pageWith(
+      "<input [value]=\"name\"><b pick [label]=\"1\" [title]=\"2\" [alias]=\"3\" (x)=\"go()\"></b>",
+      [directive("Pick", "[pick]", ["label"], { inputs: ["alias"] })],
+    )], outputFile);
+    expect(text)
+      .toContain("const $property: $Property<\"input\", \"value\"> | $Trusted = $c[\"name\"];");
+    expect(text)
+      .toContain("const $property: $Property<\"b\", \"title\"> | $Trusted = 2;");
+    expect(text)
+      .toContain("void (1);");
+    expect(text)
+      .toContain("void (3);");
+    expect(text)
+      .toContain("type $Trusted = $TrustedHtml | $TrustedStyle | $TrustedUrl;");
+  });
+
+  test("a property binding is not checked when a directive on the element may have the input", () => {
+    const text = checkFileOf([pageWith(
+      "<b pick [title]=\"2\"></b><i pick [pick.title]=\"3\"></i>",
+      [directive("Pick", "[pick]", [], { allMembers: false })],
+    )], outputFile);
+    expect(text)
+      .not
+      .toContain("$Property<");
+  });
+
   test("a slot checks nothing", () => {
     const text = checkFileOf([page("<slot></slot>")], outputFile);
     expect(text)
@@ -782,5 +815,29 @@ describe("the check of a template's let- names, compiled by TypeScript", () => {
       .toEqual([expect.stringContaining("'number' is not assignable to parameter of type 'string'")]);
     expect(typeErrorsOf(component, template("{ other: 'a' }"), dirs))
       .toEqual([expect.stringContaining("Property 'item' does not exist")]);
+  });
+});
+
+describe("the check of DOM property bindings, compiled by TypeScript", () => {
+  const component = `import { TrustedHtml } from "@tinker/core";
+  export class Page {
+    name(): string { return "a"; }
+    count(): number { return 1; }
+    html(): TrustedHtml { return null as never; }
+  }`;
+
+  test("a value of the property's type, or a trusted value, compiles", () => {
+    expect(typeErrorsOf(
+      component,
+      "<input [value]=\"name()\" [disabled]=\"true\"><div [innerhtml]=\"html()\"></div><tk-x [anything]=\"count()\"></tk-x>",
+    ))
+      .toEqual([]);
+  });
+
+  test("a value of another type, or a property the element does not have, is an error", () => {
+    expect(typeErrorsOf(component, "<input [disabled]=\"name()\">"))
+      .toEqual([expect.stringContaining("Type 'string' is not assignable to type")]);
+    expect(typeErrorsOf(component, "<input [nope]=\"name()\">"))
+      .toEqual([expect.stringContaining("Type 'string' is not assignable to type")]);
   });
 });

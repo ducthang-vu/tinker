@@ -604,6 +604,7 @@ async function checkedDirectivesOf(
       ...(imported.exportAs === undefined ? {} : { exportAs: imported.exportAs }),
       members: [...declaration.members, ...(inherited.isRead ? inherited.members : [])],
       allMembers: inherited.isRead,
+      inputs: Object.values(declaration.inputNames),
     });
   }
   return directives;
