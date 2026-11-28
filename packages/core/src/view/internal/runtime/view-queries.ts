@@ -15,6 +15,8 @@ interface Match {
   readonly instance: object;
   /** The element the instance is on, or the anchor of its container. */
   readonly element: Node;
+  /** Whether it is a direct match: a content query lists the others only with `descendants`. */
+  readonly direct: boolean;
 }
 
 @Injectable()
@@ -38,9 +40,17 @@ export class ViewQueries {
     return value;
   }
 
-  /** Record `instance` on `element`. Returns what removes it again. */
-  add(instance: object, element: Node): () => void {
-    const match: Match = { instance, element };
+  /**
+   * Record `instance` on `element`. Returns what removes it again.
+   *
+   * @param instance The directive or component instance.
+   * @param element The element it is on, or the anchor of its container.
+   * @param direct Whether it is a direct match (a content registry's direct child), not a
+   *   descendant.
+   * @returns What removes the record.
+   */
+  add(instance: object, element: Node, direct = true): () => void {
+    const match: Match = { instance, element, direct };
     this.matches.update((matches) => [...matches, match]);
     return () => {
       this.matches.update((matches) => matches.filter((other) => other !== match));
@@ -52,9 +62,15 @@ export class ViewQueries {
     this.order.update((count) => count + 1);
   }
 
-  /** The instances of `type`, in document order. */
-  of<T extends object>(type: Class<T>): ReadonlySignal<readonly T[]> {
-    const matches = this.matchesOf(type);
+  /**
+   * The instances of `type`, in document order.
+   *
+   * @param type The class matched.
+   * @param descendants Whether the matches that are not direct are listed too.
+   * @returns The instances, as a signal.
+   */
+  of<T extends object>(type: Class<T>, descendants = false): ReadonlySignal<readonly T[]> {
+    const matches = this.matchesOf(type, descendants);
     return computed(() => matches()
       .map((match) => match.instance as T));
   }
@@ -63,40 +79,51 @@ export class ViewQueries {
    * The elements of the instances of `type`, in document order, as ElementRefs.
    * Instances on a container have no element, so they are not in the list.
    */
-  elementsOf<T extends object>(type: Class<T>): ReadonlySignal<readonly ElementRef[]> {
-    const matches = this.matchesOf(type);
+  elementsOf<T extends object>(
+    type: Class<T>,
+    descendants = false,
+  ): ReadonlySignal<readonly ElementRef[]> {
+    const matches = this.matchesOf(type, descendants);
     return computed(() => matches()
       .filter((match) => match.element instanceof Element)
       .map((match) => new ElementRef(match.element as Element)));
   }
 
   /** The first instance of `type` in document order, if there is one. */
-  first<T extends object>(type: Class<T>): ReadonlySignal<Maybe<T>> {
-    const all = this.of(type);
+  first<T extends object>(type: Class<T>, descendants = false): ReadonlySignal<Maybe<T>> {
+    const all = this.of(type, descendants);
     return computed(() => fromNullable(all()[0]));
   }
 
   /** The first element of an instance of `type`, as an ElementRef, if there is one. */
-  firstElement<T extends object>(type: Class<T>): ReadonlySignal<Maybe<ElementRef>> {
-    const all = this.elementsOf(type);
+  firstElement<T extends object>(
+    type: Class<T>,
+    descendants = false,
+  ): ReadonlySignal<Maybe<ElementRef>> {
+    const all = this.elementsOf(type, descendants);
     return computed(() => fromNullable(all()[0]));
   }
 
-  private matchesOf<T extends object>(type: Class<T>): ReadonlySignal<readonly Match[]> {
+  private matchesOf<T extends object>(
+    type: Class<T>,
+    descendants: boolean,
+  ): ReadonlySignal<readonly Match[]> {
     return computed(() => {
       this.order();
       return this.matches()
-        .filter((match) => match.instance instanceof type)
+        .filter((match) => match.instance instanceof type && (descendants || match.direct))
         .sort((left, right) => documentOrder(left.element, right.element));
     });
   }
 }
 
 /**
- * The content queries of a component: the instances its parent's template declares as
- * direct children of its element, recorded by the parent. The component reads them with
- * `query(…, { from: "content" })`. It is the same registry as ViewQueries, a separate
- * token, so the two sources cannot be mixed up.
+ * The content queries of a component: the instances its parent's template passes in, recorded by
+ * the parent: those on the direct children of its element as direct matches, and those nested
+ * deeper (in a plain element, a `@if` branch, a `@map` row, a `<tk-container>`) as descendants.
+ * The component reads them with `query(…, { from: "content" })`, adding `descendants: true` for
+ * the nested ones. It is the same registry as ViewQueries, a separate token, so the two sources
+ * cannot be mixed up.
  */
 @Injectable()
 export class ContentQueries extends ViewQueries {}

@@ -90,18 +90,7 @@ root as the one case that renders into an existing element.
   a `TrustedHtml` are set to `""` (see `docs/sanitization.md`, G), so the property is
   written, not left as it was.
 
-### 2. Content queries see only direct element children
-
-**Problem.** `query(…, { from: "content" })` lists the elements the parent passes
-in directly. Items inside `@if`, `@map` or `<tk-container>` children, and items
-nested in a plain element, are not in the list.
-
-**To do.** Record every match of the parent's template that lands in the
-component's slot, not only direct children, behind an option (`descendants`), and
-include the blocks' rows. The rule is settled in the query code, so this is a
-change in `projectChildren` and the block builders.
-
-### 3. A template variable is a query target only in `query`
+### 2. A template variable is a query target only in `query`
 
 **Problem.** `query("name")` reads a top-level `#name`, but `queryAll` takes only
 a class, and a variable inside `@if` or `@map` is not in the registry, since one
