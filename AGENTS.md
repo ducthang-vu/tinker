@@ -78,6 +78,9 @@ An AI agent must not change that API on its own.
 - Where the docs live, and what goes in each:
   - `README.md`: the overview of the framework, with one bullet per feature.
     Keep each bullet to what the feature does and how to write it.
+  - A package's `README.md` (such as `packages/functional/README.md`): what the
+    package holds and how to use it, linking to the guide of each part that has
+    one (such as `src/lib/optics/README.md`).
   - `docs/*.md`: one file per area (`architecture`, `change-detection`,
     `control-flow`, `sanitization`, `testing`, and so on). A feature that belongs
     to an area goes in that file. Add a new file only for a new area.
