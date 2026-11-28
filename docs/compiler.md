@@ -153,6 +153,8 @@ are git-ignored and rewritten each run.
   for any property, as the sanitizer takes it. A property the element does not have is a
   type error. A binding that a directive's or component's input takes is not a property
   binding, and a custom element's properties are not typed.
+- Two-way bindings: `[(value)]="name"` checks that `name` is a writable signal (it has
+  `set`), and its value against the input or property, as `[value]="name()"`.
 - References: `#name` is its element (`HTMLInputElement` for an `<input>`, `HTMLElement`
   for a tag the DOM does not type), `##name` the element's component, and
   `#name="exportAs"` the directive or component with that exportAs.

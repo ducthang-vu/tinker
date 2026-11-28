@@ -32,7 +32,7 @@ import { type Owned, ownerName } from "../runtime/owner.ts";
 import { devChecks, Scope, warnShadows } from "../template/scope.ts";
 import { evaluate } from "../template/evaluate.ts";
 import { requireMethod, runHandler } from "../template/handler.ts";
-import { computed, type Signal, signal } from "../../../signals/index.ts";
+import { computed, isSignal, type Signal, signal } from "../../../signals/index.ts";
 import type { Class } from "../../../utils/types.ts";
 import { DEV_MODE, RENDERER } from "../tokens.ts";
 import { listenWithModifiers } from "../runtime/event-listener.ts";
@@ -314,12 +314,14 @@ export class TemplateBuilder {
         owner?.instance,
       );
       // Event bindings: the outputs of the element's directives and component, and the DOM events.
+      const owned = [
+        ...this.ownedOf(node.directives, directives),
+        ...(owner === undefined ? [] : this.ownedOf([owner.type], [owner.instance])),
+      ];
       if (element !== undefined) {
-        this.bindEvents(node, element, [
-          ...this.ownedOf(node.directives, directives),
-          ...(owner === undefined ? [] : this.ownedOf([owner.type], [owner.instance])),
-        ], view);
+        this.bindEvents(node, element, owned, view);
       }
+      this.bindTwoWay(node, element, owned, view);
       // The instances are view queries of this component, and content queries of the
       // components they are projected into: removed with their view.
       for (const instance of instances) {
@@ -436,6 +438,52 @@ export class TemplateBuilder {
       if (dom !== undefined) {
         view.addDestroyCallback(listenWithModifiers(this.renderer, element, dom, call));
       }
+    }
+  }
+
+  /**
+   * Write back the signal of each `[(name)]="signal"` of `node` (its input side is an input
+   * binding of `signal()`): with each value of the `<name>Change` outputs of the element's
+   * directives and component (a `model()`), or, with none, with the property after each DOM
+   * event that changes it (`input` for `value`, `change` for `checked`). Both end with `view`.
+   *
+   * @throws If the expression is not a writable signal, or nothing on the element changes `name`.
+   */
+  private bindTwoWay(
+    node: CompiledElement,
+    element: Element | undefined,
+    owned: readonly Owned[],
+    view: View,
+  ): void {
+    for (const { name, expression } of node.twoWayBindings) {
+      const where = `[(${name})] on <${node.name}>`;
+      // Read where the value is written: a row's name can stand for another signal later.
+      const target = () => writableSignal(evaluate(expression, this.scope), where);
+      target();
+      const write = (value: unknown) => target()
+        .set(value);
+      const emitters = outputsNamed(owned.map((item) => item.instance), `${name}Change`);
+      if (emitters.length > 0) {
+        for (const emitter of emitters) {
+          view.addDestroyCallback(run(emitter.stream, { next: write }));
+        }
+        continue;
+      }
+      const property = element === undefined
+        ? undefined
+        : this.renderer.propertyNameOf(element, name);
+      const event = property === undefined ? undefined : CHANGE_EVENTS[property.toLowerCase()];
+      if (element === undefined || property === undefined || event === undefined) {
+        throw new Error(`${where}: no directive or component on it has a model "${name}", and it has no property "${name}" the user changes (${Object.keys(CHANGE_EVENTS)
+          .join(", ")})`);
+      }
+      const read = () => (element as unknown as Record<string, unknown>)[property];
+      view.addDestroyCallback(listenWithModifiers(
+        this.renderer,
+        element,
+        { event, modifiers: [] },
+        () => write(read()),
+      ));
     }
   }
 
@@ -730,6 +778,35 @@ function reached(
     );
   }
   return reaching.map((item) => item.instance);
+}
+
+/**
+ * The DOM event after which a property a two-way binding reads has changed, by the property's
+ * name in lower case: the properties the user changes.
+ */
+const CHANGE_EVENTS: Readonly<Record<string, string>> = {
+  value: "input",
+  valueasnumber: "input",
+  valueasdate: "input",
+  checked: "change",
+  selectedindex: "change",
+  open: "toggle",
+};
+
+/**
+ * `value`, which a two-way binding writes: a signal (it carries the signal tag) with a `set`.
+ *
+ * @param value What the binding's expression gives.
+ * @param where The binding, for the error.
+ * @returns The signal.
+ * @throws If it is not a writable signal.
+ */
+function writableSignal(value: unknown, where: string): { set(value: unknown): void } {
+  if (!isSignal(value) || typeof (value as { set?: unknown }).set !== "function") {
+    const what = isSignal(value) ? "a read-only signal (a computed, an input, or a view)" : typeof value;
+    throw new Error(`${where}: a two-way binding writes a writable signal, got ${what}`);
+  }
+  return value as unknown as { set(value: unknown): void };
 }
 
 /** The slot a child of a component's element goes to: its `slot` attribute, or the default one. */

@@ -818,6 +818,24 @@ describe("the check of a template's let- names, compiled by TypeScript", () => {
   });
 });
 
+describe("the check of two-way bindings, compiled by TypeScript", () => {
+  const component = `import { computed, signal } from "@tinker/core";
+  export class Page {
+    readonly name = signal("a");
+    readonly count = signal(1);
+    readonly upper = computed(() => "A");
+  }`;
+
+  test("a writable signal of the property's type compiles; a read-only one, or another type, does not", () => {
+    expect(typeErrorsOf(component, "<input [(value)]=\"name\">"))
+      .toEqual([]);
+    expect(typeErrorsOf(component, "<input [(value)]=\"upper\">"))
+      .toEqual([expect.stringContaining("Property 'set' is missing")]);
+    expect(typeErrorsOf(component, "<input [(value)]=\"count\">"))
+      .toEqual([expect.stringContaining("Type 'number' is not assignable to type")]);
+  });
+});
+
 describe("the check of DOM property bindings, compiled by TypeScript", () => {
   const component = `import { TrustedHtml } from "@tinker/core";
   export class Page {

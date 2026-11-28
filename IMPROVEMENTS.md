@@ -81,8 +81,6 @@ root as the one case that renders into an existing element.
 - **The property is looked up when the element is built.** A property that an element
   gains later (a custom element defined after the template is built) is an error at
   build time, not a binding that waits for it.
-- **There is no `[(value)]`.** Two-way binding needs the property plus an `(input)`
-  handler; it is not sugar over the property yet.
 - **Reflected properties follow their attribute.** Setting `disabled` changes the
   attribute too, because the browser reflects it. Nothing here guards that.
 - **A refused value is set to `""`.** `[href]` to `javascript:` and `[innerHTML]` without

@@ -134,6 +134,11 @@ export interface CompiledElement {
   readonly inputBindings: readonly InputBindingNode[];
   /** Its output bindings, e.g. `(selected)="choose($event)"`, in template order. */
   readonly outputBindings: readonly OutputBindingNode[];
+  /**
+   * Its two-way bindings, e.g. `[(value)]="name"`: each is also an input binding of
+   * `name()`, and the builder writes the signal `name` when the value changes.
+   */
+  readonly twoWayBindings: readonly ValueBindingNode[];
   readonly children: readonly CompiledNode[];
   /** The template references on it: `#name`, `#name="exportAs"` and `##name`. */
   readonly references: readonly TemplateReference[];
@@ -603,6 +608,7 @@ function compileElement(
     styleBindings,
     attributeBindings,
     references,
+    twoWayBindings,
   } = classified;
   const bound = [classBindings, classObjects, styleBindings, attributeBindings, inputBindings,
     outputBindings]
@@ -652,6 +658,7 @@ function compileElement(
     outputBindings,
     styleBindings,
     attributeBindings,
+    twoWayBindings,
     references,
     directives,
     component,
@@ -789,6 +796,7 @@ export interface DomFallback {
 }
 
 const CLASS_BINDING = /^\[class\.([^\]\s]+)\]$/;
+const TWO_WAY_BINDING = /^\[\(([^\]().\s]+)\)\]$/;
 const INPUT_BINDING = /^\[(?:([^\].\s]+)\.)?([^\].\s]+)\]$/;
 const OUTPUT_BINDING = /^\(([^)\s]+)\)$/;
 const STYLE_BINDING = /^\[style\.([^\]\s]+)\]$/;
@@ -804,6 +812,7 @@ interface Classified {
   readonly outputBindings: readonly OutputBindingNode[];
   readonly styleBindings: readonly ValueBindingNode[];
   readonly attributeBindings: readonly ValueBindingNode[];
+  readonly twoWayBindings: readonly ValueBindingNode[];
 }
 
 const NO_ATTRIBUTES: Classified = {
@@ -815,6 +824,7 @@ const NO_ATTRIBUTES: Classified = {
   outputBindings: [],
   styleBindings: [],
   attributeBindings: [],
+  twoWayBindings: [],
 };
 
 /**
@@ -846,6 +856,14 @@ function classifyAttribute(
     return map(referenceOf(attribute, node, current.references), (reference): Classified => ({
       ...current,
       references: [...current.references, reference],
+    }));
+  }
+  const twoWay = TWO_WAY_BINDING.exec(attribute.name)?.[1];
+  if (twoWay !== undefined) {
+    return map(twoWayBinding(attribute, node, twoWay), ({ input, binding }): Classified => ({
+      ...current,
+      inputBindings: [...current.inputBindings, input],
+      twoWayBindings: [...current.twoWayBindings, binding],
     }));
   }
   const className = CLASS_BINDING.exec(attribute.name)?.[1];
@@ -898,6 +916,30 @@ function classifyAttribute(
     return Left.of(new Error(`Bindings are not supported yet: "${attribute.name}" on <${node.name}>`));
   }
   return Right.of({ ...current, attributes: [...current.attributes, attribute] });
+}
+
+/**
+ * A two-way binding `[(name)]="signal"`: an input binding of `signal()`, and the signal the
+ * builder writes. The expression must name the signal (a field, or a chain of them), not call it.
+ */
+function twoWayBinding(
+  attribute: AttributeNode,
+  node: ElementNode,
+  name: string,
+): Parsed<{ readonly input: InputBindingNode; readonly binding: ValueBindingNode }> {
+  return flatMap(expressionOfAttribute(attribute, node), (expression) =>
+    expression.kind === "property"
+      ? Right.of({
+          input: {
+            name,
+            owner: undefined,
+            expression: { kind: "call", callee: expression, args: [] } as Expression,
+          },
+          binding: { name, expression },
+        })
+      : Left.of(new Error(
+          `[(${name})]="${attribute.value}" on <${node.name}>: a two-way binding names a writable signal, such as [(${name})]="value"`,
+        )));
 }
 
 /** The expression of a bound attribute's value, or the error it has. */

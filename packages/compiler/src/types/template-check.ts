@@ -13,6 +13,7 @@
 //   `typeof` test, `present`, the keys an object pattern reads), through `Maybe` and `Either`
 //   cases and alternatives too;
 // - references: `#name` is its element, `##name` the component, `#name="exportAs"` the directive;
+// - two-way bindings: the signal must be writable, and its value fits the input or property;
 // - handlers: called with `$event`, the value of the outputs of that name of the element's
 //   directives and component, or else its DOM event.
 // A directive the check cannot import (one not exported) is not typed: references to it and
@@ -314,6 +315,10 @@ function emitNode(
       }
       if (outlet !== undefined && contextOf(node) === undefined) {
         lines.push(`var ${outlet} = {};`);
+      }
+      // A two-way binding writes its signal: it must have `set` (its value is checked as an input).
+      for (const binding of node.twoWayBindings) {
+        lines.push(`void (${expressionOf(binding.expression, visible, context.fns)} satisfies $Writable);`);
       }
       for (const output of node.outputBindings) {
         lines.push(...blockOf([], [
@@ -850,8 +855,12 @@ function callOf(
   return `(${expressionOf(callee, scope, fns)})(${args})`;
 }
 
+/** What a check file declares for a two-way binding: a signal it can write. */
+const WRITABLE_HELPER = "type $Writable = { (): unknown; set(value: never): void };";
+
 /** Each helper a check file declares, with what in the checks shows that they use it. */
 const HELPERS: readonly (readonly [string, readonly string[]])[] = [
+  ["satisfies $Writable", [WRITABLE_HELPER]],
   ["$Narrow<", [NARROW_HELPER]],
   ["$Keys<", KEYS_HELPERS],
   ["$Element<", [ELEMENT_HELPER]],
