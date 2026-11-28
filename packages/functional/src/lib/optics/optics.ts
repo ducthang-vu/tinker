@@ -18,6 +18,8 @@
 // The rule every optic here follows, and that the signals rely on: setting the part to the value
 // it already holds returns the same whole, not a copy. A signal holding the whole then sees no
 // change, and notifies no one.
+//
+// The guide, with the composition table, the laws and examples, is README.md in this folder.
 
 import { flatMap, map } from "../functor/functor.ts";
 import { getOrElse, type Maybe, Some } from "../monad/maybe.ts";
