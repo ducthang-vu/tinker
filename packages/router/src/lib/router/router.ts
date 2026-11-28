@@ -4,7 +4,7 @@
 import { computed, type Injector, type ReadonlySignal, signal } from "@tinker/core";
 import { type Stream } from "@tinker/functional";
 import { type NavigationEvent, finalEventOf } from "./navigation-event.ts";
-import type { AppPath } from "../destination/app-path.ts";
+import { type AppPath, makeAppPath } from "../destination/app-path.ts";
 import { ActivatedRoute } from "../state/activated-route.ts";
 import type { Location } from "../location/location.ts";
 import { type LevelMatch, matchChain, matchOfChain, type RouteMatch, type RouteParams } from "./match.ts";
@@ -37,10 +37,10 @@ export interface NavigateOptions {
   readonly state?: unknown;
 }
 
-/** The URL and state of the last committed navigation. */
+/** The path and state of the last committed navigation. */
 interface Committed {
-  /** The app-relative URL, with its query and fragment. */
-  readonly url: string;
+  /** The path the router is at: the root until the first navigation commits. */
+  readonly destination: AppPath;
   /** The history state of the entry. */
   readonly state: unknown;
 }
@@ -48,18 +48,19 @@ interface Committed {
 /** The router: the current URL, the matched route, the activated routes, and navigate. */
 export class Router {
   /**
-   * The current URL of the app, with its path, query and hash. It is relative to the app, not the
-   * browser: the folder the app is served under (the page's `<base>`) is not in it. So a page
-   * served from `/tinker/` at `/tinker/todos/7?tab=done` has the URL `/todos/7?tab=done`. For the
-   * browser's own URL, such as the `href` of an anchor, use `Location.buildBrowserUrl`.
+   * The path the router is at: the last committed navigation's `AppPath`, relative to the app. The
+   * folder the app is served under (the page's `<base>`) is not in it. Before the first navigation
+   * commits it is the root. For the browser's own URL, such as an anchor's `href`, use
+   * `Location.buildBrowserUrl(path.format())`.
    *
    * @example
    * ```ts
-   * const url = inject(Router).url();   // "/todos/7?tab=done", on any base folder
-   * const href = inject(Location).buildBrowserUrl(url); // "/tinker/todos/7?tab=done"
+   * const path = inject(Router).url();               // the AppPath of /todos/7?tab=done
+   * path.format();                                   // "/todos/7?tab=done", on any base folder
+   * inject(Location).buildBrowserUrl(path.format()); // "/tinker/todos/7?tab=done" under /tinker/
    * ```
    */
-  readonly url: ReadonlySignal<string>;
+  readonly url: ReadonlySignal<AppPath>;
   /** The route that matches the current URL and its params, or undefined when none does. */
   readonly match: ReadonlySignal<RouteMatch | undefined>;
   /** The activated routes for the current URL, root first. The first one never changes. */
@@ -82,8 +83,14 @@ export class Router {
   private readonly pipeline: (request: NavigationRequest) => Task<MatchedRequest, Stop>;
   private readonly stopRouting: Cancel;
   private readonly stopPops: () => void;
-  /** The last committed URL and state: where a rejected back or forward move returns to. */
-  private committed: Committed;
+  /** The last committed path and state: where a rejected back or forward move returns to. */
+  private readonly committedState = signal<Committed>({
+    destination: makeAppPath([], {}, undefined),
+    state: null,
+  });
+
+  /** The path the router is at: the root until the first navigation commits. */
+  private readonly committedPath = computed(() => this.committedState().destination);
   private nextId = 1;
   private latestId = 0;
 
@@ -97,7 +104,7 @@ export class Router {
   constructor(root: Route, location: Location, injector: Injector) {
     this.root = root;
     this.location = location;
-    this.url = location.url;
+    this.url = this.committedPath;
     this.routes = signal<Route>(root);
     this.events = this.eventSource.stream;
     this.rootRoute = new ActivatedRoute(root, {}, [], None.of());
@@ -113,7 +120,6 @@ export class Router {
         activate: (matched) => this.activate(matched.chain),
       }),
     });
-    this.committed = { url: location.url(), state: location.state() };
     // One navigation at a time: a newer request supersedes the one still running.
     this.stopRouting = run(
       switchMap(this.requests.stream, (request) => {
@@ -126,6 +132,7 @@ export class Router {
     // A back or forward move is a navigation too: it goes through the guards like any other.
     this.stopPops = location.onPop((url, state) => this.popped(url, state));
     // The URL the app starts at is a navigation too: a lazy route on it loads before it is shown.
+    this.activate(undefined);
     this.start(location.url(), location.state());
   }
 
@@ -137,25 +144,24 @@ export class Router {
    * @param state The state of the entry.
    */
   private start(url: string, state: unknown): void {
-    let destination: AppPath;
+    this.popped(url, state);
+  }
+
+  /**
+   * Matches the current URL again after the routes changed. Unlike a browser move, nothing is
+   * restored: a URL no new route takes shows nothing until the URL changes.
+   *
+   * @param url The URL the browser is on.
+   * @param state The state of the entry.
+   */
+  private rematch(url: string, state: unknown): void {
     try {
-      destination = parseAppPath(this.root, url);
+      parseAppPath(this.root, url);
     } catch {
       this.activate(undefined);
       return;
     }
-    const id = this.nextId;
-    this.nextId += 1;
-    this.latestId = id;
-    this.requests.emit({
-      id,
-      destination,
-      state,
-      arrival: "start",
-      redirectFrom: [],
-      activatedRoutes: [],
-      trace: [],
-    });
+    this.popped(url, state);
   }
 
   /**
@@ -201,7 +207,7 @@ export class Router {
   resetRoutes(routes: readonly Route[], options: ResetRoutesOptions = {}): void {
     seedChildren(this.root, routes);
     if (options.history !== "push") {
-      this.start(this.location.url(), this.location.state());
+      this.rematch(this.location.url(), this.location.state());
       return;
     }
     let destination: AppPath;
@@ -273,7 +279,7 @@ export class Router {
    * browser agree again after a rejected back or forward move.
    */
   private restore(): void {
-    this.location.replace(this.committed.url, this.committed.state);
+    this.location.replace(this.committedState().destination.format(), this.committedState().state);
   }
 
   /**
@@ -294,10 +300,10 @@ export class Router {
         : reason,
     });
     if (outcome.kind === "done") {
-      this.committed = {
-        url: outcome.navigation.destination.format(),
+      this.committedState.set({
+        destination: outcome.navigation.destination,
         state: outcome.navigation.state,
-      };
+      });
     } else if (outcome.kind === "rejected" && item.value.arrival === "pop") {
       this.restore();
     }

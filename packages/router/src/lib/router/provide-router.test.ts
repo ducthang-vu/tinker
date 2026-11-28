@@ -17,7 +17,8 @@ test("provideRouter gives a router over the browser's address bar", () => {
   const urls = runInInjectionContext(injector, () => inject(AppPathBuilder));
   router.navigate(urls.parse("/todos?tab=open")
     .build());
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos?tab=open");
   expect(window.location.pathname)
     .toBe("/todos");

@@ -16,10 +16,10 @@ export interface NavigationRequest {
   /** The history state the URL is given. */
   readonly state: unknown;
   /**
-   * `push` adds a history entry (a `navigate` call); `pop` is a back or forward move; `start` is
-   * the URL the app starts at, which replaces the entry it is already on.
+   * `push` adds a history entry (a `navigate` call). `pop` is a move the browser made: a back or
+   * forward move, or the URL the app starts at, which the router follows from its root path.
    */
-  readonly arrival: "push" | "pop" | "start";
+  readonly arrival: "push" | "pop";
   /**
    * The URLs this navigation was redirected from, oldest first. Empty for the first request. A
    * redirect appends the URL it came from, so the chain of redirects is readable from the request.
