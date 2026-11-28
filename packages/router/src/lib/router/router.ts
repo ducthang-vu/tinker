@@ -47,7 +47,18 @@ interface Committed {
 
 /** The router: the current URL, the matched route, the activated routes, and navigate. */
 export class Router {
-  /** The current URL: path, query and hash. */
+  /**
+   * The current URL of the app, with its path, query and hash. It is relative to the app, not the
+   * browser: the folder the app is served under (the page's `<base>`) is not in it. So a page
+   * served from `/tinker/` at `/tinker/todos/7?tab=done` has the URL `/todos/7?tab=done`. For the
+   * browser's own URL, such as the `href` of an anchor, use `Location.buildBrowserUrl`.
+   *
+   * @example
+   * ```ts
+   * const url = inject(Router).url();   // "/todos/7?tab=done", on any base folder
+   * const href = inject(Location).buildBrowserUrl(url); // "/tinker/todos/7?tab=done"
+   * ```
+   */
   readonly url: ReadonlySignal<string>;
   /** The route that matches the current URL and its params, or undefined when none does. */
   readonly match: ReadonlySignal<RouteMatch | undefined>;
