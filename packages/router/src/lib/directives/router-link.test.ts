@@ -86,7 +86,8 @@ test("a click navigates to the relative destination, and stops the browser's def
   expect(clickLink(fixture))
     .toBe(true);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos/7");
   fixture.destroy();
 });
@@ -96,7 +97,8 @@ test("a link whose destination is undefined stops the default and navigates nowh
   expect(clickLink(fixture, "a.nothing"))
     .toBe(true);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos");
   fixture.destroy();
 });
@@ -106,7 +108,8 @@ test("an anchor without routerlink is not handled, so the browser's default stan
   expect(clickLink(fixture, "a.plain"))
     .toBe(false);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos");
   fixture.destroy();
 });
@@ -119,7 +122,8 @@ test("a link that targets another tab is left to the browser, and keeps its targ
     .getAttribute("target"))
     .toBe("_blank");
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos");
   fixture.destroy();
 });
@@ -129,7 +133,8 @@ test("a link that targets this tab is handled", () => {
   expect(clickLink(fixture, "a.self"))
     .toBe(true);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos/7");
   fixture.destroy();
 });
@@ -147,7 +152,8 @@ test("a modifier or middle click is left to the browser", () => {
   expect(clickLink(fixture, "a.open", { button: 1 }))
     .toBe(false);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos");
   fixture.destroy();
 });
@@ -169,7 +175,8 @@ test("a link in the root component navigates from the root", () => {
   expect(clickLink(fixture, "a.root"))
     .toBe(true);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos");
   fixture.destroy();
 });
@@ -182,7 +189,8 @@ test("queryParams are added to the destination, in the href and in the navigatio
   expect(clickLink(fixture, "a.query"))
     .toBe(true);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos/7?tab=done");
   fixture.destroy();
 });
@@ -192,7 +200,8 @@ test("a fragment is the hash of the destination", () => {
   expect(clickLink(fixture, "a.fragment"))
     .toBe(true);
   expect(fixture.get(Router)
-    .url())
+    .url()
+    .format())
     .toBe("/todos/7#top");
   fixture.destroy();
 });

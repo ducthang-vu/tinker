@@ -76,7 +76,8 @@ function routerAt(url: string) {
 
 test("the URL is a signal of the current location", () => {
   const { router, urls } = routerAt("/todos");
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
 });
 
@@ -92,7 +93,8 @@ test("navigate changes the URL and the match", async () => {
   const { router, urls } = routerAt("/todos");
   await router.navigate(urls.parse("/todos/7")
     .build());
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos/7");
   expect(router.match()?.params)
     .toEqual({ id: "7" });
@@ -114,7 +116,8 @@ test("a URL no route matches is rejected with the no-route reason, and the URL d
   const outcome = await router.navigate(elsewhere, { state: { scroll: 1 } });
   expect(outcome)
     .toMatchObject({ kind: "rejected", reason: "NO_ROUTE" });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   expect(fake.state())
     .toBeNull();
@@ -300,7 +303,8 @@ test("a guard that says no stops the navigation, naming the route whose guard sa
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
     .toMatchObject({ kind: "rejected", reason: "GUARD", route: ":id" });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   destroy();
 });
@@ -313,7 +317,8 @@ test("a guard that redirects sends the navigation to its target instead, which i
   expect(await router.navigate(urls.parse("/todos/7")
     .build()))
     .toMatchObject({ kind: "done" });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   destroy();
 });
@@ -331,7 +336,8 @@ test("a route that redirects to itself is rejected as failed, with the redirect 
     .build());
   expect(outcome)
     .toMatchObject({ kind: "rejected", reason: "FAILED" });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/");
   destroy();
 });
@@ -352,7 +358,8 @@ test("a navigation replaced by a newer one is cancelled, and the newer one is do
   release?.(new AllowCommand());
   expect(await first)
     .toMatchObject({ kind: "cancelled" });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   destroy();
 });
@@ -399,7 +406,8 @@ function poppableRouter(root: Route, url: string) {
 test("a back move through the guards commits, and the routes follow it", () => {
   const { router, move, destroy } = poppableRouter(ROOT, "/todos/7");
   move("/todos");
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   expect(router.activated()[1]?.route)
     .toBe(TODOS);
@@ -417,7 +425,8 @@ test("a back move a guard rejects is restored: the browser returns to the last c
   move("/todos/7", { scroll: 3 });
   expect(current())
     .toEqual({ url: "/todos", state: null });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   destroy();
 });
@@ -433,7 +442,8 @@ test("a back move a guard redirects goes to the redirect target, which replaces 
   move("/todos/7");
   expect(current().url)
     .toBe("/todos");
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   destroy();
 });
@@ -443,7 +453,8 @@ test("a back move to a URL no route takes is restored at once", () => {
   move("/nowhere");
   expect(current().url)
     .toBe("/todos");
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos");
   destroy();
 });
@@ -466,7 +477,8 @@ test("a deactivate guard that stops keeps the user on the route they leave", asy
   expect(await router.navigate(urls.parse("/todos")
     .build()))
     .toMatchObject({ kind: "rejected", reason: "GUARD", guard: { payload: { reason: "unsaved changes" } } });
-  expect(router.url())
+  expect(router.url()
+    .format())
     .toBe("/todos/7");
   destroy();
 });
